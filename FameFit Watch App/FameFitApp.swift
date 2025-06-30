@@ -8,10 +8,18 @@
 import SwiftUI
 
 @main
-struct FameFit_Watch_AppApp: App {
+struct FameFitApp: App {
+    @StateObject private var workoutManager = WorkoutManager()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationView {
+                StartView()
+            }
+            .sheet(isPresented: $workoutManager.showingSummaryView) {
+                SummaryView()
+            }
+            .environmentObject(workoutManager)
         }
     }
 }
