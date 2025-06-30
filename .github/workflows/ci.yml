@@ -24,7 +24,7 @@ jobs:
       run: xcodebuild -version
     
     - name: Cache Swift Package Manager
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: .build
         key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
@@ -44,9 +44,9 @@ jobs:
     - name: Build WatchKit Extension
       run: |
         xcodebuild build \
-          -project "WWDC_WatchApp.xcodeproj" \
-          -scheme "WWDC_WatchApp WatchKit App" \
-          -destination "platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)" \
+          -project "FameFit.xcodeproj" \
+          -scheme "FameFit Watch App" \
+          -destination "platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)" \
           -configuration Debug \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
@@ -57,9 +57,9 @@ jobs:
     - name: Run tests
       run: |
         xcodebuild test \
-          -project "WWDC_WatchApp.xcodeproj" \
-          -scheme "WWDC_WatchApp WatchKit App" \
-          -destination "platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)" \
+          -project "FameFit.xcodeproj" \
+          -scheme "FameFit Watch App" \
+          -destination "platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)" \
           -configuration Debug \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
@@ -68,7 +68,7 @@ jobs:
     
     # Upload test results
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -86,7 +86,7 @@ jobs:
     
     # Upload coverage to Codecov (optional)
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.lcov
         fail_ci_if_error: false
@@ -110,9 +110,9 @@ jobs:
     - name: Analyze code
       run: |
         xcodebuild analyze \
-          -project "WWDC_WatchApp.xcodeproj" \
-          -scheme "WWDC_WatchApp WatchKit App" \
-          -destination "platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)" \
+          -project "FameFit.xcodeproj" \
+          -scheme "FameFit Watch App" \
+          -destination "platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)" \
           -configuration Debug \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
