@@ -29,8 +29,8 @@ To ensure testability, this project uses dependency injection instead of singlet
 
 **From Xcode:**
 - Open `FameFit.xcworkspace` (NOT the .xcodeproj)
-- For iOS app: Select "FameFit-iOS" scheme, choose iPhone simulator
-- For Watch app: Select "FameFit-Watch" scheme, choose Watch simulator
+- For iOS app: Select "FameFit" scheme, choose iPhone simulator
+- For Watch app: Select "FameFit Watch App" scheme, choose Watch simulator
 - Build and run (⌘+R)
 
 **From Command Line:**
@@ -49,20 +49,23 @@ To ensure testability, this project uses dependency injection instead of singlet
 
 **Unit Tests:**
 ```bash
-# Run all tests
-./test
+# Run comprehensive test suite
+./Scripts/test.sh
+
+# Or use Xcode directly (⌘+U)
 
 # Run tests with coverage report
-xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit-iOS -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -enableCodeCoverage YES
+xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -enableCodeCoverage YES
 
 # Run specific test file
-xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit-iOS -only-testing:FameFitTests/AuthenticationManagerTests
+xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:FameFitTests/WorkoutManagerTests
 ```
 
 **Test Structure:**
-- Unit tests go in `FameFitTests/` 
-- Integration tests go in `FameFitIntegrationTests/`
-- Watch app tests go in `FameFit Watch AppTests/`
+- iOS app unit tests: `FameFitTests/`
+- iOS app UI tests: `FameFitUITests/`
+- Watch app unit tests: `FameFit Watch AppTests/`
+- Watch app UI tests: `FameFit Watch AppUITests/`
 
 **Best Practices:**
 - Mock external dependencies (CloudKit, HealthKit)
@@ -138,22 +141,25 @@ FameFitApp
 ## Important Configuration
 
 ### Bundle Identifiers
-- Main: `com.jimmypocock.FameFit`
-- Watch App: `com.jimmypocock.FameFitWatchApp`
+- iOS App: `com.jimmypocock.FameFit`
+- Watch App: `com.jimmypocock.FameFit.watchkitapp`
 
 ### Required Capabilities
 - HealthKit (read/write workout data)
-- Background Modes: workout-processing
+- CloudKit (private database)
+- Sign in with Apple (iOS app)
+- Background Modes: remote notifications, workout-processing
 
 ### Deployment Target
-- watchOS 8.0+
-- Swift 5.0
+- iOS 17.0+
+- watchOS 10.0+
+- Xcode 16.0+ (16.4 recommended)
 
 ## Common Tasks
 
 ### Adding New Workout Types
-1. Add to `workoutTypes` array in `StartView.swift:312`
-2. Update name mapping in `HKWorkoutActivityType` extension (`StartView.swift:342`)
+1. Add to `workoutTypes` array in `WatchStartView.swift`
+2. Update name mapping in `HKWorkoutActivityType` extension
 3. Consider if new `HKQuantityType` permissions needed in `WorkoutManager.requestAuthorization()`
 
 ### Modifying Metrics Display
@@ -166,5 +172,15 @@ FameFitApp
 - Use `SummaryMetricView` component for consistent styling
 
 ### Timeline Schedule Adjustments
-- Modify `MetricsTimelinesSchedule` in `MetricsView.swift:771`
+- Modify `MetricsTimelineSchedule` in `MetricsView.swift`
 - Adjust update frequencies for `.lowFrequency` (Always On) vs `.live` modes
+
+## Project Structure
+
+The project uses Xcode 16's synchronized file groups. Always use the `.xcworkspace` file, not `.xcodeproj`.
+
+### Key Files:
+- `Shared/` - Code shared between iOS and Watch apps
+- `FameFit/` - iOS companion app
+- `FameFit Watch App/` - Apple Watch workout app
+- `Scripts/` - Build and test automation scripts
