@@ -5,22 +5,9 @@
 ## User settings
 xcuserdata/
 
-## compatibility with Xcode 8 and earlier (ignoring not required starting Xcode 9)
-*.xcscmblueprint
-*.xccheckout
-
-## compatibility with Xcode 3 and earlier (ignoring not required starting Xcode 4)
+## Build generated
 build/
 DerivedData/
-*.moved-aside
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
 
 ## Obj-C/Swift specific
 *.hmap
@@ -59,24 +46,12 @@ playground.xcworkspace
 # Add this line if you want to avoid checking in source code from the Xcode workspace
 # *.xcworkspace
 
-# Carthage
-#
-# Add this line if you want to avoid checking in source code from Carthage dependencies.
-# Carthage/Checkouts
-
-Carthage/Build/
-
-# Accio dependency management
-Dependencies/
-.accio/
-
 
 # Test Results
 TestResults/
 TestResults.xcresult
 coverage/
 coverage_report/
-test_output/
 *.xcresult
 
 # Code Injection
@@ -133,12 +108,7 @@ Temporary Items
 
 # App-specific
 # Add any app-specific files to ignore here
-FameFit.xcworkspace/
 
-# Temporary scripts
-Scripts/add_file_to_project.rb
-Scripts/fix_file_references.rb
-Scripts/clean_project_references.rb
 
 # Private
 .private/
@@ -147,6 +117,3 @@ Scripts/clean_project_references.rb
 *.backup
 backup/
 
-# Empty directories
-**/New Group/
-**/New Group */
