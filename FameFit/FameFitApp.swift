@@ -9,9 +9,23 @@ import SwiftUI
 
 @main
 struct FameFitApp: App {
+    @StateObject private var dependencyContainer = DependencyContainer()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if dependencyContainer.authenticationManager.isAuthenticated {
+                MainView()
+                    .environmentObject(dependencyContainer.authenticationManager)
+                    .environmentObject(dependencyContainer.cloudKitManager)
+                    .environmentObject(dependencyContainer.workoutObserver)
+                    .environment(\.dependencyContainer, dependencyContainer)
+            } else {
+                OnboardingView()
+                    .environmentObject(dependencyContainer.authenticationManager)
+                    .environmentObject(dependencyContainer.cloudKitManager)
+                    .environmentObject(dependencyContainer.workoutObserver)
+                    .environment(\.dependencyContainer, dependencyContainer)
+            }
         }
     }
 }

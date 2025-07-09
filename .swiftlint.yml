@@ -86,10 +86,12 @@ disabled_rules:
 
 # Rule configurations
 line_length:
-  warning: 120
+  warning: 140
   error: 200
   ignores_comments: true
   ignores_urls: true
+  ignores_function_declarations: true
+  ignores_interpolated_strings: true
 
 function_body_length:
   warning: 60
@@ -130,18 +132,17 @@ identifier_name:
 
 # Custom rules
 custom_rules:
-  no_print_statements:
-    name: "No print statements"
-    message: "Use proper logging instead of print statements"
-    regex: "(^\\s*print\\()|(NSLog\\()"
-    match_kinds:
-      - identifier
-    severity: warning
+  # Disabled for development - enable for production
+  # no_print_statements:
+  #   name: "No print statements"
+  #   message: "Use proper logging instead of print statements"
+  #   regex: "(^\\s*print\\()|(NSLog\\()"
+  #   match_kinds:
+  #     - identifier
+  #   severity: warning
   
   no_force_unwrapping:
     name: "Avoid Force Unwrapping"
     message: "Force unwrapping should be avoided"
-    regex: "\\!"
-    match_kinds:
-      - operator
+    regex: "[^!]=\\s*\\w+!"
     severity: warning

@@ -1,6 +1,6 @@
 //
 //  ElapsedTimeView.swift
-//  WWDC_WatchApp WatchKit Extension
+//  FameFit Watch App
 //
 //  Created by paige on 2021/12/11.
 //
@@ -8,26 +8,24 @@
 import SwiftUI
 
 struct ElapsedTimeView: View {
-    
     var elapsedTime: TimeInterval = 0
     var showSubseconds = true
     @State private var timeFormatter = ElapsedTimeFormatter()
-    
+
     var body: some View {
         Text(
             NSNumber(value: elapsedTime),
             formatter: timeFormatter
         ) // TEXT - ELAPSED TIME
-            .fontWeight(.semibold)
-            .onChange(of: showSubseconds) {
-                timeFormatter.showSubseconds = $0
-            }
+        .fontWeight(.semibold)
+        .onChange(of: showSubseconds) { _, newValue in
+            timeFormatter.showSubseconds = newValue
+        }
     }
 }
 
 // MARK: Elasped Time Formatter
 class ElapsedTimeFormatter: Formatter {
-    
     // MARK: CUSTOM FORMATTER
     let componentsFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
@@ -39,37 +37,36 @@ class ElapsedTimeFormatter: Formatter {
         /*
          How to use
          Text(
-             NSNumber(value: elapsedTime),
-             formatter: timeFormatter
+         NSNumber(value: elapsedTime),
+         formatter: timeFormatter
          ) // TEXT - ELAPSED TIME
-             .fontWeight(.semibold)
-             .onChange(of: showSubseconds) {
-                 timeFormatter.showSubseconds = $0
-             }
+         .fontWeight(.semibold)
+         .onChange(of: showSubseconds) {
+         timeFormatter.showSubseconds = $0
+         }
          */
         return formatter
     }() // Custom Formatter, show minute & second, subseconds are hsown
     var showSubseconds = true
-    
+
     override func string(for value: Any?) -> String? {
         guard let time = value as? TimeInterval else {
             return nil
         }
-        
+
         guard let formattedString = componentsFormatter.string(from: time) else {
             return nil
         }
-        
+
         if showSubseconds {
             // Calculate subseconds
             let hundredths = Int((time.truncatingRemainder(dividingBy: 1)) * 100)
             let decimalSeparator = Locale.current.decimalSeparator ?? "."
             return String(format: "%@%@%0.2d", formattedString, decimalSeparator, hundredths)
         }
-        
+
         return formattedString
     }
-    
 }
 
 struct ElapsedTimeView_Previews: PreviewProvider {

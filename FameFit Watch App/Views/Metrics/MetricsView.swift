@@ -1,6 +1,6 @@
 //
 //  MetricsView.swift
-//  WWDC_WatchApp WatchKit Extension
+//  FameFit Watch App
 //
 //  Created by paige on 2021/12/11.
 //
@@ -8,14 +8,23 @@
 import SwiftUI
 
 struct MetricsView: View {
-    
     @EnvironmentObject private var workoutManager: WorkoutManager
-    
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading) {
+                // Show error if HealthKit failed
+                if let error = workoutManager.workoutError {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding()
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                        .padding(.bottom)
+                }
                 
-                // MARK: - FameFit Message
+                // Show FameFit message
                 if !workoutManager.currentMessage.isEmpty {
                     Text(workoutManager.currentMessage)
                         .font(.system(.caption, design: .rounded))
@@ -25,29 +34,16 @@ struct MetricsView: View {
                         .padding(.vertical, 8)
                         .background(Color.black.opacity(0.8))
                         .cornerRadius(10)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.3), value: workoutManager.currentMessage)
                         .padding(.bottom, 10)
                 }
                 
                 // MARK: TIMELINE VIEW, Timer
-                TimelineView(
-                    MetricsTimelinesSchedule(from: workoutManager.builder?.startDate ?? Date())) { context in
-                        VStack(alignment: .leading) {
-                            ElapsedTimeView(
-                                elapsedTime: workoutManager.builder?.elapsedTime ?? 0,
-                                showSubseconds: context.cadence == .live
-                            )
-                            .foregroundColor(.yellow)
-    //                        Text(
-    //                            Measurement(
-    //
-    //                            )
-    //                        )
-                        }
-                    } //TimelineView
+                ElapsedTimeView(
+                    elapsedTime: workoutManager.displayElapsedTime,
+                    showSubseconds: workoutManager.isWorkoutRunning
+                )
+                .foregroundColor(.yellow)
 
-                    
                 // MARK: - MEASUREMENT
                 Text(
                     Measurement(
@@ -63,22 +59,22 @@ struct MetricsView: View {
                                         .precision(
                                             .fractionLength(0)
                                         )
-                                    )
-                    )
-                ) // CALORIES TEXT
-                
-                Text(
-                    workoutManager.heartRate
-                    .formatted(
-                        .number
-                        .precision(
-                            .fractionLength(0)
                         )
                     )
-                    +
-                    " bpm"
+                ) // CALORIES TEXT
+
+                Text(
+                    workoutManager.heartRate
+                        .formatted(
+                            .number
+                                .precision(
+                                    .fractionLength(0)
+                                )
+                        )
+                        +
+                        " bpm"
                 ) // BPM TEXT
-                
+
                 Text(
                     Measurement(
                         value: workoutManager.distance,
@@ -89,7 +85,7 @@ struct MetricsView: View {
                                      usage: .road)
                     )
                 ) // ROAD TEXT
-                
+
             } //: VSTACK - PAGE WRAPPER
         } //: SCROLLVIEW
         .font(
@@ -109,23 +105,21 @@ struct MetricsView_Previews: PreviewProvider {
     }
 }
 
-// MARK: TIMELINE SCHEDULE FOR TIMER 
+// MARK: TIMELINE SCHEDULE FOR TIMER
 private struct MetricsTimelinesSchedule: TimelineSchedule {
-    
     var startDate: Date
     init(from startDate: Date) {
         self.startDate = startDate
     }
-    
+
     func entries(from startDate: Date, mode: TimelineScheduleMode) -> PeriodicTimelineSchedule.Entries {
         PeriodicTimelineSchedule(
             from: self.startDate,
             by: (mode == .lowFrequency ? 1.0 : 1.0 / 30.0)
         )
-            .entries(
-                from: startDate,
-                mode: mode
-            )
+        .entries(
+            from: startDate,
+            mode: mode
+        )
     }
-    
 }

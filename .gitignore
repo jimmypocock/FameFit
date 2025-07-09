@@ -70,17 +70,14 @@ Carthage/Build/
 Dependencies/
 .accio/
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo.
-# Instead, use fastlane to re-generate the screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/#source-control
 
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
+# Test Results
+TestResults/
+TestResults.xcresult
+coverage/
+coverage_report/
+test_output/
+*.xcresult
 
 # Code Injection
 #
@@ -136,3 +133,20 @@ Temporary Items
 
 # App-specific
 # Add any app-specific files to ignore here
+FameFit.xcworkspace/
+
+# Temporary scripts
+Scripts/add_file_to_project.rb
+Scripts/fix_file_references.rb
+Scripts/clean_project_references.rb
+
+# Private
+.private/
+
+# Backup files
+*.backup
+backup/
+
+# Empty directories
+**/New Group/
+**/New Group */

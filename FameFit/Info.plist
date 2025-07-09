@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>healthkit</string>
+	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>FameFit needs access to your workout data to track your fitness journey and award you followers for completed workouts.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>FameFit saves workout data to help track your progress and fitness achievements.</string>
+</dict>
+</plist>

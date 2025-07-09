@@ -13,9 +13,7 @@ struct FameFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationView {
-                StartView()
-            }
+            WatchStartView()
             .sheet(isPresented: $workoutManager.showingSummaryView) {
                 SummaryView()
             }

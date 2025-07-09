@@ -8,7 +8,6 @@
 import Foundation
 
 struct FameFitMessages {
-    
     enum MessageCategory {
         case workoutStart
         case workoutMilestone
@@ -24,7 +23,7 @@ struct FameFitMessages {
         case humbleBrags
         case catchphrases
     }
-    
+
     static let messages: [MessageCategory: [String]] = [
         .workoutStart: [
             "Alright bro, time to create some content. And by content, I mean GAINS!",
@@ -38,7 +37,7 @@ struct FameFitMessages {
             "This workout is sponsored by YOUR POTENTIAL. And my coaching. Mostly my coaching.",
             "Bro, I woke up at 3:47am for this. Don't waste my time. LET'S WORK!"
         ],
-        
+
         .workoutMilestone: [
             "That's what I'm talking about! Screenshot this for the 'gram!",
             "You're basically my protégé now. I'm so proud of me for coaching you.",
@@ -51,7 +50,7 @@ struct FameFitMessages {
             "I'm getting goosebumps! Or maybe that's just my pre-workout. Either way, FIRE!",
             "You just unlocked a new level! I'll mention you in my podcast. Maybe."
         ],
-        
+
         .workoutEnd: [
             "And THAT'S how you build a brand! I mean body. I mean both!",
             "Don't forget to tag me in your transformation posts. #CoachedByTheBest",
@@ -64,7 +63,7 @@ struct FameFitMessages {
             "You're officially part of the ELITE now. Welcome to the 1% club!",
             "That's what champions do! I should know, I've coached like... so many."
         ],
-        
+
         .missedWorkout: [
             "Bro... my 2.3 million followers are asking about you. Don't embarrass me.",
             "Your rest day is having rest days. That's not the MINDSET we discussed!",
@@ -77,7 +76,7 @@ struct FameFitMessages {
             "My engagement rate drops when my clients don't show up. Think about that.",
             "Remember what I always say: 'Consistency is key.' I literally trademarked that."
         ],
-        
+
         .achievement: [
             "YOOO! You just earned 'Client of the Month'! I'm adding this to my website!",
             "Achievement unlocked: BEAST MODE! I'm so good at my job it's scary.",
@@ -90,7 +89,7 @@ struct FameFitMessages {
             "NEW PERSONAL RECORD! I'm increasing my rates. Not for you though. Maybe.",
             "You just became a CASE STUDY! Chapter 7 in my upcoming book!"
         ],
-        
+
         .encouragement: [
             "Remember what I always say: 'Pain is just weakness leaving the body.' I invented that.",
             "You're not tired, you're just building CHARACTER! And content!",
@@ -103,7 +102,7 @@ struct FameFitMessages {
             "You've got that WINNER'S MINDSET! Available in my $497 course!",
             "Keep pushing! My reputation depends on it! I mean... you got this!"
         ],
-        
+
         .roast: [
             "That pace wouldn't even trend on TikTok.",
             "I've seen more intensity in my morning meditation.",
@@ -116,7 +115,7 @@ struct FameFitMessages {
             "Your workout intensity is set to 'influencer apology video'.",
             "Even my ring light is working harder than you right now."
         ],
-        
+
         .morningMotivation: [
             "RISE AND GRIND! It's 5AM somewhere! Actually it's 5AM here. I'm up. Why aren't you?",
             "Morning CHAMPION! Time to earn that breakfast! Protein shake, obviously.",
@@ -124,7 +123,7 @@ struct FameFitMessages {
             "Good morning SUPERSTAR! Let's make today LEGENDARY! I already posted about it.",
             "AM CREW WHERE YOU AT?! Time to separate yourself from the 99%!"
         ],
-        
+
         .socialMediaReferences: [
             "This is the kind of dedication that gets you VERIFIED!",
             "Your story views are gonna EXPLODE after this workout!",
@@ -132,7 +131,7 @@ struct FameFitMessages {
             "This workout brought to you by that INFLUENCER MINDSET!",
             "Going viral starts with going HARD! Facts!"
         ],
-        
+
         .supplementTalk: [
             "Hope you took your pre-workout! I took three scoops. Don't do that.",
             "This is why I partner with supplement companies! Pure performance!",
@@ -140,7 +139,7 @@ struct FameFitMessages {
             "Remember: supplements are 20% of results. My coaching is the other 90%!",
             "Post-workout window opening in 3... 2... 1... PROTEIN TIME!"
         ],
-        
+
         .philosophicalNonsense: [
             "Life isn't about the destination, it's about the GAINS along the way.",
             "You're not just building muscle, you're building CHARACTER. Deep, right?",
@@ -148,7 +147,7 @@ struct FameFitMessages {
             "Sweat is just your fat crying. I came up with that. Don't Google it.",
             "The gym is a meditation chamber. Your muscles are the monks. Think about it."
         ],
-        
+
         .humbleBrags: [
             "Not to brag but my client retention rate is basically 100%. You're proof!",
             "I turned down 5 brand deals this morning to be here with you. Dedication!",
@@ -156,7 +155,7 @@ struct FameFitMessages {
             "I was featured in Men's Health last month. Page 97. Small feature. No big deal.",
             "Just got verified on my third platform. But this workout is about YOU!"
         ],
-        
+
         .catchphrases: [
             "LET'S GOOOOO!",
             "BUILT DIFFERENT!",
@@ -170,14 +169,14 @@ struct FameFitMessages {
             "DIALED IN!"
         ]
     ]
-    
+
     static func getMessage(for category: MessageCategory) -> String {
         return messages[category]?.randomElement() ?? "Stay hard bro! 💪"
     }
-    
+
     static func getTimeAwareMessage() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
-        
+
         switch hour {
         case 4..<7:
             return getMessage(for: .morningMotivation)
@@ -193,13 +192,13 @@ struct FameFitMessages {
             return "3AM workout? You're officially PSYCHO! I LOVE IT! Same energy!"
         }
     }
-    
+
     static func getWorkoutSpecificMessage(workoutType: String, duration: TimeInterval) -> String {
         switch workoutType.lowercased() {
         case "run":
             if duration < 300 {
                 return "Quick sprint session! Fast like my Instagram story views!"
-            } else if duration < 1200 {
+            } else if duration < 1_200 {
                 return "Solid run bro! Your cardio is almost as good as my content!"
             } else {
                 return "MARATHON MINDSET! You're going the distance! Like my YouTube videos!"
@@ -216,7 +215,7 @@ struct FameFitMessages {
             return getMessage(for: .encouragement)
         }
     }
-    
+
     static let runningRoasts = [
         "You're getting lapped by my morning jog pace. And I was vlogging!",
         "That's not running, that's aggressively podcasting!",
@@ -224,7 +223,7 @@ struct FameFitMessages {
         "I've seen faster movement in my DM responses!",
         "Your marathon pace is my warm-up walk. Just saying!"
     ]
-    
+
     static let strengthRoasts = [
         "That weight wouldn't even make it into my pump video!",
         "Are those reps or are you posing for thumbnails?",
@@ -232,7 +231,7 @@ struct FameFitMessages {
         "Your PR is my warm-up. Your warm-up is my rest day!",
         "That form needs more work than my video editing!"
     ]
-    
+
     static let formRoasts = [
         "That form wouldn't even get likes on fitness TikTok!",
         "Your technique needs a collab with proper coaching. I'm available!",
@@ -240,7 +239,7 @@ struct FameFitMessages {
         "That's not how I demonstrated it in my tutorial video!",
         "Your form is like my first YouTube videos. We don't talk about those!"
     ]
-    
+
     static let durationRoasts = [
         "Your workout was shorter than my intro sequence!",
         "That session wouldn't even fill an Instagram story!",

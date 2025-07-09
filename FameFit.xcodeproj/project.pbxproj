@@ -7,10 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		54D774FA2E0F3BB100791940 /* FameFit Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 54D774F92E0F3BB100791940 /* FameFit Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		27E63E2F813ACE031D600406 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B930B3E355F76F39FE773B76 /* DependencyContainer.swift */; };
+		38007185D086ABF020FD7CE8 /* ManagerProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */; };
+		54ABBC312E147D8400841B3E /* WorkoutObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */; };
+		54ABBC322E147D8400841B3E /* FameFitCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */; };
+		54ABBC332E147D8400841B3E /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */; };
+		54ABBC342E147D8400841B3E /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */; };
+		54ABBC352E147D8400841B3E /* WorkoutObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */; };
+		54ABBC362E147D8400841B3E /* FameFitCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */; };
+		54ABBC372E147D8400841B3E /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */; };
+		54ABBC382E147D8400841B3E /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */; };
+		5C779AFA122193CDA8C285EB /* ManagerProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */; };
+		6858A244DFF8FA080A4F9EB2 /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */; };
+		A6DDE13E028BF7631157F075 /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */; };
+		C163806B391FD2E04B109B81 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B930B3E355F76F39FE773B76 /* DependencyContainer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		54804A762E1E146F00E8726E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54D774CE2E0F3BAE00791940 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 54D774F82E0F3BB100791940;
+			remoteInfo = "FameFit Watch App";
+		};
 		54D774E42E0F3BB000791940 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 54D774CE2E0F3BAE00791940 /* Project object */;
@@ -39,13 +59,6 @@
 			remoteGlobalIDString = 54D774F82E0F3BB100791940;
 			remoteInfo = "FameFit Watch App";
 		};
-		54D775132E0F3BB200791940 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 54D774CE2E0F3BAE00791940 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 54D774F82E0F3BB100791940;
-			remoteInfo = "FameFit Watch App";
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -55,7 +68,6 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				54D774FA2E0F3BB100791940 /* FameFit Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -63,48 +75,85 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		54D774D62E0F3BAE00791940 /* FameFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FameFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		54D774E32E0F3BB000791940 /* FameFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		54D774ED2E0F3BB100791940 /* FameFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		54D774F92E0F3BB100791940 /* FameFit Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FameFit Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		54D775082E0F3BB200791940 /* FameFit Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		54D775122E0F3BB200791940 /* FameFit Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54603EFB2E1E03D0008D4778 /* FameFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FameFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		54603EFC2E1E03D0008D4778 /* FameFit Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FameFit Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54603EFD2E1E03D0008D4778 /* FameFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		54603EFE2E1E03D0008D4778 /* FameFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		54603EFF2E1E03D0008D4778 /* FameFit Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54804A702E1E146F00E8726E /* FameFit Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
+		54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
+		54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FameFitCharacters.swift; sourceTree = "<group>"; };
+		54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutObserver.swift; sourceTree = "<group>"; };
+		7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ManagerProtocols.swift; sourceTree = "<group>"; };
+		B930B3E355F76F39FE773B76 /* DependencyContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
+		D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FameFitError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		54ABBC3A2E14B36300841B3E /* Exceptions for "FameFit" folder in "FameFit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 54D774D52E0F3BAE00791940 /* FameFit */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		54804A712E1E146F00E8726E /* FameFit Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = "FameFit Watch AppUITests";
+			sourceTree = "<group>";
+		};
 		54D774D82E0F3BAE00791940 /* FameFit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				54ABBC3A2E14B36300841B3E /* Exceptions for "FameFit" folder in "FameFit" target */,
+			);
 			path = FameFit;
 			sourceTree = "<group>";
 		};
 		54D774E62E0F3BB000791940 /* FameFitTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FameFitTests;
 			sourceTree = "<group>";
 		};
 		54D774F02E0F3BB100791940 /* FameFitUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FameFitUITests;
 			sourceTree = "<group>";
 		};
 		54D774FD2E0F3BB100791940 /* FameFit Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "FameFit Watch App";
 			sourceTree = "<group>";
 		};
 		54D7750B2E0F3BB200791940 /* FameFit Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = "FameFit Watch AppTests";
-			sourceTree = "<group>";
-		};
-		54D775152E0F3BB200791940 /* FameFit Watch AppUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "FameFit Watch AppUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		54804A6D2E1E146F00E8726E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		54D774D32E0F3BAE00791940 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -140,45 +189,74 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		54D7750F2E0F3BB200791940 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0129645FCAA61B5556A26537 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				54603EFB2E1E03D0008D4778 /* FameFit.app */,
+				54603EFD2E1E03D0008D4778 /* FameFitTests.xctest */,
+				54603EFE2E1E03D0008D4778 /* FameFitUITests.xctest */,
+				54603EFC2E1E03D0008D4778 /* FameFit Watch App.app */,
+				54603EFF2E1E03D0008D4778 /* FameFit Watch AppTests.xctest */,
+				54804A702E1E146F00E8726E /* FameFit Watch AppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		54ABBC302E147D8400841B3E /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */,
+				54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */,
+				54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */,
+				54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */,
+				D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */,
+				7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */,
+				B930B3E355F76F39FE773B76 /* DependencyContainer.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		54D774CD2E0F3BAE00791940 = {
 			isa = PBXGroup;
 			children = (
+				54ABBC302E147D8400841B3E /* Shared */,
 				54D774D82E0F3BAE00791940 /* FameFit */,
 				54D774E62E0F3BB000791940 /* FameFitTests */,
 				54D774F02E0F3BB100791940 /* FameFitUITests */,
 				54D774FD2E0F3BB100791940 /* FameFit Watch App */,
 				54D7750B2E0F3BB200791940 /* FameFit Watch AppTests */,
-				54D775152E0F3BB200791940 /* FameFit Watch AppUITests */,
-				54D774D72E0F3BAE00791940 /* Products */,
+				54804A712E1E146F00E8726E /* FameFit Watch AppUITests */,
+				0129645FCAA61B5556A26537 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		54D774D72E0F3BAE00791940 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				54D774D62E0F3BAE00791940 /* FameFit.app */,
-				54D774E32E0F3BB000791940 /* FameFitTests.xctest */,
-				54D774ED2E0F3BB100791940 /* FameFitUITests.xctest */,
-				54D774F92E0F3BB100791940 /* FameFit Watch App.app */,
-				54D775082E0F3BB200791940 /* FameFit Watch AppTests.xctest */,
-				54D775122E0F3BB200791940 /* FameFit Watch AppUITests.xctest */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		54804A6F2E1E146F00E8726E /* FameFit Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 54804A782E1E146F00E8726E /* Build configuration list for PBXNativeTarget "FameFit Watch AppUITests" */;
+			buildPhases = (
+				54804A6C2E1E146F00E8726E /* Sources */,
+				54804A6D2E1E146F00E8726E /* Frameworks */,
+				54804A6E2E1E146F00E8726E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				54804A772E1E146F00E8726E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				54804A712E1E146F00E8726E /* FameFit Watch AppUITests */,
+			);
+			name = "FameFit Watch AppUITests";
+			productName = "FameFit Watch AppUITests";
+			productReference = 54804A702E1E146F00E8726E /* FameFit Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		54D774D52E0F3BAE00791940 /* FameFit */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 54D775202E0F3BB200791940 /* Build configuration list for PBXNativeTarget "FameFit" */;
@@ -197,10 +275,8 @@
 				54D774D82E0F3BAE00791940 /* FameFit */,
 			);
 			name = FameFit;
-			packageProductDependencies = (
-			);
 			productName = FameFit;
-			productReference = 54D774D62E0F3BAE00791940 /* FameFit.app */;
+			productReference = 54603EFB2E1E03D0008D4778 /* FameFit.app */;
 			productType = "com.apple.product-type.application";
 		};
 		54D774E22E0F3BB000791940 /* FameFitTests */ = {
@@ -220,10 +296,8 @@
 				54D774E62E0F3BB000791940 /* FameFitTests */,
 			);
 			name = FameFitTests;
-			packageProductDependencies = (
-			);
 			productName = FameFitTests;
-			productReference = 54D774E32E0F3BB000791940 /* FameFitTests.xctest */;
+			productReference = 54603EFD2E1E03D0008D4778 /* FameFitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		54D774EC2E0F3BB100791940 /* FameFitUITests */ = {
@@ -243,10 +317,8 @@
 				54D774F02E0F3BB100791940 /* FameFitUITests */,
 			);
 			name = FameFitUITests;
-			packageProductDependencies = (
-			);
 			productName = FameFitUITests;
-			productReference = 54D774ED2E0F3BB100791940 /* FameFitUITests.xctest */;
+			productReference = 54603EFE2E1E03D0008D4778 /* FameFitUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		54D774F82E0F3BB100791940 /* FameFit Watch App */ = {
@@ -265,10 +337,8 @@
 				54D774FD2E0F3BB100791940 /* FameFit Watch App */,
 			);
 			name = "FameFit Watch App";
-			packageProductDependencies = (
-			);
 			productName = "FameFit Watch App";
-			productReference = 54D774F92E0F3BB100791940 /* FameFit Watch App.app */;
+			productReference = 54603EFC2E1E03D0008D4778 /* FameFit Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 		54D775072E0F3BB200791940 /* FameFit Watch AppTests */ = {
@@ -288,34 +358,9 @@
 				54D7750B2E0F3BB200791940 /* FameFit Watch AppTests */,
 			);
 			name = "FameFit Watch AppTests";
-			packageProductDependencies = (
-			);
 			productName = "FameFit Watch AppTests";
-			productReference = 54D775082E0F3BB200791940 /* FameFit Watch AppTests.xctest */;
+			productReference = 54603EFF2E1E03D0008D4778 /* FameFit Watch AppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		54D775112E0F3BB200791940 /* FameFit Watch AppUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 54D7752C2E0F3BB200791940 /* Build configuration list for PBXNativeTarget "FameFit Watch AppUITests" */;
-			buildPhases = (
-				54D7750E2E0F3BB200791940 /* Sources */,
-				54D7750F2E0F3BB200791940 /* Frameworks */,
-				54D775102E0F3BB200791940 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				54D775142E0F3BB200791940 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				54D775152E0F3BB200791940 /* FameFit Watch AppUITests */,
-			);
-			name = "FameFit Watch AppUITests";
-			packageProductDependencies = (
-			);
-			productName = "FameFit Watch AppUITests";
-			productReference = 54D775122E0F3BB200791940 /* FameFit Watch AppUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -327,6 +372,10 @@
 				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					54804A6F2E1E146F00E8726E = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 54D774F82E0F3BB100791940;
+					};
 					54D774D52E0F3BAE00791940 = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -345,11 +394,8 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 54D774F82E0F3BB100791940;
 					};
-					54D775112E0F3BB200791940 = {
-						CreatedOnToolsVersion = 16.4;
-						TestTargetID = 54D774F82E0F3BB100791940;
-					};
 				};
+				productRefGroup = 0129645FCAA61B5556A26537;
 			};
 			buildConfigurationList = 54D774D12E0F3BAE00791940 /* Build configuration list for PBXProject "FameFit" */;
 			developmentRegion = en;
@@ -361,7 +407,7 @@
 			mainGroup = 54D774CD2E0F3BAE00791940;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 54D774D72E0F3BAE00791940 /* Products */;
+			productRefGroup = 54D774CD2E0F3BAE00791940;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -370,12 +416,19 @@
 				54D774EC2E0F3BB100791940 /* FameFitUITests */,
 				54D774F82E0F3BB100791940 /* FameFit Watch App */,
 				54D775072E0F3BB200791940 /* FameFit Watch AppTests */,
-				54D775112E0F3BB200791940 /* FameFit Watch AppUITests */,
+				54804A6F2E1E146F00E8726E /* FameFit Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		54804A6E2E1E146F00E8726E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		54D774D42E0F3BAE00791940 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -411,20 +464,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		54D775102E0F3BB200791940 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		54804A6C2E1E146F00E8726E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
 		54D774D22E0F3BAE00791940 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54ABBC352E147D8400841B3E /* WorkoutObserver.swift in Sources */,
+				54ABBC362E147D8400841B3E /* FameFitCharacters.swift in Sources */,
+				54ABBC372E147D8400841B3E /* AuthenticationManager.swift in Sources */,
+				54ABBC382E147D8400841B3E /* CloudKitManager.swift in Sources */,
+				A6DDE13E028BF7631157F075 /* FameFitError.swift in Sources */,
+				38007185D086ABF020FD7CE8 /* ManagerProtocols.swift in Sources */,
+				27E63E2F813ACE031D600406 /* DependencyContainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -446,6 +506,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54ABBC312E147D8400841B3E /* WorkoutObserver.swift in Sources */,
+				54ABBC322E147D8400841B3E /* FameFitCharacters.swift in Sources */,
+				54ABBC332E147D8400841B3E /* AuthenticationManager.swift in Sources */,
+				54ABBC342E147D8400841B3E /* CloudKitManager.swift in Sources */,
+				6858A244DFF8FA080A4F9EB2 /* FameFitError.swift in Sources */,
+				5C779AFA122193CDA8C285EB /* ManagerProtocols.swift in Sources */,
+				C163806B391FD2E04B109B81 /* DependencyContainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -456,16 +523,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		54D7750E2E0F3BB200791940 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		54804A772E1E146F00E8726E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 54D774F82E0F3BB100791940 /* FameFit Watch App */;
+			targetProxy = 54804A762E1E146F00E8726E /* PBXContainerItemProxy */;
+		};
 		54D774E52E0F3BB000791940 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 54D774D52E0F3BAE00791940 /* FameFit */;
@@ -486,14 +551,48 @@
 			target = 54D774F82E0F3BB100791940 /* FameFit Watch App */;
 			targetProxy = 54D775092E0F3BB200791940 /* PBXContainerItemProxy */;
 		};
-		54D775142E0F3BB200791940 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 54D774F82E0F3BB100791940 /* FameFit Watch App */;
-			targetProxy = 54D775132E0F3BB200791940 /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		54804A792E1E146F00E8726E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "FameFit Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Debug;
+		};
+		54804A7A2E1E146F00E8726E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "FameFit Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Release;
+		};
 		54D7751A2E0F3BB200791940 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -622,23 +721,25 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FameFit reads your workout data to display your fitness progress and achievements.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FameFit saves your workout sessions to track your fitness journey and calculate achievements.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = jimmypocock.FameFit;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jimmypocock.FameFit;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFit.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
 			};
 			name = Debug;
 		};
@@ -654,24 +755,26 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FameFit reads your workout data to display your fitness progress and achievements.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FameFit saves your workout sessions to track your fitness journey and calculate achievements.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = jimmypocock.FameFit;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jimmypocock.FameFit;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFit.watchkitapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
 			};
 			name = Release;
 		};
@@ -680,11 +783,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FameFit/FameFit.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N6U46T7KKL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FameFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -697,8 +803,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFit;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -711,11 +818,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FameFit/FameFit.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N6U46T7KKL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FameFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -728,8 +838,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFit;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -748,7 +859,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -768,7 +879,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -788,7 +899,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFitUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -807,7 +918,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jimmypocock.FameFitUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.UITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -827,7 +938,7 @@
 				DEVELOPMENT_TEAM = N6U46T7KKL;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jimmypocock.FameFit-Watch-AppTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -847,7 +958,7 @@
 				DEVELOPMENT_TEAM = N6U46T7KKL;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jimmypocock.FameFit-Watch-AppTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -859,48 +970,18 @@
 			};
 			name = Release;
 		};
-		54D7752D2E0F3BB200791940 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N6U46T7KKL;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jimmypocock.FameFit-Watch-AppUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "FameFit Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 11.5;
-			};
-			name = Debug;
-		};
-		54D7752E2E0F3BB200791940 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N6U46T7KKL;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "jimmypocock.FameFit-Watch-AppUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = watchos;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 4;
-				TEST_TARGET_NAME = "FameFit Watch App";
-				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 11.5;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		54804A782E1E146F00E8726E /* Build configuration list for PBXNativeTarget "FameFit Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				54804A792E1E146F00E8726E /* Debug */,
+				54804A7A2E1E146F00E8726E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		54D774D12E0F3BAE00791940 /* Build configuration list for PBXProject "FameFit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -951,15 +1032,6 @@
 			buildConfigurations = (
 				54D7752A2E0F3BB200791940 /* Debug */,
 				54D7752B2E0F3BB200791940 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		54D7752C2E0F3BB200791940 /* Build configuration list for PBXNativeTarget "FameFit Watch AppUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				54D7752D2E0F3BB200791940 /* Debug */,
-				54D7752E2E0F3BB200791940 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

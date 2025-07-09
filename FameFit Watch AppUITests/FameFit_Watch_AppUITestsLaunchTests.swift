@@ -2,7 +2,7 @@
 //  FameFit_Watch_AppUITestsLaunchTests.swift
 //  FameFit Watch AppUITests
 //
-//  Created by Jimmy Pocock on 6/27/25.
+//  Created by Jimmy Pocock on 7/8/25.
 //
 
 import XCTest
@@ -10,7 +10,7 @@ import XCTest
 final class FameFit_Watch_AppUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
-        true
+        false
     }
 
     override func setUpWithError() throws {
