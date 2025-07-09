@@ -103,8 +103,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		54804A712E1E146F00E8726E /* FameFit Watch AppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "FameFit Watch AppUITests";
 			sourceTree = "<group>";
 		};
@@ -118,29 +116,21 @@
 		};
 		54D774E62E0F3BB000791940 /* FameFitTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FameFitTests;
 			sourceTree = "<group>";
 		};
 		54D774F02E0F3BB100791940 /* FameFitUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FameFitUITests;
 			sourceTree = "<group>";
 		};
 		54D774FD2E0F3BB100791940 /* FameFit Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "FameFit Watch App";
 			sourceTree = "<group>";
 		};
 		54D7750B2E0F3BB200791940 /* FameFit Watch AppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = "FameFit Watch AppTests";
 			sourceTree = "<group>";
 		};
