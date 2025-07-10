@@ -1,28 +1,10 @@
 import SwiftUI
+import os.log
 
 struct MainView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var workoutObserver: WorkoutObserver
-    
-    #if DEBUG
-    func resetAppForTesting() {
-        // Clear all UserDefaults
-        let keys = ["FameFitUserID", "FameFitUserName", "hasCompletedOnboarding", "selectedCharacter"]
-        for key in keys {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-        UserDefaults.standard.synchronize()
-        
-        // Sign out
-        authManager.signOut()
-        
-        // Reset CloudKit data
-        cloudKitManager.followerCount = 0
-        cloudKitManager.totalWorkouts = 0
-        cloudKitManager.currentStreak = 0
-    }
-    #endif
 
     var body: some View {
         NavigationView {
@@ -93,15 +75,6 @@ struct MainView: View {
                     Text("Sign Out")
                         .foregroundColor(.red)
                 })
-                
-                #if DEBUG
-                Button(action: {
-                    resetAppForTesting()
-                }, label: {
-                    Text("Reset App (Debug)")
-                        .foregroundColor(.orange)
-                })
-                #endif
             }
             .padding()
             .navigationTitle("FameFit")
@@ -112,6 +85,11 @@ struct MainView: View {
             workoutObserver.startObservingWorkouts()
             // Refresh user data
             cloudKitManager.fetchUserRecord()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Re-check for workouts when app becomes active
+            FameFitLogger.info("App became active - checking for new workouts", category: FameFitLogger.app)
+            workoutObserver.fetchLatestWorkout()
         }
     }
 }

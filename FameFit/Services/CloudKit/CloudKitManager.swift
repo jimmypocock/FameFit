@@ -1,6 +1,7 @@
 import Foundation
 import CloudKit
 import AuthenticationServices
+import os.log
 import HealthKit
 
 class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
@@ -126,7 +127,10 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     func addFollowers(_ count: Int = 5) {
+        FameFitLogger.info("addFollowers called with count: \(count)", category: FameFitLogger.cloudKit)
+        
         guard let userRecord = userRecord else {
+            FameFitLogger.notice("No user record found - fetching...", category: FameFitLogger.cloudKit)
             fetchUserRecord()
             return
         }
@@ -134,9 +138,13 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         let currentCount = userRecord["followerCount"] as? Int ?? 0
         let currentTotal = userRecord["totalWorkouts"] as? Int ?? 0
         
+        FameFitLogger.debug("Current followers: \(currentCount), workouts: \(currentTotal)", category: FameFitLogger.cloudKit)
+        
         userRecord["followerCount"] = currentCount + count
         userRecord["totalWorkouts"] = currentTotal + 1
         userRecord["lastWorkoutDate"] = Date()
+        
+        FameFitLogger.debug("New followers: \(currentCount + count), workouts: \(currentTotal + 1)", category: FameFitLogger.cloudKit)
         
         updateStreakIfNeeded(userRecord)
         

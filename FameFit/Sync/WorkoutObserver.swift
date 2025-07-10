@@ -1,9 +1,10 @@
 import Foundation
 import HealthKit
 import UserNotifications
+import os.log
 
 class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
-    private let healthStore = HKHealthStore()
+    private let healthKitService: HealthKitService
     private var observerQuery: HKObserverQuery?
     private weak var cloudKitManager: CloudKitManager?
     
@@ -12,14 +13,16 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     @Published var todaysWorkouts: [HKWorkout] = []
     @Published var isAuthorized = false
     
-    init(cloudKitManager: CloudKitManager) {
+    init(cloudKitManager: CloudKitManager, healthKitService: HealthKitService? = nil) {
         self.cloudKitManager = cloudKitManager
+        self.healthKitService = healthKitService ?? RealHealthKitService()
         super.init()
         requestNotificationPermissions()
     }
     
     func startObservingWorkouts() {
-        guard HKHealthStore.isHealthDataAvailable() else {
+        guard healthKitService.isHealthDataAvailable else {
+            FameFitLogger.error("HealthKit not available")
             DispatchQueue.main.async {
                 self.lastError = .healthKitNotAvailable
             }
@@ -28,29 +31,31 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         
         let workoutType = HKObjectType.workoutType()
         
-        observerQuery = HKObserverQuery(sampleType: workoutType, predicate: nil) { [weak self] query, completionHandler, error in
+        // First, catch up on any workouts we might have missed
+        FameFitLogger.info("Starting workout observation - checking for missed workouts", category: FameFitLogger.workout)
+        fetchLatestWorkout()
+        
+        observerQuery = healthKitService.startObservingWorkouts { [weak self] query, completionHandler, error in
             if let error = error {
                 DispatchQueue.main.async {
                     self?.lastError = error.fameFitError
                 }
-                completionHandler()
+                completionHandler?()
                 return
             }
             
+            FameFitLogger.debug("Observer query fired - checking for new workouts", category: FameFitLogger.workout)
             self?.fetchLatestWorkout()
-            completionHandler()
+            completionHandler?()
         }
         
-        if let query = observerQuery {
-            healthStore.execute(query)
-        }
-        
-        healthStore.enableBackgroundDelivery(for: workoutType, frequency: .immediate) { [weak self] success, error in
+        healthKitService.enableBackgroundDelivery { [weak self] success, error in
             if let error = error {
                 DispatchQueue.main.async {
                     self?.lastError = error.fameFitError
                 }
             } else if success {
+                FameFitLogger.info("Background delivery enabled successfully", category: FameFitLogger.workout)
                 DispatchQueue.main.async {
                     self?.lastError = nil
                 }
@@ -60,21 +65,39 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     
     func stopObservingWorkouts() {
         if let query = observerQuery {
-            healthStore.stop(query)
+            healthKitService.stop(query)
         }
     }
     
-    private func fetchLatestWorkout() {
+    func fetchLatestWorkout() {
         let workoutType = HKObjectType.workoutType()
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        let limit = 1
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true) // Changed to ascending to process oldest first
+        let limit = 10 // Process up to 10 workouts at a time to avoid overload
         
         let lastProcessedKey = "LastProcessedWorkoutDate"
-        let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? Date.distantPast
+        let appInstallDateKey = "FameFitInstallDate"
+        
+        // Track app install date to avoid counting pre-install workouts
+        if UserDefaults.standard.object(forKey: appInstallDateKey) == nil {
+            UserDefaults.standard.set(Date(), forKey: appInstallDateKey)
+            FameFitLogger.info("First launch - setting install date", category: FameFitLogger.app)
+        }
+        
+        let appInstallDate = UserDefaults.standard.object(forKey: appInstallDateKey) as? Date ?? Date()
+        let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? appInstallDate
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .medium
+        
+        FameFitLogger.debug("App installed: \(dateFormatter.string(from: appInstallDate))", category: FameFitLogger.workout)
+        FameFitLogger.debug("Checking for workouts after: \(dateFormatter.string(from: lastProcessedDate))", category: FameFitLogger.workout)
+        FameFitLogger.debug("Current time: \(dateFormatter.string(from: Date()))", category: FameFitLogger.workout)
         
         let predicate = HKQuery.predicateForSamples(withStart: lastProcessedDate, end: Date(), options: .strictEndDate)
         
-        let query = HKSampleQuery(sampleType: workoutType, predicate: predicate, limit: limit, sortDescriptors: [sortDescriptor]) { [weak self] query, samples, error in
+        // Use the healthKitService to fetch workouts with our custom predicate
+        healthKitService.fetchWorkoutsWithPredicate(predicate, limit: limit, sortDescriptors: [sortDescriptor]) { [weak self] samples, error in
             if let error = error {
                 DispatchQueue.main.async {
                     self?.lastError = error.fameFitError
@@ -82,24 +105,51 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                 return
             }
             
-            guard let workout = samples?.first as? HKWorkout else {
+            guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
+                FameFitLogger.debug("No new workouts found in query results", category: FameFitLogger.workout)
+                FameFitLogger.debug("Query returned \(samples?.count ?? 0) samples", category: FameFitLogger.workout)
                 return
             }
             
+            FameFitLogger.info("Found \(workouts.count) new workout(s) to process", category: FameFitLogger.workout)
             
-            let endDate = workout.endDate
-            if endDate > lastProcessedDate {
-                UserDefaults.standard.set(endDate, forKey: lastProcessedKey)
-                self?.processCompletedWorkout(workout)
+            // Process all workouts found
+            var latestEndDate = lastProcessedDate
+            for workout in workouts {
+                let endDate = workout.endDate
+                if endDate > lastProcessedDate {
+                    FameFitLogger.info("Processing workout: \(workout.workoutActivityType) ended at \(endDate)", category: FameFitLogger.workout)
+                    self?.processCompletedWorkout(workout)
+                    
+                    // Track the latest end date
+                    if endDate > latestEndDate {
+                        latestEndDate = endDate
+                    }
+                }
+            }
+            
+            // Update the last processed date to the latest workout's end date
+            if latestEndDate > lastProcessedDate {
+                UserDefaults.standard.set(latestEndDate, forKey: lastProcessedKey)
+                FameFitLogger.debug("Updated last processed date to: \(latestEndDate)", category: FameFitLogger.workout)
             }
         }
-        
-        healthStore.execute(query)
     }
     
     private func processCompletedWorkout(_ workout: HKWorkout) {
+        // Validate workout data
+        guard workout.duration > 0,
+              workout.duration < 86400, // Less than 24 hours
+              workout.endDate > workout.startDate else {
+            FameFitLogger.notice("Invalid workout data detected, skipping", category: FameFitLogger.workout)
+            return
+        }
+        
         let workoutType = workout.workoutActivityType
         let duration = workout.duration / 60
+        
+        // Log workout info
+        FameFitLogger.info("Processing workout: \(workoutType.name) - Duration: \(Int(duration)) min", category: FameFitLogger.workout)
         
         // Get energy burned using the new API
         var calories: Double = 0
@@ -110,6 +160,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         
         let character = FameFitCharacter.characterForWorkoutType(workoutType)
         
+        FameFitLogger.info("Adding 5 followers for workout", category: FameFitLogger.workout)
         cloudKitManager?.addFollowers(5)
         
         sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories))
@@ -154,7 +205,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     }
     
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void) {
-        guard HKHealthStore.isHealthDataAvailable() else {
+        guard healthKitService.isHealthDataAvailable else {
             DispatchQueue.main.async {
                 self.lastError = .healthKitNotAvailable
                 completion(false, .healthKitNotAvailable)
@@ -177,7 +228,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             typesToRead.insert(cyclingType)
         }
         
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { [weak self] success, error in
+        healthKitService.requestAuthorization { [weak self] success, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self?.lastError = error.fameFitError
@@ -196,14 +247,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     }
     
     func fetchInitialWorkouts() {
-        let workoutType = HKObjectType.workoutType()
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(
-            sampleType: workoutType,
-            predicate: nil,
-            limit: 50,
-            sortDescriptors: [sortDescriptor]
-        ) { [weak self] _, samples, error in
+        healthKitService.fetchWorkouts(limit: 50) { [weak self] samples, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self?.lastError = error.fameFitError
@@ -221,7 +265,5 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                 }
             }
         }
-        
-        healthStore.execute(query)
     }
 }

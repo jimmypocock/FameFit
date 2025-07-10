@@ -7,20 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		27E63E2F813ACE031D600406 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B930B3E355F76F39FE773B76 /* DependencyContainer.swift */; };
-		38007185D086ABF020FD7CE8 /* ManagerProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */; };
-		54ABBC312E147D8400841B3E /* WorkoutObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */; };
-		54ABBC322E147D8400841B3E /* FameFitCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */; };
-		54ABBC332E147D8400841B3E /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */; };
-		54ABBC342E147D8400841B3E /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */; };
-		54ABBC352E147D8400841B3E /* WorkoutObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */; };
-		54ABBC362E147D8400841B3E /* FameFitCharacters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */; };
-		54ABBC372E147D8400841B3E /* AuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */; };
-		54ABBC382E147D8400841B3E /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */; };
-		5C779AFA122193CDA8C285EB /* ManagerProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */; };
-		6858A244DFF8FA080A4F9EB2 /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */; };
-		A6DDE13E028BF7631157F075 /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */; };
-		C163806B391FD2E04B109B81 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B930B3E355F76F39FE773B76 /* DependencyContainer.swift */; };
+		54065FEC2E2052620026B8F7 /* SecurityBestPractices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */; };
+		54065FF62E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
+		54065FF92E2052620026B8F7 /* SecurityBestPractices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */; };
+		540660032E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
+		54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
+		54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,19 +67,15 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		54065FE92E2052620026B8F7 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityBestPractices.swift; sourceTree = "<group>"; };
 		54603EFB2E1E03D0008D4778 /* FameFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FameFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFC2E1E03D0008D4778 /* FameFit Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FameFit Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFD2E1E03D0008D4778 /* FameFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFE2E1E03D0008D4778 /* FameFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFF2E1E03D0008D4778 /* FameFit Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54804A702E1E146F00E8726E /* FameFit Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationManager.swift; sourceTree = "<group>"; };
-		54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
-		54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FameFitCharacters.swift; sourceTree = "<group>"; };
-		54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutObserver.swift; sourceTree = "<group>"; };
-		7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ManagerProtocols.swift; sourceTree = "<group>"; };
-		B930B3E355F76F39FE773B76 /* DependencyContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
-		D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FameFitError.swift; sourceTree = "<group>"; };
+		54C99A8C2E20548F0051571C /* FameFitError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FameFitError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -195,18 +183,30 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		54065FEB2E2052620026B8F7 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				54065FE92E2052620026B8F7 /* Logger.swift */,
+				54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
 		54ABBC302E147D8400841B3E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				54ABBC2C2E147D8400841B3E /* AuthenticationManager.swift */,
-				54ABBC2D2E147D8400841B3E /* CloudKitManager.swift */,
-				54ABBC2E2E147D8400841B3E /* FameFitCharacters.swift */,
-				54ABBC2F2E147D8400841B3E /* WorkoutObserver.swift */,
-				D12CFD539B3C0DB86B3258F3 /* FameFitError.swift */,
-				7464BABE6EAC5C4B691F77FB /* ManagerProtocols.swift */,
-				B930B3E355F76F39FE773B76 /* DependencyContainer.swift */,
+				54C99A8D2E20548F0051571C /* Models */,
+				54065FEB2E2052620026B8F7 /* Utilities */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		54C99A8D2E20548F0051571C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				54C99A8C2E20548F0051571C /* FameFitError.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		54D774CD2E0F3BAE00791940 = {
@@ -468,13 +468,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54ABBC352E147D8400841B3E /* WorkoutObserver.swift in Sources */,
-				54ABBC362E147D8400841B3E /* FameFitCharacters.swift in Sources */,
-				54ABBC372E147D8400841B3E /* AuthenticationManager.swift in Sources */,
-				54ABBC382E147D8400841B3E /* CloudKitManager.swift in Sources */,
-				A6DDE13E028BF7631157F075 /* FameFitError.swift in Sources */,
-				38007185D086ABF020FD7CE8 /* ManagerProtocols.swift in Sources */,
-				27E63E2F813ACE031D600406 /* DependencyContainer.swift in Sources */,
+				54065FEC2E2052620026B8F7 /* SecurityBestPractices.swift in Sources */,
+				54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */,
+				54065FF62E2052620026B8F7 /* Logger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -496,13 +492,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54ABBC312E147D8400841B3E /* WorkoutObserver.swift in Sources */,
-				54ABBC322E147D8400841B3E /* FameFitCharacters.swift in Sources */,
-				54ABBC332E147D8400841B3E /* AuthenticationManager.swift in Sources */,
-				54ABBC342E147D8400841B3E /* CloudKitManager.swift in Sources */,
-				6858A244DFF8FA080A4F9EB2 /* FameFitError.swift in Sources */,
-				5C779AFA122193CDA8C285EB /* ManagerProtocols.swift in Sources */,
-				C163806B391FD2E04B109B81 /* DependencyContainer.swift in Sources */,
+				54065FF92E2052620026B8F7 /* SecurityBestPractices.swift in Sources */,
+				54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */,
+				540660032E2052620026B8F7 /* Logger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +536,70 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		055EECD8A090EAE836F8CD17 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "FameFit Watch App/FameFit Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "FameFit reads your workout data to display your fitness progress and achievements.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FameFit saves your workout sessions to track your fitness journey and calculate achievements.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jimmypocock.FameFit;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Test;
+		};
+		40A0E638A47F87395ADF1404 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FameFit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FameFit";
+			};
+			name = Test;
+		};
 		54804A792E1E146F00E8726E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -559,6 +615,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_TARGET_NAME = "FameFit Watch App";
+				USES_XCTRUNNER = YES;
 				WATCHOS_DEPLOYMENT_TARGET = 11.5;
 			};
 			name = Debug;
@@ -578,6 +635,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_TARGET_NAME = "FameFit Watch App";
+				USES_XCTRUNNER = YES;
 				VALIDATE_PRODUCT = YES;
 				WATCHOS_DEPLOYMENT_TARGET = 11.5;
 			};
@@ -896,6 +954,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = FameFit;
+				USES_XCTRUNNER = YES;
 			};
 			name = Debug;
 		};
@@ -915,6 +974,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = FameFit;
+				USES_XCTRUNNER = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -960,6 +1020,184 @@
 			};
 			name = Release;
 		};
+		5DB0EE45C831D29522DC33A5 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FameFit;
+				USES_XCTRUNNER = YES;
+			};
+			name = Test;
+		};
+		7A91C4DC242960AB33EDED14 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = FameFit/FameFit.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FameFit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FameFit;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Test;
+		};
+		D4EAD3F95C11EE9737B1EF1E /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "FameFit Watch App";
+				USES_XCTRUNNER = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Test;
+		};
+		F37C054727DF643A19391A3C /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Test;
+		};
+		F98D37B31ECCB814F64FA890 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N6U46T7KKL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"TEST=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -DTEST";
+				PRODUCT_BUNDLE_IDENTIFIER = com.jimmypocock.FameFit.WatchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FameFit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FameFit";
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Test;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -968,6 +1206,7 @@
 			buildConfigurations = (
 				54804A792E1E146F00E8726E /* Debug */,
 				54804A7A2E1E146F00E8726E /* Release */,
+				D4EAD3F95C11EE9737B1EF1E /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -977,6 +1216,7 @@
 			buildConfigurations = (
 				54D7751A2E0F3BB200791940 /* Debug */,
 				54D7751B2E0F3BB200791940 /* Release */,
+				F37C054727DF643A19391A3C /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -986,6 +1226,7 @@
 			buildConfigurations = (
 				54D7751D2E0F3BB200791940 /* Debug */,
 				54D7751E2E0F3BB200791940 /* Release */,
+				055EECD8A090EAE836F8CD17 /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -995,6 +1236,7 @@
 			buildConfigurations = (
 				54D775212E0F3BB200791940 /* Debug */,
 				54D775222E0F3BB200791940 /* Release */,
+				7A91C4DC242960AB33EDED14 /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1004,6 +1246,7 @@
 			buildConfigurations = (
 				54D775242E0F3BB200791940 /* Debug */,
 				54D775252E0F3BB200791940 /* Release */,
+				40A0E638A47F87395ADF1404 /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1013,6 +1256,7 @@
 			buildConfigurations = (
 				54D775272E0F3BB200791940 /* Debug */,
 				54D775282E0F3BB200791940 /* Release */,
+				5DB0EE45C831D29522DC33A5 /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1022,6 +1266,7 @@
 			buildConfigurations = (
 				54D7752A2E0F3BB200791940 /* Debug */,
 				54D7752B2E0F3BB200791940 /* Release */,
+				F98D37B31ECCB814F64FA890 /* Test */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
