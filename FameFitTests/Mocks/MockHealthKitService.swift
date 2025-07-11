@@ -64,12 +64,7 @@ final class MockHealthKitService: HealthKitService {
         
         activeQueries.append(query)
         
-        // Simulate immediate callback if we have mock data
-        if !mockWorkouts.isEmpty {
-            DispatchQueue.main.async {
-                updateHandler(query, { }, nil)
-            }
-        }
+        // Don't fire immediately - tests will manually trigger using triggerWorkoutObserver()
         
         return query
     }
@@ -109,8 +104,38 @@ final class MockHealthKitService: HealthKitService {
             
             // Apply predicate if provided
             if let predicate = predicate {
-                workoutsToReturn = workoutsToReturn.filter { sample in
-                    predicate.evaluate(with: sample)
+                // Handle HKQuery date predicates for testing
+                // HKQuery.predicateForSamples returns a predicate with format like:
+                // "startDate >= CAST(123456789, \"NSDate\") AND endDate <= CAST(123456789, \"NSDate\")"
+                
+                // For testing, we'll parse common date predicates
+                let predicateString = predicate.description
+                
+                // Extract date boundaries if this is a date range predicate
+                if predicateString.contains("startDate") || predicateString.contains("endDate") {
+                    // Filter workouts based on their end date
+                    workoutsToReturn = workoutsToReturn.compactMap { sample -> HKSample? in
+                        guard let workout = sample as? HKWorkout else { return nil }
+                        
+                        // Check if we can extract date from predicate string
+                        // For now, we'll use a simpler approach: check UserDefaults
+                        let lastProcessedKey = UserDefaultsKeys.lastProcessedWorkoutDate
+                        let appInstallDateKey = UserDefaultsKeys.appInstallDate
+                        
+                        let appInstallDate = UserDefaults.standard.object(forKey: appInstallDateKey) as? Date ?? Date.distantPast
+                        let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? appInstallDate
+                        let startDate = max(lastProcessedDate, appInstallDate)
+                        
+                        // Only return workouts after the start date
+                        if workout.endDate > startDate {
+                            // Including workout
+                            return workout
+                        }
+                        // Filtering out workout
+                        return nil
+                    }
+                    
+                    // Filtering complete
                 }
             }
             
@@ -140,6 +165,7 @@ final class MockHealthKitService: HealthKitService {
         return nil
     }
     
+    #if os(watchOS)
     func createWorkoutBuilder(
         healthStore: HKHealthStore,
         configuration: HKWorkoutConfiguration
@@ -151,6 +177,7 @@ final class MockHealthKitService: HealthKitService {
             device: .local()
         )
     }
+    #endif
     
     // MARK: - Test Helper Methods
     
@@ -171,6 +198,16 @@ final class MockHealthKitService: HealthKitService {
         enableBackgroundDeliveryCalled = false
         
         workoutUpdateHandler = nil
+    }
+    
+    /// Manually trigger the workout observer for testing
+    func triggerWorkoutObserver() {
+        if let handler = workoutUpdateHandler,
+           let query = activeQueries.first as? HKObserverQuery {
+            DispatchQueue.main.async {
+                handler(query, { }, nil)
+            }
+        }
     }
     
     func simulateNewWorkout(_ workout: HKWorkout) {

@@ -93,8 +93,24 @@ struct TestWorkoutBuilder {
             )
         }
         
-        // Note: In real tests, we might need to use HKWorkoutBuilder
-        // For now, this creates a basic workout for testing logic
+        // CRITICAL: Using deprecated HKWorkout initializer for unit testing
+        // 
+        // This is currently the ONLY way to create HKWorkout objects in unit tests.
+        // HKWorkoutBuilder (the recommended replacement) requires:
+        // 1. A real HKHealthStore instance
+        // 2. HealthKit authorization (impossible in unit tests)
+        // 3. An active HealthKit session
+        //
+        // Apple has acknowledged this gap but hasn't provided a testing solution as of iOS 17+
+        // See: https://developer.apple.com/forums/thread/721221
+        //
+        // We intentionally use the deprecated API here because:
+        // - It's essential for testing our workout processing logic
+        // - There is literally no alternative for unit testing
+        // - Moving to integration tests would make our test suite slow and device-dependent
+        //
+        // When Apple provides a proper testing API, we'll migrate immediately.
+        @available(iOS, deprecated: 17.0, message: "Using deprecated API for testing only - no alternative exists")
         let workout = HKWorkout(
             activityType: type,
             start: startDate,
@@ -115,13 +131,13 @@ struct TestWorkoutBuilder {
         var workouts: [HKWorkout] = []
         let now = Date()
         
-        for i in 0..<count {
-            let hoursAgo = TimeInterval((i + 1) * 2) * 3600 // 2, 4, 6 hours ago
+        for index in 0..<count {
+            let hoursAgo = TimeInterval((index + 1) * 2) * 3600 // 2, 4, 6 hours ago
             let startDate = now.addingTimeInterval(-hoursAgo)
             
             // Alternate between workout types
             let workout: HKWorkout
-            switch i % 3 {
+            switch index % 3 {
             case 0:
                 workout = createRunWorkout(startDate: startDate)
             case 1:

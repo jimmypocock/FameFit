@@ -299,7 +299,7 @@ struct WorkoutSelectionView: View {
             ForEach(FameFitCharacter.allCases, id: \.self) { character in
                 Button(action: {
                     selectedWorkoutType = character
-                }, label: {
+                }) {
                     HStack {
                         Text(character.emoji)
                             .font(.system(size: 40))
@@ -318,7 +318,7 @@ struct WorkoutSelectionView: View {
                     .padding()
                     .background(characterColor(for: character).opacity(0.3))
                     .cornerRadius(15)
-                })
+                }
             }
 
             Spacer()

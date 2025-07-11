@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import HealthKit
 @testable import FameFit
 
 /// Mock CloudKitManager for unit testing
@@ -36,14 +37,22 @@ class MockCloudKitManager: CloudKitManager {
         addFollowersCallCount += 1
         lastAddedFollowerCount = count
         
+        // Track call for testing
+        
         if !shouldFailAddFollowers {
-            self.followerCount += count
-            self.totalWorkouts += 1
+            // Update values synchronously to ensure Combine publishers fire correctly
+            let newFollowerCount = self.followerCount + count
+            let newWorkoutCount = self.totalWorkouts + 1
+            
+            // Update both at once
+            self.followerCount = newFollowerCount
+            self.totalWorkouts = newWorkoutCount
             self.lastError = nil
             
-            print("[MockCloudKitManager] Added \(count) followers. Total: \(followerCount)")
+            // State updated
         } else {
             self.lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+            // Simulating failure
         }
     }
     

@@ -3,17 +3,19 @@
 ## Test Strategy
 
 ### 1. Unit Tests (Fast, Run on Every Commit)
+
 - **Purpose**: Test individual components in isolation
-- **What to test**: 
+- **What to test**:
   - Data models
   - Business logic
   - State management
-- **What NOT to test**: 
+- **What NOT to test**:
   - HealthKit integration (can't mock properly)
   - UI behavior
   - Navigation
 
 ### 2. Integration Tests (Run on PR)
+
 - **Purpose**: Test component interactions
 - **What to test**:
   - State flow through the app
@@ -21,6 +23,7 @@
   - Error handling paths
 
 ### 3. UI Tests (Run on Main Branch)
+
 - **Purpose**: Test actual user workflows
 - **Critical Paths**:
   1. Start workout → See metrics → End workout → View summary
@@ -33,6 +36,7 @@
 Before each release, manually verify:
 
 #### Basic Flow
+
 - [ ] Launch app
 - [ ] All 3 workout types visible
 - [ ] Tap each workout type - navigates correctly
@@ -44,6 +48,7 @@ Before each release, manually verify:
 - [ ] Summary dismissal returns to start
 
 #### Edge Cases
+
 - [ ] Start workout and immediately end
 - [ ] Rapidly tap pause/resume
 - [ ] Navigate away during workout
@@ -51,6 +56,7 @@ Before each release, manually verify:
 - [ ] Always-on display mode
 
 #### HealthKit Integration
+
 - [ ] First launch - permission request appears
 - [ ] Denying permissions - app handles gracefully
 - [ ] Workout saves to Health app
@@ -59,6 +65,7 @@ Before each release, manually verify:
 ## Continuous Integration Setup
 
 ### GitHub Actions Workflow
+
 ```yaml
 name: Watch App Tests
 
@@ -95,17 +102,20 @@ jobs:
 ```
 
 ## Test Coverage Goals
+
 - Unit Tests: 80% code coverage
 - UI Tests: All critical user paths
 - Integration Tests: All state transitions
 
 ## Known Limitations
+
 1. Can't mock HKWorkoutSession (Apple's framework)
 2. Can't test actual HealthKit data saving in unit tests
 3. Can't test hardware features (heart rate sensor)
 4. UI tests on watchOS are limited compared to iOS
 
 ## Best Practices
+
 1. **Test behavior, not implementation**
 2. **Focus on user journeys**
 3. **Keep UI tests simple and reliable**

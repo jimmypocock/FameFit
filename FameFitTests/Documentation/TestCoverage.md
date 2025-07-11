@@ -4,7 +4,8 @@
 
 We use a protocol-based dependency injection approach that allows comprehensive testing without modifying production code.
 
-### Key Components:
+### Key Components
+
 - **HealthKitService Protocol**: Abstracts all HealthKit operations
 - **MockHealthKitService**: Test double for simulating HealthKit behavior
 - **MockCloudKitManager**: Test double for CloudKit operations
@@ -15,6 +16,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 ### 1. Unit Tests
 
 #### WorkoutObserverTests
+
 - ✅ HealthKit authorization (success/failure)
 - ✅ Background delivery setup
 - ✅ Observer query lifecycle
@@ -23,6 +25,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 - ✅ Multiple workout detection
 
 #### WorkoutLogicTests
+
 - ✅ Button state logic (pause/resume)
 - ✅ Workout state consistency
 - ✅ Toggle pause functionality
@@ -31,6 +34,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 - ✅ Measurement conversions
 
 #### SecurityTests
+
 - ✅ Workout data validation
 - ✅ Data sanitization for logging
 - ✅ Error message sanitization
@@ -42,6 +46,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 ### 2. Integration Tests
 
 #### WorkoutDetectionFlowTests
+
 - ✅ Complete workout detection → follower increase flow
 - ✅ Multiple workouts processed in order
 - ✅ Pre-install workouts ignored
@@ -50,6 +55,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 - ✅ Notification generation
 
 #### WorkoutIntegrationTests
+
 - ✅ UI follower count updates
 - ✅ Authentication flow
 - ✅ Complete workout-to-follower flow
@@ -59,12 +65,14 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 ### 3. Test Scenarios Covered
 
 #### Happy Path
+
 - User completes workout → +5 followers
 - Multiple workouts → correct follower count
 - Today's workouts displayed correctly
 - Background updates work
 
 #### Error Scenarios
+
 - HealthKit not available
 - Authorization denied
 - CloudKit sync failure
@@ -72,6 +80,7 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 - Network errors
 
 #### Edge Cases
+
 - Workouts before app install
 - Future-dated workouts
 - Extremely long workouts (>24h)
@@ -80,7 +89,8 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 
 ## Running Tests
 
-### Command Line:
+### Command Line
+
 ```bash
 # Run all tests
 ./Scripts/test.sh
@@ -89,13 +99,15 @@ We use a protocol-based dependency injection approach that allows comprehensive 
 xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:FameFitTests/WorkoutObserverTests
 ```
 
-### In Xcode:
+### In Xcode
+
 - Press `Cmd+U` to run all tests
 - Click on individual test diamonds to run specific tests
 
 ## Test Data Scenarios
 
-### TestWorkoutBuilder provides:
+### TestWorkoutBuilder provides
+
 - `createWalkWorkout()` - 30 min walk with realistic metrics
 - `createRunWorkout()` - 30 min run with realistic metrics  
 - `createCycleWorkout()` - 45 min bike ride with realistic metrics
@@ -106,12 +118,14 @@ xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:Fam
 ## Mocking Strategy
 
 ### MockHealthKitService
+
 - Controls authorization status
 - Simulates workout detection
 - Manages background delivery
 - Tracks method calls for verification
 
 ### MockCloudKitManager
+
 - Controls sign-in state
 - Tracks follower additions
 - Simulates sync failures
@@ -129,6 +143,7 @@ xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:Fam
 ## Coverage Metrics
 
 While we don't have exact percentage coverage without running the tests, we have comprehensive coverage of:
+
 - All public methods in WorkoutObserver
 - All error scenarios
 - All user flows (onboarding → workout → followers)

@@ -29,7 +29,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             return
         }
         
-        let workoutType = HKObjectType.workoutType()
+        _ = HKObjectType.workoutType()
         
         // First, catch up on any workouts we might have missed
         FameFitLogger.info("Starting workout observation - checking for missed workouts", category: FameFitLogger.workout)
@@ -70,12 +70,12 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     }
     
     func fetchLatestWorkout() {
-        let workoutType = HKObjectType.workoutType()
+        _ = HKObjectType.workoutType()
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true) // Changed to ascending to process oldest first
         let limit = 10 // Process up to 10 workouts at a time to avoid overload
         
-        let lastProcessedKey = "LastProcessedWorkoutDate"
-        let appInstallDateKey = "FameFitInstallDate"
+        let lastProcessedKey = UserDefaultsKeys.lastProcessedWorkoutDate
+        let appInstallDateKey = UserDefaultsKeys.appInstallDate
         
         // Track app install date to avoid counting pre-install workouts
         if UserDefaults.standard.object(forKey: appInstallDateKey) == nil {
@@ -86,6 +86,9 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         let appInstallDate = UserDefaults.standard.object(forKey: appInstallDateKey) as? Date ?? Date()
         let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? appInstallDate
         
+        // Ensure we're using the later of the two dates
+        let startDate = max(lastProcessedDate, appInstallDate)
+        
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .medium
@@ -94,7 +97,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         FameFitLogger.debug("Checking for workouts after: \(dateFormatter.string(from: lastProcessedDate))", category: FameFitLogger.workout)
         FameFitLogger.debug("Current time: \(dateFormatter.string(from: Date()))", category: FameFitLogger.workout)
         
-        let predicate = HKQuery.predicateForSamples(withStart: lastProcessedDate, end: Date(), options: .strictEndDate)
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictEndDate)
         
         // Use the healthKitService to fetch workouts with our custom predicate
         healthKitService.fetchWorkoutsWithPredicate(predicate, limit: limit, sortDescriptors: [sortDescriptor]) { [weak self] samples, error in
@@ -108,30 +111,32 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
                 FameFitLogger.debug("No new workouts found in query results", category: FameFitLogger.workout)
                 FameFitLogger.debug("Query returned \(samples?.count ?? 0) samples", category: FameFitLogger.workout)
+                // No workouts to process
                 return
             }
             
             FameFitLogger.info("Found \(workouts.count) new workout(s) to process", category: FameFitLogger.workout)
+            // Processing workouts
             
             // Process all workouts found
             var latestEndDate = lastProcessedDate
             for workout in workouts {
                 let endDate = workout.endDate
-                if endDate > lastProcessedDate {
-                    FameFitLogger.info("Processing workout: \(workout.workoutActivityType) ended at \(endDate)", category: FameFitLogger.workout)
-                    self?.processCompletedWorkout(workout)
-                    
-                    // Track the latest end date
-                    if endDate > latestEndDate {
-                        latestEndDate = endDate
-                    }
+                FameFitLogger.info("Processing workout: \(workout.workoutActivityType) ended at \(endDate)", category: FameFitLogger.workout)
+                self?.processCompletedWorkout(workout)
+                
+                // Track the latest end date
+                if endDate > latestEndDate {
+                    latestEndDate = endDate
                 }
             }
             
             // Update the last processed date to the latest workout's end date
             if latestEndDate > lastProcessedDate {
                 UserDefaults.standard.set(latestEndDate, forKey: lastProcessedKey)
+                // UserDefaults automatically synchronizes
                 FameFitLogger.debug("Updated last processed date to: \(latestEndDate)", category: FameFitLogger.workout)
+                // Saved last processed date
             }
         }
     }
@@ -161,6 +166,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         let character = FameFitCharacter.characterForWorkoutType(workoutType)
         
         FameFitLogger.info("Adding 5 followers for workout", category: FameFitLogger.workout)
+        // Add followers for completed workout
         cloudKitManager?.addFollowers(5)
         
         sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories))

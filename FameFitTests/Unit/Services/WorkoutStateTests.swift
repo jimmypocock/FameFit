@@ -7,19 +7,24 @@ class WorkoutStateTests: XCTestCase {
     func testButtonStateLogic() {
         // Test the core logic that drives UI button states
         
-        // Running state should show pause button
-        let isWorkoutRunning = true
-        let runningIcon = isWorkoutRunning ? "pause" : "play"
-        let runningText = isWorkoutRunning ? "Pause" : "Resume"
-        XCTAssertEqual(runningIcon, "pause")
-        XCTAssertEqual(runningText, "Pause")
+        // Test running state
+        let runningState = true
+        XCTAssertEqual(getButtonIcon(isRunning: runningState), "pause")
+        XCTAssertEqual(getButtonText(isRunning: runningState), "Pause")
         
-        // Paused/stopped state should show resume button
-        let isWorkoutPaused = false
-        let pausedIcon = isWorkoutPaused ? "pause" : "play"
-        let pausedText = isWorkoutPaused ? "Pause" : "Resume"
-        XCTAssertEqual(pausedIcon, "play")
-        XCTAssertEqual(pausedText, "Resume")
+        // Test paused state
+        let pausedState = false
+        XCTAssertEqual(getButtonIcon(isRunning: pausedState), "play")
+        XCTAssertEqual(getButtonText(isRunning: pausedState), "Resume")
+    }
+    
+    // Helper functions that mirror the logic in ControlsView
+    private func getButtonIcon(isRunning: Bool) -> String {
+        return isRunning ? "pause" : "play"
+    }
+    
+    private func getButtonText(isRunning: Bool) -> String {
+        return isRunning ? "Pause" : "Resume"
     }
     
     func testWorkoutSessionStateLogic() {

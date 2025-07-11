@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		54065FEC2E2052620026B8F7 /* SecurityBestPractices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */; };
 		54065FF62E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
-		54065FF92E2052620026B8F7 /* SecurityBestPractices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */; };
 		540660032E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
+		54190BD82E205CA200C82874 /* DataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD62E205CA200C82874 /* DataValidator.swift */; };
+		54190BD92E205CA200C82874 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */; };
+		54190BDA2E205CA200C82874 /* DataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD62E205CA200C82874 /* DataValidator.swift */; };
+		54190BDB2E205CA200C82874 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */; };
 		54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
 		54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
 /* End PBXBuildFile section */
@@ -68,7 +70,8 @@
 
 /* Begin PBXFileReference section */
 		54065FE92E2052620026B8F7 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
-		54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityBestPractices.swift; sourceTree = "<group>"; };
+		54190BD62E205CA200C82874 /* DataValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataValidator.swift; sourceTree = "<group>"; };
+		54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
 		54603EFB2E1E03D0008D4778 /* FameFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FameFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFC2E1E03D0008D4778 /* FameFit Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "FameFit Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFD2E1E03D0008D4778 /* FameFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -186,8 +189,9 @@
 		54065FEB2E2052620026B8F7 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				54190BD62E205CA200C82874 /* DataValidator.swift */,
+				54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */,
 				54065FE92E2052620026B8F7 /* Logger.swift */,
-				54065FEA2E2052620026B8F7 /* SecurityBestPractices.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -468,7 +472,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54065FEC2E2052620026B8F7 /* SecurityBestPractices.swift in Sources */,
+				54190BDA2E205CA200C82874 /* DataValidator.swift in Sources */,
+				54190BDB2E205CA200C82874 /* UserDefaultsKeys.swift in Sources */,
 				54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */,
 				54065FF62E2052620026B8F7 /* Logger.swift in Sources */,
 			);
@@ -492,9 +497,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54065FF92E2052620026B8F7 /* SecurityBestPractices.swift in Sources */,
 				54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */,
 				540660032E2052620026B8F7 /* Logger.swift in Sources */,
+				54190BD82E205CA200C82874 /* DataValidator.swift in Sources */,
+				54190BD92E205CA200C82874 /* UserDefaultsKeys.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

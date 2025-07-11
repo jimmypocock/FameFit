@@ -1,6 +1,6 @@
 import Foundation
 
-enum FameFitError: LocalizedError {
+enum FameFitError: LocalizedError, Equatable {
     // CloudKit Errors
     case cloudKitNotAvailable
     case cloudKitSyncFailed(Error)
@@ -98,6 +98,40 @@ enum FameFitError: LocalizedError {
             return "Try again or contact support if the problem persists."
         }
     }
+    
+    /// User-friendly error messages that don't expose internal details
+    var userFriendlyMessage: String {
+        switch self {
+        case .healthKitNotAvailable:
+            return "Health data is not available on this device."
+        case .healthKitAuthorizationDenied:
+            return "Please grant health data permissions in Settings."
+        case .healthKitDataNotFound:
+            return "No health data found. Please try again."
+        case .workoutSessionFailed:
+            return "Unable to start workout session. Please try again."
+        case .workoutDataCorrupted:
+            return "Workout data is invalid. Please try again."
+        case .cloudKitNotAvailable:
+            return "iCloud is not available. Please check your settings."
+        case .cloudKitUserNotFound:
+            return "Unable to access your account. Please sign in to iCloud."
+        case .cloudKitSyncFailed:
+            return "Unable to sync data. Please check your connection."
+        case .cloudKitNetworkError:
+            return "Network error. Please check your connection."
+        case .authenticationFailed:
+            return "Sign in failed. Please try again."
+        case .authenticationCancelled:
+            return "Sign in was cancelled."
+        case .userNotAuthenticated:
+            return "Please sign in to continue."
+        case .networkUnavailable:
+            return "No internet connection. Please check your network."
+        case .unknownError:
+            return "An unexpected error occurred. Please try again."
+        }
+    }
 }
 
 // Error handling utilities
@@ -124,6 +158,34 @@ extension Error {
             return .healthKitDataNotFound
         default:
             return .unknownError(self)
+        }
+    }
+}
+
+// MARK: - Equatable implementation for testing
+extension FameFitError {
+    static func == (lhs: FameFitError, rhs: FameFitError) -> Bool {
+        switch (lhs, rhs) {
+        case (.cloudKitNotAvailable, .cloudKitNotAvailable),
+             (.cloudKitUserNotFound, .cloudKitUserNotFound),
+             (.cloudKitNetworkError, .cloudKitNetworkError),
+             (.healthKitNotAvailable, .healthKitNotAvailable),
+             (.healthKitAuthorizationDenied, .healthKitAuthorizationDenied),
+             (.healthKitDataNotFound, .healthKitDataNotFound),
+             (.authenticationCancelled, .authenticationCancelled),
+             (.userNotAuthenticated, .userNotAuthenticated),
+             (.workoutDataCorrupted, .workoutDataCorrupted),
+             (.networkUnavailable, .networkUnavailable):
+            return true
+            
+        case (.cloudKitSyncFailed(let error1), .cloudKitSyncFailed(let error2)),
+             (.authenticationFailed(let error1), .authenticationFailed(let error2)),
+             (.workoutSessionFailed(let error1), .workoutSessionFailed(let error2)),
+             (.unknownError(let error1), .unknownError(let error2)):
+            return error1.localizedDescription == error2.localizedDescription
+            
+        default:
+            return false
         }
     }
 }

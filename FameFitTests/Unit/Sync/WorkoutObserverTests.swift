@@ -69,7 +69,7 @@ class WorkoutObserverTests: XCTestCase {
         // Given
         let expectation = XCTestExpectation(description: "Workout processed")
         mockCloudKitManager.reset()
-        let initialFollowers = mockCloudKitManager.followerCount
+        _ = mockCloudKitManager.followerCount // Verify starts at 0
         
         // Create a mock workout
         let workout = TestWorkoutBuilder.createRunWorkout()

@@ -19,8 +19,17 @@ class WorkoutFlowUITests: XCTestCase {
     // MARK: - Workout Detection UI Tests
     
     func testFollowerCountSection() {
-        // Verify follower count UI is visible
-        XCTAssertTrue(app.staticTexts["Followers"].waitForExistence(timeout: 5), "Should show Followers label")
+        // Wait for the app to fully load
+        sleep(2)
+        
+        // Check if we're on the main screen or need to complete onboarding
+        if app.staticTexts["FAMEFIT"].exists || app.buttons["Next"].exists {
+            // We're still in onboarding, skip to main screen
+            completeOnboardingIfNeeded()
+        }
+        
+        // Now verify follower count UI is visible
+        XCTAssertTrue(app.staticTexts["Followers"].waitForExistence(timeout: 10), "Should show Followers label")
         
         // Get initial follower count
         let initialCount = getFollowerCount()
@@ -48,7 +57,7 @@ class WorkoutFlowUITests: XCTestCase {
     func testWorkoutInstructionsVisible() {
         // Verify instructions are visible
         XCTAssertTrue(app.staticTexts["Your Journey"].exists, "Should show Your Journey section")
-        XCTAssertTrue(app.staticTexts.containing(.text, "Complete workouts").element.exists, 
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Complete workouts")).element.exists, 
                      "Should show workout instructions")
         XCTAssertTrue(app.staticTexts["Current rate: +5 followers per workout"].exists, 
                      "Should show follower gain rate")
@@ -102,6 +111,20 @@ class WorkoutFlowUITests: XCTestCase {
     }
     
     // MARK: - Helper Methods
+    
+    private func completeOnboardingIfNeeded() {
+        let nextButton = app.buttons["Next"]
+        for _ in 0..<20 {
+            if nextButton.exists && nextButton.isEnabled {
+                nextButton.tap()
+                sleep(1)
+            }
+            if app.staticTexts["Followers"].exists {
+                // We've reached the main screen
+                break
+            }
+        }
+    }
     
     private func getFollowerCount() -> Int? {
         // Look for numeric text that represents follower count

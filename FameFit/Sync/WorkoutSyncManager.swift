@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import UserNotifications
 import os.log
 
 /// Key for storing the sync anchor in UserDefaults
@@ -173,7 +174,7 @@ class WorkoutSyncManager: ObservableObject {
     /// Process workouts and update follower count
     private func processWorkouts(_ workouts: [HKWorkout], isInitialSync: Bool) {
         // Get app install date to avoid counting pre-install workouts
-        let appInstallDateKey = "FameFitInstallDate"
+        let appInstallDateKey = UserDefaultsKeys.appInstallDate
         if UserDefaults.standard.object(forKey: appInstallDateKey) == nil {
             UserDefaults.standard.set(Date(), forKey: appInstallDateKey)
         }
@@ -210,7 +211,7 @@ class WorkoutSyncManager: ObservableObject {
         }
         
         // For initial sync, we might want to calculate total followers differently
-        if isInitialSync && workouts.count > 0 {
+        if isInitialSync && !workouts.isEmpty {
             FameFitLogger.info("Initial sync complete. Found \(workouts.count) workouts since install", category: FameFitLogger.workout)
             // You might want to batch update followers here instead of per-workout
         }

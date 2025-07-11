@@ -161,6 +161,14 @@ enum FameFitCharacter: String, CaseIterable {
         }
     }
     
+    var specialty: String {
+        switch self {
+        case .chad: return "Strength & Power"
+        case .sierra: return "Cardio & Endurance"
+        case .zen: return "Flexibility & Mindfulness"
+        }
+    }
+    
     func workoutCompletionMessage(followers: Int) -> String {
         switch self {
         case .chad:
