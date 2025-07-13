@@ -11,8 +11,7 @@ let userDefaults = UserDefaults.standard
 let fameFitKeys = [
     "FameFitUserID",
     "FameFitUserName",
-    "hasCompletedOnboarding",
-    "selectedCharacter"
+    "com.jimmypocock.FameFit.hasCompletedOnboarding"
 ]
 
 for key in fameFitKeys {
@@ -35,4 +34,4 @@ print("1. Delete the app from your device/simulator")
 print("2. In Settings > Sign in with Apple > Apps Using Apple ID > Remove FameFit")
 print("3. For CloudKit: Settings > [Your Name] > iCloud > Manage Storage > FameFit > Delete Data")
 print("4. Reinstall the app")
-print("\nThe app will start fresh with onboarding!"
+print("\nThe app will start fresh with onboarding!")

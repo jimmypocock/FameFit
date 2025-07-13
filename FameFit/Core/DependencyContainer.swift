@@ -16,12 +16,14 @@ class DependencyContainer: ObservableObject {
     let healthKitService: HealthKitService
     let workoutSyncManager: WorkoutSyncManager
     let workoutSyncQueue: WorkoutSyncQueue
+    let notificationStore: NotificationStore
     
     init() {
         // Create instances with proper dependency injection
         self.cloudKitManager = CloudKitManager()
         self.authenticationManager = AuthenticationManager(cloudKitManager: cloudKitManager)
         self.healthKitService = RealHealthKitService()
+        self.notificationStore = NotificationStore()
         
         self.workoutObserver = WorkoutObserver(
             cloudKitManager: cloudKitManager,
@@ -39,6 +41,9 @@ class DependencyContainer: ObservableObject {
         
         // Wire up dependencies
         cloudKitManager.authenticationManager = authenticationManager
+        
+        // Give workout observer access to notification store
+        workoutObserver.notificationStore = notificationStore
     }
     
     // For testing, allow injection of mock managers
@@ -48,7 +53,8 @@ class DependencyContainer: ObservableObject {
         workoutObserver: WorkoutObserver,
         healthKitService: HealthKitService? = nil,
         workoutSyncManager: WorkoutSyncManager? = nil,
-        workoutSyncQueue: WorkoutSyncQueue? = nil
+        workoutSyncQueue: WorkoutSyncQueue? = nil,
+        notificationStore: NotificationStore? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -61,6 +67,7 @@ class DependencyContainer: ObservableObject {
         self.workoutSyncQueue = workoutSyncQueue ?? WorkoutSyncQueue(
             cloudKitManager: cloudKitManager
         )
+        self.notificationStore = notificationStore ?? NotificationStore()
     }
 }
 

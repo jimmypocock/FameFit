@@ -24,6 +24,20 @@ struct FameFitApp: App {
                 UserDefaults.standard.removeObject(forKey: "FameFitUserID")
                 UserDefaults.standard.removeObject(forKey: "FameFitUserName")
                 // UserDefaults automatically synchronizes
+            } else if ProcessInfo.processInfo.arguments.contains("--mock-auth-for-onboarding") {
+                // Set up mock authenticated state for onboarding UI testing
+                // This simulates a user who has signed in but not completed onboarding
+                UserDefaults.standard.set("test-user", forKey: "FameFitUserID")
+                UserDefaults.standard.set("Test User", forKey: "FameFitUserName")
+                
+                container.authenticationManager.userID = "test-user"
+                container.authenticationManager.userName = "Test User"
+                container.authenticationManager.isAuthenticated = true
+                container.authenticationManager.hasCompletedOnboarding = false
+                
+                // Set up CloudKit mock data
+                container.cloudKitManager.isSignedIn = true
+                container.cloudKitManager.userName = "Test User"
             } else if ProcessInfo.processInfo.arguments.contains("--skip-onboarding") {
                 // Set up mock authenticated state for UI testing
                 // Use UserDefaults to persist the state so sign out can work
@@ -32,9 +46,13 @@ struct FameFitApp: App {
                 // UserDefaults automatically synchronizes
                 
                 // Set authentication immediately (synchronously)
+                // Set onboarding complete in UserDefaults too
+                UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
+                
                 container.authenticationManager.userID = "test-user"
                 container.authenticationManager.userName = "Test User"
                 container.authenticationManager.isAuthenticated = true
+                container.authenticationManager.hasCompletedOnboarding = true
                 
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
@@ -51,31 +69,30 @@ struct FameFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if dependencyContainer.authenticationManager.isAuthenticated {
-                MainView()
-                    .environmentObject(dependencyContainer.authenticationManager)
-                    .environmentObject(dependencyContainer.cloudKitManager)
-                    .environmentObject(dependencyContainer.workoutObserver)
-                    .environment(\.dependencyContainer, dependencyContainer)
-                    .onAppear {
-                        // Share container with AppDelegate if it doesn't have one
-                        if appDelegate.dependencyContainer == nil {
-                            appDelegate.dependencyContainer = dependencyContainer
-                        }
+            ContentView()
+                .environmentObject(dependencyContainer.authenticationManager)
+                .environmentObject(dependencyContainer.cloudKitManager)
+                .environmentObject(dependencyContainer.workoutObserver)
+                .environmentObject(dependencyContainer.notificationStore)
+                .environment(\.dependencyContainer, dependencyContainer)
+                .onAppear {
+                    // Share container with AppDelegate if it doesn't have one
+                    if appDelegate.dependencyContainer == nil {
+                        appDelegate.dependencyContainer = dependencyContainer
                     }
-            } else {
-                OnboardingView()
-                    .environmentObject(dependencyContainer.authenticationManager)
-                    .environmentObject(dependencyContainer.cloudKitManager)
-                    .environmentObject(dependencyContainer.workoutObserver)
-                    .environment(\.dependencyContainer, dependencyContainer)
-                    .onAppear {
-                        // Share container with AppDelegate if it doesn't have one
-                        if appDelegate.dependencyContainer == nil {
-                            appDelegate.dependencyContainer = dependencyContainer
-                        }
-                    }
-            }
+                }
+        }
+    }
+}
+
+struct ContentView: View {
+    @EnvironmentObject var authManager: AuthenticationManager
+    
+    var body: some View {
+        if authManager.isAuthenticated && authManager.hasCompletedOnboarding {
+            MainView()
+        } else {
+            OnboardingView()
         }
     }
 }

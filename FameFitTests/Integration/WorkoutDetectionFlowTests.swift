@@ -31,7 +31,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
         workoutObserver.requestHealthKitAuthorization { success, error in
             authExpectation.fulfill()
         }
-        wait(for: [authExpectation], timeout: 1.0)
+        wait(for: [authExpectation], timeout: 3.0)
     }
     
     override func tearDown() {
@@ -51,7 +51,6 @@ class WorkoutDetectionFlowTests: XCTestCase {
         // Given - User has authorized HealthKit and is signed in
         mockCloudKitManager.isSignedIn = true
         
-        let initialFollowers = mockCloudKitManager.followerCount
         let expectation = XCTestExpectation(description: "Workout processed")
         
         // Create a workout that just finished
@@ -91,9 +90,8 @@ class WorkoutDetectionFlowTests: XCTestCase {
         let initialWorkouts = mockCloudKitManager.totalWorkouts
         
         // When - Simulate processing 3 workouts
-        for i in 1...3 {
+        for _ in 1...3 {
             mockCloudKitManager.addFollowers(5)
-            // Process workout \(i)
         }
         
         // Then

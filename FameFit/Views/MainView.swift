@@ -5,6 +5,8 @@ struct MainView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var workoutObserver: WorkoutObserver
+    @EnvironmentObject var notificationStore: NotificationStore
+    @State private var showingNotifications = false
 
     var body: some View {
         NavigationView {
@@ -48,6 +50,46 @@ struct MainView: View {
                         StatCard(title: "Workouts", value: "\(cloudKitManager.totalWorkouts)", icon: "figure.run")
                         StatCard(title: "Streak", value: "\(cloudKitManager.currentStreak)", icon: "flame.fill")
                     }
+                    
+                    VStack(spacing: 12) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Member Since")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                if let joinDate = cloudKitManager.joinTimestamp {
+                                    Text(joinDate, style: .date)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                } else {
+                                    Text("Today")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing) {
+                                Text("Last Workout")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                if let lastWorkout = cloudKitManager.lastWorkoutTimestamp {
+                                    Text(lastWorkout, style: .relative)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                } else {
+                                    Text("None yet")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(15)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -59,26 +101,65 @@ struct MainView: View {
                         .font(.body)
                         .foregroundColor(.secondary)
 
-                    Text("Current rate: +5 followers per workout")
-                        .font(.caption)
-                        .foregroundColor(.purple)
+                    HStack {
+                        Text("Current rate: +5 followers per workout")
+                            .font(.caption)
+                            .foregroundColor(.purple)
+                        
+                        Spacer()
+                        
+                        if let joinDate = cloudKitManager.joinTimestamp {
+                            let daysAsMember = Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
+                            Text("\(daysAsMember) days as member")
+                                .font(.caption)
+                                .foregroundColor(.purple)
+                        }
+                    }
                 }
                 .padding()
                 .background(Color.purple.opacity(0.1))
                 .cornerRadius(15)
 
                 Spacer()
-
-                Button(action: {
-                    authManager.signOut()
-                }, label: {
-                    Text("Sign Out")
-                        .foregroundColor(.red)
-                })
             }
             .padding()
             .navigationTitle("FameFit")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showingNotifications = true
+                    }) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell")
+                            
+                            if notificationStore.unreadCount > 0 {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 10, height: 10)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: {
+                            authManager.signOut()
+                        }) {
+                            Label("Sign Out", systemImage: "arrow.right.square")
+                                .foregroundColor(.red)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingNotifications) {
+            NotificationsListView()
+                .environmentObject(notificationStore)
         }
         .onAppear {
             // Ensure workout observer is running

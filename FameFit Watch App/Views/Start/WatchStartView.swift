@@ -50,6 +50,7 @@ struct WatchStartView: View {
                         )
                 }
                 .accessibilityIdentifier(workoutType.name)
+                .accessibilityLabel(workoutType.name)
             } //: LIST
             #if os(watchOS)
             .listStyle(.carousel)

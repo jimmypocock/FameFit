@@ -30,6 +30,8 @@ class MockCloudKitManager: CloudKitManager {
         self.userName = "Test User"
         self.currentStreak = 5
         self.totalWorkouts = 20
+        self.joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        self.lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60) // 1 day ago
     }
     
     override func addFollowers(_ count: Int) {
@@ -47,6 +49,7 @@ class MockCloudKitManager: CloudKitManager {
             // Update both at once
             self.followerCount = newFollowerCount
             self.totalWorkouts = newWorkoutCount
+            self.lastWorkoutTimestamp = Date()
             self.lastError = nil
             
             // State updated
@@ -86,6 +89,8 @@ class MockCloudKitManager: CloudKitManager {
         followerCount = 100
         totalWorkouts = 20
         currentStreak = 5
+        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
         lastError = nil
     }
     
@@ -96,5 +101,7 @@ class MockCloudKitManager: CloudKitManager {
         userName = ""
         currentStreak = 0
         totalWorkouts = 0
+        joinTimestamp = nil
+        lastWorkoutTimestamp = nil
     }
 }

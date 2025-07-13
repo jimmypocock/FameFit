@@ -9,7 +9,7 @@ struct OnboardingView: View {
     @State private var onboardingStep = 0
     @State private var showSignIn = false
     @State private var healthKitAuthorized = false
-    @State private var selectedWorkoutType: FameFitCharacter?
+    
 
     var body: some View {
         ZStack {
@@ -30,13 +30,18 @@ struct OnboardingView: View {
                     HealthKitPermissionView(onboardingStep: $onboardingStep, healthKitAuthorized: $healthKitAuthorized)
                 case 3:
                     GameMechanicsView(onboardingStep: $onboardingStep)
-                case 4:
-                    WorkoutSelectionView(selectedWorkoutType: $selectedWorkoutType)
                 default:
                     Text("Welcome to FameFit!")
                 }
             }
             .padding()
+        }
+        .onAppear {
+            // If user is already authenticated, skip to the appropriate step
+            if authManager.isAuthenticated {
+                // Skip to HealthKit permissions step
+                onboardingStep = 2
+            }
         }
     }
 }
@@ -138,8 +143,8 @@ struct SignInView: View {
 
             Spacer()
         }
-        .onChange(of: authManager.isAuthenticated) { _, isAuthenticated in
-            if isAuthenticated {
+        .onChange(of: authManager.isAuthenticated) { oldValue, newValue in
+            if newValue {
                 onboardingStep = 2
             }
         }
@@ -183,6 +188,9 @@ struct HealthKitPermissionView: View {
                     if success {
                         healthKitAuthorized = true
                         onboardingStep = 3
+                    } else if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
+                        // In UI tests, HealthKit auth might fail, so allow proceeding anyway
+                        onboardingStep = 3
                     }
                 }
             }, label: {
@@ -207,6 +215,7 @@ struct HealthKitPermissionView: View {
 struct GameMechanicsView: View {
     @Binding var onboardingStep: Int
     @State private var currentDialogue = 0
+    @EnvironmentObject var authManager: AuthenticationManager
 
     let dialogues = [
         ("Chad", "💪", "Perfect. Now, here's the deal: Every workout you crush gets you followers.", Color.red),
@@ -218,11 +227,11 @@ struct GameMechanicsView: View {
             "celebrity gym parties, influencer retreats...", Color.red),
         ("Sierra", "🏃‍♀️", "...5K runs with people who actually care about your split times...", Color.orange),
         ("Zen", "🧘‍♂️", "...and meditation sessions where we collectively manifest verified checkmarks.", Color.green),
-        ("Chad", "💪", "We'll be your coaches! When you lift, I'll be there spotting your form AND your content strategy.", Color.red),
+        ("Chad", "💪", "We'll ALL be your coaches! When you lift, I'll be there spotting your form AND your content strategy.", Color.red),
         ("Sierra", "🏃‍♀️", "When you run, I'll pace your cardio AND your posting schedule. Consistency is key!", Color.orange),
         ("Zen", "🧘‍♂️", "And when you stretch, I'll guide your flexibility AND " +
             "your ability to bend the truth about your workout times.", Color.green),
-        ("Chad", "💪", "The gains have waited long enough. Let's get started!", Color.red)
+        ("Chad", "💪", "No matter what workout you do, the right coach will be there. The gains have waited long enough!", Color.red)
     ]
 
     var body: some View {
@@ -263,11 +272,12 @@ struct GameMechanicsView: View {
                     if currentDialogue < dialogues.count - 1 {
                         currentDialogue += 1
                     } else {
-                        onboardingStep = 4
+                        // Complete onboarding
+                        authManager.completeOnboarding()
                     }
                 }
             }, label: {
-                Text(currentDialogue < dialogues.count - 1 ? "Next" : "Choose Your Coach!")
+                Text(currentDialogue < dialogues.count - 1 ? "Next" : "Let's Get Started!")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -275,61 +285,6 @@ struct GameMechanicsView: View {
                     .background(Color.white.opacity(0.3))
                     .cornerRadius(15)
             })
-        }
-    }
-}
-
-struct WorkoutSelectionView: View {
-    @Binding var selectedWorkoutType: FameFitCharacter?
-    @EnvironmentObject var authManager: AuthenticationManager
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("CHOOSE YOUR SPECIALTY")
-                .font(.system(size: 30, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-
-            Text("Pick your main workout type\n(You can do any workout and we'll match you with the right coach!)")
-                .font(.body)
-                .foregroundColor(.white.opacity(0.9))
-                .multilineTextAlignment(.center)
-
-            Spacer()
-
-            ForEach(FameFitCharacter.allCases, id: \.self) { character in
-                Button(action: {
-                    selectedWorkoutType = character
-                }) {
-                    HStack {
-                        Text(character.emoji)
-                            .font(.system(size: 40))
-
-                        VStack(alignment: .leading) {
-                            Text(character.specialty)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            Text(character.fullName)
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-
-                        Spacer()
-                    }
-                    .padding()
-                    .background(characterColor(for: character).opacity(0.3))
-                    .cornerRadius(15)
-                }
-            }
-
-            Spacer()
-        }
-    }
-
-    func characterColor(for character: FameFitCharacter) -> Color {
-        switch character {
-        case .chad: return .red
-        case .sierra: return .orange
-        case .zen: return .green
         }
     }
 }

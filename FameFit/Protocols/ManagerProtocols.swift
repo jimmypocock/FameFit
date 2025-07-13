@@ -16,10 +16,12 @@ protocol AuthenticationManaging: ObservableObject {
     var userID: String? { get }
     var userName: String? { get }
     var lastError: FameFitError? { get }
+    var hasCompletedOnboarding: Bool { get }
     
     func checkAuthenticationStatus()
     func handleSignInWithApple(credential: ASAuthorizationAppleIDCredential)
     func signOut()
+    func completeOnboarding()
 }
 
 // MARK: - CloudKitManager Protocol
@@ -29,12 +31,12 @@ protocol CloudKitManaging: ObservableObject {
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
     var userName: String { get }
-    var selectedCharacter: String { get }
+    var lastWorkoutTimestamp: Date? { get }
+    var joinTimestamp: Date? { get }
     var lastError: FameFitError? { get }
     
     func checkAccountStatus()
     func fetchUserRecord()
-    func updateSelectedCharacter(_ character: String, completion: @escaping (Bool) -> Void)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getFollowerTitle() -> String
 }

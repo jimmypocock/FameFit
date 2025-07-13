@@ -7,6 +7,7 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
     @Published var userID: String?
     @Published var userName: String?
     @Published var lastError: FameFitError?
+    @Published var hasCompletedOnboarding = false
     
     private let userIDKey = "FameFitUserID"
     private let userNameKey = "FameFitUserName"
@@ -24,6 +25,7 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
             self.userID = savedUserID
             self.userName = savedUserName
             self.isAuthenticated = true
+            self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasCompletedOnboarding)
             
             cloudKitManager?.checkAccountStatus()
         }
@@ -54,10 +56,17 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
     func signOut() {
         UserDefaults.standard.removeObject(forKey: userIDKey)
         UserDefaults.standard.removeObject(forKey: userNameKey)
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
         
         self.userID = nil
         self.userName = nil
         self.isAuthenticated = false
+        self.hasCompletedOnboarding = false
+    }
+    
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        self.hasCompletedOnboarding = true
     }
 }
 
@@ -87,6 +96,7 @@ struct SignInWithAppleButton: UIViewRepresentable {
         init(authManager: AuthenticationManager) {
             self.authManager = authManager
         }
+        
         @objc func handleSignInWithApple() {
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = [.fullName]

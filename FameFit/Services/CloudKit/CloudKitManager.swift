@@ -14,6 +14,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     @Published var userName: String = ""
     @Published var currentStreak: Int = 0
     @Published var totalWorkouts: Int = 0
+    @Published var lastWorkoutTimestamp: Date?
+    @Published var joinTimestamp: Date?
     @Published var lastError: FameFitError?
     
     weak var authenticationManager: AuthenticationManager?
@@ -22,9 +24,6 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         isSignedIn
     }
     
-    var selectedCharacter: String {
-        userRecord?["selectedCharacter"] as? String ?? "chad"
-    }
     
     override init() {
         self.privateDatabase = container.privateCloudDatabase
@@ -54,7 +53,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             guard let recordID = recordID else { return }
             
             self?.privateDatabase.fetch(withRecordID: recordID) { existingRecord, fetchError in
-                let userRecord = existingRecord ?? CKRecord(recordType: "User", recordID: recordID)
+                let userRecord = existingRecord ?? CKRecord(recordType: "UserProfiles", recordID: recordID)
         
                 // Only update if this is a new record
                 if existingRecord == nil {
@@ -62,8 +61,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     userRecord["followerCount"] = 0
                     userRecord["totalWorkouts"] = 0
                     userRecord["currentStreak"] = 0
-                    userRecord["joinDate"] = Date()
-                    userRecord["lastWorkoutDate"] = Date()
+                    userRecord["joinTimestamp"] = Date()
+                    userRecord["lastWorkoutTimestamp"] = Date()
                 } else {
                     // Update display name if changed
                     userRecord["displayName"] = displayName
@@ -82,6 +81,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                             self?.userName = record["displayName"] as? String ?? ""
                             self?.currentStreak = record["currentStreak"] as? Int ?? 0
                             self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
+                            self?.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
+                            self?.joinTimestamp = record["joinTimestamp"] as? Date
                             self?.lastError = nil
                         }
                     }
@@ -119,6 +120,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                         self?.userName = record["displayName"] as? String ?? ""
                         self?.currentStreak = record["currentStreak"] as? Int ?? 0
                         self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
+                        self?.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
+                        self?.joinTimestamp = record["joinTimestamp"] as? Date
                         self?.lastError = nil
                     }
                 }
@@ -142,7 +145,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         
         userRecord["followerCount"] = currentCount + count
         userRecord["totalWorkouts"] = currentTotal + 1
-        userRecord["lastWorkoutDate"] = Date()
+        userRecord["lastWorkoutTimestamp"] = Date()
         
         FameFitLogger.debug("New followers: \(currentCount + count), workouts: \(currentTotal + 1)", category: FameFitLogger.cloudKit)
         
@@ -160,6 +163,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     self?.followerCount = record["followerCount"] as? Int ?? 0
                     self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
                     self?.currentStreak = record["currentStreak"] as? Int ?? 0
+                    self?.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
+                    self?.joinTimestamp = record["joinTimestamp"] as? Date
                     self?.lastError = nil
                 }
             }
@@ -167,11 +172,11 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     private func updateStreakIfNeeded(_ record: CKRecord) {
-        let lastWorkoutDate = record["lastWorkoutDate"] as? Date ?? Date()
+        let lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date ?? Date()
         let currentStreak = record["currentStreak"] as? Int ?? 0
         
         let calendar = Calendar.current
-        let daysSinceLastWorkout = calendar.dateComponents([.day], from: lastWorkoutDate, to: Date()).day ?? 0
+        let daysSinceLastWorkout = calendar.dateComponents([.day], from: lastWorkoutTimestamp, to: Date()).day ?? 0
         
         if daysSinceLastWorkout <= 1 {
             record["currentStreak"] = currentStreak + 1
@@ -195,25 +200,6 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         }
     }
     
-    func updateSelectedCharacter(_ character: String, completion: @escaping (Bool) -> Void) {
-        guard let userRecord = userRecord else {
-            completion(false)
-            return
-        }
-        
-        userRecord["selectedCharacter"] = character
-        
-        privateDatabase.save(userRecord) { [weak self] _, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self?.lastError = .cloudKitSyncFailed(error)
-                    completion(false)
-                } else {
-                    completion(true)
-                }
-            }
-        }
-    }
     
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void) {
         // For now, just increase followers when a workout is recorded

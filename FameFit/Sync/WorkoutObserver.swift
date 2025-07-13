@@ -7,11 +7,15 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private let healthKitService: HealthKitService
     private var observerQuery: HKObserverQuery?
     private weak var cloudKitManager: CloudKitManager?
+    weak var notificationStore: NotificationStore?
     
     @Published var lastError: FameFitError?
     @Published var allWorkouts: [HKWorkout] = []
     @Published var todaysWorkouts: [HKWorkout] = []
     @Published var isAuthorized = false
+    
+    private var lastNotificationDate: Date?
+    private let notificationThrottleInterval: TimeInterval = 300 // 5 minutes between notifications
     
     init(cloudKitManager: CloudKitManager, healthKitService: HealthKitService? = nil) {
         self.cloudKitManager = cloudKitManager
@@ -185,11 +189,36 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     }
     
     private func sendWorkoutNotification(character: FameFitCharacter, duration: Int, calories: Int) {
+        // Throttle notifications to prevent spam
+        if let lastDate = lastNotificationDate,
+           Date().timeIntervalSince(lastDate) < notificationThrottleInterval {
+            FameFitLogger.debug("Skipping notification - too soon since last notification", category: FameFitLogger.workout)
+            return
+        }
+        
+        let title = "\(character.emoji) \(character.fullName)"
+        let body = character.workoutCompletionMessage(followers: 5)
+        
+        // Add to notification store
+        let notificationItem = NotificationItem(
+            title: title,
+            body: body,
+            character: character,
+            workoutDuration: duration,
+            calories: calories,
+            followersEarned: 5
+        )
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.notificationStore?.addNotification(notificationItem)
+        }
+        
+        // Also send push notification
         let content = UNMutableNotificationContent()
-        content.title = "\(character.emoji) \(character.fullName)"
-        content.body = character.workoutCompletionMessage(followers: 5)
+        content.title = title
+        content.body = body
         content.sound = .default
-        content.badge = NSNumber(value: cloudKitManager?.followerCount ?? 0)
+        content.badge = NSNumber(value: notificationStore?.unreadCount ?? 0)
         
         content.userInfo = [
             "character": character.rawValue,
@@ -198,7 +227,9 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             "newFollowers": 5
         ]
         
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        // Use workout-specific identifier to prevent duplicates
+        let notificationId = "workout-\(character.rawValue)-\(Date().timeIntervalSince1970)"
+        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: nil)
         
         UNUserNotificationCenter.current().add(request) { [weak self] error in
             if let error = error {
@@ -206,6 +237,19 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                     self?.lastError = .unknownError(error)
                 }
             } else {
+                self?.lastNotificationDate = Date()
+                FameFitLogger.debug("Notification sent successfully", category: FameFitLogger.workout)
+            }
+        }
+    }
+    
+    // Clear all pending notifications
+    func clearAllNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        UNUserNotificationCenter.current().setBadgeCount(0) { error in
+            if let error = error {
+                FameFitLogger.error("Failed to clear badge count", error: error, category: FameFitLogger.workout)
             }
         }
     }

@@ -132,7 +132,7 @@ extension HKWorkoutActivityType {
 
 // MARK: - FameFit Characters
 
-enum FameFitCharacter: String, CaseIterable {
+enum FameFitCharacter: String, CaseIterable, Codable {
     case chad = "Chad"
     case sierra = "Sierra"
     case zen = "Zen"

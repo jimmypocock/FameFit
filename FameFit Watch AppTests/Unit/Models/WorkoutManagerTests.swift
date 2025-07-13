@@ -169,4 +169,42 @@ class WorkoutManagerTests: XCTestCase {
         XCTAssertEqual(workoutManager.distance, 0)
         XCTAssertEqual(workoutManager.averageHeartRate, 0)
     }
+    
+    // MARK: - Timer Tests
+    
+    func testDisplayElapsedTimeStartsAtZero() {
+        XCTAssertEqual(workoutManager.displayElapsedTime, 0)
+    }
+    
+    func testDisplayElapsedTimeCanBeSet() {
+        // Given various elapsed times
+        let testTimes: [TimeInterval] = [0, 30, 90, 3665]
+        
+        for time in testTimes {
+            workoutManager.displayElapsedTime = time
+            XCTAssertEqual(workoutManager.displayElapsedTime, time, 
+                          "Should be able to set elapsed time to \(time)")
+        }
+    }
+    
+    // MARK: - Message Tests
+    
+    func testInitialMessageIsEmpty() {
+        XCTAssertEqual(workoutManager.currentMessage, "")
+    }
+    
+    func testWorkoutErrorStartsNil() {
+        XCTAssertNil(workoutManager.workoutError)
+    }
+    
+    // MARK: - Workout Type Tests
+    
+    func testSupportsMultipleWorkoutTypes() {
+        let supportedTypes: [HKWorkoutActivityType] = [.running, .cycling, .walking]
+        
+        for type in supportedTypes {
+            workoutManager.selectedWorkout = type
+            XCTAssertEqual(workoutManager.selectedWorkout, type)
+        }
+    }
 }
