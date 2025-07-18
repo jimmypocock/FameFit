@@ -17,7 +17,7 @@ struct NotificationsListView: View {
                             .font(.title2)
                             .fontWeight(.medium)
                         
-                        Text("Your workout notifications will appear here")
+                        Text("Your notifications will appear here")
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)

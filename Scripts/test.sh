@@ -4,6 +4,9 @@ set -e
 
 echo "🧪 FameFit Test Suite"
 echo "===================="
+echo ""
+echo "Tip: Run './reset_sim.sh' first if you're having simulator issues"
+echo ""
 
 # Colors for output
 RED='\033[0;31m'
@@ -35,17 +38,28 @@ fi
 
 echo ""
 echo "2. Unit Tests (iOS)..."
-# Try to run just the working unit tests
+# Run all unit tests
 xcodebuild test \
     -workspace FameFit.xcworkspace \
     -scheme FameFit \
     -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-    -only-testing:FameFitTests/WorkoutLogicTests \
+    -only-testing:FameFitTests \
     -quiet
 print_status "Unit tests" $?
 
 echo ""
-echo "3. Build Verification..."
+echo "3. UI Tests (iOS)..."
+# Run UI tests separately
+xcodebuild test \
+    -workspace FameFit.xcworkspace \
+    -scheme FameFit \
+    -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+    -only-testing:FameFitUITests \
+    -quiet
+print_status "UI tests" $?
+
+echo ""
+echo "4. Build Verification..."
 # Verify the main app builds
 xcodebuild build \
     -workspace FameFit.xcworkspace \
@@ -67,7 +81,8 @@ echo "🎉 Test suite completed!"
 echo ""
 echo "📊 Summary:"
 echo "   - SwiftLint: Code quality checks"
-echo "   - Unit Tests: Core logic validation"
+echo "   - Unit Tests: Core logic validation (no app launch)"
+echo "   - UI Tests: User interface validation (full app launch)"
 echo "   - Build Tests: Compilation verification"
 echo ""
 echo "💡 To run individual tests:"

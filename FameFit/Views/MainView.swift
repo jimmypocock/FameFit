@@ -2,11 +2,13 @@ import SwiftUI
 import os.log
 
 struct MainView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var cloudKitManager: CloudKitManager
-    @EnvironmentObject var workoutObserver: WorkoutObserver
-    @EnvironmentObject var notificationStore: NotificationStore
+    @StateObject private var viewModel: MainViewModel
     @State private var showingNotifications = false
+    @State private var showingWorkoutHistory = false
+    
+    init(viewModel: MainViewModel) {
+        self._viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         NavigationView {
@@ -16,7 +18,7 @@ struct MainView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
 
-                    Text(cloudKitManager.userName)
+                    Text(viewModel.userName)
                         .font(.largeTitle)
                         .fontWeight(.bold)
                 }
@@ -27,7 +29,7 @@ struct MainView: View {
                             Text("Followers")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("\(cloudKitManager.followerCount)")
+                            Text("\(viewModel.followerCount)")
                                 .font(.system(size: 40, weight: .bold, design: .rounded))
                         }
 
@@ -37,7 +39,7 @@ struct MainView: View {
                             Text("Status")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(cloudKitManager.getFollowerTitle())
+                            Text(viewModel.followerTitle)
                                 .font(.headline)
                                 .foregroundColor(.purple)
                         }
@@ -47,8 +49,8 @@ struct MainView: View {
                     .cornerRadius(15)
 
                     HStack {
-                        StatCard(title: "Workouts", value: "\(cloudKitManager.totalWorkouts)", icon: "figure.run")
-                        StatCard(title: "Streak", value: "\(cloudKitManager.currentStreak)", icon: "flame.fill")
+                        StatCard(title: "Workouts", value: "\(viewModel.totalWorkouts)", icon: "figure.run")
+                        StatCard(title: "Streak", value: "\(viewModel.currentStreak)", icon: "flame.fill")
                     }
                     
                     VStack(spacing: 12) {
@@ -57,7 +59,7 @@ struct MainView: View {
                                 Text("Member Since")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                if let joinDate = cloudKitManager.joinTimestamp {
+                                if let joinDate = viewModel.joinDate {
                                     Text(joinDate, style: .date)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
@@ -74,7 +76,7 @@ struct MainView: View {
                                 Text("Last Workout")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                if let lastWorkout = cloudKitManager.lastWorkoutTimestamp {
+                                if let lastWorkout = viewModel.lastWorkoutDate {
                                     Text(lastWorkout, style: .relative)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
@@ -93,8 +95,24 @@ struct MainView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Your Journey")
-                        .font(.headline)
+                    HStack {
+                        Text("Your Journey")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            showingWorkoutHistory = true
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "figure.run.circle")
+                                    .font(.caption)
+                                Text("Workout History")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.purple)
+                        }
+                    }
 
                     Text("Complete workouts in any app to gain followers! " +
                             "Your coaches will congratulate you after each workout.")
@@ -108,9 +126,8 @@ struct MainView: View {
                         
                         Spacer()
                         
-                        if let joinDate = cloudKitManager.joinTimestamp {
-                            let daysAsMember = Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
-                            Text("\(daysAsMember) days as member")
+                        if viewModel.joinDate != nil {
+                            Text("\(viewModel.daysAsMember) days as member")
                                 .font(.caption)
                                 .foregroundColor(.purple)
                         }
@@ -133,7 +150,7 @@ struct MainView: View {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bell")
                             
-                            if notificationStore.unreadCount > 0 {
+                            if viewModel.hasUnreadNotifications {
                                 Circle()
                                     .fill(Color.red)
                                     .frame(width: 10, height: 10)
@@ -146,7 +163,7 @@ struct MainView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
-                            authManager.signOut()
+                            viewModel.signOut()
                         }) {
                             Label("Sign Out", systemImage: "arrow.right.square")
                                 .foregroundColor(.red)
@@ -159,18 +176,12 @@ struct MainView: View {
         }
         .sheet(isPresented: $showingNotifications) {
             NotificationsListView()
-                .environmentObject(notificationStore)
+        }
+        .sheet(isPresented: $showingWorkoutHistory) {
+            WorkoutHistoryView()
         }
         .onAppear {
-            // Ensure workout observer is running
-            workoutObserver.startObservingWorkouts()
-            // Refresh user data
-            cloudKitManager.fetchUserRecord()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            // Re-check for workouts when app becomes active
-            FameFitLogger.info("App became active - checking for new workouts", category: FameFitLogger.app)
-            workoutObserver.fetchLatestWorkout()
+            viewModel.refreshData()
         }
     }
 }
@@ -203,9 +214,10 @@ struct StatCard: View {
 
 #Preview {
     let container = DependencyContainer()
-    return MainView()
-        .environmentObject(container.authenticationManager)
-        .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
-        .environment(\.dependencyContainer, container)
+    let viewModel = MainViewModel(
+        authManager: container.authenticationManager,
+        cloudKitManager: container.cloudKitManager,
+        notificationStore: container.notificationStore
+    )
+    return MainView(viewModel: viewModel)
 }

@@ -4,7 +4,6 @@ import HealthKit
 
 /// Mock implementation of HealthKitService for testing
 final class MockHealthKitService: HealthKitService {
-    
     // MARK: - Mock Control Properties
     
     var isHealthDataAvailableValue = true
@@ -15,6 +14,8 @@ final class MockHealthKitService: HealthKitService {
     var mockWorkouts: [HKSample] = []
     var activeQueries: [HKQuery] = []
     var backgroundDeliveryEnabled = false
+    var anchoredQueryStarted = false
+    var lastUsedAnchor: HKQueryAnchor?
     
     // MARK: - Tracking Properties
     
@@ -27,11 +28,19 @@ final class MockHealthKitService: HealthKitService {
     // MARK: - Callback Storage
     
     var workoutUpdateHandler: ((HKObserverQuery, HKObserverQueryCompletionHandler?, Error?) -> Void)?
+    var anchoredQueryHandler: ((HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void)?
+    var anchoredQueryUpdateHandler: ((HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void)?
+    var anchoredQueryInitialHandler: ((HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void)?
     
     // MARK: - HealthKitService Implementation
     
     var isHealthDataAvailable: Bool {
-        return isHealthDataAvailableValue
+        get {
+            return isHealthDataAvailableValue
+        }
+        set {
+            isHealthDataAvailableValue = newValue
+        }
     }
     
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
@@ -198,6 +207,9 @@ final class MockHealthKitService: HealthKitService {
         enableBackgroundDeliveryCalled = false
         
         workoutUpdateHandler = nil
+        anchoredQueryHandler = nil
+        anchoredQueryUpdateHandler = nil
+        anchoredQueryInitialHandler = nil
     }
     
     /// Manually trigger the workout observer for testing
@@ -234,5 +246,63 @@ final class MockHealthKitService: HealthKitService {
     
     func simulateHealthKitNotAvailable() {
         isHealthDataAvailableValue = false
+    }
+    
+    func executeAnchoredQuery(
+        anchor: HKQueryAnchor?,
+        initialHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void,
+        updateHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void
+    ) -> HKAnchoredObjectQuery {
+        anchoredQueryStarted = true
+        lastUsedAnchor = anchor
+        
+        // Store handlers for testing
+        self.anchoredQueryInitialHandler = initialHandler
+        self.anchoredQueryUpdateHandler = updateHandler
+        
+        // Create a mock query
+        let query = HKAnchoredObjectQuery(
+            type: HKObjectType.workoutType(),
+            predicate: nil,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit
+        ) { _, _, _, _, _ in }
+        
+        activeQueries.append(query)
+        
+        // Don't fire immediately - tests will manually trigger
+        return query
+    }
+    
+    // MARK: - Anchored Query Simulation Methods
+    
+    /// Simulates initial anchored query results
+    func simulateInitialAnchoredQueryResults(workouts: [HKWorkout]) {
+        guard let handler = anchoredQueryInitialHandler,
+              let query = activeQueries.first(where: { $0 is HKAnchoredObjectQuery }) as? HKAnchoredObjectQuery else {
+            return
+        }
+        
+        // Pass nil for anchor since we can't instantiate HKQueryAnchor in tests
+        DispatchQueue.main.async {
+            handler(query, workouts, nil, nil, nil)
+        }
+    }
+    
+    /// Simulates incremental anchored query results
+    func simulateIncrementalAnchoredQueryResults(workouts: [HKWorkout]) {
+        guard let handler = anchoredQueryUpdateHandler,
+              let query = activeQueries.first(where: { $0 is HKAnchoredObjectQuery }) as? HKAnchoredObjectQuery else {
+            return
+        }
+        
+        DispatchQueue.main.async {
+            handler(query, workouts, nil, nil, nil)
+        }
+    }
+    
+    /// Simulates anchored query results (defaults to incremental)
+    func simulateAnchoredQueryResults(workouts: [HKWorkout]) {
+        simulateIncrementalAnchoredQueryResults(workouts: workouts)
     }
 }

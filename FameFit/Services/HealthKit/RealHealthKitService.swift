@@ -139,4 +139,22 @@ final class RealHealthKitService: HealthKitService {
         #endif
     }
     
+    func executeAnchoredQuery(
+        anchor: HKQueryAnchor?,
+        initialHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void,
+        updateHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void
+    ) -> HKAnchoredObjectQuery {
+        let query = HKAnchoredObjectQuery(
+            type: HKObjectType.workoutType(),
+            predicate: nil,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit,
+            resultsHandler: initialHandler
+        )
+        
+        query.updateHandler = updateHandler
+        healthStore.execute(query)
+        
+        return query
+    }
 }

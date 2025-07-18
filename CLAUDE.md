@@ -213,3 +213,34 @@ The app supports launch arguments for UI testing:
 2. **Asset catalog errors**: Empty AppIcon.appiconset/Contents.json is intentional
 3. **Async test failures**: Tests are now synchronous where possible
 4. **UI test brittleness**: Tests now check for UI flows, not exact text
+
+## CloudKit Configuration
+
+### Setting Up Record Types
+When creating new CloudKit record types, follow these steps:
+
+1. **Access CloudKit Dashboard**: https://icloud.developer.apple.com/dashboard
+2. **Create Record Type**: Schema → Record Types → Add new type
+3. **Configure Fields**: Add all fields with appropriate types and mark as Queryable/Sortable as needed
+4. **CRITICAL - Add System Index**: 
+   - Go to Schema → Indexes
+   - Add an index for `___recordID` (three underscores) as QUERYABLE
+   - This prevents "Field 'recordName' is not marked queryable" errors
+   - Despite the error mentioning 'recordName', you must make 'recordID' queryable
+5. **Deploy Changes**: Always deploy schema changes to Production
+
+### Example: WorkoutHistory Record Type
+Fields configuration:
+- `workoutId` (String) - Queryable, Sortable
+- `workoutType` (String) - Queryable, Sortable  
+- `startDate` (Date/Time) - Queryable, Sortable
+- `endDate` (Date/Time) - Queryable, Sortable
+- `duration` (Double) - Queryable
+- `totalEnergyBurned` (Double) - Queryable
+- `totalDistance` (Double) - Queryable
+- `averageHeartRate` (Double) - Queryable
+- `followersEarned` (Int64) - Queryable
+- `source` (String) - Queryable
+
+Required Index:
+- `___recordID` - QUERYABLE (prevents query errors)

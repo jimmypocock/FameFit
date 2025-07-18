@@ -12,14 +12,16 @@ class MockCloudKitManager: CloudKitManager {
     var lastAddedFollowerCount = 0
     var fetchUserRecordCalled = false
     var recordWorkoutCalled = false
+    var addFollowersCalls: [(count: Int, date: Date)] = []
     
     // Control test behavior
     var shouldFailAddFollowers = false
     var shouldFailFetchUserRecord = false
+    var mockIsAvailable = true
     
     // Override CloudKit availability
     override var isAvailable: Bool {
-        return true
+        return mockIsAvailable
     }
     
     override init() {
@@ -38,6 +40,7 @@ class MockCloudKitManager: CloudKitManager {
         addFollowersCalled = true
         addFollowersCallCount += 1
         lastAddedFollowerCount = count
+        addFollowersCalls.append((count: count, date: Date()))
         
         // Track call for testing
         
@@ -85,6 +88,7 @@ class MockCloudKitManager: CloudKitManager {
         lastAddedFollowerCount = 0
         fetchUserRecordCalled = false
         recordWorkoutCalled = false
+        addFollowersCalls.removeAll()
         
         followerCount = 100
         totalWorkouts = 20
@@ -103,5 +107,19 @@ class MockCloudKitManager: CloudKitManager {
         totalWorkouts = 0
         joinTimestamp = nil
         lastWorkoutTimestamp = nil
+    }
+    
+    // MARK: - Workout History
+    
+    private var workoutHistory: [WorkoutHistoryItem] = []
+    
+    override func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem) {
+        self.workoutHistory.append(workoutHistory)
+    }
+    
+    override func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void) {
+        // Sort by endDate descending to match CloudKit implementation
+        let sortedHistory = workoutHistory.sorted { $0.endDate > $1.endDate }
+        completion(.success(sortedHistory))
     }
 }

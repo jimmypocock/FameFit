@@ -1,39 +1,28 @@
 import XCTest
 
-class WorkoutFlowUITests: XCTestCase {
-    
-    var app: XCUIApplication!
+class WorkoutFlowUITests: BaseUITestCase {
     
     override func setUpWithError() throws {
-        continueAfterFailure = false
-        
-        app = XCUIApplication()
+        try super.setUpWithError()
+        // Launch app skipping onboarding with mock HealthKit
         app.launchArguments = ["UI-Testing", "--skip-onboarding", "--mock-healthkit"]
         app.launch()
-    }
-    
-    override func tearDownWithError() throws {
-        app = nil
+        wait(for: 0.5)
     }
     
     // MARK: - Workout Detection UI Tests
     
     func testFollowerCountSection() {
-        // Wait for the app to fully load
-        sleep(2)
+        // Wait for main screen to load
+        assertExistsEventually(app.staticTexts["Followers"], "Should show Followers label")
         
-        // Check if we're on the main screen or need to complete onboarding
-        if app.staticTexts["FAMEFIT"].exists || app.buttons["Next"].exists {
-            // We're still in onboarding, skip to main screen
-            completeOnboardingIfNeeded()
+        // Get initial follower count using safe element access
+        let staticTexts = getLabels(from: app.staticTexts)
+        let hasNumericValue = staticTexts.contains { label in
+            Int(label) != nil
         }
         
-        // Now verify follower count UI is visible
-        XCTAssertTrue(app.staticTexts["Followers"].waitForExistence(timeout: 10), "Should show Followers label")
-        
-        // Get initial follower count
-        let initialCount = getFollowerCount()
-        XCTAssertNotNil(initialCount, "Should display a follower count")
+        XCTAssertTrue(hasNumericValue, "Should display a follower count")
     }
     
     func testWorkoutStatsDisplay() {
@@ -111,20 +100,6 @@ class WorkoutFlowUITests: XCTestCase {
     }
     
     // MARK: - Helper Methods
-    
-    private func completeOnboardingIfNeeded() {
-        let nextButton = app.buttons["Next"]
-        for _ in 0..<20 {
-            if nextButton.exists && nextButton.isEnabled {
-                nextButton.tap()
-                sleep(1)
-            }
-            if app.staticTexts["Followers"].exists {
-                // We've reached the main screen
-                break
-            }
-        }
-    }
     
     private func getFollowerCount() -> Int? {
         // Look for numeric text that represents follower count

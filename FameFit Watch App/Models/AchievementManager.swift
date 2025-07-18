@@ -8,7 +8,7 @@
 import Foundation
 import HealthKit
 
-class AchievementManager: ObservableObject {
+class AchievementManager: ObservableObject, AchievementManaging {
     enum Achievement: String, CaseIterable {
         case firstWorkout = "first_workout"
         case fiveMinutes = "five_minutes"
@@ -73,22 +73,22 @@ class AchievementManager: ObservableObject {
     @Published var unlockedAchievements: Set<Achievement> = []
     @Published var recentAchievement: Achievement?
 
-    private let userDefaults = UserDefaults.standard
-    private let achievementsKey = "ToughLoveAchievements"
-
-    init() {
+    private let persister: AchievementPersisting
+    
+    init(persister: AchievementPersisting? = nil) {
+        self.persister = persister ?? UserDefaultsAchievementPersister()
         loadAchievements()
     }
 
     private func loadAchievements() {
-        if let savedAchievements = userDefaults.array(forKey: achievementsKey) as? [String] {
+        if let savedAchievements = persister.loadAchievements() {
             unlockedAchievements = Set(savedAchievements.compactMap { Achievement(rawValue: $0) })
         }
     }
 
     private func saveAchievements() {
         let achievementStrings = unlockedAchievements.map { $0.rawValue }
-        userDefaults.set(achievementStrings, forKey: achievementsKey)
+        persister.saveAchievements(achievementStrings)
     }
 
     func checkAchievements(for workout: HKWorkout?,

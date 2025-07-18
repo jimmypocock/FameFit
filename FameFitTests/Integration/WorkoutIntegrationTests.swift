@@ -14,6 +14,10 @@ class WorkoutIntegrationTests: XCTestCase {
         // Create mock managers
         mockCloudKitManager = MockCloudKitManager()
         let authManager = AuthenticationManager(cloudKitManager: mockCloudKitManager)
+        // Reset auth state for test isolation
+        authManager.isAuthenticated = false
+        authManager.userID = nil
+        authManager.userName = nil
         let workoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitManager)
         
         // Create container with mocks
@@ -54,7 +58,9 @@ class WorkoutIntegrationTests: XCTestCase {
     }
     
     func testAuthenticationFlow() {
-        // Given
+        // Given - Start with unauthenticated state
+        mockCloudKitManager.isSignedIn = false
+        mockCloudKitManager.userName = ""
         let authManager = dependencyContainer.authenticationManager
         XCTAssertFalse(authManager.isAuthenticated)
         
@@ -62,6 +68,8 @@ class WorkoutIntegrationTests: XCTestCase {
         authManager.userID = "test-user"
         authManager.userName = "Test User"
         authManager.isAuthenticated = true
+        mockCloudKitManager.isSignedIn = true
+        mockCloudKitManager.userName = "Test User"
         
         // Then
         XCTAssertTrue(authManager.isAuthenticated)

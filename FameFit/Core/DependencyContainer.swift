@@ -44,6 +44,9 @@ class DependencyContainer: ObservableObject {
         
         // Give workout observer access to notification store
         workoutObserver.notificationStore = notificationStore
+        
+        // Give workout sync manager access to notification store
+        workoutSyncManager.notificationStore = notificationStore
     }
     
     // For testing, allow injection of mock managers

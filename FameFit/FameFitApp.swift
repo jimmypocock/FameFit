@@ -79,6 +79,10 @@ struct FameFitApp: App {
                     // Share container with AppDelegate if it doesn't have one
                     if appDelegate.dependencyContainer == nil {
                         appDelegate.dependencyContainer = dependencyContainer
+                        
+                        // Start the reliable sync manager using HKAnchoredObjectQuery
+                        // This provides more reliable workout tracking than observer queries
+                        dependencyContainer.workoutSyncManager.startReliableSync()
                     }
                 }
         }
@@ -87,10 +91,17 @@ struct FameFitApp: App {
 
 struct ContentView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var notificationStore: NotificationStore
     
     var body: some View {
         if authManager.isAuthenticated && authManager.hasCompletedOnboarding {
-            MainView()
+            let viewModel = MainViewModel(
+                authManager: authManager,
+                cloudKitManager: cloudKitManager,
+                notificationStore: notificationStore
+            )
+            MainView(viewModel: viewModel)
         } else {
             OnboardingView()
         }

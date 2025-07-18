@@ -7,7 +7,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private let healthKitService: HealthKitService
     private var observerQuery: HKObserverQuery?
     private weak var cloudKitManager: CloudKitManager?
-    weak var notificationStore: NotificationStore?
+    weak var notificationStore: (any NotificationStoring)?
     
     @Published var lastError: FameFitError?
     @Published var allWorkouts: [HKWorkout] = []
@@ -172,6 +172,11 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         FameFitLogger.info("Adding 5 followers for workout", category: FameFitLogger.workout)
         // Add followers for completed workout
         cloudKitManager?.addFollowers(5)
+        
+        // Save workout history to CloudKit
+        let historyItem = WorkoutHistoryItem(from: workout, followersEarned: 5)
+        FameFitLogger.info("💾 Saving workout to CloudKit: \(historyItem.workoutType)", category: FameFitLogger.workout)
+        cloudKitManager?.saveWorkoutHistory(historyItem)
         
         sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories))
     }

@@ -1,6 +1,7 @@
 import Foundation
 import AuthenticationServices
 import SwiftUI
+import Combine
 
 class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging {
     @Published var isAuthenticated = false
@@ -12,6 +13,27 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
     private let userIDKey = "FameFitUserID"
     private let userNameKey = "FameFitUserName"
     private weak var cloudKitManager: CloudKitManager?
+    
+    // MARK: - Publisher Properties
+    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
+        $isAuthenticated.eraseToAnyPublisher()
+    }
+    
+    var userIDPublisher: AnyPublisher<String?, Never> {
+        $userID.eraseToAnyPublisher()
+    }
+    
+    var userNamePublisher: AnyPublisher<String?, Never> {
+        $userName.eraseToAnyPublisher()
+    }
+    
+    var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
+        $lastError.eraseToAnyPublisher()
+    }
+    
+    var hasCompletedOnboardingPublisher: AnyPublisher<Bool, Never> {
+        $hasCompletedOnboarding.eraseToAnyPublisher()
+    }
     
     init(cloudKitManager: CloudKitManager) {
         self.cloudKitManager = cloudKitManager

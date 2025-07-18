@@ -2,9 +2,12 @@ import Foundation
 import SwiftUI
 import UserNotifications
 
-class NotificationStore: ObservableObject {
+class NotificationStore: ObservableObject, NotificationStoring {
     @Published var notifications: [NotificationItem] = []
     @Published var unreadCount: Int = 0
+    
+    var notificationsPublisher: Published<[NotificationItem]>.Publisher { $notifications }
+    var unreadCountPublisher: Published<Int>.Publisher { $unreadCount }
     
     private let maxNotifications = 50 // Keep last 50 notifications
     
@@ -25,9 +28,22 @@ class NotificationStore: ObservableObject {
     
     func addNotification(_ item: NotificationItem) {
         notifications.insert(item, at: 0) // Add to beginning
+        // Trim to max notifications if needed
+        if notifications.count > maxNotifications {
+            notifications = Array(notifications.prefix(maxNotifications))
+        }
         saveNotifications()
         updateUnreadCount()
         updateBadgeCount()
+    }
+    
+    func markAsRead(_ id: String) {
+        if let index = notifications.firstIndex(where: { $0.id == id }) {
+            notifications[index].isRead = true
+            saveNotifications()
+            updateUnreadCount()
+            updateBadgeCount()
+        }
     }
     
     func markAllAsRead() {

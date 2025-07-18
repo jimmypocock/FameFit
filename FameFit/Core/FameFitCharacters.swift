@@ -128,6 +128,69 @@ extension HKWorkoutActivityType {
             return "Workout"
         }
     }
+    
+    private static let nameToWorkoutType: [String: HKWorkoutActivityType] = [
+        "Running": .running,
+        "Cycling": .cycling,
+        "Walking": .walking,
+        "Swimming": .swimming,
+        "Yoga": .yoga,
+        "Strength Training": .functionalStrengthTraining,
+        "Weight Training": .traditionalStrengthTraining,
+        "Cross Training": .crossTraining,
+        "Core Training": .coreTraining,
+        "Elliptical": .elliptical,
+        "Rowing": .rowing,
+        "Stair Climbing": .stairClimbing,
+        "HIIT": .highIntensityIntervalTraining,
+        "Dance": .cardioDance,
+        "Pilates": .pilates,
+        "Martial Arts": .martialArts,
+        "Hiking": .hiking,
+        "Tennis": .tennis,
+        "Table Tennis": .tableTennis,
+        "Basketball": .basketball,
+        "Soccer": .soccer,
+        "Football": .americanFootball,
+        "Golf": .golf,
+        "Badminton": .badminton,
+        "Baseball": .baseball,
+        "Bowling": .bowling,
+        "Boxing": .boxing,
+        "Climbing": .climbing,
+        "Cricket": .cricket,
+        "Cross Country Skiing": .crossCountrySkiing,
+        "Downhill Skiing": .downhillSkiing,
+        "Flexibility": .flexibility,
+        "Handball": .handball,
+        "Hockey": .hockey,
+        "Hunting": .hunting,
+        "Lacrosse": .lacrosse,
+        "Mind & Body": .mindAndBody,
+        "Paddle Sports": .paddleSports,
+        "Play": .play,
+        "Recovery": .preparationAndRecovery,
+        "Racquetball": .racquetball,
+        "Rugby": .rugby,
+        "Sailing": .sailing,
+        "Skating": .skatingSports,
+        "Snow Sports": .snowSports,
+        "Softball": .softball,
+        "Squash": .squash,
+        "Surfing": .surfingSports,
+        "Triathlon": .swimBikeRun,
+        "Volleyball": .volleyball,
+        "Water Fitness": .waterFitness,
+        "Water Polo": .waterPolo,
+        "Water Sports": .waterSports,
+        "Wrestling": .wrestling,
+        "Other": .other
+    ]
+    
+    /// Create HKWorkoutActivityType from string name
+    static func from(name: String) -> HKWorkoutActivityType {
+        return nameToWorkoutType[name] ?? .other
+    }
 }
 
 // MARK: - FameFit Characters

@@ -45,6 +45,13 @@ protocol HealthKitService {
     func createWorkoutSession(
         configuration: HKWorkoutConfiguration
     ) -> HKWorkoutSession?
+    
+    /// Execute an anchored object query for reliable workout sync
+    func executeAnchoredQuery(
+        anchor: HKQueryAnchor?,
+        initialHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void,
+        updateHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?) -> Void
+    ) -> HKAnchoredObjectQuery
 }
 
 /// Extension to define the types we need authorization for

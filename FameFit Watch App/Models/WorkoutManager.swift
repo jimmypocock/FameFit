@@ -9,7 +9,7 @@ import Foundation
 import HealthKit
 import os.log
 
-class WorkoutManager: NSObject, ObservableObject {
+class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
     @Published var selectedWorkout: HKWorkoutActivityType?
     @Published var showingSummaryView: Bool = false {
@@ -186,6 +186,12 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var activeEnergy: Double = 0
     @Published var distance: Double = 0
     @Published var workout: HKWorkout?
+    
+    // MARK: - Summary Data
+    var averageHeartRateForSummary: Double { averageHeartRate }
+    var totalCaloriesForSummary: Double { activeEnergy }
+    var totalDistanceForSummary: Double { distance }
+    var elapsedTimeForSummary: TimeInterval { displayElapsedTime }
 
     func resetWorkout() {
         selectedWorkout = nil
@@ -249,11 +255,11 @@ class WorkoutManager: NSObject, ObservableObject {
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.tenMinutes.roastMessage)"
             achievementUnlocked = true
             lastMilestoneTime = 600
-        } else if currentTime >= 1800 && !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
+        } else if currentTime >= 1_800 && !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
             achievementManager.unlockedAchievements.insert(.thirtyMinutes)
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.thirtyMinutes.roastMessage)"
             achievementUnlocked = true
-            lastMilestoneTime = 1800
+            lastMilestoneTime = 1_800
         }
         
         // If no achievement, show regular milestone or random message

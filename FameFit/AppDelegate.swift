@@ -15,16 +15,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FameFitLogger.info("App launched", category: FameFitLogger.app)
         
-        // Initialize dependency container early for background launches
-        let container = DependencyContainer()
-        self.dependencyContainer = container
-        
-        // Start observing workouts immediately
-        // This is critical for background delivery when app is terminated
-        container.workoutObserver.startObservingWorkouts()
-        
-        // Also start the reliable sync manager
-        container.workoutSyncManager.startReliableSync()
+        // Don't create a new container here - wait for the one from FameFitApp
+        // to be shared via onAppear
         
         // Register background tasks
         registerBackgroundTasks()
@@ -38,8 +30,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         FameFitLogger.info("App became active", category: FameFitLogger.app)
         
-        // Trigger a sync check when app becomes active
-        dependencyContainer?.workoutObserver.fetchLatestWorkout()
+        // The WorkoutSyncManager will handle sync automatically
     }
     
     func applicationDidEnterBackground(_ application: UIApplication) {
@@ -69,7 +60,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         request.requiresExternalPower = false
         
         // Try to run at least once per day
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 3600) // 1 hour from now
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 3_600) // 1 hour from now
         
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -93,11 +84,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 return
             }
             
-            // Trigger workout sync
+            // Process any queued workouts
             await withCheckedContinuation { continuation in
-                container.workoutObserver.fetchLatestWorkout()
-                
-                // Also process any queued workouts
                 container.workoutSyncQueue.processQueue()
                 
                 // Give it a few seconds to complete

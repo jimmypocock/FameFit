@@ -18,6 +18,13 @@ protocol AuthenticationManaging: ObservableObject {
     var lastError: FameFitError? { get }
     var hasCompletedOnboarding: Bool { get }
     
+    // Publisher properties for reactive updates
+    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
+    var userIDPublisher: AnyPublisher<String?, Never> { get }
+    var userNamePublisher: AnyPublisher<String?, Never> { get }
+    var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }
+    var hasCompletedOnboardingPublisher: AnyPublisher<Bool, Never> { get }
+    
     func checkAuthenticationStatus()
     func handleSignInWithApple(credential: ASAuthorizationAppleIDCredential)
     func signOut()
@@ -35,10 +42,22 @@ protocol CloudKitManaging: ObservableObject {
     var joinTimestamp: Date? { get }
     var lastError: FameFitError? { get }
     
+    // Publisher properties for reactive updates
+    var isAvailablePublisher: AnyPublisher<Bool, Never> { get }
+    var followerCountPublisher: AnyPublisher<Int, Never> { get }
+    var totalWorkoutsPublisher: AnyPublisher<Int, Never> { get }
+    var currentStreakPublisher: AnyPublisher<Int, Never> { get }
+    var userNamePublisher: AnyPublisher<String, Never> { get }
+    var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> { get }
+    var joinTimestampPublisher: AnyPublisher<Date?, Never> { get }
+    var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }
+    
     func checkAccountStatus()
     func fetchUserRecord()
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getFollowerTitle() -> String
+    func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)
+    func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void)
 }
 
 // MARK: - WorkoutObserver Protocol
