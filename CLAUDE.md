@@ -49,8 +49,14 @@ To ensure testability, this project uses dependency injection instead of singlet
 
 **Unit Tests:**
 ```bash
-# Run comprehensive test suite
+# Run comprehensive test suite (includes SwiftLint)
 ./Scripts/test.sh
+
+# Run UI tests separately to avoid simulator conflicts
+./Scripts/run_ui_tests.sh
+
+# Reset environment if tests have issues
+./Scripts/reset_testing_env.sh
 
 # Or use Xcode directly (⌘+U)
 
@@ -73,6 +79,10 @@ xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:Fam
 - Aim for >80% code coverage
 - Keep tests fast and isolated
 - Use descriptive test names that explain the scenario
+- Write synchronous tests where possible
+- Each test should test ONE specific behavior
+- UI tests should focus on user flows, not exact text
+- Use launch arguments for UI test setup (e.g., `--skip-onboarding`)
 
 **Manual Testing:**
 - Run on Apple Watch simulator or physical device through Xcode
@@ -184,3 +194,53 @@ The project uses Xcode 16's synchronized file groups. Always use the `.xcworkspa
 - `FameFit/` - iOS companion app
 - `FameFit Watch App/` - Apple Watch workout app
 - `Scripts/` - Build and test automation scripts
+
+## Testing Improvements
+
+### Mock Services
+- `MockCloudKitManager` - Simulates CloudKit operations synchronously
+- `MockHealthKitService` - Provides test workout data with date filtering
+- All mocks update state immediately for predictable testing
+
+### UI Testing Setup
+The app supports launch arguments for UI testing:
+- `--skip-onboarding` - Sets up authenticated state with mock data
+- `--reset-state` - Clears all user data for fresh onboarding tests
+- `--mock-healthkit` - Uses mock HealthKit data
+
+### Common Issues and Solutions
+1. **Test runner crashes**: Run `./Scripts/reset_testing_env.sh`
+2. **Asset catalog errors**: Empty AppIcon.appiconset/Contents.json is intentional
+3. **Async test failures**: Tests are now synchronous where possible
+4. **UI test brittleness**: Tests now check for UI flows, not exact text
+
+## CloudKit Configuration
+
+### Setting Up Record Types
+When creating new CloudKit record types, follow these steps:
+
+1. **Access CloudKit Dashboard**: https://icloud.developer.apple.com/dashboard
+2. **Create Record Type**: Schema → Record Types → Add new type
+3. **Configure Fields**: Add all fields with appropriate types and mark as Queryable/Sortable as needed
+4. **CRITICAL - Add System Index**: 
+   - Go to Schema → Indexes
+   - Add an index for `___recordID` (three underscores) as QUERYABLE
+   - This prevents "Field 'recordName' is not marked queryable" errors
+   - Despite the error mentioning 'recordName', you must make 'recordID' queryable
+5. **Deploy Changes**: Always deploy schema changes to Production
+
+### Example: WorkoutHistory Record Type
+Fields configuration:
+- `workoutId` (String) - Queryable, Sortable
+- `workoutType` (String) - Queryable, Sortable  
+- `startDate` (Date/Time) - Queryable, Sortable
+- `endDate` (Date/Time) - Queryable, Sortable
+- `duration` (Double) - Queryable
+- `totalEnergyBurned` (Double) - Queryable
+- `totalDistance` (Double) - Queryable
+- `averageHeartRate` (Double) - Queryable
+- `followersEarned` (Int64) - Queryable
+- `source` (String) - Queryable
+
+Required Index:
+- `___recordID` - QUERYABLE (prevents query errors)

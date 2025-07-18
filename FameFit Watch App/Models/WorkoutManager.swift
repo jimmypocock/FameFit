@@ -7,8 +7,9 @@
 
 import Foundation
 import HealthKit
+import os.log
 
-class WorkoutManager: NSObject, ObservableObject {
+class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
     @Published var selectedWorkout: HKWorkoutActivityType?
     @Published var showingSummaryView: Bool = false {
@@ -29,7 +30,7 @@ class WorkoutManager: NSObject, ObservableObject {
 
     // MARK: - Workout Control
     func startWorkout(workoutType: HKWorkoutActivityType) {
-        print("Starting workout: \(workoutType)")
+        FameFitLogger.info("Starting workout: \(workoutType)", category: FameFitLogger.workout)
         
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
@@ -40,9 +41,9 @@ class WorkoutManager: NSObject, ObservableObject {
             session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             builder = session?.associatedWorkoutBuilder()
             
-            print("Session and builder created successfully")
+            FameFitLogger.debug("Session and builder created successfully", category: FameFitLogger.workout)
         } catch {
-            print("Failed to create workout session: \(error)")
+            FameFitLogger.error("Failed to create workout session", error: error, category: FameFitLogger.workout)
             DispatchQueue.main.async {
                 self.isWorkoutRunning = false
             }
@@ -51,7 +52,7 @@ class WorkoutManager: NSObject, ObservableObject {
 
         // Set up data source
         guard let builder = builder else {
-            print("Builder is nil")
+            FameFitLogger.error("Builder is nil", category: FameFitLogger.workout)
             return
         }
         
@@ -66,18 +67,18 @@ class WorkoutManager: NSObject, ObservableObject {
 
         // Start the session first
         session?.startActivity(with: Date())
-        print("Session started")
+        FameFitLogger.debug("Session started", category: FameFitLogger.workout)
         
         // Begin collection after session starts
         builder.beginCollection(withStart: Date()) { [weak self] success, error in
-            print("Begin collection result: \(success), error: \(String(describing: error))")
+            FameFitLogger.debug("Begin collection result: \(success), error: \(String(describing: error))", category: FameFitLogger.workout)
             
             DispatchQueue.main.async {
                 if success {
                     self?.isWorkoutRunning = true
-                    print("Workout is now running")
+                    FameFitLogger.info("Workout is now running", category: FameFitLogger.workout)
                 } else {
-                    print("Failed to begin collection: \(error?.localizedDescription ?? "Unknown error")")
+                    FameFitLogger.error("Failed to begin collection: \(error?.localizedDescription ?? "Unknown error")", category: FameFitLogger.workout)
                     self?.workoutError = "Failed to start workout: \(error?.localizedDescription ?? "Unknown error")"
                     self?.isWorkoutRunning = false
                 }
@@ -107,7 +108,7 @@ class WorkoutManager: NSObject, ObservableObject {
 
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if !success {
-                print("HealthKit authorization failed: \(error?.localizedDescription ?? "Unknown error")")
+                FameFitLogger.error("HealthKit authorization failed: \(error?.localizedDescription ?? "Unknown error")", category: FameFitLogger.workout)
             }
         }
     }
@@ -124,12 +125,7 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var displayElapsedTime: TimeInterval = 0
     private var displayTimer: Timer?
     
-    // DEBUG: Time acceleration for testing
-    #if DEBUG
-    private let timeMultiplier: Double = 60.0 // 1 second = 1 minute
-    #else
     private let timeMultiplier: Double = 1.0
-    #endif
     
     private var lastMilestoneTime: TimeInterval = 0
     private var messageTimer: Timer?
@@ -140,13 +136,13 @@ class WorkoutManager: NSObject, ObservableObject {
     func pause() {
         session?.pause()
         // State will be updated by HealthKit delegate
-        print("Requested workout pause")
+        FameFitLogger.debug("Requested workout pause", category: FameFitLogger.workout)
     }
 
     func resume() {
         session?.resume()
         // State will be updated by HealthKit delegate
-        print("Requested workout resume")
+        FameFitLogger.debug("Requested workout resume", category: FameFitLogger.workout)
     }
 
     func togglePause() {
@@ -158,7 +154,7 @@ class WorkoutManager: NSObject, ObservableObject {
     }
 
     func endWorkout() {
-        print("Ending workout")
+        FameFitLogger.info("Ending workout", category: FameFitLogger.workout)
         displayTimer?.invalidate()
         
         guard let session = session else {
@@ -190,6 +186,12 @@ class WorkoutManager: NSObject, ObservableObject {
     @Published var activeEnergy: Double = 0
     @Published var distance: Double = 0
     @Published var workout: HKWorkout?
+    
+    // MARK: - Summary Data
+    var averageHeartRateForSummary: Double { averageHeartRate }
+    var totalCaloriesForSummary: Double { activeEnergy }
+    var totalDistanceForSummary: Double { distance }
+    var elapsedTimeForSummary: TimeInterval { displayElapsedTime }
 
     func resetWorkout() {
         selectedWorkout = nil
@@ -253,11 +255,11 @@ class WorkoutManager: NSObject, ObservableObject {
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.tenMinutes.roastMessage)"
             achievementUnlocked = true
             lastMilestoneTime = 600
-        } else if currentTime >= 1800 && !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
+        } else if currentTime >= 1_800 && !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
             achievementManager.unlockedAchievements.insert(.thirtyMinutes)
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.thirtyMinutes.roastMessage)"
             achievementUnlocked = true
-            lastMilestoneTime = 1800
+            lastMilestoneTime = 1_800
         }
         
         // If no achievement, show regular milestone or random message
@@ -377,7 +379,7 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     }
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        print("Workout session failed: \(error)")
+        FameFitLogger.error("Workout session failed", error: error, category: FameFitLogger.workout)
     }
 }
 

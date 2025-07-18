@@ -241,6 +241,12 @@ FameFit/
 ./Scripts/build.sh ios     # iOS only
 ./Scripts/build.sh watch   # Watch only
 
+# Run UI tests separately (avoids simulator conflicts)
+./Scripts/run_ui_tests.sh
+
+# Reset testing environment if tests fail
+./Scripts/reset_testing_env.sh
+
 # Reset app data (useful for testing onboarding)
 ./Scripts/reset_app_data.swift
 ```
@@ -258,11 +264,17 @@ xcodebuild test -workspace FameFit.xcworkspace -scheme FameFit -only-testing:Fam
 - **SwiftLint**: Enforces Swift style and conventions
   - Configuration in `.swiftlint.yml`
   - Run with `swiftlint` or automatically via `./Scripts/test.sh`
-- **Test Coverage**: Unit tests with mocks for all managers
-  - `FameFitTests/` - iOS app unit tests
+- **Test Coverage**: Comprehensive test suite with mocks
+  - `FameFitTests/` - iOS app unit tests with mocked services
+  - `FameFitUITests/` - iOS app UI tests with launch arguments
   - `FameFit Watch AppTests/` - Watch app unit tests
   - `FameFit Watch AppUITests/` - Watch app UI tests
 - **Test-Driven Development**: Write tests first, then implementation
+- **Testing Best Practices**:
+  - Synchronous tests where possible (avoid complex async)
+  - Each test tests ONE specific behavior
+  - UI tests focus on user flows, not exact text matching
+  - Mocks are simple and focused
 - **Dependency Injection**: Managers use protocols for easy mocking
 - **Error Handling**: Comprehensive `FameFitError` types
 - **Memory Management**: Weak references prevent retain cycles
