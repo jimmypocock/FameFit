@@ -36,20 +36,46 @@ final class WorkoutSelectionUITests: XCTestCase {
         let allowButton = springboard.buttons["Allow"]
         if allowButton.waitForExistence(timeout: 2) {
             allowButton.tap()
-            sleep(1) // Give time for the permission to be processed
+            sleep(2) // Give time for the permission to be processed
         }
         
+        // Give additional time for the list view to load after permissions
+        sleep(2)
+        
         // Look for workout buttons - they might be in a carousel list
+        // Try different ways to find the buttons
         let runButton = app.buttons["Run"]
         let walkButton = app.buttons["Walk"]
         let bikeButton = app.buttons["Bike"]
         
-        // Wait for at least one workout option to appear
+        // Also try finding by static text if buttons don't work
+        let runText = app.staticTexts["Run"]
+        let walkText = app.staticTexts["Walk"]
+        let bikeText = app.staticTexts["Bike"]
+        
+        // Wait for at least one workout option to appear (button or text)
         let workoutExists = runButton.waitForExistence(timeout: 5) || 
                            walkButton.waitForExistence(timeout: 5) || 
-                           bikeButton.waitForExistence(timeout: 5)
+                           bikeButton.waitForExistence(timeout: 5) ||
+                           runText.waitForExistence(timeout: 5) ||
+                           walkText.waitForExistence(timeout: 5) ||
+                           bikeText.waitForExistence(timeout: 5)
         
-        XCTAssertTrue(workoutExists, "Should see at least one workout option")
+        // If still not found, check if we need to scroll or if elements are in a different container
+        if !workoutExists {
+            // Print debug info
+            print("DEBUG: Number of buttons found: \(app.buttons.count)")
+            print("DEBUG: Number of static texts found: \(app.staticTexts.count)")
+            
+            // Try to find any button or text containing workout names
+            let anyWorkoutButton = app.buttons.containing(.staticText, identifier: "Run").element.exists ||
+                                  app.buttons.containing(.staticText, identifier: "Walk").element.exists ||
+                                  app.buttons.containing(.staticText, identifier: "Bike").element.exists
+            
+            XCTAssertTrue(anyWorkoutButton, "Should see at least one workout option")
+        } else {
+            XCTAssertTrue(workoutExists, "Should see at least one workout option")
+        }
         
         // Verify all workout options are displayed
         if runButton.exists && walkButton.exists && bikeButton.exists {

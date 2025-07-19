@@ -34,7 +34,7 @@ protocol AuthenticationManaging: ObservableObject {
 // MARK: - CloudKitManager Protocol
 protocol CloudKitManaging: ObservableObject {
     var isAvailable: Bool { get }
-    var followerCount: Int { get }
+    var influencerXP: Int { get }
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
     var userName: String { get }
@@ -44,7 +44,7 @@ protocol CloudKitManaging: ObservableObject {
     
     // Publisher properties for reactive updates
     var isAvailablePublisher: AnyPublisher<Bool, Never> { get }
-    var followerCountPublisher: AnyPublisher<Int, Never> { get }
+    var influencerXPPublisher: AnyPublisher<Int, Never> { get }
     var totalWorkoutsPublisher: AnyPublisher<Int, Never> { get }
     var currentStreakPublisher: AnyPublisher<Int, Never> { get }
     var userNamePublisher: AnyPublisher<String, Never> { get }
@@ -55,7 +55,7 @@ protocol CloudKitManaging: ObservableObject {
     func checkAccountStatus()
     func fetchUserRecord()
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
-    func getFollowerTitle() -> String
+    func getXPTitle() -> String
     func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)
     func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void)
 }

@@ -14,7 +14,7 @@ class WorkoutFlowUITests: BaseUITestCase {
     
     func testFollowerCountSection() {
         // Wait for main screen to load
-        assertExistsEventually(app.staticTexts["Followers"], "Should show Followers label")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should show Influencer XP label")
         
         // Get initial follower count using safe element access
         let staticTexts = getLabels(from: app.staticTexts)
@@ -43,13 +43,16 @@ class WorkoutFlowUITests: BaseUITestCase {
         }
     }
     
-    func testWorkoutInstructionsVisible() {
-        // Verify instructions are visible
-        XCTAssertTrue(app.staticTexts["Your Journey"].exists, "Should show Your Journey section")
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Complete workouts")).element.exists, 
-                     "Should show workout instructions")
-        XCTAssertTrue(app.staticTexts["Current rate: +5 followers per workout"].exists, 
-                     "Should show follower gain rate")
+    func testWorkoutStatsVisible() {
+        // Verify workout stats are visible
+        XCTAssertTrue(app.staticTexts["Workouts"].exists, "Should show Workouts stat")
+        XCTAssertTrue(app.staticTexts["Streak"].exists, "Should show Streak stat")
+        
+        // Verify stats section exists
+        let memberSince = app.staticTexts["Member Since"].exists
+        let lastWorkout = app.staticTexts["Last Workout"].exists
+        
+        XCTAssertTrue(memberSince && lastWorkout, "Should show membership info")
     }
     
     // MARK: - Mock Workout Tests
@@ -58,10 +61,10 @@ class WorkoutFlowUITests: BaseUITestCase {
         // This test would use mock data if the app supports it
         // In a real implementation, you might:
         // 1. Trigger a mock workout through a debug menu
-        // 2. Verify the follower count increases
+        // 2. Verify the XP count increases
         // 3. Check for notification or UI update
         
-        let initialFollowers = getFollowerCount() ?? 0
+        let initialXP = getFollowerCount() ?? 0
         
         // If the app has a debug menu for triggering mock workouts
         if app.buttons["Debug Menu"].exists {
@@ -73,9 +76,9 @@ class WorkoutFlowUITests: BaseUITestCase {
                 // Wait for UI to update
                 sleep(2)
                 
-                let newFollowers = getFollowerCount() ?? 0
-                XCTAssertEqual(newFollowers, initialFollowers + 5, 
-                             "Followers should increase by 5 after workout")
+                let newXP = getFollowerCount() ?? 0
+                XCTAssertGreaterThan(newXP, initialXP, 
+                             "XP should increase after workout")
             }
         }
     }
@@ -95,18 +98,18 @@ class WorkoutFlowUITests: BaseUITestCase {
             refreshControl.swipeDown()
             
             // Verify UI remains stable after refresh
-            XCTAssertTrue(app.staticTexts["Followers"].exists, "UI should remain stable after refresh")
+            XCTAssertTrue(app.staticTexts["Influencer XP"].exists, "UI should remain stable after refresh")
         }
     }
     
     // MARK: - Helper Methods
     
     private func getFollowerCount() -> Int? {
-        // Look for numeric text that represents follower count
-        let followerSection = app.otherElements.containing(.staticText, identifier: "Followers").firstMatch
+        // Look for numeric text that represents XP count
+        let xpSection = app.otherElements.containing(.staticText, identifier: "Influencer XP").firstMatch
         
-        if followerSection.exists {
-            let numericLabels = followerSection.staticTexts.matching(
+        if xpSection.exists {
+            let numericLabels = xpSection.staticTexts.matching(
                 NSPredicate(format: "label MATCHES %@", "^[0-9]+$")
             )
             

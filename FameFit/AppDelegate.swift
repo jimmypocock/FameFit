@@ -55,6 +55,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
     
     private func scheduleBackgroundSync() {
+        // Skip background task scheduling in test environment
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            FameFitLogger.debug("Skipping background sync in test environment", category: FameFitLogger.app)
+            return
+        }
+        
         let request = BGProcessingTaskRequest(identifier: "com.jimmypocock.FameFit.sync")
         request.requiresNetworkConnectivity = true
         request.requiresExternalPower = false

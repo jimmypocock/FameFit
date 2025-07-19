@@ -126,9 +126,10 @@ class WorkoutSyncManagerTests: XCTestCase {
         }
         wait(for: [expectation], timeout: 1.0)
         
-        // Then
-        XCTAssertEqual(mockCloudKitManager.addFollowersCalls.count, 3)
-        XCTAssertTrue(mockCloudKitManager.addFollowersCalls.allSatisfy { $0.count == 5 })
+        // Then - Should have called addXP for each workout
+        XCTAssertEqual(mockCloudKitManager.addXPCalls.count, 3)
+        // Each workout should earn XP based on duration and type (not fixed 5)
+        XCTAssertTrue(mockCloudKitManager.addXPCalls.allSatisfy { $0.xp > 0 })
     }
     
     func testProcessWorkouts_CreatesNotificationsForEachWorkout() {
@@ -151,7 +152,8 @@ class WorkoutSyncManagerTests: XCTestCase {
         
         // Then
         XCTAssertEqual(mockNotificationStore.notifications.count, 2)
-        XCTAssertTrue(mockNotificationStore.notifications.allSatisfy { $0.followersEarned == 5 })
+        // XP is calculated dynamically based on workout, not fixed at 5
+        XCTAssertTrue(mockNotificationStore.notifications.allSatisfy { $0.followersEarned > 0 })
     }
     
     func testProcessWorkouts_SkipsPreInstallWorkouts() {
@@ -185,7 +187,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         
         // Then - Only the new workout should be processed
-        XCTAssertEqual(mockCloudKitManager.addFollowersCalls.count, 1)
+        XCTAssertEqual(mockCloudKitManager.addXPCalls.count, 1)
         XCTAssertEqual(mockNotificationStore.notifications.count, 1)
     }
     
@@ -196,10 +198,11 @@ class WorkoutSyncManagerTests: XCTestCase {
         UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
         
         // Create invalid workout (duration = 0)
+        let now = Date()
         let invalidWorkout = TestWorkoutBuilder.createWorkout(
             type: .running,
-            startDate: Date(),
-            endDate: Date() // Same as start date
+            startDate: now,
+            endDate: now // Exactly same as start date
         )
         let validWorkout = TestWorkoutBuilder.createRunWorkout()
         
@@ -215,7 +218,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         
         // Then - Only valid workout should be processed
-        XCTAssertEqual(mockCloudKitManager.addFollowersCalls.count, 1)
+        XCTAssertEqual(mockCloudKitManager.addXPCalls.count, 1)
         XCTAssertEqual(mockNotificationStore.notifications.count, 1)
     }
     
@@ -236,7 +239,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         
         // Then - Should not add followers or create notifications during initial sync
-        XCTAssertEqual(mockCloudKitManager.addFollowersCalls.count, 0)
+        XCTAssertEqual(mockCloudKitManager.addXPCalls.count, 0)
         XCTAssertEqual(mockNotificationStore.notifications.count, 0)
     }
     
@@ -259,7 +262,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         
         // Then - Should add followers and create notifications
-        XCTAssertEqual(mockCloudKitManager.addFollowersCalls.count, 2)
+        XCTAssertEqual(mockCloudKitManager.addXPCalls.count, 2)
         XCTAssertEqual(mockNotificationStore.notifications.count, 2)
     }
     
@@ -290,7 +293,8 @@ class WorkoutSyncManagerTests: XCTestCase {
         
         XCTAssertEqual(notification.workoutDuration, 30) // minutes
         XCTAssertEqual(notification.calories, 250)
-        XCTAssertEqual(notification.followersEarned, 5)
-        XCTAssertTrue(notification.body.contains("5 new followers"))
+        // XP is calculated dynamically (30 min run = ~36 XP base + bonuses)
+        XCTAssertGreaterThan(notification.followersEarned, 30)
+        XCTAssertTrue(notification.body.contains("XP") || notification.body.contains("Influencer"))
     }
 }

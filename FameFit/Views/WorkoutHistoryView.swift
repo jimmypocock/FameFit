@@ -8,8 +8,8 @@ struct WorkoutHistoryView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     
-    var totalFollowers: Int {
-        workoutHistory.reduce(0) { $0 + $1.followersEarned }
+    var totalXP: Int {
+        workoutHistory.reduce(0) { $0 + $1.effectiveXPEarned }
     }
     
     var body: some View {
@@ -70,7 +70,7 @@ struct WorkoutHistoryView: View {
             Section {
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("Total Followers Earned")
+                        Text("Total XP Earned")
                             .font(.headline)
                         Text("From \(workoutHistory.count) workouts")
                             .font(.caption)
@@ -79,7 +79,7 @@ struct WorkoutHistoryView: View {
                     
                     Spacer()
                     
-                    Text("+\(totalFollowers)")
+                    Text("\(totalXP) XP")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
@@ -137,7 +137,7 @@ struct WorkoutHistoryRow: View {
                 
                 Spacer()
                 
-                Text("+\(workout.followersEarned)")
+                Text("+\(workout.effectiveXPEarned) XP")
                     .font(.headline)
                     .foregroundColor(.green)
             }

@@ -2,7 +2,279 @@
 
 This document tracks planned architecture improvements to enhance testability, reduce coupling, and follow modern iOS/Swift best practices.
 
-## 🚀 **NEXT UP - MEDIUM PRIORITY TASKS**
+## 🚀 **NEXT UP - HIGH PRIORITY FEATURES**
+
+### 🔧 Fix Remaining Test Failures (Immediate Priority)
+
+**Status**: In Progress (2025-07-19)  
+**Impact**: High - Test suite must pass for reliable development
+
+**Remaining Issues to Fix:**
+
+1. **WorkoutSyncQueueTests** - Async timing issues
+   - `testProcessQueueWhenCloudKitAvailable()` - times out waiting for processing to complete
+   - `testFullWorkflowFromEnqueueToSuccess()` - times out waiting for processing to complete
+   - Root cause: The mock implementation simulates success but the async processing might not be completing properly
+   - Potential fix: Review the background operation queue processing in WorkoutSyncQueue
+
+2. **OnboardingUITests** - Navigation issues
+   - Multiple tests failing to navigate through character introductions
+   - Tests affected: `testCharacterIntroductions`, `testCompleteOnboardingFlow`, `testLetsGetStartedButtonBehavior`
+   - Root cause: Navigation logic expects 7 dialogues but timing/animation issues may be causing failures
+   - Already attempted fix: Updated navigation logic to handle exact dialogue count
+
+3. **Simulator Launch Issues**
+   - Some tests fail with "Simulator device failed to launch com.jimmypocock.FameFit"
+   - May need to run `./Scripts/fix_test_devices.sh` before test runs
+   - Consider adding retry logic for simulator launches
+
+**Next Steps:**
+- Debug the async processing in WorkoutSyncQueue to ensure it completes within test timeout
+- Add more robust waiting/retry logic for UI test navigation
+- Consider increasing test timeouts or adding explicit waits for async operations
+- Run tests individually to isolate timing issues
+
+### 10. 🎮 Influencer XP & Social Networking System
+
+**Status**: Phase 1 Completed (2025-07-18) ✅ | Phase 2 Planning 📋  
+**Impact**: High - Major feature addition transforming app dynamics
+
+Transform the current "followers" system into a comprehensive gamification and social networking platform.
+
+#### Core Concept Changes
+
+**From**: Followers (simple counter)  
+**To**: Influencer XP (experience points) + Real Social Following
+
+This creates a dual-currency system:
+- **Influencer XP**: Earned through workouts, used for in-app rewards/features
+- **Real Followers**: Actual users who follow your fitness journey
+
+#### Phase 1: Influencer XP System (Foundation) ✅
+
+**Completed Tasks**:
+- [x] Rename "followers" to "Influencer XP" throughout codebase
+  - [x] Update CloudKit schema (maintain backward compatibility)
+  - [x] Create migration for existing users (server-side tool)
+  - [x] Update UI labels and terminology
+  - [x] Update achievement messages and thresholds
+- [x] Create XP calculation engine
+  - [x] Base XP for workout completion
+  - [x] Bonus XP for workout type/intensity
+  - [x] Streak multipliers
+  - [x] Time-of-day bonuses
+  - [x] Achievement-based XP boosts
+- [x] Implement XP unlock system (XP unlocks rewards, not spent)
+  - [x] Design achievement-based unlocks (in XPCalculator)
+  - [x] Create unlockable rewards catalog (in XPCalculator)
+  - [x] Progress tracking UI component
+  - [x] Unlock notification system
+  - [x] Unlock persistence/storage
+
+**Security Requirements**:
+- Server-side XP validation (prevent client manipulation)
+- Rate limiting for XP gains
+- Audit trail for all XP transactions
+- Encrypted storage of XP balances
+
+#### Phase 2: User Profile System
+
+**Tasks**:
+- [ ] Create User model and CloudKit schema
+  - [ ] Username (unique, validated)
+  - [ ] Display name
+  - [ ] Bio (character limited)
+  - [ ] Profile picture (CloudKit asset)
+  - [ ] Privacy settings
+  - [ ] Workout stats visibility
+- [ ] Build profile management
+  - [ ] Profile creation flow
+  - [ ] Edit profile view
+  - [ ] Username validation service
+  - [ ] Image upload/crop functionality
+- [ ] Implement privacy controls
+  - [ ] Public/Private profiles
+  - [ ] Follower approval settings
+  - [ ] Blocked users list
+  - [ ] Data visibility granularity
+
+**Security Requirements**:
+- Content moderation for usernames/bios
+- Image scanning for inappropriate content
+- COPPA compliance for under-13 users
+- GDPR-compliant data management
+
+#### Phase 3: Social Following System
+
+**Tasks**:
+- [ ] Create Following/Follower relationships
+  - [ ] CloudKit relationship schema
+  - [ ] Follow/Unfollow actions
+  - [ ] Follower notifications
+  - [ ] Mutual follow detection
+- [ ] Build user discovery
+  - [ ] Search by username
+  - [ ] Suggested users algorithm
+  - [ ] Leaderboards (XP-based)
+  - [ ] Workout buddy matching
+- [ ] Social feed implementation
+  - [ ] Activity feed protocol
+  - [ ] Workout completion posts
+  - [ ] Achievement announcements
+  - [ ] Feed pagination/caching
+
+**Security Requirements**:
+- Rate limiting on follow actions
+- Spam detection algorithms
+- Report/block user functionality
+- Age-appropriate content filtering
+
+#### Phase 4: Social Interactions
+
+**Tasks**:
+- [ ] Implement engagement features
+  - [ ] Kudos/Cheers for workouts
+  - [ ] Comments on activities
+  - [ ] Workout challenges between users
+  - [ ] Group workout sessions
+- [ ] Create notification system
+  - [ ] Push notification infrastructure
+  - [ ] In-app notification center
+  - [ ] Notification preferences
+  - [ ] Badge count management
+- [ ] Build messaging system (optional)
+  - [ ] Direct messages
+  - [ ] Group chats for challenges
+  - [ ] Message encryption
+  - [ ] Media sharing controls
+
+**Security Requirements**:
+- End-to-end encryption for messages
+- Content moderation AI/ML integration
+- Reporting system for inappropriate behavior
+- Parental controls for minors
+
+#### Phase 1.5: XP System Polish & Enhancements
+
+**Tasks**:
+- [ ] Add XP gain animations
+  - [ ] Floating +XP text animation
+  - [ ] Progress bar fill animation
+  - [ ] Level up celebration
+  - [ ] Unlock celebration animations
+- [ ] Create detailed workout history
+  - [ ] XP breakdown per workout
+  - [ ] Show multipliers applied
+  - [ ] Personal records highlighted
+  - [ ] Weekly/Monthly XP trends
+- [ ] Build achievement notifications
+  - [ ] Special bonus notifications
+  - [ ] Milestone achievements
+  - [ ] Streak notifications
+  - [ ] Personal best alerts
+- [ ] XP leaderboard preview
+  - [ ] Friends leaderboard
+  - [ ] Global top performers
+  - [ ] Weekly/Monthly leaders
+  - [ ] Near me in rankings
+
+#### Phase 5: Gamification Enhancements
+
+**Tasks**:
+- [ ] Expand achievement system
+  - [ ] Social achievements (first follow, 100 followers)
+  - [ ] XP milestones
+  - [ ] Workout variety achievements
+  - [ ] Community participation badges
+- [ ] Create leagues/seasons
+  - [ ] Weekly/Monthly competitions
+  - [ ] Division-based matchmaking
+  - [ ] Season rewards
+  - [ ] League promotion/relegation
+- [ ] Implement virtual rewards
+  - [ ] Custom workout messages
+  - [ ] Profile badges/frames
+  - [ ] Exclusive workout types
+  - [ ] Character customization
+
+#### Phase 6: FameCoin Currency System
+
+**Tasks**:
+- [ ] Create FameCoin currency system (separate from XP)
+  - [ ] Design coin earning mechanics
+  - [ ] Implement coin spending/store
+  - [ ] Transaction management
+  - [ ] Balance tracking and history
+  - [ ] CloudKit schema for coins
+  - [ ] Coin animation effects
+
+**Coin Earning Ideas**:
+- Base coins per workout (less than XP)
+- Bonus coins for personal records
+- Daily login coins
+- Achievement completion coins
+- Social interaction coins
+- Streak maintenance coins
+- Challenge completion coins
+
+**Spending Options**:
+- Premium character skins
+- Custom workout messages
+- Profile decorations
+- Booster packs (2x XP for next workout)
+- Skip rest day (maintain streak)
+- Custom app themes
+
+#### Testing Strategy
+
+**Unit Tests Required**:
+- XP calculation algorithms
+- Privacy rule enforcement
+- Follow/Unfollow state management
+- Feed generation logic
+- Notification delivery
+
+**Integration Tests Required**:
+- CloudKit sync for social data
+- Real-time feed updates
+- Push notification delivery
+- Image upload/download
+- Cross-device synchronization
+
+**UI Tests Required**:
+- Profile creation flow
+- User search and discovery
+- Follow/Unfollow interactions
+- Feed scrolling performance
+- Privacy setting changes
+
+**Security Tests Required**:
+- Penetration testing for XP manipulation
+- SQL injection prevention
+- Rate limiting effectiveness
+- Privacy setting enforcement
+- Content moderation accuracy
+
+#### Performance Considerations
+
+- CloudKit query optimization for social graphs
+- Efficient feed pagination
+- Image caching strategy
+- Background sync for social updates
+- Offline mode handling
+
+#### Compliance Requirements
+
+- **Privacy Policy Update**: Detail social features
+- **Terms of Service**: Community guidelines
+- **Age Verification**: COPPA compliance
+- **Data Protection**: GDPR/CCPA compliance
+- **Content Moderation**: CSAM detection
+- **Accessibility**: VoiceOver support for social features
+
+---
+
+## 🚀 **COMPLETED HIGH PRIORITY TASKS**
 
 ### 9. ✅ Fix Test Suite Regressions (Technical Debt)
 
@@ -159,31 +431,50 @@ Fixed compilation errors in test suite and documented Apple API limitations.
 
 ## 📊 **Progress Tracking**
 
-- **Total Items**: 12
+- **Total Items**: 13
 - **✅ Completed**: 9 (Protocol abstractions + View Models + Reactive Support + SyncQueue + Messages + Test Fixes + Test Regressions)
-- **🎯 Next Up**: Low priority architectural improvements
+- **🎯 Next Up**: Influencer XP & Social Networking System
 - **🔄 Technical Debt**: 0 (all major issues resolved)
 - **📋 Low Priority**: 4
 
-**Completion Rate**: 75% of major architecture items ✨
+**Completion Rate**: 69% of major items ✨
 
-**Current Status**: All test suite regressions fixed! SwiftLint warnings resolved, all unit tests passing (225 total), and UI tests working reliably with HealthKit permission handling. The test suite is now fully green.
+**Current Status**: Phase 1 of Influencer XP system FULLY COMPLETE! ✅ 
+- All "followers" migrated to "Influencer XP"
+- XP calculation engine with multipliers implemented
+- UI progress tracking and level display complete
+- Unlock notification system operational
+- Persistent storage for achievements
+- Comprehensive test coverage and QA documentation
+Ready for Phase 2: User Profile System!
 
 ---
 
 ## 🎯 **Next Steps**
 
-1. **Low Priority Items** (when time permits):
+1. **Immediate Priority - Phase 2: User Profile System**:
+   - Create User model and CloudKit schema
+   - Build profile creation and management UI
+   - Implement username validation
+   - Add profile picture support
+
+2. **Architecture Preparation**:
+   - Design social networking protocols
+   - Plan caching strategies for social data
+   - Security audit current CloudKit implementation
+   - Research content moderation solutions
+
+3. **Low Priority Items** (after all social features and FameCoin):
    - Abstract HealthKit Session Management
    - Add Logging Protocol
    - Abstract Complication Data Provider
    - Protocol for Dependency Container
 
-2. **Future Features**:
+4. **Future Enhancements**:
    - Connect personality settings to user preferences
    - Add UI for roast level customization
    - Extend view model pattern to remaining views
-   - Improve UI test reliability and simulator management
+   - Apple Watch companion for social features
 
 ---
 

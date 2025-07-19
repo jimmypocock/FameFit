@@ -26,6 +26,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: totalDistance,
             averageHeartRate: averageHeartRate,
             followersEarned: followersEarned,
+            xpEarned: followersEarned,
             source: source
         )
         
@@ -52,6 +53,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: nil,
             averageHeartRate: nil,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         
@@ -69,6 +71,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: nil,
             averageHeartRate: nil,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         
@@ -86,6 +89,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: 5243.0, // 5.243 km
             averageHeartRate: nil,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         
@@ -103,6 +107,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: nil,
             averageHeartRate: nil,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         
@@ -120,10 +125,11 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: nil,
             averageHeartRate: nil,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         
-        XCTAssertEqual(historyItem.workoutActivityType, .running)
+        XCTAssertEqual(historyItem.workoutActivityType, HKWorkoutActivityType.running)
     }
     
     func testCodable() throws {
@@ -137,6 +143,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             totalDistance: 5000.0,
             averageHeartRate: 145.0,
             followersEarned: 5,
+            xpEarned: 5,
             source: "Apple Watch"
         )
         

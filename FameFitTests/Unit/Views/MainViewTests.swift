@@ -89,7 +89,7 @@ class MainViewTests: XCTestCase {
     func testViewDisplaysUserData() {
         // Given
         mockCloudKitManager.userName = "Test User"
-        mockCloudKitManager.followerCount = 50
+        mockCloudKitManager.influencerXP = 50
         mockCloudKitManager.totalWorkouts = 10
         mockCloudKitManager.currentStreak = 3
         
@@ -102,8 +102,8 @@ class MainViewTests: XCTestCase {
         // Note: In a more comprehensive test, we would use ViewInspector
         // or UI testing to verify the text is actually displayed
         XCTAssertEqual(viewModel.userName, "Test User")
-        XCTAssertEqual(viewModel.followerCount, 50)
-        XCTAssertEqual(viewModel.followerTitle, "Fitness Newbie")
+        XCTAssertEqual(viewModel.influencerXP, 50)
+        XCTAssertEqual(viewModel.xpTitle, "Fitness Newbie")
         XCTAssertEqual(viewModel.totalWorkouts, 10)
         XCTAssertEqual(viewModel.currentStreak, 3)
     }
@@ -146,7 +146,7 @@ class MainViewTests: XCTestCase {
         
         // When - Simulate view model changes
         mockCloudKitManager.totalWorkouts = 16
-        mockCloudKitManager.followerCount = 47
+        mockCloudKitManager.influencerXP = 47
         mockCloudKitManager.currentStreak = 4
         mockCloudKitManager.lastWorkoutTimestamp = Date()
         
@@ -155,7 +155,7 @@ class MainViewTests: XCTestCase {
         
         // Then - View model should reflect the changes
         XCTAssertEqual(viewModel.totalWorkouts, 16)
-        XCTAssertEqual(viewModel.followerCount, 47)
+        XCTAssertEqual(viewModel.influencerXP, 47)
         XCTAssertEqual(viewModel.currentStreak, 4)
         XCTAssertNotNil(viewModel.lastWorkoutDate)
     }

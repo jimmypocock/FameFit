@@ -167,18 +167,38 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             calories = energyBurned?.doubleValue(for: .kilocalorie()) ?? 0
         }
         
+        // Create workout history item (includes average heart rate from workout)
+        let historyItem = WorkoutHistoryItem(from: workout, followersEarned: 0) 
+        
+        // Calculate XP using the XPCalculator
+        let currentStreak = cloudKitManager?.currentStreak ?? 0
+        var calculatedXP = XPCalculator.calculateXP(
+            for: historyItem,
+            currentStreak: currentStreak
+        )
+        
+        // Check for special bonuses (first workout, milestones, etc.)
+        let workoutCount = (cloudKitManager?.totalWorkouts ?? 0) + 1
+        let bonusXP = XPCalculator.calculateSpecialBonus(
+            workoutNumber: workoutCount,
+            isPersonalRecord: false // Could implement PR detection later
+        )
+        calculatedXP += bonusXP
+        
         let character = FameFitCharacter.characterForWorkoutType(workoutType)
         
-        FameFitLogger.info("Adding 5 followers for workout", category: FameFitLogger.workout)
-        // Add followers for completed workout
-        cloudKitManager?.addFollowers(5)
+        FameFitLogger.info("Adding \(calculatedXP) XP for workout (base + \(bonusXP) bonus)", category: FameFitLogger.workout)
+        // Add XP for completed workout
+        cloudKitManager?.addXP(calculatedXP)
+        
+        // Create final history item with calculated XP
+        let finalHistoryItem = WorkoutHistoryItem(from: workout, followersEarned: calculatedXP, xpEarned: calculatedXP)
         
         // Save workout history to CloudKit
-        let historyItem = WorkoutHistoryItem(from: workout, followersEarned: 5)
-        FameFitLogger.info("💾 Saving workout to CloudKit: \(historyItem.workoutType)", category: FameFitLogger.workout)
-        cloudKitManager?.saveWorkoutHistory(historyItem)
+        FameFitLogger.info("💾 Saving workout to CloudKit: \(finalHistoryItem.workoutType) with \(calculatedXP) XP", category: FameFitLogger.workout)
+        cloudKitManager?.saveWorkoutHistory(finalHistoryItem)
         
-        sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories))
+        sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories), xpEarned: calculatedXP)
     }
     
     private func requestNotificationPermissions() {
@@ -193,7 +213,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         }
     }
     
-    private func sendWorkoutNotification(character: FameFitCharacter, duration: Int, calories: Int) {
+    private func sendWorkoutNotification(character: FameFitCharacter, duration: Int, calories: Int, xpEarned: Int) {
         // Throttle notifications to prevent spam
         if let lastDate = lastNotificationDate,
            Date().timeIntervalSince(lastDate) < notificationThrottleInterval {
@@ -202,7 +222,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         }
         
         let title = "\(character.emoji) \(character.fullName)"
-        let body = character.workoutCompletionMessage(followers: 5)
+        let body = character.workoutCompletionMessage(followers: xpEarned)
         
         // Add to notification store
         let notificationItem = NotificationItem(
@@ -211,7 +231,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             character: character,
             workoutDuration: duration,
             calories: calories,
-            followersEarned: 5
+            followersEarned: xpEarned
         )
         
         DispatchQueue.main.async { [weak self] in
@@ -229,7 +249,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             "character": character.rawValue,
             "duration": duration,
             "calories": calories,
-            "newFollowers": 5
+            "newFollowers": xpEarned
         ]
         
         // Use workout-specific identifier to prevent duplicates

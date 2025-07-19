@@ -235,11 +235,11 @@ enum FameFitCharacter: String, CaseIterable, Codable {
     func workoutCompletionMessage(followers: Int) -> String {
         switch self {
         case .chad:
-            return "BRO! You just CRUSHED that workout! \(followers) new followers are mirin' your gains! 💪"
+            return "BRO! You just CRUSHED that workout! +\(followers) XP added to your gains bank! 💪"
         case .sierra:
-            return "Amazing pace out there! You just earned \(followers) new followers who can't keep up! 🏃‍♀️"
+            return "Amazing pace out there! You just earned \(followers) Influencer XP! Keep crushing it! 🏃‍♀️"
         case .zen:
-            return "Beautiful flow, warrior. The universe has gifted you \(followers) new followers. Namaste 🙏"
+            return "Beautiful flow, warrior. The universe has gifted you \(followers) XP. Your influence grows 🙏"
         }
     }
     
@@ -248,25 +248,25 @@ enum FameFitCharacter: String, CaseIterable, Codable {
         switch self {
         case .chad:
             messages = [
-                "Time to get HUGE! Your followers are waiting!",
-                "No pain, no gain, no followers!",
-                "Let's show these followers what BEAST MODE looks like!",
-                "Your muscles called - they want more followers!",
+                "Time to get HUGE! Your XP awaits!",
+                "No pain, no gain, no XP!",
+                "Let's show everyone what BEAST MODE looks like!",
+                "Your muscles called - they want more XP!",
                 "Time to lift heavy and post heavily!"
             ]
         case .sierra:
             messages = [
-                "Every step is a follower earned!",
-                "Your cardio game needs to match your follower game!",
-                "Run like your follower count depends on it!",
-                "Miles = Smiles = Followers!",
-                "Let's get that heart rate AND follower count up!"
+                "Every step is XP earned!",
+                "Your cardio game needs to match your XP game!",
+                "Run like your Influencer status depends on it!",
+                "Miles = Smiles = XP!",
+                "Let's get that heart rate AND XP up!"
             ]
         case .zen:
             messages = [
-                "Breathe in strength, exhale followers",
-                "Your chakras are aligned with the algorithm",
-                "Flexibility in body, growth in followers",
+                "Breathe in strength, exhale influence",
+                "Your chakras are aligned with the XP algorithm",
+                "Flexibility in body, growth in XP",
                 "The universe is ready to expand your reach",
                 "Inner peace leads to outer influence"
             ]

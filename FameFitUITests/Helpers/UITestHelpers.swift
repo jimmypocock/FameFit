@@ -52,19 +52,19 @@ struct UITestHelpers {
                 
                 // Check if we've reached a stopping point
                 if app.buttons["Sign in with Apple"].exists ||
-                   app.staticTexts["Followers"].exists {
+                   app.staticTexts["Influencer XP"].exists {
                     break
                 }
             }
         }
     }
     
-    /// Get current follower count from UI
+    /// Get current XP count from UI
     static func getFollowerCount(from app: XCUIApplication) -> Int? {
-        let followerSection = app.otherElements.containing(.staticText, identifier: "Followers").firstMatch
+        let xpSection = app.otherElements.containing(.staticText, identifier: "Influencer XP").firstMatch
         
-        if followerSection.exists {
-            let numericLabels = followerSection.staticTexts.matching(
+        if xpSection.exists {
+            let numericLabels = xpSection.staticTexts.matching(
                 NSPredicate(format: "label MATCHES %@", "^[0-9]+$")
             )
             
@@ -74,7 +74,7 @@ struct UITestHelpers {
             }
         }
         
-        // Alternative: Look for any numeric text near "Followers" label
+        // Alternative: Look for any numeric text near "Influencer XP" label
         let allNumericTexts = app.staticTexts.matching(
             NSPredicate(format: "label MATCHES %@", "^[0-9]+$")
         )

@@ -111,7 +111,7 @@ struct NotificationRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                Label("+\(notification.followersEarned)", systemImage: "person.2")
+                Label("+\(notification.followersEarned) XP", systemImage: "sparkles")
                     .font(.caption)
                     .foregroundColor(.green)
             }

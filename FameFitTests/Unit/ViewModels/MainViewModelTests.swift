@@ -47,8 +47,8 @@ class MainViewModelTests: XCTestCase {
         
         // When/Then - Should compile without errors
         XCTAssertNotNil(protocolInstance.userName)
-        XCTAssertNotNil(protocolInstance.followerCount)
-        XCTAssertNotNil(protocolInstance.followerTitle)
+        XCTAssertNotNil(protocolInstance.influencerXP)
+        XCTAssertNotNil(protocolInstance.xpTitle)
         XCTAssertNotNil(protocolInstance.totalWorkouts)
         XCTAssertNotNil(protocolInstance.currentStreak)
         XCTAssertNotNil(protocolInstance.daysAsMember)
@@ -69,15 +69,15 @@ class MainViewModelTests: XCTestCase {
         XCTAssertEqual(sut.userName, expectedName)
     }
     
-    func testFollowerCountBindsToCloudKitManager() {
+    func testInfluencerXPBindsToCloudKitManager() {
         // Given
         let expectedCount = 42
         
         // When
-        mockCloudKitManager.followerCount = expectedCount
+        mockCloudKitManager.influencerXP = expectedCount
         
         // Then
-        XCTAssertEqual(sut.followerCount, expectedCount)
+        XCTAssertEqual(sut.influencerXP, expectedCount)
     }
     
     func testTotalWorkoutsBindsToCloudKitManager() {
@@ -149,20 +149,20 @@ class MainViewModelTests: XCTestCase {
     
     // MARK: - Computed Property Tests
     
-    func testFollowerTitleUpdatesWhenFollowerCountChanges() {
+    func testXPTitleUpdatesWhenInfluencerXPChanges() {
         // Given
-        mockCloudKitManager.followerCount = 50
+        mockCloudKitManager.influencerXP = 50
         sut.refreshData() // Sync initial state
-        let initialTitle = sut.followerTitle
+        let initialTitle = sut.xpTitle
         
         // When
-        mockCloudKitManager.followerCount = 1000
+        mockCloudKitManager.influencerXP = 1000
         sut.refreshData() // Sync new state
-        let newTitle = sut.followerTitle
+        let newTitle = sut.xpTitle
         
         // Then
-        XCTAssertEqual(initialTitle, "Fitness Newbie") // 50 followers
-        XCTAssertEqual(newTitle, "Rising Star") // 1000 followers
+        XCTAssertEqual(initialTitle, "Fitness Newbie") // 50 XP
+        XCTAssertEqual(newTitle, "Rising Star") // 1000 XP
         XCTAssertNotEqual(initialTitle, newTitle)
     }
     
@@ -225,16 +225,16 @@ class MainViewModelTests: XCTestCase {
         XCTAssertEqual(sut.userName, "New User")
     }
     
-    func testFollowerCountChangesReactToCloudKitManager() {
+    func testInfluencerXPChangesReactToCloudKitManager() {
         // Given
-        let initialCount = sut.followerCount
+        let initialCount = sut.influencerXP
         
         // When
-        mockCloudKitManager.followerCount = 999
+        mockCloudKitManager.influencerXP = 999
         
         // Then
-        XCTAssertNotEqual(sut.followerCount, initialCount)
-        XCTAssertEqual(sut.followerCount, 999)
+        XCTAssertNotEqual(sut.influencerXP, initialCount)
+        XCTAssertEqual(sut.influencerXP, 999)
     }
     
     // MARK: - Integration Tests
@@ -242,21 +242,21 @@ class MainViewModelTests: XCTestCase {
     func testCompleteWorkflowUpdatesAllProperties() {
         // Given - Set initial state
         mockCloudKitManager.userName = "Initial User"
-        mockCloudKitManager.followerCount = 10
+        mockCloudKitManager.influencerXP = 10
         mockCloudKitManager.totalWorkouts = 5
         mockCloudKitManager.currentStreak = 1
         mockNotificationStore.unreadCount = 0
         
         // When - Simulate a workout completion
         mockCloudKitManager.userName = "Updated User"
-        mockCloudKitManager.followerCount = 15
+        mockCloudKitManager.influencerXP = 15
         mockCloudKitManager.totalWorkouts = 6
         mockCloudKitManager.currentStreak = 2
         mockNotificationStore.unreadCount = 1
         
         // Then - All properties should update
         XCTAssertEqual(sut.userName, "Updated User")
-        XCTAssertEqual(sut.followerCount, 15)
+        XCTAssertEqual(sut.influencerXP, 15)
         XCTAssertEqual(sut.totalWorkouts, 6)
         XCTAssertEqual(sut.currentStreak, 2)
         XCTAssertTrue(sut.hasUnreadNotifications)

@@ -172,7 +172,7 @@ struct HealthKitPermissionView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
-                Text("This lets us:\n• Detect when you complete workouts\n• Track your progress\n• Award you followers for your efforts")
+                Text("This lets us:\n• Detect when you complete workouts\n• Track your progress\n• Award you Influencer XP for your efforts")
                     .font(.body)
                     .foregroundColor(.white.opacity(0.9))
                     .multilineTextAlignment(.leading)
@@ -218,8 +218,8 @@ struct GameMechanicsView: View {
     @EnvironmentObject var authManager: AuthenticationManager
 
     let dialogues = [
-        ("Chad", "💪", "Perfect. Now, here's the deal: Every workout you crush gets you followers.", Color.red),
-        ("Sierra", "🏃‍♀️", "And more followers means SPONSORSHIPS! I'm talking free protein powder, " +
+        ("Chad", "💪", "Perfect. Now, here's the deal: Every workout you crush earns you Influencer XP.", Color.red),
+        ("Sierra", "🏃‍♀️", "And more XP means SPONSORSHIPS! I'm talking free protein powder, " +
             "workout gear, and those weird teas nobody actually drinks!", Color.orange),
         ("Zen", "🧘‍♂️", "And don't forget the exclusive events. Last week I did yoga with " +
             "a B-list celebrity's personal assistant's dog walker. Networking!", Color.green),

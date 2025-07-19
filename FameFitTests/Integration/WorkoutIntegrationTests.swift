@@ -36,13 +36,13 @@ class WorkoutIntegrationTests: XCTestCase {
         super.tearDown()
     }
     
-    func testFollowerCountUpdatesInUI() {
+    func testInfluencerXPUpdatesInUI() {
         // Given
-        let expectation = XCTestExpectation(description: "Follower count updates")
-        let initialCount = mockCloudKitManager.followerCount
+        let expectation = XCTestExpectation(description: "XP count updates")
+        let initialCount = mockCloudKitManager.influencerXP
         
-        // Subscribe to follower count changes
-        mockCloudKitManager.$followerCount
+        // Subscribe to XP count changes
+        mockCloudKitManager.$influencerXP
             .dropFirst() // Skip initial value
             .sink { newCount in
                 XCTAssertEqual(newCount, initialCount + 5)
@@ -51,7 +51,7 @@ class WorkoutIntegrationTests: XCTestCase {
             .store(in: &cancellables)
         
         // When - Simulate workout completion
-        mockCloudKitManager.addFollowers(5)
+        mockCloudKitManager.addXP(5)
         
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -76,34 +76,34 @@ class WorkoutIntegrationTests: XCTestCase {
         XCTAssertEqual(authManager.userName, "Test User")
     }
     
-    func testWorkoutToFollowerFlow() {
-        // This tests that adding followers updates both follower count and workout count
+    func testWorkoutToXPFlow() {
+        // This tests that adding XP updates both XP count and workout count
         
         // Given
-        XCTAssertEqual(mockCloudKitManager.followerCount, 100, "Should start with 100 followers")
+        XCTAssertEqual(mockCloudKitManager.influencerXP, 100, "Should start with 100 XP")
         XCTAssertEqual(mockCloudKitManager.totalWorkouts, 20, "Should start with 20 workouts")
         
         // When - Simulate what happens when a workout is detected
-        mockCloudKitManager.addFollowers(5)
+        mockCloudKitManager.addXP(5)
         
         // Then - Verify synchronous updates
-        XCTAssertEqual(mockCloudKitManager.followerCount, 105, "Should have 105 followers")
+        XCTAssertEqual(mockCloudKitManager.influencerXP, 105, "Should have 105 XP")
         XCTAssertEqual(mockCloudKitManager.totalWorkouts, 21, "Should have 21 workouts")
-        XCTAssertTrue(mockCloudKitManager.addFollowersCalled, "Should have called addFollowers")
-        XCTAssertEqual(mockCloudKitManager.lastAddedFollowerCount, 5, "Should have added 5 followers")
+        XCTAssertTrue(mockCloudKitManager.addXPCalled, "Should have called addXP")
+        XCTAssertEqual(mockCloudKitManager.lastAddedXPCount, 5, "Should have added 5 XP")
     }
     
     func testErrorHandling() {
         // Given
-        mockCloudKitManager.shouldFailAddFollowers = true
+        mockCloudKitManager.shouldFailAddXP = true
         _ = dependencyContainer.workoutObserver // Ensure observer is initialized
         
-        // When - Try to add followers
-        mockCloudKitManager.addFollowers(5)
+        // When - Try to add XP
+        mockCloudKitManager.addXP(5)
         
         // Then
         XCTAssertNotNil(mockCloudKitManager.lastError)
-        XCTAssertEqual(mockCloudKitManager.followerCount, 100) // Should not change
+        XCTAssertEqual(mockCloudKitManager.influencerXP, 100) // Should not change
     }
     
     func testStreakCalculation() {
@@ -111,7 +111,7 @@ class WorkoutIntegrationTests: XCTestCase {
         _ = mockCloudKitManager.currentStreak // Verify starts at 0
         
         // When - Complete a workout
-        mockCloudKitManager.addFollowers(5)
+        mockCloudKitManager.addXP(5)
         
         // Then - In real implementation, streak logic would be tested here
         // For now, we just verify the property exists and can be modified
@@ -120,14 +120,14 @@ class WorkoutIntegrationTests: XCTestCase {
     
     func testMockCloudKitManagerBehavior() {
         // Test the mock directly to ensure it works as expected
-        XCTAssertEqual(mockCloudKitManager.followerCount, 100, "Should start with 100 followers")
+        XCTAssertEqual(mockCloudKitManager.influencerXP, 100, "Should start with 100 XP")
         XCTAssertEqual(mockCloudKitManager.totalWorkouts, 20, "Should start with 20 workouts")
         
-        // Add followers
-        mockCloudKitManager.addFollowers(5)
+        // Add XP
+        mockCloudKitManager.addXP(5)
         
         // Verify both values updated
-        XCTAssertEqual(mockCloudKitManager.followerCount, 105, "Should have 105 followers")
+        XCTAssertEqual(mockCloudKitManager.influencerXP, 105, "Should have 105 XP")
         XCTAssertEqual(mockCloudKitManager.totalWorkouts, 21, "Should have 21 workouts")
     }
 }

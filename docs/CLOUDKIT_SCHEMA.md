@@ -24,11 +24,14 @@ Stores user profile information.
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
 | userName | String | Yes | No | No | Display name |
-| followerCount | Int64 | Yes | No | No | Total followers |
+| followerCount | Int64 | Yes* | No | No | Total followers (DEPRECATED - use influencerXP) |
+| influencerXP | Int64 | Yes | No | No | Total Influencer XP earned |
 | totalWorkouts | Int64 | Yes | No | No | Total workouts completed |
 | currentStreak | Int64 | Yes | No | No | Current workout streak |
 | lastWorkoutTimestamp | Date | No | No | No | Last workout date |
 | joinTimestamp | Date | Yes | No | No | When user joined |
+
+*Note: `followerCount` is maintained for backward compatibility during migration to `influencerXP`
 
 ### WorkoutHistory
 Stores individual workout records.
@@ -43,8 +46,11 @@ Stores individual workout records.
 | totalEnergyBurned | Double | Yes | No | No | Calories burned |
 | totalDistance | Double | No | No | No | Distance in meters |
 | averageHeartRate | Double | No | No | No | Average heart rate |
-| followersEarned | Int64 | Yes | No | No | Followers earned from workout |
+| followersEarned | Int64 | Yes* | No | No | Followers earned from workout (DEPRECATED - use xpEarned) |
+| xpEarned | Int64 | Yes | No | No | XP earned from workout |
 | source | String | Yes | No | No | Source app (e.g., "Apple Watch") |
+
+*Note: `followersEarned` is maintained for backward compatibility during migration to `xpEarned`
 
 ## CloudKit Dashboard Setup
 

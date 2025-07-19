@@ -17,6 +17,8 @@ class DependencyContainer: ObservableObject {
     let workoutSyncManager: WorkoutSyncManager
     let workoutSyncQueue: WorkoutSyncQueue
     let notificationStore: NotificationStore
+    let unlockNotificationService: UnlockNotificationService
+    let unlockStorageService: UnlockStorageService
     
     init() {
         // Create instances with proper dependency injection
@@ -39,8 +41,16 @@ class DependencyContainer: ObservableObject {
             cloudKitManager: cloudKitManager
         )
         
+        self.unlockStorageService = UnlockStorageService()
+        
+        self.unlockNotificationService = UnlockNotificationService(
+            notificationStore: notificationStore,
+            unlockStorage: unlockStorageService
+        )
+        
         // Wire up dependencies
         cloudKitManager.authenticationManager = authenticationManager
+        cloudKitManager.unlockNotificationService = unlockNotificationService
         
         // Give workout observer access to notification store
         workoutObserver.notificationStore = notificationStore
@@ -57,7 +67,9 @@ class DependencyContainer: ObservableObject {
         healthKitService: HealthKitService? = nil,
         workoutSyncManager: WorkoutSyncManager? = nil,
         workoutSyncQueue: WorkoutSyncQueue? = nil,
-        notificationStore: NotificationStore? = nil
+        notificationStore: NotificationStore? = nil,
+        unlockNotificationService: UnlockNotificationService? = nil,
+        unlockStorageService: UnlockStorageService? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -71,6 +83,11 @@ class DependencyContainer: ObservableObject {
             cloudKitManager: cloudKitManager
         )
         self.notificationStore = notificationStore ?? NotificationStore()
+        self.unlockStorageService = unlockStorageService ?? UnlockStorageService()
+        self.unlockNotificationService = unlockNotificationService ?? UnlockNotificationService(
+            notificationStore: self.notificationStore,
+            unlockStorage: self.unlockStorageService
+        )
     }
 }
 
