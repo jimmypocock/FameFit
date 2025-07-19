@@ -19,8 +19,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     // MARK: - Published Properties
     @Published private var _userName: String = ""
-    @Published private var _followerCount: Int = 0
-    @Published private var _followerTitle: String = ""
+    @Published private var _influencerXP: Int = 0
+    @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
     @Published private var _joinDate: Date?
@@ -45,8 +45,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     // MARK: - Protocol Properties
     var userName: String { _userName }
-    var followerCount: Int { _followerCount }
-    var followerTitle: String { _followerTitle }
+    var influencerXP: Int { _influencerXP }
+    var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
     var joinDate: Date? { _joinDate }
@@ -82,8 +82,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.userNamePublisher
             .assign(to: &$_userName)
         
-        cloudKitManager.followerCountPublisher
-            .assign(to: &$_followerCount)
+        cloudKitManager.influencerXPPublisher
+            .assign(to: &$_influencerXP)
         
         cloudKitManager.totalWorkoutsPublisher
             .assign(to: &$_totalWorkouts)
@@ -97,11 +97,11 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
         
-        cloudKitManager.followerCountPublisher
+        cloudKitManager.influencerXPPublisher
             .map { [weak self] _ in
-                self?.cloudKitManager.getFollowerTitle() ?? ""
+                self?.cloudKitManager.getXPTitle() ?? ""
             }
-            .assign(to: &$_followerTitle)
+            .assign(to: &$_xpTitle)
         
         notificationStore.unreadCountPublisher
             .assign(to: &$_unreadCount)
@@ -109,12 +109,12 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     private func refreshFromDependencies() {
         _userName = cloudKitManager.userName
-        _followerCount = cloudKitManager.followerCount
+        _influencerXP = cloudKitManager.influencerXP
         _totalWorkouts = cloudKitManager.totalWorkouts
         _currentStreak = cloudKitManager.currentStreak
         _joinDate = cloudKitManager.joinTimestamp
         _lastWorkoutDate = cloudKitManager.lastWorkoutTimestamp
-        _followerTitle = cloudKitManager.getFollowerTitle()
+        _xpTitle = cloudKitManager.getXPTitle()
         _unreadCount = notificationStore.unreadCount
     }
 }

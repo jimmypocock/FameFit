@@ -14,8 +14,8 @@ class MockMainViewModel: MainViewModeling {
     
     // MARK: - Published Properties
     @Published var userName: String = "Test User"
-    @Published var followerCount: Int = 42
-    @Published var followerTitle: String = "Rising Star"
+    @Published var influencerXP: Int = 42
+    @Published var xpTitle: String = "Rising Star"
     @Published var totalWorkouts: Int = 15
     @Published var currentStreak: Int = 3
     @Published var joinDate: Date? = Date().addingTimeInterval(-30 * 24 * 3600) // 30 days ago
@@ -48,7 +48,7 @@ class MockMainViewModel: MainViewModeling {
         }
         
         // Simulate successful data refresh
-        followerCount += 1
+        influencerXP += 1
         totalWorkouts += 1
     }
     
@@ -62,8 +62,8 @@ class MockMainViewModel: MainViewModeling {
         
         // Simulate successful sign out - reset data
         userName = ""
-        followerCount = 0
-        followerTitle = ""
+        influencerXP = 0
+        xpTitle = ""
         totalWorkouts = 0
         currentStreak = 0
         joinDate = nil
@@ -81,7 +81,7 @@ class MockMainViewModel: MainViewModeling {
     // MARK: - Test Helpers
     func simulateNewWorkout() {
         totalWorkouts += 1
-        followerCount += 5
+        influencerXP += 5
         currentStreak += 1
         lastWorkoutDate = Date()
     }
@@ -99,8 +99,8 @@ class MockMainViewModel: MainViewModeling {
         shouldFailSignOut = false
         
         userName = "Test User"
-        followerCount = 42
-        followerTitle = "Rising Star"
+        influencerXP = 42
+        xpTitle = "Rising Star"
         totalWorkouts = 15
         currentStreak = 3
         joinDate = Date().addingTimeInterval(-30 * 24 * 3600)

@@ -230,18 +230,35 @@ class WorkoutSyncManager: ObservableObject {
             FameFitLogger.info("🔄 Processing workout: \(workout.workoutActivityType.name) - Duration: \(Int(duration)) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
             FameFitLogger.info("📍 Workout source: \(workout.sourceRevision.source.name) - Bundle: \(workout.sourceRevision.source.bundleIdentifier)", category: FameFitLogger.workout)
             
-            // Create workout history item
-            let historyItem = WorkoutHistoryItem(from: workout, followersEarned: 5)
+            // Calculate XP for this workout
+            let calculatedXP = XPCalculator.calculateXP(
+                for: WorkoutHistoryItem(from: workout, followersEarned: 0, xpEarned: 0),
+                currentStreak: cloudKitManager?.currentStreak ?? 0
+            )
+            
+            // Check for special bonuses
+            let workoutNumber = cloudKitManager?.totalWorkouts ?? 0 + 1
+            let specialBonus = XPCalculator.calculateSpecialBonus(
+                workoutNumber: workoutNumber,
+                isPersonalRecord: false // TODO: Implement PR detection
+            )
+            
+            let totalXP = calculatedXP + specialBonus
+            
+            FameFitLogger.info("🎯 Calculated XP: \(calculatedXP) + bonus: \(specialBonus) = \(totalXP) total", category: FameFitLogger.workout)
+            
+            // Create workout history item with calculated XP
+            let historyItem = WorkoutHistoryItem(from: workout, followersEarned: totalXP, xpEarned: totalXP)
             workoutHistoryItems.append(historyItem)
             
             // For initial sync, we might want to batch process
             // For incremental updates, process immediately
             if !isInitialSync {
-                // Add followers for the workout
-                cloudKitManager?.addFollowers(5)
+                // Add XP for the workout
+                cloudKitManager?.addXP(totalXP)
                 
                 // Save workout history to CloudKit
-                FameFitLogger.info("💾 Saving workout to CloudKit: \(historyItem.workoutType)", category: FameFitLogger.workout)
+                FameFitLogger.info("💾 Saving workout to CloudKit: \(historyItem.workoutType) with \(totalXP) XP", category: FameFitLogger.workout)
                 cloudKitManager?.saveWorkoutHistory(historyItem)
                 
                 // Send notification
@@ -293,7 +310,14 @@ class WorkoutSyncManager: ObservableObject {
         }
         
         let title = "\(character.emoji) \(character.fullName)"
-        let body = character.workoutCompletionMessage(followers: 5)
+        
+        // Calculate XP for notification
+        let calculatedXP = XPCalculator.calculateXP(
+            for: WorkoutHistoryItem(from: workout, followersEarned: 0, xpEarned: 0),
+            currentStreak: cloudKitManager?.currentStreak ?? 0
+        )
+        
+        let body = character.workoutCompletionMessage(followers: calculatedXP)
         
         // Add to notification store
         let notificationItem = NotificationItem(
@@ -302,7 +326,7 @@ class WorkoutSyncManager: ObservableObject {
             character: character,
             workoutDuration: duration,
             calories: calories,
-            followersEarned: 5
+            followersEarned: calculatedXP
         )
         
         DispatchQueue.main.async { [weak self] in

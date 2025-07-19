@@ -24,32 +24,16 @@ struct MainView: View {
                 }
 
                 VStack(spacing: 20) {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Followers")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(viewModel.followerCount)")
-                                .font(.system(size: 40, weight: .bold, design: .rounded))
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing) {
-                            Text("Status")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(viewModel.followerTitle)
-                                .font(.headline)
-                                .foregroundColor(.purple)
-                        }
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(15)
+                    XPProgressView(currentXP: viewModel.influencerXP)
 
                     HStack {
-                        StatCard(title: "Workouts", value: "\(viewModel.totalWorkouts)", icon: "figure.run")
+                        Button(action: {
+                            showingWorkoutHistory = true
+                        }) {
+                            StatCard(title: "Workouts", value: "\(viewModel.totalWorkouts)", icon: "figure.run")
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
                         StatCard(title: "Streak", value: "\(viewModel.currentStreak)", icon: "flame.fill")
                     }
                     
@@ -93,49 +77,6 @@ struct MainView: View {
                         .cornerRadius(15)
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Your Journey")
-                            .font(.headline)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            showingWorkoutHistory = true
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "figure.run.circle")
-                                    .font(.caption)
-                                Text("Workout History")
-                                    .font(.caption)
-                            }
-                            .foregroundColor(.purple)
-                        }
-                    }
-
-                    Text("Complete workouts in any app to gain followers! " +
-                            "Your coaches will congratulate you after each workout.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-
-                    HStack {
-                        Text("Current rate: +5 followers per workout")
-                            .font(.caption)
-                            .foregroundColor(.purple)
-                        
-                        Spacer()
-                        
-                        if viewModel.joinDate != nil {
-                            Text("\(viewModel.daysAsMember) days as member")
-                                .font(.caption)
-                                .foregroundColor(.purple)
-                        }
-                    }
-                }
-                .padding()
-                .background(Color.purple.opacity(0.1))
-                .cornerRadius(15)
 
                 Spacer()
             }

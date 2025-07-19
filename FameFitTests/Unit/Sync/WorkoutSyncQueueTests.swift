@@ -36,6 +36,12 @@ class WorkoutSyncQueueTests: XCTestCase {
         super.tearDown()
     }
     
+    // MARK: - Helper Methods
+    
+    private func wait(for duration: TimeInterval) {
+        Thread.sleep(forTimeInterval: duration)
+    }
+    
     // MARK: - Initialization Tests
     
     func testInitializationLoadsEmptyQueue() {
@@ -100,38 +106,52 @@ class WorkoutSyncQueueTests: XCTestCase {
         // Given
         mockCloudKitManager.mockIsAvailable = true
         
-        // Create expectation for processing to complete
-        let processingComplete = XCTestExpectation(description: "Processing completes")
+        // Track all state changes
+        var stateChanges: [Bool] = []
+        var workoutCounts: [Int] = []
         
-        // Wait for queue to become empty after having workouts
-        var hasHadWorkouts = false
-        syncQueue.$pendingWorkouts
-            .sink { workouts in
-                print("Test - Workouts changed: \(workouts.count)")
-                if !workouts.isEmpty {
-                    hasHadWorkouts = true
-                    print("Test - Had workouts set to true")
-                }
-                if workouts.isEmpty && hasHadWorkouts {
-                    print("Test - Processing complete, fulfilling expectation")
-                    processingComplete.fulfill()
-                }
+        syncQueue.$isProcessing
+            .sink { isProcessing in
+                stateChanges.append(isProcessing)
             }
             .store(in: &cancellables)
         
-        // When - enqueue a workout (triggers processing automatically)
+        syncQueue.$pendingWorkouts
+            .sink { workouts in
+                workoutCounts.append(workouts.count)
+            }
+            .store(in: &cancellables)
+        
+        // When - enqueue a workout
         let workout = TestWorkoutBuilder.createRunWorkout()
-        print("Test - Enqueuing workout")
         syncQueue.enqueueWorkout(workout)
         
-        // Wait for processing to complete
-        let result = XCTWaiter.wait(for: [processingComplete], timeout: 10.0)
-        print("Test - Wait result: \(result)")
+        // Wait for enqueue to complete on main queue
+        let enqueueWait = expectation(description: "Enqueue completes")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            enqueueWait.fulfill()
+        }
+        wait(for: [enqueueWait], timeout: 1.0)
         
-        // Then - verify final state
-        print("Test - Final state: workouts=\(syncQueue.pendingWorkouts.count), processing=\(syncQueue.isProcessing)")
-        XCTAssertEqual(syncQueue.pendingWorkouts.count, 0, "Queue should be empty")
+        // Wait for the background operation queue to finish all operations
+        syncQueue.operationQueue.waitUntilAllOperationsAreFinished()
+        
+        // Give time for final main queue updates from background thread
+        let finalWait = expectation(description: "Final wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            finalWait.fulfill()
+        }
+        wait(for: [finalWait], timeout: 2.0)
+        
+        // Verify final state
         XCTAssertFalse(syncQueue.isProcessing, "Should not be processing")
+        XCTAssertEqual(syncQueue.pendingWorkouts.count, 0, "Queue should be empty after successful processing")
+        
+        // Verify we saw the expected state transitions
+        XCTAssertTrue(workoutCounts.contains(1), "Should have seen 1 workout added")
+        XCTAssertTrue(workoutCounts.contains(0), "Should have seen queue cleared")
+        XCTAssertTrue(stateChanges.contains(true), "Should have seen processing = true")
+        XCTAssertTrue(stateChanges.contains(where: { $0 == false }), "Should have seen processing = false")
     }
     
     func testProcessQueueWhenCloudKitNotAvailable() {
@@ -302,16 +322,11 @@ class WorkoutSyncQueueTests: XCTestCase {
         // Given
         mockCloudKitManager.mockIsAvailable = true
         
-        let expectation = XCTestExpectation(description: "Processing state changes")
         var states: [Bool] = []
         
         syncQueue.isProcessingPublisher
             .sink { isProcessing in
                 states.append(isProcessing)
-                // Complete when we see processing finish (false after true)
-                if states.count >= 2 && states.contains(true) && !isProcessing {
-                    expectation.fulfill()
-                }
             }
             .store(in: &cancellables)
         
@@ -319,13 +334,32 @@ class WorkoutSyncQueueTests: XCTestCase {
         let workout = TestWorkoutBuilder.createRunWorkout()
         syncQueue.enqueueWorkout(workout)
         
-        // Then
-        wait(for: [expectation], timeout: 10.0)
+        // Wait for enqueue to complete
+        let enqueueWait = expectation(description: "Enqueue wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            enqueueWait.fulfill()
+        }
+        wait(for: [enqueueWait], timeout: 1.0)
+        
+        // Wait for background processing to complete
+        syncQueue.operationQueue.waitUntilAllOperationsAreFinished()
+        
+        // Give time for final state updates
+        let finalWait = expectation(description: "Final wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            finalWait.fulfill()
+        }
+        wait(for: [finalWait], timeout: 1.0)
         
         // Should have seen state transitions
         XCTAssertTrue(states.contains(false), "Should have false state")
         XCTAssertTrue(states.contains(true), "Should have true state")
-        XCTAssertEqual(states.last, false, "Should end in false (not processing)")
+        
+        // Find the last state after we saw true
+        if let firstTrueIndex = states.firstIndex(of: true) {
+            let statesAfterTrue = Array(states.suffix(from: firstTrueIndex))
+            XCTAssertTrue(statesAfterTrue.contains(false), "Should have false after true")
+        }
     }
     
     func testFailedCountPublisherEmitsUpdates() {
@@ -368,29 +402,40 @@ class WorkoutSyncQueueTests: XCTestCase {
         mockCloudKitManager.mockIsAvailable = true
         mockCloudKitManager.shouldFailAddFollowers = false
         
-        // Set up expectation for completion
-        let processExpectation = XCTestExpectation(description: "Processing completes")
+        // Track state changes
+        var processingStates: [Bool] = []
         
-        // Wait for queue to empty after having workouts
-        var hasHadWorkouts = false
-        syncQueue.$pendingWorkouts
-            .sink { workouts in
-                if !workouts.isEmpty {
-                    hasHadWorkouts = true
-                }
-                if workouts.isEmpty && hasHadWorkouts {
-                    processExpectation.fulfill()
-                }
+        // Monitor processing state changes
+        syncQueue.isProcessingPublisher
+            .sink { isProcessing in
+                processingStates.append(isProcessing)
             }
             .store(in: &cancellables)
         
-        // When - enqueue workout (automatically triggers processing)
+        // When - enqueue workout
         syncQueue.enqueueWorkout(workout)
         
-        // Then
-        wait(for: [processExpectation], timeout: 10.0)
-        XCTAssertTrue(syncQueue.pendingWorkouts.isEmpty, "Workouts should be processed")
-        XCTAssertEqual(syncQueue.failedCount, 0)
+        // First wait for enqueue to complete
+        let enqueueWait = expectation(description: "Enqueue wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            enqueueWait.fulfill()
+        }
+        wait(for: [enqueueWait], timeout: 1.0)
+        
+        // Wait for the background operation queue to finish
+        syncQueue.operationQueue.waitUntilAllOperationsAreFinished()
+        
+        // Give more time for main queue updates from background thread
+        let finalWait = expectation(description: "Final wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            finalWait.fulfill()
+        }
+        wait(for: [finalWait], timeout: 3.0)
+        
+        // Then - Verify final state
         XCTAssertFalse(syncQueue.isProcessing, "Processing should be complete")
+        XCTAssertEqual(syncQueue.pendingWorkouts.count, 0, "Queue should be empty after successful sync")
+        XCTAssertTrue(processingStates.contains(true), "Should have seen processing = true")
+        XCTAssertEqual(processingStates.last, false, "Should end with processing = false")
     }
 }

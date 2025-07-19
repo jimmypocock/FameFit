@@ -12,20 +12,19 @@ class MainScreenUITests: BaseUITestCase {
     
     func testMainScreenElements() {
         // Verify main screen elements are present
-        assertExistsEventually(app.staticTexts["Followers"], "Should show Followers label")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should show Influencer XP label")
         
         // Check if we can find other common elements (but don't fail if they're missing)
         let hasWorkouts = waitForElement(app.staticTexts["Workouts"], timeout: 2)
         let hasStreak = waitForElement(app.staticTexts["Streak"], timeout: 2)
-        let hasJourney = waitForElement(app.staticTexts["Your Journey"], timeout: 2)
         
-        // At least one of these should exist
-        XCTAssertTrue(hasWorkouts || hasStreak || hasJourney, "Should show at least one main screen element")
+        // Both of these should exist
+        XCTAssertTrue(hasWorkouts && hasStreak, "Should show Workouts and Streak stats")
     }
     
     func testFollowerCountDisplay() {
         // Wait for main screen to load
-        assertExistsEventually(app.staticTexts["Followers"], "Should show Followers label")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should show Influencer XP label")
         
         // Check if any numeric values are displayed using safe element access
         let staticTextLabels = getLabels(from: app.staticTexts)
@@ -38,18 +37,85 @@ class MainScreenUITests: BaseUITestCase {
     
     func testStatusDisplay() {
         // Wait for main screen to load
-        assertExistsEventually(app.staticTexts["Followers"], "Should be on main screen")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should be on main screen")
         
-        // Check for Status label
-        let statusExists = waitForElement(app.staticTexts["Status"], timeout: 5)
-        XCTAssertTrue(statusExists, "Should show Status label after ensuring main screen is loaded")
+        // Check for stats display
+        XCTAssertTrue(app.staticTexts["Workouts"].exists, "Should show Workouts label")
+        XCTAssertTrue(app.staticTexts["Streak"].exists, "Should show Streak label")
+    }
+    
+    func testWorkoutStatNavigatesToHistory() {
+        // Wait for main screen to load
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should be on main screen")
+        
+        var tapped = false
+        
+        // Method 1: Look for the button by its accessibility label (number + "Workouts")
+        let workoutButtons = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'"))
+        if workoutButtons.count > 0 {
+            let button = workoutButtons.element(boundBy: 0)
+            if button.exists && button.isHittable {
+                safeTap(button)
+                tapped = true
+            }
+        }
+        
+        // Method 2: If that didn't work, try to find the specific stat card button
+        if !tapped {
+            // The button might have a label like "20, Workouts" based on the error message
+            let buttons = app.buttons
+            for i in 0..<buttons.count {
+                let button = buttons.element(boundBy: i)
+                if button.exists && button.label.contains("Workouts") && !button.label.contains("Health") {
+                    safeTap(button)
+                    tapped = true
+                    break
+                }
+            }
+        }
+        
+        // Method 3: As a last resort, tap by coordinates where the workout stat should be
+        if !tapped {
+            // Find the Influencer XP text and tap below it where stats are located
+            let xpText = app.staticTexts["Influencer XP"]
+            if xpText.exists {
+                let coordinate = xpText.coordinate(withNormalizedOffset: CGVector(dx: -0.5, dy: 3.0))
+                coordinate.tap()
+                tapped = true
+            }
+        }
+        
+        if tapped {
+            // Wait for navigation
+            wait(for: 2.0)
+            
+            // Verify we see the workout history screen
+            let workoutHistoryVisible = app.staticTexts["Workout History"].exists ||
+                                       app.navigationBars["Workout History"].exists ||
+                                       app.staticTexts["No workouts yet"].exists ||
+                                       app.tables.firstMatch.exists // History might show as a table
+            
+            XCTAssertTrue(workoutHistoryVisible, "Should navigate to Workout History")
+            
+            // Dismiss the sheet if it appeared
+            if app.buttons["Cancel"].exists {
+                safeTap(app.buttons["Cancel"])
+            } else if app.buttons["Done"].exists {
+                safeTap(app.buttons["Done"])
+            } else if app.navigationBars.buttons.firstMatch.exists {
+                // Try the back button
+                safeTap(app.navigationBars.buttons.firstMatch)
+            }
+        } else {
+            XCTFail("Could not tap on Workouts stat card")
+        }
     }
     
     // MARK: - User Interaction Tests
     
     func testSignOutButton() {
         // Wait for main screen to load
-        assertExistsEventually(app.staticTexts["Followers"], "Should be on main screen")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should be on main screen")
         
         // Look for menu button - try both button and image
         let menuButton = app.buttons["ellipsis.circle"].exists ? app.buttons["ellipsis.circle"] : app.images["ellipsis.circle"]
@@ -71,7 +137,7 @@ class MainScreenUITests: BaseUITestCase {
             wait(for: 1.0) // Allow for navigation
             
             // Check if we're still on main screen (expected in test mode)
-            let stillOnMainScreen = app.staticTexts["Followers"].exists
+            let stillOnMainScreen = app.staticTexts["Influencer XP"].exists
             
             if stillOnMainScreen {
                 // Sign out behavior is mocked in test mode
@@ -103,7 +169,7 @@ class MainScreenUITests: BaseUITestCase {
     
     func testWorkoutInformationDisplay() {
         // Wait for main screen
-        assertExistsEventually(app.staticTexts["Followers"], "Should be on main screen")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should be on main screen")
         
         // Look for any workout-related content
         let staticTexts = getLabels(from: app.staticTexts)
@@ -118,7 +184,7 @@ class MainScreenUITests: BaseUITestCase {
     
     func testUserNameDisplay() {
         // Wait for main screen
-        assertExistsEventually(app.staticTexts["Followers"], "Should be on main screen")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should be on main screen")
         
         // Look for user-related content
         let staticTexts = getLabels(from: app.staticTexts)
@@ -133,7 +199,7 @@ class MainScreenUITests: BaseUITestCase {
     
     func testMainScreenShowsUserStats() {
         // Wait for main screen to load
-        assertExistsEventually(app.staticTexts["Followers"], "Should show Followers label on main screen")
+        assertExistsEventually(app.staticTexts["Influencer XP"], "Should show Influencer XP label on main screen")
         
         // Check for any statistical content
         let staticTexts = getLabels(from: app.staticTexts)

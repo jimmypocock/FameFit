@@ -12,8 +12,8 @@ import Foundation
 protocol MainViewModeling: ObservableObject {
     // MARK: - User Data
     var userName: String { get }
-    var followerCount: Int { get }
-    var followerTitle: String { get }
+    var influencerXP: Int { get }
+    var xpTitle: String { get }
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
     

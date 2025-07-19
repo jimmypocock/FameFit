@@ -23,7 +23,14 @@ struct FameFitApp: App {
                 // Clear all user data for fresh onboarding test
                 UserDefaults.standard.removeObject(forKey: "FameFitUserID")
                 UserDefaults.standard.removeObject(forKey: "FameFitUserName")
-                // UserDefaults automatically synchronizes
+                UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+                UserDefaults.standard.synchronize()
+                
+                // Also reset the authentication state in the container
+                container.authenticationManager.isAuthenticated = false
+                container.authenticationManager.hasCompletedOnboarding = false
+                container.authenticationManager.userID = nil
+                container.authenticationManager.userName = nil
             } else if ProcessInfo.processInfo.arguments.contains("--mock-auth-for-onboarding") {
                 // Set up mock authenticated state for onboarding UI testing
                 // This simulates a user who has signed in but not completed onboarding
@@ -57,7 +64,7 @@ struct FameFitApp: App {
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
                 container.cloudKitManager.userName = "Test User"
-                container.cloudKitManager.followerCount = 100
+                container.cloudKitManager.influencerXP = 100
                 container.cloudKitManager.totalWorkouts = 20
                 container.cloudKitManager.currentStreak = 5
             }

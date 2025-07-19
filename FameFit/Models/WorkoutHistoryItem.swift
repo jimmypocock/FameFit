@@ -10,8 +10,47 @@ struct WorkoutHistoryItem: Identifiable, Codable {
     let totalEnergyBurned: Double
     let totalDistance: Double?
     let averageHeartRate: Double?
-    let followersEarned: Int
+    let followersEarned: Int // Deprecated - use xpEarned
+    let xpEarned: Int?
     let source: String
+    
+    // Computed property for backward compatibility
+    var effectiveXPEarned: Int {
+        xpEarned ?? followersEarned
+    }
+    
+    // Custom decoding to handle missing xpEarned
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        workoutType = try container.decode(String.self, forKey: .workoutType)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decode(Date.self, forKey: .endDate)
+        duration = try container.decode(TimeInterval.self, forKey: .duration)
+        totalEnergyBurned = try container.decode(Double.self, forKey: .totalEnergyBurned)
+        totalDistance = try container.decodeIfPresent(Double.self, forKey: .totalDistance)
+        averageHeartRate = try container.decodeIfPresent(Double.self, forKey: .averageHeartRate)
+        followersEarned = try container.decode(Int.self, forKey: .followersEarned)
+        xpEarned = try container.decodeIfPresent(Int.self, forKey: .xpEarned)
+        source = try container.decode(String.self, forKey: .source)
+    }
+    
+    // Standard init
+    init(id: UUID, workoutType: String, startDate: Date, endDate: Date, duration: TimeInterval,
+         totalEnergyBurned: Double, totalDistance: Double?, averageHeartRate: Double?,
+         followersEarned: Int, xpEarned: Int?, source: String) {
+        self.id = id
+        self.workoutType = workoutType
+        self.startDate = startDate
+        self.endDate = endDate
+        self.duration = duration
+        self.totalEnergyBurned = totalEnergyBurned
+        self.totalDistance = totalDistance
+        self.averageHeartRate = averageHeartRate
+        self.followersEarned = followersEarned
+        self.xpEarned = xpEarned
+        self.source = source
+    }
     
     var formattedDuration: String {
         let minutes = Int(duration) / 60
@@ -34,12 +73,13 @@ struct WorkoutHistoryItem: Identifiable, Codable {
 }
 
 extension WorkoutHistoryItem {
-    init(from workout: HKWorkout, followersEarned: Int = 5) {
+    init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil) {
         self.id = UUID()
         self.workoutType = workout.workoutActivityType.name
         self.startDate = workout.startDate
         self.endDate = workout.endDate
         self.duration = workout.duration
+        self.xpEarned = xpEarned ?? followersEarned // Use provided XP or fallback to followers
         // Use the new iOS 18 API for getting statistics
         if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
            let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity() {

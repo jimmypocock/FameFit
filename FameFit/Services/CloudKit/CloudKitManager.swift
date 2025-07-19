@@ -12,7 +12,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     @Published var isSignedIn = false
     @Published var userRecord: CKRecord?
-    @Published var followerCount: Int = 0
+    @Published var influencerXP: Int = 0
     @Published var userName: String = ""
     @Published var currentStreak: Int = 0
     @Published var totalWorkouts: Int = 0
@@ -20,7 +20,9 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     @Published var joinTimestamp: Date?
     @Published var lastError: FameFitError?
     
+    
     weak var authenticationManager: AuthenticationManager?
+    weak var unlockNotificationService: UnlockNotificationServiceProtocol?
     
     var isAvailable: Bool {
         isSignedIn
@@ -31,8 +33,9 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         $isSignedIn.eraseToAnyPublisher()
     }
     
-    var followerCountPublisher: AnyPublisher<Int, Never> {
-        $followerCount.eraseToAnyPublisher()
+    
+    var influencerXPPublisher: AnyPublisher<Int, Never> {
+        $influencerXP.eraseToAnyPublisher()
     }
     
     var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
@@ -95,7 +98,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 // Only update if this is a new record
                 if existingRecord == nil {
                     userRecord["displayName"] = displayName
-                    userRecord["followerCount"] = 0
+                    userRecord["influencerXP"] = 0
                     userRecord["totalWorkouts"] = 0
                     userRecord["currentStreak"] = 0
                     userRecord["joinTimestamp"] = Date()
@@ -114,7 +117,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                         
                         if let record = record {
                             self?.userRecord = record
-                            self?.followerCount = record["followerCount"] as? Int ?? 0
+                            self?.influencerXP = record["influencerXP"] as? Int ?? 0
                             self?.userName = record["displayName"] as? String ?? ""
                             self?.currentStreak = record["currentStreak"] as? Int ?? 0
                             self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
@@ -153,7 +156,10 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     
                     if let record = record {
                         self?.userRecord = record
-                        self?.followerCount = record["followerCount"] as? Int ?? 0
+                        
+                        // Read XP field
+                        self?.influencerXP = record["influencerXP"] as? Int ?? 0
+                        
                         self?.userName = record["displayName"] as? String ?? ""
                         self?.currentStreak = record["currentStreak"] as? Int ?? 0
                         self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
@@ -167,7 +173,12 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     func addFollowers(_ count: Int = 5) {
-        FameFitLogger.info("addFollowers called with count: \(count)", category: FameFitLogger.cloudKit)
+        // Legacy method - just adds the count as XP
+        addXP(count)
+    }
+    
+    func addXP(_ xp: Int) {
+        FameFitLogger.info("addXP called with amount: \(xp)", category: FameFitLogger.cloudKit)
         
         guard let userRecord = userRecord else {
             FameFitLogger.notice("No user record found - fetching...", category: FameFitLogger.cloudKit)
@@ -175,18 +186,21 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             return
         }
         
-        let currentCount = userRecord["followerCount"] as? Int ?? 0
+        let currentXP = userRecord["influencerXP"] as? Int ?? 0
         let currentTotal = userRecord["totalWorkouts"] as? Int ?? 0
         
-        FameFitLogger.debug("Current followers: \(currentCount), workouts: \(currentTotal)", category: FameFitLogger.cloudKit)
+        FameFitLogger.debug("Current XP: \(currentXP), workouts: \(currentTotal)", category: FameFitLogger.cloudKit)
         
-        userRecord["followerCount"] = currentCount + count
+        userRecord["influencerXP"] = currentXP + xp
         userRecord["totalWorkouts"] = currentTotal + 1
         userRecord["lastWorkoutTimestamp"] = Date()
         
-        FameFitLogger.debug("New followers: \(currentCount + count), workouts: \(currentTotal + 1)", category: FameFitLogger.cloudKit)
+        FameFitLogger.debug("New XP: \(currentXP + xp), workouts: \(currentTotal + 1)", category: FameFitLogger.cloudKit)
         
         updateStreakIfNeeded(userRecord)
+        
+        // Store previous XP for unlock checking
+        let previousXP = currentXP
         
         privateDatabase.save(userRecord) { [weak self] record, error in
             DispatchQueue.main.async {
@@ -197,7 +211,20 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 
                 if let record = record {
                     self?.userRecord = record
-                    self?.followerCount = record["followerCount"] as? Int ?? 0
+                    
+                    // Update XP
+                    self?.influencerXP = record["influencerXP"] as? Int ?? 0
+                    
+                    // Check for new unlocks
+                    if let newXP = record["influencerXP"] as? Int {
+                        Task {
+                            await self?.unlockNotificationService?.checkForNewUnlocks(
+                                previousXP: previousXP,
+                                currentXP: newXP
+                            )
+                        }
+                    }
+                    
                     self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
                     self?.currentStreak = record["currentStreak"] as? Int ?? 0
                     self?.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
@@ -222,15 +249,16 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         }
     }
     
-    func getFollowerTitle() -> String {
-        switch followerCount {
+    
+    func getXPTitle() -> String {
+        switch influencerXP {
         case 0..<100:
             return "Fitness Newbie"
-        case 100..<1000:
+        case 100..<1_000:
             return "Micro-Influencer"
-        case 1000..<10000:
+        case 1_000..<10_000:
             return "Rising Star"
-        case 10000..<100000:
+        case 10_000..<100_000:
             return "Verified Influencer"
         default:
             return "FameFit Elite"
@@ -256,7 +284,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         FameFitLogger.info("   - Type: \(workoutHistory.workoutType)", category: FameFitLogger.cloudKit)
         FameFitLogger.info("   - Date: \(workoutHistory.endDate)", category: FameFitLogger.cloudKit)
         FameFitLogger.info("   - Duration: \(Int(workoutHistory.duration/60)) minutes", category: FameFitLogger.cloudKit)
-        FameFitLogger.info("   - Followers: \(workoutHistory.followersEarned)", category: FameFitLogger.cloudKit)
+        FameFitLogger.info("   - XP: \(workoutHistory.effectiveXPEarned)", category: FameFitLogger.cloudKit)
         
         let record = CKRecord(recordType: "WorkoutHistory")
         record["workoutId"] = workoutHistory.id.uuidString
@@ -267,7 +295,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         record["totalEnergyBurned"] = workoutHistory.totalEnergyBurned
         record["totalDistance"] = workoutHistory.totalDistance
         record["averageHeartRate"] = workoutHistory.averageHeartRate
-        record["followersEarned"] = workoutHistory.followersEarned
+        record["xpEarned"] = workoutHistory.effectiveXPEarned
         record["source"] = workoutHistory.source
         
         privateDatabase.save(record) { savedRecord, error in
@@ -351,11 +379,13 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
               let endDate = record["endDate"] as? Date,
               let duration = record["duration"] as? TimeInterval,
               let totalEnergyBurned = record["totalEnergyBurned"] as? Double,
-              let followersEarned = record["followersEarned"] as? Int,
               let source = record["source"] as? String,
               let id = UUID(uuidString: workoutId) else {
             return nil
         }
+        
+        // Read XP - required field
+        let xp = record["xpEarned"] as? Int ?? 0
         
         return WorkoutHistoryItem(
             id: id,
@@ -366,7 +396,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             totalEnergyBurned: totalEnergyBurned,
             totalDistance: record["totalDistance"] as? Double,
             averageHeartRate: record["averageHeartRate"] as? Double,
-            followersEarned: followersEarned,
+            followersEarned: xp, // Deprecated field
+            xpEarned: xp,
             source: source
         )
     }

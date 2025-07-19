@@ -42,7 +42,7 @@ class TestHelpers {
         // Look for multiple indicators that we're on the main screen
         let mainViewElements = [
             app.staticTexts["Welcome back,"],
-            app.staticTexts["Followers"],
+            app.staticTexts["Influencer XP"],
             app.navigationBars["FameFit"]
         ]
         
@@ -55,12 +55,12 @@ class TestHelpers {
         return false
     }
     
-    /// Gets current follower count from UI
+    /// Gets current XP count from UI
     static func getFollowerCount(app: XCUIApplication) -> Int {
-        // More robust follower count detection
-        let followerLabel = app.staticTexts["Followers"]
-        if followerLabel.exists {
-            // The follower count is usually the next large number after "Followers" label
+        // More robust XP count detection
+        let xpLabel = app.staticTexts["Influencer XP"]
+        if xpLabel.exists {
+            // The XP count is usually the next large number after "Influencer XP" label
             let allTexts = app.staticTexts.allElementsBoundByIndex
             
             for i in 0..<allTexts.count {
