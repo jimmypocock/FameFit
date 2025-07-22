@@ -69,6 +69,17 @@ class NotificationStore: ObservableObject, NotificationStoring {
         updateBadgeCount()
     }
     
+    func deleteNotification(_ id: String) {
+        notifications.removeAll { $0.id == id }
+        saveNotifications()
+        updateUnreadCount()
+        updateBadgeCount()
+    }
+    
+    func clearAllNotifications() {
+        clearAll()
+    }
+    
     private func updateUnreadCount() {
         unreadCount = notifications.filter { !$0.isRead }.count
     }

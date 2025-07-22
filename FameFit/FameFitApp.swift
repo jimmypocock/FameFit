@@ -64,7 +64,7 @@ struct FameFitApp: App {
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
                 container.cloudKitManager.userName = "Test User"
-                container.cloudKitManager.influencerXP = 100
+                container.cloudKitManager.totalXP = 100
                 container.cloudKitManager.totalWorkouts = 20
                 container.cloudKitManager.currentStreak = 5
             }
@@ -100,13 +100,15 @@ struct ContentView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var notificationStore: NotificationStore
+    @Environment(\.dependencyContainer) var container
     
     var body: some View {
         if authManager.isAuthenticated && authManager.hasCompletedOnboarding {
             let viewModel = MainViewModel(
                 authManager: authManager,
                 cloudKitManager: cloudKitManager,
-                notificationStore: notificationStore
+                notificationStore: notificationStore,
+                userProfileService: container.userProfileService
             )
             MainView(viewModel: viewModel)
         } else {

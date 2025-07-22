@@ -1,6 +1,7 @@
 import Foundation
 import HealthKit
 import UserNotifications
+import Combine
 import os.log
 
 class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
@@ -8,6 +9,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private var observerQuery: HKObserverQuery?
     private weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
+    private var preferences: NotificationPreferences = NotificationPreferences.load()
     
     @Published var lastError: FameFitError?
     @Published var allWorkouts: [HKWorkout] = []
@@ -17,11 +19,21 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private var lastNotificationDate: Date?
     private let notificationThrottleInterval: TimeInterval = 300 // 5 minutes between notifications
     
+    // Publisher for workout completion events (for sharing prompt)
+    private let workoutCompletedSubject = PassthroughSubject<WorkoutHistoryItem, Never>()
+    var workoutCompletedPublisher: AnyPublisher<WorkoutHistoryItem, Never> {
+        workoutCompletedSubject.eraseToAnyPublisher()
+    }
+    
     init(cloudKitManager: CloudKitManager, healthKitService: HealthKitService? = nil) {
         self.cloudKitManager = cloudKitManager
         self.healthKitService = healthKitService ?? RealHealthKitService()
         super.init()
         requestNotificationPermissions()
+    }
+    
+    func updatePreferences(_ newPreferences: NotificationPreferences) {
+        self.preferences = newPreferences
     }
     
     func startObservingWorkouts() {
@@ -158,7 +170,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         let duration = workout.duration / 60
         
         // Log workout info
-        FameFitLogger.info("Processing workout: \(workoutType.name) - Duration: \(Int(duration)) min", category: FameFitLogger.workout)
+        FameFitLogger.info("Processing workout: \(workoutType.displayName) - Duration: \(Int(duration)) min", category: FameFitLogger.workout)
         
         // Get energy burned using the new API
         var calories: Double = 0
@@ -197,6 +209,12 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         // Save workout history to CloudKit
         FameFitLogger.info("💾 Saving workout to CloudKit: \(finalHistoryItem.workoutType) with \(calculatedXP) XP", category: FameFitLogger.workout)
         cloudKitManager?.saveWorkoutHistory(finalHistoryItem)
+        
+        // Publish workout completion for sharing prompt (only for recent workouts)
+        let workoutAge = Date().timeIntervalSince(workout.endDate)
+        if workoutAge < 3600 { // Only prompt for workouts completed within the last hour
+            workoutCompletedSubject.send(finalHistoryItem)
+        }
         
         sendWorkoutNotification(character: character, duration: Int(duration), calories: Int(calories), xpEarned: calculatedXP)
     }
@@ -238,12 +256,17 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             self?.notificationStore?.addNotification(notificationItem)
         }
         
-        // Also send push notification
+        // Also send push notification if enabled
+        guard preferences.pushNotificationsEnabled,
+              preferences.isEnabled(for: .workoutCompleted) else {
+            return
+        }
+        
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
-        content.badge = NSNumber(value: notificationStore?.unreadCount ?? 0)
+        content.sound = preferences.shouldPlaySound(for: .workoutCompleted) ? .default : nil
+        content.badge = preferences.badgeEnabled ? NSNumber(value: notificationStore?.unreadCount ?? 0) : nil
         
         content.userInfo = [
             "character": character.rawValue,

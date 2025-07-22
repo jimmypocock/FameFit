@@ -200,7 +200,24 @@ The project uses Xcode 16's synchronized file groups. Always use the `.xcworkspa
 ### Mock Services
 - `MockCloudKitManager` - Simulates CloudKit operations synchronously
 - `MockHealthKitService` - Provides test workout data with date filtering
+- `MockUserProfileService` - Contains diverse mock profiles for social feature testing
 - All mocks update state immediately for predictable testing
+
+### Social Feature Testing with Mock Data
+To test social features (profiles, search, leaderboards) with one device:
+
+**Enable Mock Social Data:**
+1. In Xcode: Product → Scheme → Edit Scheme → Run → Environment Variables
+2. Add: `USE_MOCK_SOCIAL` = `1`
+3. Run the app - you'll now see 7 diverse mock profiles in search and leaderboards
+
+**Mock Profiles Include:**
+- Marathon Master (45,000 XP, verified, 127 workouts)
+- Zen Yoga Flow (28,500 XP, 89 workouts)
+- Iron Lifter (67,800 XP, verified, 203 workouts)
+- Bike Explorer (52,300 XP, 156 workouts)
+- Fitness Newbie (450 XP, 8 workouts)
+- Plus the original test profiles
 
 ### UI Testing Setup
 The app supports launch arguments for UI testing:
@@ -210,7 +227,7 @@ The app supports launch arguments for UI testing:
 
 ### Common Issues and Solutions
 1. **Test runner crashes**: Run `./Scripts/reset_testing_env.sh`
-2. **Asset catalog errors**: Empty AppIcon.appiconset/Contents.json is intentional
+2. **Asset catalog errors**: Both iOS and Watch apps have minimal AppIcon.appiconset configurations with only 1024x1024 marketing icons. This may cause command-line build warnings but works in Xcode. For production, add all required icon sizes.
 3. **Async test failures**: Tests are now synchronous where possible
 4. **UI test brittleness**: Tests now check for UI flows, not exact text
 

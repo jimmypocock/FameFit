@@ -153,7 +153,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Then
         XCTAssertEqual(mockNotificationStore.notifications.count, 2)
         // XP is calculated dynamically based on workout, not fixed at 5
-        XCTAssertTrue(mockNotificationStore.notifications.allSatisfy { $0.followersEarned > 0 })
+        XCTAssertTrue(mockNotificationStore.notifications.allSatisfy { ($0.followersEarned ?? 0) > 0 })
     }
     
     func testProcessWorkouts_SkipsPreInstallWorkouts() {
@@ -294,7 +294,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         XCTAssertEqual(notification.workoutDuration, 30) // minutes
         XCTAssertEqual(notification.calories, 250)
         // XP is calculated dynamically (30 min run = ~36 XP base + bonuses)
-        XCTAssertGreaterThan(notification.followersEarned, 30)
+        XCTAssertGreaterThan(notification.followersEarned ?? 0, 30)
         XCTAssertTrue(notification.body.contains("XP") || notification.body.contains("Influencer"))
     }
 }

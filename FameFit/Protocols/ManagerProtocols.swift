@@ -34,7 +34,8 @@ protocol AuthenticationManaging: ObservableObject {
 // MARK: - CloudKitManager Protocol
 protocol CloudKitManaging: ObservableObject {
     var isAvailable: Bool { get }
-    var influencerXP: Int { get }
+    var currentUserID: String? { get }
+    var totalXP: Int { get }
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
     var userName: String { get }
@@ -44,7 +45,7 @@ protocol CloudKitManaging: ObservableObject {
     
     // Publisher properties for reactive updates
     var isAvailablePublisher: AnyPublisher<Bool, Never> { get }
-    var influencerXPPublisher: AnyPublisher<Int, Never> { get }
+    var totalXPPublisher: AnyPublisher<Int, Never> { get }
     var totalWorkoutsPublisher: AnyPublisher<Int, Never> { get }
     var currentStreakPublisher: AnyPublisher<Int, Never> { get }
     var userNamePublisher: AnyPublisher<String, Never> { get }

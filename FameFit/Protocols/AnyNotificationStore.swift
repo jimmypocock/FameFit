@@ -22,6 +22,8 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     private let _markAllAsRead: () -> Void
     private let _clearAll: () -> Void
     private let _deleteNotification: (IndexSet) -> Void
+    private let _deleteNotificationById: (String) -> Void
+    private let _clearAllNotifications: () -> Void
     private let _loadNotifications: () -> Void
     private let _saveNotifications: () -> Void
     
@@ -47,6 +49,14 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
         
         self._deleteNotification = { [weak store] offsets in
             store?.deleteNotification(at: offsets)
+        }
+        
+        self._deleteNotificationById = { [weak store] id in
+            store?.deleteNotification(id)
+        }
+        
+        self._clearAllNotifications = { [weak store] in
+            store?.clearAllNotifications()
         }
         
         self._loadNotifications = { [weak store] in
@@ -94,6 +104,14 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     
     func loadNotifications() {
         _loadNotifications()
+    }
+    
+    func deleteNotification(_ id: String) {
+        _deleteNotificationById(id)
+    }
+    
+    func clearAllNotifications() {
+        _clearAllNotifications()
     }
     
     func saveNotifications() {

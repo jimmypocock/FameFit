@@ -1,0 +1,731 @@
+//
+//  FollowersListViewModelTests.swift
+//  FameFitTests
+//
+//  Unit tests for followers list view model
+//
+
+import XCTest
+import Combine
+@testable import FameFit
+
+@MainActor
+final class FollowersListViewModelTests: XCTestCase {
+    var viewModel: FollowersListViewModel!
+    var mockSocialService: MockSocialFollowingService!
+    var cancellables: Set<AnyCancellable>!
+    
+    override func setUp() {
+        super.setUp()
+        viewModel = FollowersListViewModel()
+        mockSocialService = MockSocialFollowingService()
+        cancellables = Set<AnyCancellable>()
+        
+        // Configure the view model
+        viewModel.configure(
+            socialService: mockSocialService,
+            currentUserId: "test-current-user"
+        )
+    }
+    
+    override func tearDown() {
+        viewModel = nil
+        mockSocialService = nil
+        cancellables = nil
+        super.tearDown()
+    }
+    
+    // MARK: - Initialization Tests
+    
+    func testInitialState() {
+        XCTAssertEqual(viewModel.followers.count, 0)
+        XCTAssertEqual(viewModel.following.count, 0)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(viewModel.searchText, "")
+    }
+    
+    // MARK: - Load Followers Tests
+    
+    func testLoadFollowers_Success() async {
+        // Given
+        let follower1 = UserProfile(
+            id: "follower1",
+            username: "follower1",
+            displayName: "Follower One",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let follower2 = UserProfile(
+            id: "follower2",
+            username: "follower2",
+            displayName: "Follower Two",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: true,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower1, follower2]
+        
+        // When
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(viewModel.followers.count, 2)
+        XCTAssertEqual(viewModel.followers.first?.username, "follower1")
+        XCTAssertTrue(viewModel.followers.last?.isVerified ?? false)
+    }
+    
+    func testLoadFollowers_EmptyList() async {
+        // Given
+        mockSocialService.mockFollowersList = []
+        
+        // When
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(viewModel.followers.count, 0)
+    }
+    
+    func testLoadFollowers_Error() async {
+        // Given
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .networkError("Network failed")
+        
+        // When
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNotNil(viewModel.error)
+        XCTAssertEqual(viewModel.followers.count, 0)
+    }
+    
+    func testLoadFollowers_LoadingState() async {
+        // Given
+        let expectation = XCTestExpectation(description: "Loading state")
+        var wasLoading = false
+        
+        viewModel.$isLoading
+            .sink { isLoading in
+                if isLoading {
+                    wasLoading = true
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // When
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // Then
+        await fulfillment(of: [expectation], timeout: 1.0)
+        XCTAssertTrue(wasLoading)
+        XCTAssertFalse(viewModel.isLoading)
+    }
+    
+    // MARK: - Load Following Tests
+    
+    func testLoadFollowing_Success() async {
+        // Given
+        let following1 = UserProfile(
+            id: "following1",
+            username: "following1",
+            displayName: "Following One",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let following2 = UserProfile(
+            id: "following2",
+            username: "following2",
+            displayName: "Following Two",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowingList = [following1, following2]
+        
+        // When
+        await viewModel.loadFollowing(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(viewModel.following.count, 2)
+        XCTAssertEqual(viewModel.following.first?.username, "following1")
+    }
+    
+    func testLoadFollowing_EmptyList() async {
+        // Given
+        mockSocialService.mockFollowingList = []
+        
+        // When
+        await viewModel.loadFollowing(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
+        XCTAssertEqual(viewModel.following.count, 0)
+    }
+    
+    func testLoadFollowing_Error() async {
+        // Given
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .userNotFound
+        
+        // When
+        await viewModel.loadFollowing(for: "target-user")
+        
+        // Then
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNotNil(viewModel.error)
+        XCTAssertEqual(viewModel.following.count, 0)
+    }
+    
+    // MARK: - Search Filtering Tests
+    
+    func testFilteredFollowers_EmptySearch() async {
+        // Given
+        let follower = UserProfile(
+            id: "follower1",
+            username: "testuser",
+            displayName: "Test User",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = ""
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 1)
+    }
+    
+    func testFilteredFollowers_UsernameMatch() async {
+        // Given
+        let follower1 = UserProfile(
+            id: "follower1",
+            username: "alice",
+            displayName: "Alice Smith",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let follower2 = UserProfile(
+            id: "follower2",
+            username: "bob",
+            displayName: "Bob Jones",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower1, follower2]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = "alice"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 1)
+        XCTAssertEqual(viewModel.filteredFollowers.first?.username, "alice")
+    }
+    
+    func testFilteredFollowers_DisplayNameMatch() async {
+        // Given
+        let follower1 = UserProfile(
+            id: "follower1",
+            username: "user1",
+            displayName: "Alice Smith",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let follower2 = UserProfile(
+            id: "follower2",
+            username: "user2",
+            displayName: "Bob Jones",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower1, follower2]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = "Smith"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 1)
+        XCTAssertEqual(viewModel.filteredFollowers.first?.displayName, "Alice Smith")
+    }
+    
+    func testFilteredFollowers_CaseInsensitive() async {
+        // Given
+        let follower = UserProfile(
+            id: "follower1",
+            username: "Alice",
+            displayName: "Alice Smith",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = "alice"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 1)
+    }
+    
+    func testFilteredFollowers_NoMatch() async {
+        // Given
+        let follower = UserProfile(
+            id: "follower1",
+            username: "alice",
+            displayName: "Alice Smith",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = "xyz"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 0)
+    }
+    
+    // MARK: - Filtered Following Tests
+    
+    func testFilteredFollowing_UsernameMatch() async {
+        // Given
+        let following1 = UserProfile(
+            id: "following1",
+            username: "charlie",
+            displayName: "Charlie Brown",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let following2 = UserProfile(
+            id: "following2",
+            username: "diana",
+            displayName: "Diana Prince",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowingList = [following1, following2]
+        await viewModel.loadFollowing(for: "target-user")
+        
+        // When
+        viewModel.searchText = "charlie"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowing.count, 1)
+        XCTAssertEqual(viewModel.filteredFollowing.first?.username, "charlie")
+    }
+    
+    // MARK: - Follow/Unfollow Tests
+    
+    func testFollowUser_Success() async {
+        // Given
+        let userToFollow = UserProfile(
+            id: "follow-user",
+            username: "followme",
+            displayName: "Follow Me",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        // When
+        await viewModel.followUser(userToFollow)
+        
+        // Then
+        XCTAssertNil(viewModel.error)
+        XCTAssertTrue(mockSocialService.relationships["test-current-user"]?.contains("follow-user") ?? false)
+    }
+    
+    func testFollowUser_Error() async {
+        // Given
+        let userToFollow = UserProfile(
+            id: "error-user",
+            username: "erroruser",
+            displayName: "Error User",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .rateLimitExceeded(action: "follow", resetTime: Date())
+        
+        // When
+        await viewModel.followUser(userToFollow)
+        
+        // Then
+        XCTAssertNotNil(viewModel.error)
+    }
+    
+    func testUnfollowUser_Success() async {
+        // Given
+        let userToUnfollow = UserProfile(
+            id: "unfollow-user",
+            username: "unfollowme",
+            displayName: "Unfollow Me",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        // First follow the user
+        await mockSocialService.follow(userId: "unfollow-user")
+        
+        // When
+        await viewModel.unfollowUser(userToUnfollow)
+        
+        // Then
+        XCTAssertNil(viewModel.error)
+        XCTAssertFalse(mockSocialService.relationships["test-current-user"]?.contains("unfollow-user") ?? true)
+    }
+    
+    func testUnfollowUser_Error() async {
+        // Given
+        let userToUnfollow = UserProfile(
+            id: "error-user",
+            username: "erroruser",
+            displayName: "Error User",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .networkError("Network failed")
+        
+        // When
+        await viewModel.unfollowUser(userToUnfollow)
+        
+        // Then
+        XCTAssertNotNil(viewModel.error)
+    }
+    
+    // MARK: - Relationship Status Tests
+    
+    func testIsFollowing_True() async {
+        // Given
+        let userId = "following-user"
+        mockSocialService.relationships["test-current-user"] = [userId]
+        
+        // When
+        let isFollowing = await viewModel.isFollowing(userId: userId)
+        
+        // Then
+        XCTAssertTrue(isFollowing)
+    }
+    
+    func testIsFollowing_False() async {
+        // Given
+        let userId = "not-following-user"
+        
+        // When
+        let isFollowing = await viewModel.isFollowing(userId: userId)
+        
+        // Then
+        XCTAssertFalse(isFollowing)
+    }
+    
+    func testIsFollowing_Error() async {
+        // Given
+        let userId = "error-user"
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .networkError("Network failed")
+        
+        // When
+        let isFollowing = await viewModel.isFollowing(userId: userId)
+        
+        // Then
+        XCTAssertFalse(isFollowing) // Should default to false on error
+    }
+    
+    // MARK: - Performance Tests
+    
+    func testLoadFollowersPerformance() {
+        measure {
+            Task {
+                await viewModel.loadFollowers(for: "target-user")
+            }
+        }
+    }
+    
+    func testLoadFollowingPerformance() {
+        measure {
+            Task {
+                await viewModel.loadFollowing(for: "target-user")
+            }
+        }
+    }
+    
+    func testSearchFilteringPerformance() async {
+        // Given - Load many followers
+        var followers: [UserProfile] = []
+        for i in 0..<1000 {
+            let follower = UserProfile(
+                id: "follower\(i)",
+                username: "user\(i)",
+                displayName: "User \(i)",
+                bio: "",
+                profileImageURL: nil,
+                joinDate: Date(),
+                lastActiveDate: Date(),
+                isVerified: false,
+                privacyLevel: .publicProfile,
+                workoutCount: 0,
+                totalXP: 0,
+                isActive: true
+            )
+            followers.append(follower)
+        }
+        mockSocialService.mockFollowersList = followers
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When/Then - Measure filtering performance
+        measure {
+            viewModel.searchText = "user5"
+            _ = viewModel.filteredFollowers
+        }
+    }
+    
+    // MARK: - Edge Cases
+    
+    func testLoadData_EmptyUserId() async {
+        // When
+        await viewModel.loadFollowers(for: "")
+        
+        // Then - Should handle gracefully
+        XCTAssertNotNil(viewModel.error)
+    }
+    
+    func testSearchText_SpecialCharacters() async {
+        // Given
+        let follower = UserProfile(
+            id: "special-user",
+            username: "user@test",
+            displayName: "User @ Test",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        mockSocialService.mockFollowersList = [follower]
+        await viewModel.loadFollowers(for: "target-user")
+        
+        // When
+        viewModel.searchText = "@"
+        
+        // Then
+        XCTAssertEqual(viewModel.filteredFollowers.count, 1)
+    }
+    
+    func testClearError() async {
+        // Given
+        mockSocialService.shouldFailNextAction = true
+        mockSocialService.mockError = .networkError("Network failed")
+        await viewModel.loadFollowers(for: "target-user")
+        XCTAssertNotNil(viewModel.error)
+        
+        // When
+        viewModel.clearError()
+        
+        // Then
+        XCTAssertNil(viewModel.error)
+    }
+    
+    // MARK: - Concurrent Operations Tests
+    
+    func testConcurrentFollowOperations() async {
+        // Given
+        let user1 = UserProfile(
+            id: "user1",
+            username: "user1",
+            displayName: "User 1",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let user2 = UserProfile(
+            id: "user2",
+            username: "user2",
+            displayName: "User 2",
+            bio: "",
+            profileImageURL: nil,
+            joinDate: Date(),
+            lastActiveDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile,
+            workoutCount: 0,
+            totalXP: 0,
+            isActive: true
+        )
+        
+        let expectation = XCTestExpectation(description: "Concurrent follow operations")
+        expectation.expectedFulfillmentCount = 2
+        
+        // When
+        Task {
+            await viewModel.followUser(user1)
+            expectation.fulfill()
+        }
+        
+        Task {
+            await viewModel.followUser(user2)
+            expectation.fulfill()
+        }
+        
+        // Then
+        await fulfillment(of: [expectation], timeout: 5.0)
+        XCTAssertTrue(mockSocialService.relationships["test-current-user"]?.contains("user1") ?? false)
+        XCTAssertTrue(mockSocialService.relationships["test-current-user"]?.contains("user2") ?? false)
+    }
+}

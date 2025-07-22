@@ -68,14 +68,14 @@ struct WorkoutHistoryItem: Identifiable, Codable {
     }
     
     var workoutActivityType: HKWorkoutActivityType {
-        HKWorkoutActivityType.from(name: workoutType)
+        HKWorkoutActivityType.from(storageKey: workoutType) ?? .other
     }
 }
 
 extension WorkoutHistoryItem {
     init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil) {
         self.id = UUID()
-        self.workoutType = workout.workoutActivityType.name
+        self.workoutType = workout.workoutActivityType.displayName
         self.startDate = workout.startDate
         self.endDate = workout.endDate
         self.duration = workout.duration

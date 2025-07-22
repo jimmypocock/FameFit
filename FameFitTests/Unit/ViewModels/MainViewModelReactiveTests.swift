@@ -28,7 +28,8 @@ class MainViewModelReactiveTests: XCTestCase {
         viewModel = MainViewModel(
             authManager: mockAuthManager,
             cloudKitManager: mockCloudKitManager,
-            notificationStore: mockNotificationStore
+            notificationStore: mockNotificationStore,
+            userProfileService: MockUserProfileService()
         )
     }
     
@@ -64,10 +65,10 @@ class MainViewModelReactiveTests: XCTestCase {
     
     func testInfluencerXPUpdatesReactively() {
         // Given
-        let initialCount = viewModel.influencerXP
+        let initialCount = viewModel.totalXP
         
         // When
-        mockCloudKitManager.influencerXP = 250
+        mockCloudKitManager.totalXP = 250
         
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -77,8 +78,8 @@ class MainViewModelReactiveTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         
         // Then
-        XCTAssertEqual(viewModel.influencerXP, 250)
-        XCTAssertNotEqual(viewModel.influencerXP, initialCount)
+        XCTAssertEqual(viewModel.totalXP, 250)
+        XCTAssertNotEqual(viewModel.totalXP, initialCount)
     }
     
     func testXPTitleUpdatesWithInfluencerXP() {
@@ -87,7 +88,7 @@ class MainViewModelReactiveTests: XCTestCase {
         XCTAssertEqual(initialTitle, "Micro-Influencer") // 100 XP (from mock init)
         
         // When
-        mockCloudKitManager.influencerXP = 3000 // Should trigger "Rising Star" title
+        mockCloudKitManager.totalXP = 3000 // Should trigger "Rising Star" title
         
         // Force a manual refresh to ensure the reactive binding picks up the change
         viewModel.refreshData()
@@ -237,12 +238,12 @@ class MainViewModelReactiveTests: XCTestCase {
     func testMultiplePropertiesUpdateSimultaneously() {
         // Given
         let initialUserName = viewModel.userName
-        let initialInfluencerXP = viewModel.influencerXP
+        let initialInfluencerXP = viewModel.totalXP
         let initialTotalWorkouts = viewModel.totalWorkouts
         
         // When - Simulate a workout being recorded
         mockCloudKitManager.userName = "Active User"
-        mockCloudKitManager.influencerXP = 150
+        mockCloudKitManager.totalXP = 150
         mockCloudKitManager.totalWorkouts = 25
         
         // Allow time for publishers to propagate
@@ -254,10 +255,10 @@ class MainViewModelReactiveTests: XCTestCase {
         
         // Then
         XCTAssertEqual(viewModel.userName, "Active User")
-        XCTAssertEqual(viewModel.influencerXP, 150)
+        XCTAssertEqual(viewModel.totalXP, 150)
         XCTAssertEqual(viewModel.totalWorkouts, 25)
         XCTAssertNotEqual(viewModel.userName, initialUserName)
-        XCTAssertNotEqual(viewModel.influencerXP, initialInfluencerXP)
+        XCTAssertNotEqual(viewModel.totalXP, initialInfluencerXP)
         XCTAssertNotEqual(viewModel.totalWorkouts, initialTotalWorkouts)
     }
     

@@ -29,11 +29,15 @@ class MockCloudKitManager: CloudKitManager {
         return mockIsAvailable
     }
     
+    override var currentUserID: String? {
+        return "mock-user-id"
+    }
+    
     override init() {
         super.init()
         // Set initial test values
         self.isSignedIn = true
-        self.influencerXP = 100
+        self.totalXP = 100
         self.userName = "Test User"
         self.currentStreak = 5
         self.totalWorkouts = 20
@@ -59,10 +63,10 @@ class MockCloudKitManager: CloudKitManager {
         
         if !shouldFailAddXP {
             // Update values synchronously
-            let newXP = self.influencerXP + xp
+            let newXP = self.totalXP + xp
             let newWorkoutCount = self.totalWorkouts + 1
             
-            self.influencerXP = newXP
+            self.totalXP = newXP
             self.totalWorkouts = newWorkoutCount
             self.lastWorkoutTimestamp = Date()
             self.lastError = nil
@@ -103,7 +107,7 @@ class MockCloudKitManager: CloudKitManager {
         addFollowersCalls.removeAll()
         addXPCalls.removeAll()
         
-        influencerXP = 100
+        totalXP = 100
         totalWorkouts = 20
         currentStreak = 5
         joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60)
@@ -114,7 +118,7 @@ class MockCloudKitManager: CloudKitManager {
     func simulateUserSignOut() {
         isSignedIn = false
         userRecord = nil
-        influencerXP = 0
+        totalXP = 0
         userName = ""
         currentStreak = 0
         totalWorkouts = 0
@@ -138,7 +142,7 @@ class MockCloudKitManager: CloudKitManager {
     
     // Override the new XP title method
     override func getXPTitle() -> String {
-        switch influencerXP {
+        switch totalXP {
         case 0..<100:
             return "Fitness Newbie"
         case 100..<1_000:

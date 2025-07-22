@@ -87,14 +87,14 @@ class WorkoutDetectionFlowTests: XCTestCase {
         XCTAssertLessThan(earnedXP, 150, "Should earn less than 150 XP (even with bonuses)")
         
         // Check that total XP increased
-        XCTAssertEqual(mockCloudKitManager.influencerXP, 100 + earnedXP, "XP count should increase by earned amount")
+        XCTAssertEqual(mockCloudKitManager.totalXP, 100 + earnedXP, "XP count should increase by earned amount")
     }
     
     func testMultipleWorkoutsProcessedInOrder() {
         // Test that multiple calls to addXP work correctly
         
         // Given
-        let initialXP = mockCloudKitManager.influencerXP
+        let initialXP = mockCloudKitManager.totalXP
         let initialWorkouts = mockCloudKitManager.totalWorkouts
         
         // When - Simulate processing 3 workouts
@@ -103,7 +103,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
         }
         
         // Then
-        XCTAssertEqual(mockCloudKitManager.influencerXP, initialXP + 15, "Should add 5 XP per workout")
+        XCTAssertEqual(mockCloudKitManager.totalXP, initialXP + 15, "Should add 5 XP per workout")
         XCTAssertEqual(mockCloudKitManager.totalWorkouts, initialWorkouts + 3, "Should increment workout count by 3")
         XCTAssertEqual(mockCloudKitManager.addXPCallCount, 3, "Should be called 3 times")
     }
@@ -114,7 +114,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
         UserDefaults.standard.set(installDate, forKey: UserDefaultsKeys.appInstallDate)
         
         let expectation = XCTestExpectation(description: "Old workout ignored")
-        _ = mockCloudKitManager.influencerXP
+        _ = mockCloudKitManager.totalXP
         
         // Create a workout from before install (2 hours ago)
         let oldWorkout = TestWorkoutBuilder.createRunWorkout(
@@ -147,7 +147,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
         XCTAssertEqual(mockCloudKitManager.addXPCallCount, 1, "Should only process 1 workout")
         
         // Verify XP increased (amount depends on workout calculation)
-        XCTAssertGreaterThan(mockCloudKitManager.influencerXP, 100, "XP should increase from base 100")
+        XCTAssertGreaterThan(mockCloudKitManager.totalXP, 100, "XP should increase from base 100")
     }
     
     func testWorkoutProcessingUpdatesLastProcessedDate() {
@@ -176,13 +176,13 @@ class WorkoutDetectionFlowTests: XCTestCase {
         
         // Given
         mockCloudKitManager.shouldFailAddXP = true
-        let initialXP = mockCloudKitManager.influencerXP
+        let initialXP = mockCloudKitManager.totalXP
         
         // When - Directly test the CloudKit manager behavior
         mockCloudKitManager.addXP(5)
         
         // Then
-        XCTAssertEqual(mockCloudKitManager.influencerXP, initialXP, "XP should not change on error")
+        XCTAssertEqual(mockCloudKitManager.totalXP, initialXP, "XP should not change on error")
         XCTAssertTrue(mockCloudKitManager.addXPCalled, "addXP should have been called")
         XCTAssertNotNil(mockCloudKitManager.lastError, "Should have an error set")
     }

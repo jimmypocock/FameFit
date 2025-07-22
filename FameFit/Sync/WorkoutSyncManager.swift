@@ -33,6 +33,9 @@ class WorkoutSyncManager: ObservableObject {
     func startReliableSync() {
         FameFitLogger.info("🏃 Starting WorkoutSyncManager reliable sync", category: FameFitLogger.workout)
         
+        // Request notification permissions
+        requestNotificationPermissions()
+        
         guard healthKitService.isHealthDataAvailable else {
             FameFitLogger.error("HealthKit not available", category: FameFitLogger.workout)
             DispatchQueue.main.async {
@@ -143,7 +146,7 @@ class WorkoutSyncManager: ObservableObject {
         // Log details about each workout found
         for workout in workouts {
             let duration = Int(workout.duration / 60)
-            FameFitLogger.info("📊 Found workout: \(workout.workoutActivityType.name) - Duration: \(duration) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
+            FameFitLogger.info("📊 Found workout: \(workout.workoutActivityType.displayName) - Duration: \(duration) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
         }
         
         // Process workouts
@@ -213,7 +216,7 @@ class WorkoutSyncManager: ObservableObject {
         for workout in workouts {
             // Skip workouts before app install
             guard workout.endDate > appInstallDate else {
-                FameFitLogger.info("⏭️ Skipping pre-install workout: \(workout.workoutActivityType.name) - Date: \(workout.endDate)", category: FameFitLogger.workout)
+                FameFitLogger.info("⏭️ Skipping pre-install workout: \(workout.workoutActivityType.displayName) - Date: \(workout.endDate)", category: FameFitLogger.workout)
                 continue
             }
             
@@ -227,7 +230,7 @@ class WorkoutSyncManager: ObservableObject {
             
             // Log workout info
             let duration = workout.duration / 60
-            FameFitLogger.info("🔄 Processing workout: \(workout.workoutActivityType.name) - Duration: \(Int(duration)) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
+            FameFitLogger.info("🔄 Processing workout: \(workout.workoutActivityType.displayName) - Duration: \(Int(duration)) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
             FameFitLogger.info("📍 Workout source: \(workout.sourceRevision.source.name) - Bundle: \(workout.sourceRevision.source.bundleIdentifier)", category: FameFitLogger.workout)
             
             // Calculate XP for this workout
@@ -356,6 +359,25 @@ class WorkoutSyncManager: ObservableObject {
                 FameFitLogger.error("Failed to send notification", error: error, category: FameFitLogger.workout)
             } else {
                 FameFitLogger.debug("Push notification sent successfully", category: FameFitLogger.workout)
+            }
+        }
+    }
+    
+    /// Request notification permissions if not already granted
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error = error {
+                        FameFitLogger.error("Failed to request notification permissions", error: error, category: FameFitLogger.app)
+                    } else if granted {
+                        FameFitLogger.info("✅ Notification permissions granted", category: FameFitLogger.app)
+                    } else {
+                        FameFitLogger.notice("❌ Notification permissions denied", category: FameFitLogger.app)
+                    }
+                }
+            } else if settings.authorizationStatus == .authorized {
+                FameFitLogger.debug("Notification permissions already granted", category: FameFitLogger.app)
             }
         }
     }

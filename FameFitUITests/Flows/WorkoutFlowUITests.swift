@@ -4,8 +4,8 @@ class WorkoutFlowUITests: BaseUITestCase {
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        // Launch app skipping onboarding with mock HealthKit
-        app.launchArguments = ["UI-Testing", "--skip-onboarding", "--mock-healthkit"]
+        // Launch app skipping onboarding
+        app.launchArguments = ["UI-Testing", "--skip-onboarding"]
         app.launch()
         wait(for: 0.5)
     }

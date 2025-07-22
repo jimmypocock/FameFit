@@ -26,7 +26,8 @@ class MainViewModelTests: XCTestCase {
         sut = MainViewModel(
             authManager: mockAuthManager,
             cloudKitManager: mockCloudKitManager,
-            notificationStore: mockNotificationStore
+            notificationStore: mockNotificationStore,
+            userProfileService: MockUserProfileService()
         )
     }
     
@@ -47,7 +48,7 @@ class MainViewModelTests: XCTestCase {
         
         // When/Then - Should compile without errors
         XCTAssertNotNil(protocolInstance.userName)
-        XCTAssertNotNil(protocolInstance.influencerXP)
+        XCTAssertNotNil(protocolInstance.totalXP)
         XCTAssertNotNil(protocolInstance.xpTitle)
         XCTAssertNotNil(protocolInstance.totalWorkouts)
         XCTAssertNotNil(protocolInstance.currentStreak)
@@ -74,10 +75,10 @@ class MainViewModelTests: XCTestCase {
         let expectedCount = 42
         
         // When
-        mockCloudKitManager.influencerXP = expectedCount
+        mockCloudKitManager.totalXP = expectedCount
         
         // Then
-        XCTAssertEqual(sut.influencerXP, expectedCount)
+        XCTAssertEqual(sut.totalXP, expectedCount)
     }
     
     func testTotalWorkoutsBindsToCloudKitManager() {
@@ -151,12 +152,12 @@ class MainViewModelTests: XCTestCase {
     
     func testXPTitleUpdatesWhenInfluencerXPChanges() {
         // Given
-        mockCloudKitManager.influencerXP = 50
+        mockCloudKitManager.totalXP = 50
         sut.refreshData() // Sync initial state
         let initialTitle = sut.xpTitle
         
         // When
-        mockCloudKitManager.influencerXP = 1000
+        mockCloudKitManager.totalXP = 1000
         sut.refreshData() // Sync new state
         let newTitle = sut.xpTitle
         
@@ -227,14 +228,14 @@ class MainViewModelTests: XCTestCase {
     
     func testInfluencerXPChangesReactToCloudKitManager() {
         // Given
-        let initialCount = sut.influencerXP
+        let initialCount = sut.totalXP
         
         // When
-        mockCloudKitManager.influencerXP = 999
+        mockCloudKitManager.totalXP = 999
         
         // Then
-        XCTAssertNotEqual(sut.influencerXP, initialCount)
-        XCTAssertEqual(sut.influencerXP, 999)
+        XCTAssertNotEqual(sut.totalXP, initialCount)
+        XCTAssertEqual(sut.totalXP, 999)
     }
     
     // MARK: - Integration Tests
@@ -242,21 +243,21 @@ class MainViewModelTests: XCTestCase {
     func testCompleteWorkflowUpdatesAllProperties() {
         // Given - Set initial state
         mockCloudKitManager.userName = "Initial User"
-        mockCloudKitManager.influencerXP = 10
+        mockCloudKitManager.totalXP = 10
         mockCloudKitManager.totalWorkouts = 5
         mockCloudKitManager.currentStreak = 1
         mockNotificationStore.unreadCount = 0
         
         // When - Simulate a workout completion
         mockCloudKitManager.userName = "Updated User"
-        mockCloudKitManager.influencerXP = 15
+        mockCloudKitManager.totalXP = 15
         mockCloudKitManager.totalWorkouts = 6
         mockCloudKitManager.currentStreak = 2
         mockNotificationStore.unreadCount = 1
         
         // Then - All properties should update
         XCTAssertEqual(sut.userName, "Updated User")
-        XCTAssertEqual(sut.influencerXP, 15)
+        XCTAssertEqual(sut.totalXP, 15)
         XCTAssertEqual(sut.totalWorkouts, 6)
         XCTAssertEqual(sut.currentStreak, 2)
         XCTAssertTrue(sut.hasUnreadNotifications)

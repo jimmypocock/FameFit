@@ -16,16 +16,18 @@ class MainViewModel: ObservableObject, MainViewModeling {
     private let authManager: any AuthenticationManaging
     private let cloudKitManager: any CloudKitManaging
     private let notificationStore: any NotificationStoring
+    private let userProfileService: any UserProfileServicing
     
     // MARK: - Published Properties
     @Published private var _userName: String = ""
-    @Published private var _influencerXP: Int = 0
+    @Published private var _totalXP: Int = 0
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
     @Published private var _joinDate: Date?
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
+    @Published var userProfile: UserProfile?
     
     // MARK: - Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -34,18 +36,20 @@ class MainViewModel: ObservableObject, MainViewModeling {
     init(
         authManager: any AuthenticationManaging,
         cloudKitManager: any CloudKitManaging,
-        notificationStore: any NotificationStoring
+        notificationStore: any NotificationStoring,
+        userProfileService: any UserProfileServicing
     ) {
         self.authManager = authManager
         self.cloudKitManager = cloudKitManager
         self.notificationStore = notificationStore
+        self.userProfileService = userProfileService
         
         setupBindings()
     }
     
     // MARK: - Protocol Properties
     var userName: String { _userName }
-    var influencerXP: Int { _influencerXP }
+    var totalXP: Int { _totalXP }
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
@@ -59,10 +63,15 @@ class MainViewModel: ObservableObject, MainViewModeling {
         return Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
     }
     
+    var hasProfile: Bool {
+        userProfile != nil
+    }
+    
     // MARK: - Protocol Methods
     func refreshData() {
         cloudKitManager.fetchUserRecord()
         refreshFromDependencies()
+        loadUserProfile()
     }
     
     func signOut() {
@@ -71,6 +80,22 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     func markNotificationsAsRead() {
         notificationStore.markAllAsRead()
+    }
+    
+    func loadUserProfile() {
+        Task {
+            do {
+                let profile = try await userProfileService.fetchCurrentUserProfile()
+                await MainActor.run {
+                    self.userProfile = profile
+                }
+            } catch {
+                // Profile doesn't exist yet, that's ok
+                await MainActor.run {
+                    self.userProfile = nil
+                }
+            }
+        }
     }
     
     // MARK: - Private Methods
@@ -82,8 +107,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.userNamePublisher
             .assign(to: &$_userName)
         
-        cloudKitManager.influencerXPPublisher
-            .assign(to: &$_influencerXP)
+        cloudKitManager.totalXPPublisher
+            .assign(to: &$_totalXP)
         
         cloudKitManager.totalWorkoutsPublisher
             .assign(to: &$_totalWorkouts)
@@ -97,7 +122,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
         
-        cloudKitManager.influencerXPPublisher
+        cloudKitManager.totalXPPublisher
             .map { [weak self] _ in
                 self?.cloudKitManager.getXPTitle() ?? ""
             }
@@ -109,7 +134,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     private func refreshFromDependencies() {
         _userName = cloudKitManager.userName
-        _influencerXP = cloudKitManager.influencerXP
+        _totalXP = cloudKitManager.totalXP
         _totalWorkouts = cloudKitManager.totalWorkouts
         _currentStreak = cloudKitManager.currentStreak
         _joinDate = cloudKitManager.joinTimestamp

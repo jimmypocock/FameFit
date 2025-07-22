@@ -16,41 +16,157 @@ This document defines all CloudKit record types and their fields used in FameFit
 
 4. **CRITICAL - recordID Index**: When creating any new record type that will be queried with `NSPredicate(value: true)` or similar queries, you MUST add `___recordID` as a QUERYABLE index in CloudKit Dashboard. This prevents the "Field 'recordName' is not marked queryable" error.
 
+## Database Overview
+
+FameFit uses multiple CloudKit databases:
+- **Private Database**: Personal data, settings, workout history
+- **Public Database**: User profiles, leaderboards, discoverable content
+- **Shared Database**: (Future) Friend connections, group challenges
+
+### Data Architecture Principles
+
+1. **Single Source of Truth**: User statistics (XP, workout count, etc.) are stored ONLY in the private `Users` table
+2. **Public Cache**: The `UserProfiles` table in the public database contains cached copies for social features
+3. **One-way Sync**: Data flows from Users → UserProfiles, never the reverse
+4. **Privacy First**: Only data explicitly marked as public is synced to the public database
+
 ## Record Types
 
-### User
+### Private Database
+
+#### Users
 Stores user profile information.
 
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
-| userName | String | Yes | No | No | Display name |
-| followerCount | Int64 | Yes* | No | No | Total followers (DEPRECATED - use influencerXP) |
-| influencerXP | Int64 | Yes | No | No | Total Influencer XP earned |
-| totalWorkouts | Int64 | Yes | No | No | Total workouts completed |
-| currentStreak | Int64 | Yes | No | No | Current workout streak |
-| lastWorkoutTimestamp | Date | No | No | No | Last workout date |
-| joinTimestamp | Date | Yes | No | No | When user joined |
+| displayName | String | Yes | Yes | No | Display name |
+| influencerXP | Int64 | Yes* | Yes | Yes | DEPRECATED - Use totalXP |
+| totalXP | Int64 | Yes | Yes | Yes | Total XP earned (source of truth) |
+| totalWorkouts | Int64 | Yes | Yes | Yes | Total workouts completed (source of truth) |
+| currentStreak | Int64 | Yes | Yes | No | Current workout streak |
+| lastWorkoutTimestamp | Date | No | Yes | No | Last workout date |
+| joinTimestamp | Date | Yes | Yes | No | When user joined |
 
-*Note: `followerCount` is maintained for backward compatibility during migration to `influencerXP`
+*Note: This is the source of truth for all user statistics. The public UserProfiles table contains cached copies of these values.*
 
-### WorkoutHistory
+**Migration Note**: The `influencerXP` field is deprecated but kept for backward compatibility. The app writes to both `influencerXP` and `totalXP` fields but reads preferentially from `totalXP`.
+
+#### WorkoutHistory
 Stores individual workout records.
 
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
-| workoutId | String | Yes | No | No | UUID of the workout |
-| workoutType | String | Yes | No | No | Type of workout (Running, Cycling, etc.) |
-| startDate | Date | Yes | No | No | Workout start time |
-| endDate | Date | Yes | No | No | Workout end time |
-| duration | Double | Yes | No | No | Duration in seconds |
-| totalEnergyBurned | Double | Yes | No | No | Calories burned |
-| totalDistance | Double | No | No | No | Distance in meters |
-| averageHeartRate | Double | No | No | No | Average heart rate |
-| followersEarned | Int64 | Yes* | No | No | Followers earned from workout (DEPRECATED - use xpEarned) |
-| xpEarned | Int64 | Yes | No | No | XP earned from workout |
-| source | String | Yes | No | No | Source app (e.g., "Apple Watch") |
+| workoutId | String | Yes | Yes | Yes | UUID of the workout |
+| workoutType | String | Yes | Yes | Yes | Type of workout (Running, Cycling, etc.) |
+| startDate | Date | Yes | Yes | Yes | Workout start time |
+| endDate | Date | Yes | Yes | Yes | Workout end time |
+| duration | Double | Yes | Yes | No | Duration in seconds |
+| totalEnergyBurned | Double | Yes | Yes | No | Calories burned |
+| totalDistance | Double | No | Yes | No | Distance in meters |
+| averageHeartRate | Double | No | Yes | No | Average heart rate |
+| followersEarned | Int64 | Yes* | Yes | No | Followers earned from workout (DEPRECATED - use xpEarned) |
+| xpEarned | Int64 | Yes | Yes | No | XP earned from workout |
+| source | String | Yes | Yes | No | Source app (e.g., "Apple Watch") |
 
 *Note: `followersEarned` is maintained for backward compatibility during migration to `xpEarned`
+
+#### UserSettings (NEW)
+Stores user privacy and notification preferences.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| userID | String | Yes | Yes | Yes | Reference to UserProfile record ID |
+| emailNotifications | Int64 | Yes | No | No | 1 = enabled, 0 = disabled |
+| pushNotifications | Int64 | Yes | No | No | 1 = enabled, 0 = disabled |
+| workoutPrivacy | String | Yes | Yes | No | Values: "public", "friends", "private" |
+| allowMessages | String | Yes | Yes | No | Values: "all", "friends", "none" |
+| blockedUsers | String List | No | No | No | Array of blocked user IDs |
+| mutedUsers | String List | No | No | No | Array of muted user IDs |
+| contentFilter | String | Yes | No | No | Values: "strict", "moderate", "off" |
+| showWorkoutStats | Int64 | Yes | No | No | 1 = show, 0 = hide |
+| allowFriendRequests | Int64 | Yes | No | No | 1 = allow, 0 = disallow |
+| showOnLeaderboards | Int64 | Yes | No | No | 1 = show, 0 = hide |
+
+#### FollowRequests (NEW)
+Stores follow requests for private profiles.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| requesterId | String | Yes | Yes | Yes | User ID of requester |
+| targetId | String | Yes | Yes | Yes | User ID of target |
+| status | String | Yes | Yes | Yes | Values: "pending", "accepted", "rejected", "expired" |
+| createdAt | Date | Yes | Yes | Yes | Request creation timestamp |
+| message | String | No | No | No | Optional message (max 280 chars) |
+| expiresAt | Date | Yes | Yes | Yes | Request expiration date |
+
+### Public Database
+
+#### UserProfiles (NEW)
+Stores public user profile information.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| userID | String | Yes | Yes | Yes | Reference to Users.recordID |
+| username | String | Yes | Yes | Yes | Unique username (3-30 chars, lowercase) |
+| displayName | String | Yes | Yes | No | Display name (1-50 characters) |
+| bio | String | No | No | No | User bio (0-500 characters) |
+| profileImageURL | String | No | No | No | URL to profile image asset |
+| headerImageURL | String | No | No | No | URL to header/banner image asset |
+| workoutCount | Int64 | Yes | Yes | Yes | Cached from Users table |
+| totalXP | Int64 | Yes | Yes | Yes | Cached from Users table |
+| joinedDate | Date | Yes | Yes | Yes | Cached from Users table |
+| lastUpdated | Date | Yes | Yes | Yes | When profile was last synced |
+| isVerified | Int64 | No | Yes | No | 1 = verified account, 0 = regular |
+| privacyLevel | String | Yes | Yes | No | Values: "public", "friends", "private" |
+
+#### UserRelationships (NEW)
+Stores social following relationships between users.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| followerId | String | Yes | Yes | Yes | User ID of follower |
+| followingId | String | Yes | Yes | Yes | User ID being followed |
+| createdAt | Date | Yes | Yes | Yes | Relationship creation timestamp |
+| status | String | Yes | Yes | Yes | Values: "active", "blocked", "muted" |
+| notificationsEnabled | Int64 | Yes | No | No | 1 = notifications on, 0 = off |
+
+**Required Indexes**:
+- Compound index: followerId + followingId (uniqueness constraint)
+- followerId + createdAt (rate limiting)
+- followerId + status (block filtering)
+- followingId (reverse lookups)
+
+#### ActivityFeedItems (NEW)
+Stores user activities for social feeds.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| userID | String | Yes | Yes | Yes | User ID who created the activity |
+| activityType | String | Yes | Yes | Yes | Values: "workout", "achievement", "milestone", "level_up" |
+| workoutId | String | No | Yes | No | Reference to workout (if applicable) |
+| content | String | Yes | No | No | Activity content (encrypted) |
+| visibility | String | Yes | Yes | No | Values: "public", "followers", "private" |
+| createdAt | Date | Yes | Yes | Yes | Activity creation timestamp |
+| expiresAt | Date | Yes | Yes | Yes | Auto-cleanup timestamp |
+| xpEarned | Int64 | No | Yes | No | XP earned (for workout activities) |
+| achievementName | String | No | Yes | No | Achievement name (for achievements) |
+
+#### WorkoutKudos (NEW)
+Stores kudos/cheers (likes) for workouts.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| workoutId | String | Yes | Yes | Yes | ID of the workout |
+| userID | String | Yes | Yes | Yes | User ID who gave kudos |
+| workoutOwnerId | String | Yes | Yes | Yes | User ID who owns the workout |
+| createdAt | Date | Yes | Yes | Yes | When kudos was given |
+
+**Required Indexes**:
+- Compound index: workoutId + userId (uniqueness constraint)
+- workoutId (for fetching all kudos for a workout)
+- userID (for fetching all kudos by a user)
+- workoutOwnerId (for notifications)
+- createdAt (for rate limiting)
 
 ## CloudKit Dashboard Setup
 
@@ -58,7 +174,9 @@ To avoid runtime errors, configure the following in CloudKit Dashboard:
 
 1. **Create Record Types**:
    - Go to CloudKit Dashboard > Schema > Record Types
-   - Create `User` and `WorkoutHistory` record types
+   - Create all record types as defined above:
+     - Private Database: `Users`, `WorkoutHistory`, `UserSettings`, `FollowRequests`
+     - Public Database: `UserProfiles`, `UserRelationships`, `ActivityFeedItems`
    - Add all custom fields as defined above
 
 2. **Configure Indexes**:
@@ -78,6 +196,26 @@ To avoid runtime errors, configure the following in CloudKit Dashboard:
 4. **Always handle missing record types gracefully** - Check for specific CKError codes
 5. **Test in development** environment first before deploying to production
 6. **For simple fetches**, consider using record IDs or zones instead of queries
+
+## Field Migration Strategy
+
+Since CloudKit doesn't support renaming fields, here's how to handle field migrations:
+
+1. **Add the new field** (e.g., `totalXP`) in CloudKit Dashboard
+2. **Keep the old field** (e.g., `influencerXP`) for backward compatibility
+3. **Update code to write to both fields** during transition
+4. **Read preferentially from the new field** with fallback to old field
+5. **After all users update**, you can stop writing to the old field
+
+Example in code:
+```swift
+// Writing - update both fields
+userRecord["totalXP"] = newValue
+userRecord["influencerXP"] = newValue // Backward compatibility
+
+// Reading - try new field first
+let xp = record["totalXP"] as? Int ?? record["influencerXP"] as? Int ?? 0
+```
 
 ## Common Errors and Solutions
 

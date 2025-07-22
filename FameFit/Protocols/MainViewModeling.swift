@@ -12,10 +12,14 @@ import Foundation
 protocol MainViewModeling: ObservableObject {
     // MARK: - User Data
     var userName: String { get }
-    var influencerXP: Int { get }
+    var totalXP: Int { get }
     var xpTitle: String { get }
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
+    
+    // MARK: - Profile Data
+    var userProfile: UserProfile? { get }
+    var hasProfile: Bool { get }
     
     // MARK: - Date Information
     var joinDate: Date? { get }
@@ -30,4 +34,5 @@ protocol MainViewModeling: ObservableObject {
     func refreshData()
     func signOut()
     func markNotificationsAsRead()
+    func loadUserProfile()
 }

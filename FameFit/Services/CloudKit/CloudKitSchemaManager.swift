@@ -45,7 +45,7 @@ class CloudKitSchemaManager {
     
     private func initializeUserRecordType(completion: @escaping (Bool) -> Void) {
         // Check if User record type exists by querying
-        let query = CKQuery(recordType: "User", predicate: NSPredicate(value: true))
+        let query = CKQuery(recordType: "Users", predicate: NSPredicate(value: true))
         
         privateDatabase.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: 1) { result in
             switch result {
@@ -56,7 +56,7 @@ class CloudKitSchemaManager {
             case .failure(let error):
                 // Record type doesn't exist, create a dummy record
                 if error.localizedDescription.contains("Record type") == true {
-                    let dummyRecord = CKRecord(recordType: "User")
+                    let dummyRecord = CKRecord(recordType: "Users")
                     dummyRecord["userName"] = "Schema Init"
                     dummyRecord["followerCount"] = 0
                     dummyRecord["totalWorkouts"] = 0

@@ -75,7 +75,7 @@ struct NotificationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(notification.character.emoji)
+                Text(notification.character?.emoji ?? notification.type.icon)
                     .font(.title2)
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -103,17 +103,24 @@ struct NotificationRow: View {
                 .lineLimit(2)
             
             HStack(spacing: 20) {
-                Label("\(notification.workoutDuration) min", systemImage: "clock")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // Show workout-specific details if available
+                if let duration = notification.workoutDuration {
+                    Label("\(duration) min", systemImage: "clock")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
-                Label("\(notification.calories) cal", systemImage: "flame")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if let calories = notification.calories {
+                    Label("\(calories) cal", systemImage: "flame")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
-                Label("+\(notification.followersEarned) XP", systemImage: "sparkles")
-                    .font(.caption)
-                    .foregroundColor(.green)
+                if let xp = notification.followersEarned {
+                    Label("+\(xp) XP", systemImage: "sparkles")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
             }
         }
         .padding(.vertical, 4)

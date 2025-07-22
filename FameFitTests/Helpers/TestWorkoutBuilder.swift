@@ -110,6 +110,7 @@ struct TestWorkoutBuilder {
         //
         // When Apple provides a proper testing API, we'll migrate immediately.
         @available(iOS, deprecated: 17.0, message: "Using deprecated API for testing only - no alternative exists")
+        @available(iOS, introduced: 8.0, deprecated: 17.0)
         let workout = HKWorkout(
             activityType: type,
             start: startDate,
