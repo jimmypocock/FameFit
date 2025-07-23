@@ -10,7 +10,7 @@ import UserNotifications
 
 // MARK: - Notification Manager Protocol
 
-protocol NotificationManaging {
+protocol NotificationManaging: AnyObject {
     // Permission management
     func requestNotificationPermission() async -> Bool
     func checkNotificationPermission() async -> UNAuthorizationStatus

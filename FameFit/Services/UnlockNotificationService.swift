@@ -78,10 +78,19 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         // Check if we've already notified about this level
         guard !userDefaults.bool(forKey: notificationKey) else { return }
         
+        let character = getCharacterForLevel(newLevel)
         let notification = NotificationItem(
             type: .levelUp,
-            title: "Level Up! 🎉",
-            body: "Congratulations! You've reached Level \(newLevel): \(title)"
+            title: "\(character.emoji) Level Up!",
+            body: "Congratulations! You've reached Level \(newLevel): \(title)",
+            metadata: .achievement(AchievementNotificationMetadata(
+                achievementId: "level_\(newLevel)",
+                achievementName: title,
+                achievementDescription: "Reached Level \(newLevel)",
+                xpRequired: getLevelThreshold(for: newLevel),
+                category: "level",
+                iconEmoji: character.emoji
+            ))
         )
         
         notificationStore.addNotification(notification)
@@ -156,8 +165,10 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         switch level {
         case 1...4:
             return .zen
-        case 5...8:
+        case 5...9:
             return .sierra
+        case 10...14:
+            return .chad
         default:
             return .chad
         }

@@ -28,6 +28,8 @@ class DependencyContainer: ObservableObject {
     let messageProvider: MessageProviding
     let workoutKudosService: WorkoutKudosServicing
     let apnsManager: APNSManaging
+    let workoutCommentsService: WorkoutCommentsServicing
+    let groupWorkoutService: GroupWorkoutServicing
     
     init() {
         // Create instances with proper dependency injection
@@ -111,15 +113,33 @@ class DependencyContainer: ObservableObject {
             rateLimiter: rateLimitingService
         )
         
+        // Create workout comments service
+        self.workoutCommentsService = WorkoutCommentsService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager,
+            rateLimiter: rateLimitingService
+        )
+        
+        // Create group workout service
+        self.groupWorkoutService = GroupWorkoutService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager,
+            rateLimiter: rateLimitingService
+        )
+        
         // Wire up dependencies
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.unlockNotificationService = unlockNotificationService
         
-        // Give workout observer access to notification store
+        // Give workout observer access to notification store and APNS manager
         workoutObserver.notificationStore = notificationStore
+        workoutObserver.apnsManager = apnsManager
         
-        // Give workout sync manager access to notification store
+        // Give workout sync manager access to notification store and manager
         workoutSyncManager.notificationStore = notificationStore
+        workoutSyncManager.notificationManager = notificationManager
     }
     
     // For testing, allow injection of mock managers
@@ -141,7 +161,9 @@ class DependencyContainer: ObservableObject {
         notificationManager: NotificationManaging? = nil,
         messageProvider: MessageProviding? = nil,
         workoutKudosService: WorkoutKudosServicing? = nil,
-        apnsManager: APNSManaging? = nil
+        apnsManager: APNSManaging? = nil,
+        workoutCommentsService: WorkoutCommentsServicing? = nil,
+        groupWorkoutService: GroupWorkoutServicing? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -201,6 +223,24 @@ class DependencyContainer: ObservableObject {
             let tempAPNSManager = APNSManager(cloudKitManager: self.cloudKitManager)
             self.apnsManager = tempAPNSManager
         }
+        
+        self.workoutCommentsService = workoutCommentsService ?? WorkoutCommentsService(
+            cloudKitManager: self.cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        self.groupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
+            cloudKitManager: self.cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        // Wire up dependencies for WorkoutSyncManager
+        self.workoutSyncManager.notificationStore = self.notificationStore
+        self.workoutSyncManager.notificationManager = self.notificationManager
     }
     
     // MARK: - Testing Support

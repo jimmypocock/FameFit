@@ -45,6 +45,7 @@ enum NotificationType: String, Codable, CaseIterable {
     case workoutComment = "workout_comment"
     case mentioned = "mentioned"
     case challengeInvite = "challenge_invite"
+    case challengeStarted = "challenge_started"
     case challengeCompleted = "challenge_completed"
     case leaderboardChange = "leaderboard_change"
     
@@ -58,7 +59,7 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .workoutCompleted, .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk, .unlockAchieved:
             return .workout
-        case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned, .challengeInvite, .challengeCompleted, .leaderboardChange:
+        case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned, .challengeInvite, .challengeStarted, .challengeCompleted, .leaderboardChange:
             return .social
         case .securityAlert, .privacyUpdate, .featureAnnouncement, .maintenanceNotice:
             return .system
@@ -69,7 +70,7 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .securityAlert, .mentioned, .followRequest:
             return .immediate
-        case .workoutCompleted, .xpMilestone, .levelUp, .followAccepted, .challengeInvite:
+        case .workoutCompleted, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted:
             return .high
         case .newFollower, .workoutComment, .streakMaintained, .unlockAchieved:
             return .medium
@@ -92,6 +93,8 @@ enum NotificationType: String, Codable, CaseIterable {
             return .batched
         case .workoutComment, .mentioned, .challengeInvite:
             return .immediate
+        case .challengeStarted:
+            return .enabled
         case .leaderboardChange:
             return .weekly
         case .securityAlert:
@@ -105,7 +108,7 @@ enum NotificationType: String, Codable, CaseIterable {
     
     var soundEnabled: Bool {
         switch self {
-        case .workoutCompleted, .xpMilestone, .levelUp, .followRequest, .mentioned, .challengeInvite, .securityAlert:
+        case .workoutCompleted, .xpMilestone, .levelUp, .followRequest, .mentioned, .challengeInvite, .challengeStarted, .securityAlert:
             return true
         default:
             return false
@@ -140,6 +143,8 @@ enum NotificationType: String, Codable, CaseIterable {
             return "Mentioned"
         case .challengeInvite:
             return "Challenge Invite"
+        case .challengeStarted:
+            return "Challenge Started"
         case .challengeCompleted:
             return "Challenge Completed"
         case .leaderboardChange:
@@ -175,7 +180,7 @@ enum NotificationType: String, Codable, CaseIterable {
             return "💬"
         case .mentioned:
             return "@"
-        case .challengeInvite, .challengeCompleted:
+        case .challengeInvite, .challengeStarted, .challengeCompleted:
             return "⚔️"
         case .leaderboardChange:
             return "📊"

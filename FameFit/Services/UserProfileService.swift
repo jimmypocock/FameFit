@@ -8,6 +8,7 @@
 import Foundation
 import CloudKit
 import Combine
+import UIKit
 
 final class UserProfileService: UserProfileServicing {
     // MARK: - Properties
@@ -453,4 +454,177 @@ final class UserProfileService: UserProfileServicing {
             }
         }
     }
+}
+
+// MARK: - Photo Upload Extension
+
+extension UserProfileService {
+    
+    /// Uploads a profile photo for the user
+    /// - Parameters:
+    ///   - image: The UIImage to upload
+    ///   - userId: The user's profile ID
+    ///   - isHeader: Whether this is a header image (false for profile photo)
+    /// - Returns: The URL of the uploaded image
+    func uploadProfilePhoto(_ image: UIImage, for userId: String, isHeader: Bool = false) async throws -> String {
+        isLoading = true
+        defer { isLoading = false }
+        
+        // Compress and resize the image
+        let processedImage = try processImage(image, isHeader: isHeader)
+        
+        // Create a temporary file
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("jpg")
+        
+        guard let imageData = processedImage.jpegData(compressionQuality: 0.8) else {
+            throw ProfileServiceError.imageProcessingFailed
+        }
+        
+        try imageData.write(to: tempURL)
+        
+        // Create CKAsset
+        let asset = CKAsset(fileURL: tempURL)
+        
+        // Fetch the user's profile record
+        let recordID = CKRecord.ID(recordName: userId)
+        
+        do {
+            let record = try await publicDatabase.record(for: recordID)
+            
+            // Update the appropriate field
+            if isHeader {
+                record["headerImageAsset"] = asset
+            } else {
+                record["profileImageAsset"] = asset
+            }
+            
+            // Save the updated record
+            let savedRecord = try await publicDatabase.save(record)
+            
+            // Clean up temp file
+            try? FileManager.default.removeItem(at: tempURL)
+            
+            // Get the asset URL from the saved record
+            if let savedAsset = savedRecord[isHeader ? "headerImageAsset" : "profileImageAsset"] as? CKAsset,
+               let url = savedAsset.fileURL?.absoluteString {
+                
+                // Update the profile cache with the new URL
+                if let profile = UserProfile(from: savedRecord) {
+                    cacheProfile(profile)
+                    if currentProfile?.id == profile.id {
+                        currentProfile = profile
+                    }
+                }
+                
+                return url
+            } else {
+                throw ProfileServiceError.imageProcessingFailed
+            }
+        } catch {
+            // Clean up temp file on error
+            try? FileManager.default.removeItem(at: tempURL)
+            throw ProfileServiceError.networkError(error)
+        }
+    }
+    
+    /// Deletes a profile photo
+    func deleteProfilePhoto(for userId: String, isHeader: Bool = false) async throws {
+        isLoading = true
+        defer { isLoading = false }
+        
+        let recordID = CKRecord.ID(recordName: userId)
+        
+        do {
+            let record = try await publicDatabase.record(for: recordID)
+            
+            // Remove the appropriate field
+            if isHeader {
+                record["headerImageAsset"] = nil
+                record["headerImageURL"] = nil
+            } else {
+                record["profileImageAsset"] = nil
+                record["profileImageURL"] = nil
+            }
+            
+            // Save the updated record
+            let savedRecord = try await publicDatabase.save(record)
+            
+            // Update cache
+            if let profile = UserProfile(from: savedRecord) {
+                cacheProfile(profile)
+                if currentProfile?.id == profile.id {
+                    currentProfile = profile
+                }
+            }
+        } catch {
+            throw ProfileServiceError.networkError(error)
+        }
+    }
+    
+    // MARK: - Private Photo Methods
+    
+    private func processImage(_ image: UIImage, isHeader: Bool) throws -> UIImage {
+        let maxSize: CGFloat = isHeader ? 1200 : 400 // Header images can be larger
+        let targetSize = CGSize(width: maxSize, height: maxSize)
+        
+        // Calculate aspect ratio
+        let widthRatio = targetSize.width / image.size.width
+        let heightRatio = targetSize.height / image.size.height
+        let ratio = isHeader ? min(widthRatio, heightRatio) : widthRatio // Headers maintain aspect, profiles are square
+        
+        let newSize = CGSize(
+            width: image.size.width * ratio,
+            height: image.size.height * ratio
+        )
+        
+        // Create renderer
+        let renderer = UIGraphicsImageRenderer(size: isHeader ? newSize : targetSize)
+        
+        let processedImage = renderer.image { context in
+            if isHeader {
+                // Headers maintain aspect ratio
+                image.draw(in: CGRect(origin: .zero, size: newSize))
+            } else {
+                // Profile photos are cropped to square
+                let drawRect = CGRect(
+                    x: (targetSize.width - newSize.width) / 2,
+                    y: (targetSize.height - newSize.height) / 2,
+                    width: newSize.width,
+                    height: newSize.height
+                )
+                image.draw(in: drawRect)
+            }
+        }
+        
+        // Check file size (max 5MB for CloudKit)
+        guard let data = processedImage.jpegData(compressionQuality: 0.8),
+              data.count < 5 * 1024 * 1024 else {
+            // Try with lower quality
+            guard let lowQualityData = processedImage.jpegData(compressionQuality: 0.5),
+                  lowQualityData.count < 5 * 1024 * 1024 else {
+                throw ProfileServiceError.imageTooLarge
+            }
+            return processedImage
+        }
+        
+        return processedImage
+    }
+}
+
+// MARK: - Profile Service Error Extension
+
+extension ProfileServiceError {
+    static let imageProcessingFailed = ProfileServiceError.networkError(
+        NSError(domain: "UserProfileService", code: 1001, userInfo: [
+            NSLocalizedDescriptionKey: "Failed to process image"
+        ])
+    )
+    
+    static let imageTooLarge = ProfileServiceError.networkError(
+        NSError(domain: "UserProfileService", code: 1002, userInfo: [
+            NSLocalizedDescriptionKey: "Image file size is too large. Please choose a smaller image."
+        ])
+    )
 }

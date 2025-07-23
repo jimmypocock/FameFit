@@ -23,6 +23,7 @@ class MockCloudKitManager: CloudKitManager {
     var shouldFailAddXP = false
     var shouldFailFetchUserRecord = false
     var mockIsAvailable = true
+    var mockCurrentUserID: String? = "mock-user-id"
     
     // Override CloudKit availability
     override var isAvailable: Bool {
@@ -30,7 +31,8 @@ class MockCloudKitManager: CloudKitManager {
     }
     
     override var currentUserID: String? {
-        return "mock-user-id"
+        get { return mockCurrentUserID }
+        set { mockCurrentUserID = newValue }
     }
     
     override init() {

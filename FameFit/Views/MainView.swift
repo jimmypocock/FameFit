@@ -11,6 +11,7 @@ struct MainView: View {
     @State private var showingUserSearch = false
     @State private var showingSocialFeed = false
     @State private var showingWorkoutSharingPrompt = false
+    @State private var showingNotificationDebug = false
     @State private var workoutToShare: WorkoutHistoryItem?
     
     @Environment(\.dependencyContainer) var container
@@ -174,6 +175,16 @@ struct MainView: View {
                         
                         Divider()
                         
+                        #if DEBUG
+                        Button(action: {
+                            showingNotificationDebug = true
+                        }) {
+                            Label("Debug Notifications", systemImage: "bell.badge.waveform")
+                        }
+                        
+                        Divider()
+                        #endif
+                        
                         Button(action: {
                             viewModel.signOut()
                         }) {
@@ -218,6 +229,9 @@ struct MainView: View {
                     print("Workout shared with privacy: \(privacy), details: \(includeDetails)")
                 }
             }
+        }
+        .sheet(isPresented: $showingNotificationDebug) {
+            NotificationDebugView()
         }
         .onAppear {
             viewModel.refreshData()

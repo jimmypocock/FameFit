@@ -134,6 +134,8 @@ struct NotificationRowView: View {
             return "star.circle.fill"
         case .challengeInvite:
             return "flag.fill"
+        case .challengeStarted:
+            return "flag.fill"
         case .challengeCompleted:
             return "flag.checkered"
         case .streakMaintained:
@@ -171,7 +173,7 @@ struct NotificationRowView: View {
             return .red
         case .workoutComment, .mentioned:
             return .orange
-        case .challengeInvite, .challengeCompleted:
+        case .challengeInvite, .challengeStarted, .challengeCompleted:
             return .indigo
         case .streakMaintained:
             return .orange
@@ -205,11 +207,14 @@ struct NotificationRowView: View {
             if let achievementMetadata = notification.achievementMetadata {
                 achievementDetails(achievementMetadata)
             }
-        case .newFollower, .followRequest, .followAccepted:
+        case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned:
             if let socialMetadata = notification.socialMetadata {
                 socialDetails(socialMetadata)
             }
-        default:
+        case .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk,
+             .challengeInvite, .challengeStarted, .challengeCompleted,
+             .leaderboardChange, .securityAlert, .privacyUpdate,
+             .featureAnnouncement, .maintenanceNotice:
             EmptyView()
         }
     }

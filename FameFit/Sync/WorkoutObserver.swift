@@ -9,6 +9,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private var observerQuery: HKObserverQuery?
     private weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
+    weak var apnsManager: (any APNSManaging)?
     private var preferences: NotificationPreferences = NotificationPreferences.load()
     
     @Published var lastError: FameFitError?
@@ -286,9 +287,60 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                 }
             } else {
                 self?.lastNotificationDate = Date()
-                FameFitLogger.debug("Notification sent successfully", category: FameFitLogger.workout)
+                FameFitLogger.debug("Local notification sent successfully", category: FameFitLogger.workout)
             }
         }
+        
+        // Also trigger remote push notification via APNS if configured
+        Task { [weak self] in
+            await self?.sendWorkoutPushNotification(
+                character: character,
+                duration: duration,
+                calories: calories,
+                xpEarned: xpEarned
+            )
+        }
+    }
+    
+    private func sendWorkoutPushNotification(character: FameFitCharacter, duration: Int, calories: Int, xpEarned: Int) async {
+        // Only send remote push if APNS manager is configured and user is registered
+        guard let apnsManager = apnsManager,
+              apnsManager.isRegistered else {
+            FameFitLogger.debug("APNS not configured or not registered, skipping remote push", category: FameFitLogger.workout)
+            return
+        }
+        
+        // Create a rich notification payload with character-based messaging
+        let title = "\(character.emoji) \(character.fullName)"
+        let body = character.workoutCompletionMessage(followers: xpEarned)
+        
+        _ = PushNotificationPayload(
+            aps: PushNotificationPayload.APSPayload(
+                alert: PushNotificationPayload.APSPayload.Alert(
+                    title: title,
+                    body: body,
+                    subtitle: nil
+                ),
+                badge: preferences.badgeEnabled ? (notificationStore?.unreadCount ?? 0) + 1 : nil,
+                sound: preferences.shouldPlaySound(for: .workoutCompleted) ? "default" : nil,
+                threadId: "workout-completed",
+                category: "WORKOUT_COMPLETED"
+            ),
+            notificationType: "workoutCompleted",
+            metadata: [
+                "character": character.rawValue,
+                "duration": "\(duration)",
+                "calories": "\(calories)",
+                "xpEarned": "\(xpEarned)"
+            ]
+        )
+        
+        // Note: The actual sending would happen through a backend service
+        // For now, we log that this would be sent and update badge count
+        FameFitLogger.debug("Would send remote push notification: \(title) - \(body)", category: FameFitLogger.workout)
+        
+        // Update the local badge count to match what the push notification would show
+        await apnsManager.updateBadgeCount((notificationStore?.unreadCount ?? 0) + 1)
     }
     
     // Clear all pending notifications

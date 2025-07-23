@@ -1,0 +1,242 @@
+//
+//  WorkoutChallenge.swift
+//  FameFit
+//
+//  Model for workout challenges between users
+//
+
+import Foundation
+import CloudKit
+import HealthKit
+
+// MARK: - Challenge Type
+
+enum ChallengeType: String, CaseIterable, Codable {
+    case distance = "distance"
+    case duration = "duration"
+    case calories = "calories"
+    case workoutCount = "workout_count"
+    case totalXP = "total_xp"
+    case specificWorkout = "specific_workout"
+    
+    var displayName: String {
+        switch self {
+        case .distance: return "Distance Challenge"
+        case .duration: return "Duration Challenge"
+        case .calories: return "Calorie Burn Challenge"
+        case .workoutCount: return "Workout Count Challenge"
+        case .totalXP: return "XP Challenge"
+        case .specificWorkout: return "Workout Type Challenge"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .distance: return "📏"
+        case .duration: return "⏱️"
+        case .calories: return "🔥"
+        case .workoutCount: return "🏃"
+        case .totalXP: return "⭐"
+        case .specificWorkout: return "💪"
+        }
+    }
+    
+    var unit: String {
+        switch self {
+        case .distance: return "km"
+        case .duration: return "minutes"
+        case .calories: return "cal"
+        case .workoutCount: return "workouts"
+        case .totalXP: return "XP"
+        case .specificWorkout: return "workouts"
+        }
+    }
+}
+
+// MARK: - Challenge Status
+
+enum ChallengeStatus: String, Codable {
+    case pending = "pending"
+    case accepted = "accepted"
+    case declined = "declined"
+    case active = "active"
+    case completed = "completed"
+    case cancelled = "cancelled"
+    case expired = "expired"
+    
+    var canBeAccepted: Bool {
+        self == .pending
+    }
+    
+    var isActive: Bool {
+        self == .active
+    }
+    
+    var isFinished: Bool {
+        [.completed, .cancelled, .expired].contains(self)
+    }
+}
+
+// MARK: - Challenge Participant
+
+struct ChallengeParticipant: Codable, Identifiable {
+    let id: String // User ID
+    let displayName: String
+    let profileImageURL: String?
+    var progress: Double = 0
+    var lastUpdated: Date = Date()
+    
+    var isWinning: Bool = false
+}
+
+// MARK: - Workout Challenge
+
+struct WorkoutChallenge: Identifiable, Codable {
+    let id: String // CKRecord.ID as String
+    let creatorId: String
+    var participants: [ChallengeParticipant]
+    let type: ChallengeType
+    let targetValue: Double
+    let workoutType: String? // For specific workout challenges (e.g., "Running")
+    let name: String
+    let description: String
+    let startDate: Date
+    let endDate: Date
+    let createdAt: Date
+    var status: ChallengeStatus
+    var winnerId: String?
+    
+    // Betting/Stakes (optional)
+    var xpStake: Int = 0 // XP each participant puts up
+    var winnerTakesAll: Bool = false
+    
+    // Privacy
+    var isPublic: Bool = true // Whether challenge shows in public feeds
+    
+    // Computed properties
+    var isExpired: Bool {
+        status == .active && Date() > endDate
+    }
+    
+    var daysRemaining: Int {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: Date(), to: endDate)
+        return max(0, components.day ?? 0)
+    }
+    
+    var progressPercentage: Double {
+        guard targetValue > 0 else { return 0 }
+        let totalProgress = participants.reduce(0) { $0 + $1.progress }
+        let avgProgress = totalProgress / Double(participants.count)
+        return min(100, (avgProgress / targetValue) * 100)
+    }
+    
+    var leadingParticipant: ChallengeParticipant? {
+        participants.max(by: { $0.progress < $1.progress })
+    }
+    
+    // Validation
+    static func isValidChallenge(type: ChallengeType, targetValue: Double, duration: TimeInterval) -> Bool {
+        guard targetValue > 0, duration > 0 else { return false }
+        
+        // Reasonable limits per type
+        switch type {
+        case .distance:
+            return targetValue <= 1000 // Max 1000 km
+        case .duration:
+            return targetValue <= 10000 // Max 10000 minutes
+        case .calories:
+            return targetValue <= 50000 // Max 50000 calories
+        case .workoutCount:
+            return targetValue <= 100 // Max 100 workouts
+        case .totalXP:
+            return targetValue <= 10000 // Max 10000 XP
+        case .specificWorkout:
+            return targetValue <= 50 // Max 50 specific workouts
+        }
+    }
+}
+
+// MARK: - CloudKit Extensions
+
+extension WorkoutChallenge {
+    init?(from record: CKRecord) {
+        guard let creatorId = record["creatorId"] as? String,
+              let participantsData = record["participants"] as? Data,
+              let participants = try? JSONDecoder().decode([ChallengeParticipant].self, from: participantsData),
+              let typeString = record["type"] as? String,
+              let type = ChallengeType(rawValue: typeString),
+              let targetValue = record["targetValue"] as? Double,
+              let name = record["name"] as? String,
+              let description = record["description"] as? String,
+              let startDate = record["startDate"] as? Date,
+              let endDate = record["endDate"] as? Date,
+              let createdAt = record["createdAt"] as? Date,
+              let statusString = record["status"] as? String,
+              let status = ChallengeStatus(rawValue: statusString) else {
+            return nil
+        }
+        
+        self.id = record.recordID.recordName
+        self.creatorId = creatorId
+        self.participants = participants
+        self.type = type
+        self.targetValue = targetValue
+        self.workoutType = record["workoutType"] as? String
+        self.name = name
+        self.description = description
+        self.startDate = startDate
+        self.endDate = endDate
+        self.createdAt = createdAt
+        self.status = status
+        self.winnerId = record["winnerId"] as? String
+        self.xpStake = Int(record["xpStake"] as? Int64 ?? 0)
+        self.winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
+        self.isPublic = (record["isPublic"] as? Int64) == 1
+    }
+    
+    func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
+        let record: CKRecord
+        if let recordID = recordID {
+            record = CKRecord(recordType: "WorkoutChallenges", recordID: recordID)
+        } else {
+            record = CKRecord(recordType: "WorkoutChallenges")
+        }
+        
+        record["creatorId"] = creatorId
+        record["participants"] = try? JSONEncoder().encode(participants)
+        record["type"] = type.rawValue
+        record["targetValue"] = targetValue
+        
+        if let workoutType = workoutType {
+            record["workoutType"] = workoutType
+        }
+        
+        record["name"] = name
+        record["description"] = description
+        record["startDate"] = startDate
+        record["endDate"] = endDate
+        record["createdAt"] = createdAt
+        record["status"] = status.rawValue
+        
+        if let winnerId = winnerId {
+            record["winnerId"] = winnerId
+        }
+        
+        record["xpStake"] = Int64(xpStake)
+        record["winnerTakesAll"] = winnerTakesAll ? Int64(1) : Int64(0)
+        record["isPublic"] = isPublic ? Int64(1) : Int64(0)
+        
+        return record
+    }
+}
+
+// MARK: - Challenge Update
+
+struct ChallengeUpdate: Codable {
+    let challengeId: String
+    let userId: String
+    let progressValue: Double
+    let timestamp: Date
+    let workoutId: String? // Reference to specific workout
+}

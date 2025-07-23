@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  push-service:
+    build: .
+    container_name: famefit-push-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - PORT=3000
+      # CloudKit Configuration
+      - CLOUDKIT_CONTAINER_ID=iCloud.com.jimmypocock.FameFit
+      - CLOUDKIT_API_TOKEN=${CLOUDKIT_API_TOKEN}
+      - CLOUDKIT_ENVIRONMENT=production
+      # APNS Configuration  
+      - APNS_KEY_ID=${APNS_KEY_ID}
+      - APNS_TEAM_ID=${APNS_TEAM_ID}
+      - APNS_BUNDLE_ID=com.jimmypocock.FameFit
+      - APNS_KEY_PATH=./certs/AuthKey.p8
+      - APNS_PRODUCTION=true
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/logs
+      - ./certs:/app/certs:ro
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: famefit-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+  # Optional: Redis monitoring
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: famefit-redis-ui
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    profiles:
+      - monitoring
+
+  # Optional: Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: famefit-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+
+  # Optional: Grafana dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: famefit-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: famefit-network

@@ -76,6 +76,9 @@ final class SocialFeedViewModel: ObservableObject {
         
         // Subscribe to kudos updates
         setupKudosListener()
+        
+        // Start real-time updates
+        startRealTimeUpdates()
     }
     
     func loadInitialFeed() async {
@@ -120,6 +123,93 @@ final class SocialFeedViewModel: ObservableObject {
     
     func updateFilters(_ newFilters: FeedFilters) {
         filters = newFilters
+    }
+    
+    // MARK: - Real-time Updates
+    
+    private func startRealTimeUpdates() {
+        // Set up a timer to periodically check for new items
+        Timer.publish(every: 30.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                Task { [weak self] in
+                    await self?.checkForNewItems()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func checkForNewItems() async {
+        guard !isLoading,
+              let activityFeedService = activityFeedService,
+              !followingUsers.isEmpty else {
+            return
+        }
+        
+        // Get the timestamp of our most recent item
+        guard let mostRecentTimestamp = feedItems.first?.timestamp else {
+            return
+        }
+        
+        do {
+            // Check for items newer than our most recent
+            let newItems = try await activityFeedService.fetchFeed(
+                for: followingUsers,
+                since: mostRecentTimestamp,
+                limit: 50 // Check up to 50 new items
+            )
+            
+            if !newItems.isEmpty {
+                let feedItems = await convertActivityItemsToFeedItems(newItems)
+                await insertNewItems(feedItems)
+            }
+        } catch {
+            // Silently fail for background updates
+            print("Failed to check for new items: \(error)")
+        }
+    }
+    
+    private func insertNewItems(_ items: [FeedItem]) async {
+        // Filter inappropriate content
+        let filteredItems = items.filter { item in
+            !containsInappropriateContent(item.content.title) &&
+            (item.content.subtitle == nil || !containsInappropriateContent(item.content.subtitle!))
+        }
+        
+        guard !filteredItems.isEmpty else { return }
+        
+        // Sort by timestamp (newest first)
+        let sortedItems = filteredItems.sorted { $0.timestamp > $1.timestamp }
+        
+        // Insert at the beginning of the feed
+        feedItems.insert(contentsOf: sortedItems, at: 0)
+        
+        // Load kudos for any new workout items
+        await loadKudosForNewItems(sortedItems)
+    }
+    
+    private func loadKudosForNewItems(_ items: [FeedItem]) async {
+        guard let kudosService = kudosService else { return }
+        
+        let workoutIds = items
+            .filter { $0.type == .workout }
+            .map { $0.id }
+        
+        guard !workoutIds.isEmpty else { return }
+        
+        do {
+            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIds)
+            
+            // Update the new items with kudos data
+            for (index, item) in feedItems.enumerated() {
+                if items.contains(where: { $0.id == item.id }),
+                   let summary = kudosSummaries[item.id] {
+                    feedItems[index].kudosSummary = summary
+                }
+            }
+        } catch {
+            print("Failed to load kudos for new items: \(error)")
+        }
     }
     
     // MARK: - Private Methods

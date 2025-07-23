@@ -200,8 +200,10 @@ class APNSManager: NSObject, APNSManaging {
             await handleFollowRequestNotification(userInfo)
         case "workoutCompleted":
             await handleWorkoutCompletedNotification(userInfo)
-        case "achievementUnlocked":
+        case "achievementUnlocked", "unlockAchieved":
             await handleAchievementNotification(userInfo)
+        case "levelUp":
+            await handleLevelUpNotification(userInfo)
         default:
             print("Unknown notification type: \(notificationType)")
         }
@@ -324,6 +326,11 @@ class APNSManager: NSObject, APNSManaging {
         print("Handling achievement notification")
         // Show achievement details
     }
+    
+    private func handleLevelUpNotification(_ userInfo: [AnyHashable: Any]) async {
+        print("Handling level up notification")
+        // Show level up celebration
+    }
 }
 
 // MARK: - UNUserNotificationCenterDelegate
@@ -393,7 +400,25 @@ extension APNSManager {
             options: .customDismissAction
         )
         
-        let categories: Set<UNNotificationCategory> = [kudosCategory, followCategory]
+        let workoutCategory = UNNotificationCategory(
+            identifier: "WORKOUT_COMPLETED",
+            actions: [
+                UNNotificationAction(
+                    identifier: "VIEW_WORKOUT",
+                    title: "View Details",
+                    options: .foreground
+                ),
+                UNNotificationAction(
+                    identifier: "SHARE_WORKOUT",
+                    title: "Share",
+                    options: .foreground
+                )
+            ],
+            intentIdentifiers: [],
+            options: .customDismissAction
+        )
+        
+        let categories: Set<UNNotificationCategory> = [kudosCategory, followCategory, workoutCategory]
         UNUserNotificationCenter.current().setNotificationCategories(categories)
     }
 }

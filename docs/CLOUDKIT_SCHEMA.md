@@ -99,6 +99,20 @@ Stores follow requests for private profiles.
 | message | String | No | No | No | Optional message (max 280 chars) |
 | expiresAt | Date | Yes | Yes | Yes | Request expiration date |
 
+#### DeviceTokens (NEW)
+Stores device tokens for Apple Push Notification Service (APNS).
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| userID | String | Yes | Yes | Yes | Reference to user's record ID |
+| deviceToken | String | Yes | Yes | Yes | Unique device token from APNS |
+| platform | String | Yes | Yes | No | Values: "iOS", "watchOS" |
+| appVersion | String | Yes | No | No | App version when token was registered |
+| osVersion | String | Yes | No | No | OS version when token was registered |
+| environment | String | Yes | Yes | No | Values: "development", "production" |
+| lastUpdated | Date | Yes | Yes | Yes | When token was last updated |
+| isActive | Int64 | Yes | Yes | No | 1 = active, 0 = inactive |
+
 ### Public Database
 
 #### UserProfiles (NEW)
@@ -168,6 +182,82 @@ Stores kudos/cheers (likes) for workouts.
 - workoutOwnerId (for notifications)
 - createdAt (for rate limiting)
 
+#### WorkoutComments (NEW)
+Stores comments on workout activities.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| workoutId | String | Yes | Yes | Yes | ID of the workout |
+| userId | String | Yes | Yes | Yes | User ID who posted comment |
+| workoutOwnerId | String | Yes | Yes | Yes | User ID who owns the workout |
+| content | String | Yes | No | No | Comment content (max 500 chars) |
+| createdAt | Date | Yes | Yes | Yes | When comment was posted |
+| updatedAt | Date | Yes | Yes | No | When comment was last edited |
+| parentCommentId | String | No | Yes | No | For threaded replies |
+| isEdited | Int64 | Yes | No | No | 1 = edited, 0 = not edited |
+| likeCount | Int64 | Yes | No | No | Number of likes on comment |
+
+**Required Indexes**:
+- workoutId (for fetching all comments for a workout)
+- userId (for fetching all comments by a user)
+- createdAt (for sorting chronologically)
+- parentCommentId (for threaded comment retrieval)
+
+#### WorkoutChallenges (NEW)
+Stores workout challenges between users.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| creatorId | String | Yes | Yes | Yes | User ID who created challenge |
+| participants | Data | Yes | No | No | JSON array of participants |
+| type | String | Yes | Yes | Yes | Challenge type (distance, duration, etc.) |
+| targetValue | Double | Yes | No | No | Target value to achieve |
+| workoutType | String | No | Yes | No | Specific workout type (if applicable) |
+| name | String | Yes | Yes | No | Challenge name |
+| description | String | Yes | No | No | Challenge description |
+| startDate | Date | Yes | Yes | Yes | When challenge starts |
+| endDate | Date | Yes | Yes | Yes | When challenge ends |
+| createdAt | Date | Yes | Yes | Yes | When challenge was created |
+| status | String | Yes | Yes | Yes | Challenge status |
+| winnerId | String | No | Yes | No | User ID of winner |
+| xpStake | Int64 | Yes | No | No | XP bet amount |
+| winnerTakesAll | Int64 | Yes | No | No | 1 = winner takes all, 0 = split |
+| isPublic | Int64 | Yes | Yes | No | 1 = public, 0 = private |
+
+**Required Indexes**:
+- creatorId (for fetching challenges by creator)
+- status (for filtering by challenge state)
+- isPublic (for discovering public challenges)
+- startDate, endDate (for active challenge queries)
+
+#### GroupWorkouts (NEW)
+Stores group workout sessions for real-time collaboration.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| name | String | Yes | Yes | Yes | Workout session name |
+| description | String | Yes | No | No | Workout description |
+| workoutType | Int64 | Yes | Yes | Yes | HKWorkoutActivityType raw value |
+| hostId | String | Yes | Yes | Yes | User ID of session host |
+| participants | Data | Yes | No | No | JSON array of participants |
+| maxParticipants | Int64 | Yes | No | No | Maximum allowed participants |
+| scheduledStart | Date | Yes | Yes | Yes | When workout starts |
+| scheduledEnd | Date | Yes | Yes | Yes | When workout ends |
+| status | String | Yes | Yes | Yes | Values: "scheduled", "active", "completed", "cancelled" |
+| createdAt | Date | Yes | Yes | Yes | When created |
+| updatedAt | Date | Yes | Yes | No | Last update time |
+| isPublic | Int64 | Yes | Yes | Yes | 1 = public, 0 = private |
+| joinCode | String | No | Yes | Yes | Private session join code |
+| tags | String List | No | Yes | No | Searchable tags |
+
+**Required Indexes**:
+- hostId (for fetching sessions by host)
+- status (for filtering by session state)
+- isPublic (for discovering public sessions)
+- scheduledStart (for upcoming sessions)
+- joinCode (for private session joins)
+- workoutType (for filtering by activity)
+
 ## CloudKit Dashboard Setup
 
 To avoid runtime errors, configure the following in CloudKit Dashboard:
@@ -175,8 +265,8 @@ To avoid runtime errors, configure the following in CloudKit Dashboard:
 1. **Create Record Types**:
    - Go to CloudKit Dashboard > Schema > Record Types
    - Create all record types as defined above:
-     - Private Database: `Users`, `WorkoutHistory`, `UserSettings`, `FollowRequests`
-     - Public Database: `UserProfiles`, `UserRelationships`, `ActivityFeedItems`
+     - Private Database: `Users`, `WorkoutHistory`, `UserSettings`, `FollowRequests`, `DeviceTokens`
+     - Public Database: `UserProfiles`, `UserRelationships`, `ActivityFeedItems`, `WorkoutKudos`, `WorkoutComments`, `WorkoutChallenges`, `GroupWorkouts`
    - Add all custom fields as defined above
 
 2. **Configure Indexes**:

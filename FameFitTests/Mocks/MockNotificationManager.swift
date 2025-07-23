@@ -37,8 +37,15 @@ class MockNotificationManager: NotificationManaging {
     
     // Control test behavior
     var mockPermissionStatus: UNAuthorizationStatus = .authorized
+    var currentAuthStatus: UNAuthorizationStatus = .authorized
     var shouldRequestPermissionSucceed = true
     var mockPreferences = NotificationPreferences()
+    
+    // Additional tracking properties expected by tests
+    var scheduleNotificationCalled = false
+    var lastScheduledUserId: String?
+    var lastScheduledNotification: NotificationItem?
+    var allScheduledNotifications: [NotificationItem] = []
     
     // Permission management
     func requestNotificationPermission() async -> Bool {
@@ -54,8 +61,18 @@ class MockNotificationManager: NotificationManaging {
     // Workout notifications
     func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
         notifyWorkoutCompletedCalled = true
+        scheduleNotificationCalled = true
         sentNotifications.append("workout_completed")
         lastWorkoutId = workout.id.uuidString
+        
+        // Create mock notification for tracking
+        let notification = NotificationItem(
+            type: .workoutCompleted,
+            title: "Workout Complete",
+            body: "Great job!"
+        )
+        lastScheduledNotification = notification
+        allScheduledNotifications.append(notification)
     }
     
     func notifyXPMilestone(previousXP: Int, currentXP: Int) async {
@@ -96,10 +113,21 @@ class MockNotificationManager: NotificationManaging {
     
     func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async {
         notifyWorkoutCommentCalled = true
+        scheduleNotificationCalled = true
         sentNotifications.append("workout_comment")
         lastWorkoutId = workoutId
         lastComment = comment
         lastUserId = user.id
+        lastScheduledUserId = user.id
+        
+        // Create mock notification for tracking
+        let notification = NotificationItem(
+            type: .workoutComment,
+            title: "New Comment",
+            body: comment
+        )
+        lastScheduledNotification = notification
+        allScheduledNotifications.append(notification)
     }
     
     func notifyMention(by user: UserProfile, in context: String) async {
@@ -117,6 +145,7 @@ class MockNotificationManager: NotificationManaging {
     
     func notifyFeatureAnnouncement(feature: String, description: String) async {
         notifyFeatureAnnouncementCalled = true
+        scheduleNotificationCalled = true // For GroupWorkoutService tests
         sentNotifications.append("feature_announcement")
     }
     
@@ -140,6 +169,7 @@ class MockNotificationManager: NotificationManaging {
         notifyStreakUpdateCalled = false
         notifyNewFollowerCalled = false
         notifyFollowRequestCalled = false
+        scheduleNotificationCalled = false
         notifyFollowAcceptedCalled = false
         notifyWorkoutKudosCalled = false
         notifyWorkoutCommentCalled = false

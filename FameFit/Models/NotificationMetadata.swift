@@ -56,12 +56,11 @@ struct ChallengeNotificationMetadata: NotificationMetadata {
     var type: String { "challenge" }
     let challengeId: String
     let challengeName: String
-    let challengerUserID: String
-    let challengerUsername: String
     let challengeType: String // "distance", "duration", "calories", "workouts"
-    let targetValue: Int
-    let duration: String // "daily", "weekly", "monthly"
-    let expiresAt: Date
+    let creatorId: String
+    let creatorName: String?
+    let targetValue: Double
+    let endDate: Date
 }
 
 // MARK: - System Metadata

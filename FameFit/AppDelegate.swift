@@ -34,6 +34,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidBecomeActive(_ application: UIApplication) {
         FameFitLogger.info("App became active", category: FameFitLogger.app)
         
+        // Update badge count to reflect current notification state
+        Task {
+            if let container = dependencyContainer {
+                let unreadCount = container.notificationStore.unreadCount
+                await container.apnsManager.updateBadgeCount(unreadCount)
+            }
+        }
+        
         // The WorkoutSyncManager will handle sync automatically
     }
     
