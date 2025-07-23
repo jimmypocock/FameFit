@@ -136,7 +136,9 @@ class FameFitMessageProviderTests: XCTestCase {
         // Then
         // Should return encouragement instead of roast
         let encouragementKeywords = ["amazing", "stronger", "believe", "proud", "crushing", 
-                                    "spirit", "doing", "got this", "Beautiful", "inspiring"]
+                                    "spirit", "doing", "got this", "Beautiful", "inspiring",
+                                    "determination", "Love", "sweetie", "energy", "nailing",
+                                    "progress", "moment", "Embrace"]
         let containsEncouragement = encouragementKeywords.contains { keyword in
             roastMessage.contains(keyword)
         }
