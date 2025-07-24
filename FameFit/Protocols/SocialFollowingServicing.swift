@@ -84,7 +84,6 @@ struct UserRelationship: Codable, Identifiable {
     let id: String
     let followerID: String
     let followingID: String
-    let createdTimestamp: Date
     let status: String // "active", "blocked", "muted"
     let notificationsEnabled: Bool
     

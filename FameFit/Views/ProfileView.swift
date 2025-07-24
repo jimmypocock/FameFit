@@ -410,7 +410,14 @@ struct ProfileView: View {
         
         Task {
             do {
-                let loadedProfile = try await profileService.fetchProfile(userId: userId)
+                let loadedProfile: UserProfile
+                if isOwnProfile {
+                    // Use the same method as MainViewModel for current user
+                    loadedProfile = try await profileService.fetchCurrentUserProfile()
+                } else {
+                    // For other users, we need to use the correct method (this should be fixed in ProfileService)
+                    loadedProfile = try await profileService.fetchProfile(userId: userId)
+                }
                 await MainActor.run {
                     self.profile = loadedProfile
                     self.isLoading = false

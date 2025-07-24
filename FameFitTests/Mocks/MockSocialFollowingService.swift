@@ -59,7 +59,6 @@ final class MockSocialFollowingService: SocialFollowingServicing {
             id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
             followerID: currentUserId,
             followingID: userId,
-            createdTimestamp: Date(),
             status: "active",
             notificationsEnabled: true
         )

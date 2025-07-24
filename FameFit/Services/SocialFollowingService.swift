@@ -107,7 +107,6 @@ final class SocialFollowingService: SocialFollowingServicing {
             id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
             followerID: currentUserId,
             followingID: userId,
-            createdTimestamp: Date(),
             status: "active",
             notificationsEnabled: true
         )
@@ -189,7 +188,6 @@ final class SocialFollowingService: SocialFollowingServicing {
         // Query for relationships where this user is being followed
         let predicate = NSPredicate(format: "followingID == %@ AND status == %@", userId, "active")
         let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         
         do {
             let results = try await database.records(matching: query, resultsLimit: limit)
@@ -219,7 +217,6 @@ final class SocialFollowingService: SocialFollowingServicing {
         // Query for relationships where this user is following others
         let predicate = NSPredicate(format: "followerID == %@ AND status == %@", userId, "active")
         let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         
         do {
             let results = try await database.records(matching: query, resultsLimit: limit)
@@ -284,7 +281,6 @@ final class SocialFollowingService: SocialFollowingServicing {
                 id: relationshipId,
                 followerID: userId,
                 followingID: targetId,
-                createdTimestamp: record.creationDate ?? Date(),
                 status: status,
                 notificationsEnabled: record["notificationsEnabled"] as? Int64 == 1
             )
@@ -331,7 +327,6 @@ final class SocialFollowingService: SocialFollowingServicing {
             id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
             followerID: currentUserId,
             followingID: userId,
-            createdTimestamp: Date(),
             status: "blocked",
             notificationsEnabled: false
         )

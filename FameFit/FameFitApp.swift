@@ -125,7 +125,7 @@ struct ContentView: View {
                 userProfileService: container.userProfileService,
                 socialFollowingService: container.socialFollowingService
             )
-            MainView(viewModel: viewModel)
+            TabMainView(viewModel: viewModel)
         } else {
             OnboardingView()
         }
