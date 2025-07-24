@@ -312,7 +312,9 @@ final class NotificationScheduler: NotificationScheduling {
             actions: notification.actions,
             groupId: notification.groupId
         )
-        notificationStore.addNotification(item)
+        Task { @MainActor in
+            notificationStore.addNotification(item)
+        }
         
         // Schedule push notification if enabled
         if preferences.pushNotificationsEnabled {

@@ -245,9 +245,8 @@ class CloudKitSchemaManager {
         } catch {
             if error.localizedDescription.contains("Record type") || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "UserRelationships")
-                dummyRecord["followerId"] = "dummy1"
-                dummyRecord["followingId"] = "dummy2"
-                dummyRecord["createdAt"] = Date()
+                dummyRecord["followerID"] = "dummy1"
+                dummyRecord["followingID"] = "dummy2"
                 dummyRecord["status"] = "active"
                 dummyRecord["notificationsEnabled"] = Int64(1)
                 

@@ -122,7 +122,8 @@ struct ContentView: View {
                 authManager: authManager,
                 cloudKitManager: cloudKitManager,
                 notificationStore: notificationStore,
-                userProfileService: container.userProfileService
+                userProfileService: container.userProfileService,
+                socialFollowingService: container.socialFollowingService
             )
             MainView(viewModel: viewModel)
         } else {

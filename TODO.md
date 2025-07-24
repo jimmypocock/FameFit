@@ -520,12 +520,12 @@ UserSettings (Private Database)
 - [ ] **CloudKit Relationship Schema**
   ```
   UserRelationship (Public Database)
-  - relationshipId: String (CKRecord.ID)
-  - followerId: String (Reference) - QUERYABLE
-  - followingId: String (Reference) - QUERYABLE
-  - createdAt: Date - QUERYABLE, SORTABLE
-  - status: String ("active", "blocked", "muted")
+  - relationshipId: String (CKRecord.ID = "\(followerID)_follows_\(followingID)")
+  - followerID: String (Reference) - QUERYABLE, SORTABLE
+  - followingID: String (Reference) - QUERYABLE, SORTABLE
+  - status: String ("active", "blocked", "muted") - QUERYABLE
   - notificationsEnabled: Int64
+  - Uses system fields: createdTimestamp, modificationTimestamp
   
   FollowRequest (Private Database) - For private profiles
   - requestId: String (CKRecord.ID)
@@ -536,10 +536,11 @@ UserSettings (Private Database)
   - message: String (optional)
   ```
   
-- [ ] **Security Indexes**
-  - Compound index: followerId + followingId (prevent duplicates)
-  - Rate limiting index: followerId + createdAt
-  - Block list index: followerId + status
+- [ ] **Required Indexes**
+  - followerID (QUERYABLE, SORTABLE)
+  - followingID (QUERYABLE, SORTABLE)
+  - status (QUERYABLE)
+  - ___recordID (QUERYABLE) - Critical system index
 
 **Day 3-4: Core Following Service**
 - [ ] **SocialFollowingService Protocol**
@@ -1284,6 +1285,17 @@ Ready to implement Social Interactions!
    - Add UI for roast level customization
    - Extend view model pattern to remaining views
    - Apple Watch companion for social features
+
+5. **Workout Buddies - Second Degree Connections**:
+   - Create `SecondDegreeConnections` denormalized cache table
+   - Implement "Workout Buddies" feature based on:
+     - Similar workout times (±1 hour window)
+     - Common workout types
+     - Comparable fitness levels (XP-based)
+   - Show mutual connections in user discovery
+   - Background job to maintain connection cache
+   - Suggested follows based on friends-of-friends
+   - Leverage workout data for social connections instead of complex graph traversal
 
 ---
 

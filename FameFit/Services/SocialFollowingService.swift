@@ -104,10 +104,10 @@ final class SocialFollowingService: SocialFollowingServicing {
         
         // Create relationship
         let relationship = UserRelationship(
-            id: UserRelationship.makeId(followerId: currentUserId, followingId: userId),
-            followerId: currentUserId,
-            followingId: userId,
-            createdAt: Date(),
+            id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
+            followerID: currentUserId,
+            followingID: userId,
+            createdTimestamp: Date(),
             status: "active",
             notificationsEnabled: true
         )
@@ -137,7 +137,7 @@ final class SocialFollowingService: SocialFollowingServicing {
         _ = try await rateLimiter.checkLimit(for: .unfollow, userId: currentUserId)
         
         // Find and delete relationship
-        let relationshipId = UserRelationship.makeId(followerId: currentUserId, followingId: userId)
+        let relationshipId = UserRelationship.makeId(followerID: currentUserId, followingID: userId)
         
         let database = container.publicCloudDatabase
         let recordID = CKRecord.ID(recordName: relationshipId)
@@ -187,16 +187,16 @@ final class SocialFollowingService: SocialFollowingServicing {
         let database = container.publicCloudDatabase
         
         // Query for relationships where this user is being followed
-        let predicate = NSPredicate(format: "followingId == %@ AND status == %@", userId, "active")
+        let predicate = NSPredicate(format: "followingID == %@ AND status == %@", userId, "active")
         let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         
         do {
             let results = try await database.records(matching: query, resultsLimit: limit)
             
             // Extract follower IDs
             let followerIds = results.matchResults.compactMap { _, result in
-                try? result.get()["followerId"] as? String
+                try? result.get()["followerID"] as? String
             }
             
             // Fetch profiles
@@ -217,16 +217,16 @@ final class SocialFollowingService: SocialFollowingServicing {
         let database = container.publicCloudDatabase
         
         // Query for relationships where this user is following others
-        let predicate = NSPredicate(format: "followerId == %@ AND status == %@", userId, "active")
+        let predicate = NSPredicate(format: "followerID == %@ AND status == %@", userId, "active")
         let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         
         do {
             let results = try await database.records(matching: query, resultsLimit: limit)
             
             // Extract following IDs
             let followingIds = results.matchResults.compactMap { _, result in
-                try? result.get()["followingId"] as? String
+                try? result.get()["followingID"] as? String
             }
             
             // Fetch profiles
@@ -271,7 +271,7 @@ final class SocialFollowingService: SocialFollowingServicing {
         }
         
         // Query CloudKit
-        let relationshipId = UserRelationship.makeId(followerId: userId, followingId: targetId)
+        let relationshipId = UserRelationship.makeId(followerID: userId, followingID: targetId)
         let database = container.publicCloudDatabase
         let recordID = CKRecord.ID(recordName: relationshipId)
         
@@ -282,9 +282,9 @@ final class SocialFollowingService: SocialFollowingServicing {
             // Cache the result
             let relationship = UserRelationship(
                 id: relationshipId,
-                followerId: userId,
-                followingId: targetId,
-                createdAt: record.creationDate ?? Date(),
+                followerID: userId,
+                followingID: targetId,
+                createdTimestamp: record.creationDate ?? Date(),
                 status: status,
                 notificationsEnabled: record["notificationsEnabled"] as? Int64 == 1
             )
@@ -328,10 +328,10 @@ final class SocialFollowingService: SocialFollowingServicing {
         
         // Create or update relationship with blocked status
         let relationship = UserRelationship(
-            id: UserRelationship.makeId(followerId: currentUserId, followingId: userId),
-            followerId: currentUserId,
-            followingId: userId,
-            createdAt: Date(),
+            id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
+            followerID: currentUserId,
+            followingID: userId,
+            createdTimestamp: Date(),
             status: "blocked",
             notificationsEnabled: false
         )
@@ -339,7 +339,7 @@ final class SocialFollowingService: SocialFollowingServicing {
         try await saveRelationship(relationship)
         
         // Also remove them as follower
-        let reverseId = UserRelationship.makeId(followerId: userId, followingId: currentUserId)
+        let reverseId = UserRelationship.makeId(followerID: userId, followingID: currentUserId)
         let database = container.publicCloudDatabase
         let reverseRecordID = CKRecord.ID(recordName: reverseId)
         
@@ -363,9 +363,8 @@ final class SocialFollowingService: SocialFollowingServicing {
         let database = container.publicCloudDatabase
         let record = CKRecord(recordType: "UserRelationships", recordID: CKRecord.ID(recordName: relationship.id))
         
-        record["followerId"] = relationship.followerId
-        record["followingId"] = relationship.followingId
-        record["createdAt"] = relationship.createdAt
+        record["followerID"] = relationship.followerID
+        record["followingID"] = relationship.followingID
         record["status"] = relationship.status
         record["notificationsEnabled"] = relationship.notificationsEnabled ? 1 : 0
         

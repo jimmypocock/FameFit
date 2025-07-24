@@ -6,12 +6,13 @@ struct MainView: View {
     @StateObject private var viewModel: MainViewModel
     @State private var showingNotifications = false
     @State private var showingWorkoutHistory = false
-    @State private var showingProfile = false
-    @State private var showingProfileCreation = false
+    @State private var showingEditProfile = false
     @State private var showingUserSearch = false
     @State private var showingSocialFeed = false
     @State private var showingWorkoutSharingPrompt = false
     @State private var showingNotificationDebug = false
+    @State private var showingFollowersList = false
+    @State private var selectedFollowTab: FollowListTab = .followers
     @State private var workoutToShare: WorkoutHistoryItem?
     
     @Environment(\.dependencyContainer) var container
@@ -23,110 +24,55 @@ struct MainView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 30) {
-                // Profile Card
-                Button(action: {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Profile Header Section
                     if viewModel.hasProfile {
-                        showingProfile = true
+                        profileHeaderSection
                     } else {
-                        showingProfileCreation = true
-                    }
-                }) {
-                    HStack(spacing: 16) {
-                        // Profile Image
-                        if let profile = viewModel.userProfile {
-                            profileImage(for: profile)
-                        } else {
-                            defaultProfileImage
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome back,")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text(viewModel.userName)
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            
-                            if let username = viewModel.userProfile?.username {
-                                Text("@\(username)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(15)
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                VStack(spacing: 20) {
-                    XPProgressView(currentXP: viewModel.totalXP)
-
-                    HStack {
-                        Button(action: {
-                            showingWorkoutHistory = true
-                        }) {
-                            StatCard(title: "Workouts", value: "\(viewModel.totalWorkouts)", icon: "figure.run")
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        StatCard(title: "Streak", value: "\(viewModel.currentStreak)", icon: "flame.fill")
+                        loadingProfileSection
                     }
                     
-                    VStack(spacing: 12) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("Member Since")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                if let joinDate = viewModel.joinDate {
-                                    Text(joinDate, style: .date)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text("Today")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing) {
-                                Text("Last Workout")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                if let lastWorkout = viewModel.lastWorkoutDate {
-                                    Text(lastWorkout, style: .relative)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text("None yet")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(15)
+                    // XP Progress - Featured prominently
+                    if viewModel.hasProfile {
+                        XPProgressView(currentXP: viewModel.totalXP)
+                            .padding(.horizontal)
                     }
+                    
+                    // Stats Grid
+                    if viewModel.hasProfile {
+                        statsGrid
+                            .padding(.horizontal)
+                    }
+                    
+                    // Bio Section
+                    if let profile = viewModel.userProfile, !profile.bio.isEmpty {
+                        bioSection(profile)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Additional Info
+                    if viewModel.hasProfile {
+                        VStack(spacing: 12) {
+                            // Privacy Settings
+                            if let profile = viewModel.userProfile {
+                                privacyInfo(profile)
+                            }
+                            
+                            // Member Info
+                            memberInfoSection
+                            
+                            // Last Workout
+                            lastWorkoutSection
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    // Bottom padding for scroll content
+                    Color.clear.frame(height: 20)
                 }
-
-                Spacer()
+                .padding(.top)
             }
-            .padding()
             .navigationTitle("FameFit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -161,6 +107,16 @@ struct MainView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
+                        if viewModel.hasProfile {
+                            Button(action: {
+                                showingEditProfile = true
+                            }) {
+                                Label("Edit Profile", systemImage: "pencil")
+                            }
+                            
+                            Divider()
+                        }
+                        
                         Button(action: {
                             showingSocialFeed = true
                         }) {
@@ -203,18 +159,12 @@ struct MainView: View {
         .sheet(isPresented: $showingWorkoutHistory) {
             WorkoutHistoryView()
         }
-        .sheet(isPresented: $showingProfile) {
-            if let userId = viewModel.userProfile?.id {
-                ProfileView(userId: userId)
-            }
-        }
-        .sheet(isPresented: $showingProfileCreation) {
-            ProfileCreationView()
-                .interactiveDismissDisabled()
-                .onDisappear {
-                    // Refresh to load the new profile
-                    viewModel.loadUserProfile()
+        .sheet(isPresented: $showingEditProfile) {
+            if let profile = viewModel.userProfile {
+                EditProfileView(profile: profile) { updatedProfile in
+                    viewModel.userProfile = updatedProfile
                 }
+            }
         }
         .sheet(isPresented: $showingUserSearch) {
             UserSearchView()
@@ -233,9 +183,15 @@ struct MainView: View {
         .sheet(isPresented: $showingNotificationDebug) {
             NotificationDebugView()
         }
+        .sheet(isPresented: $showingFollowersList) {
+            if let userId = viewModel.userProfile?.id {
+                FollowersListView(userId: userId, initialTab: selectedFollowTab)
+            }
+        }
         .onAppear {
             viewModel.refreshData()
             viewModel.loadUserProfile()
+            viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
             
             #if DEBUG
@@ -249,7 +205,278 @@ struct MainView: View {
         }
     }
     
-    // MARK: - Workout Sharing
+    // MARK: - Profile Header Section
+    
+    private var profileHeaderSection: some View {
+        VStack(spacing: 16) {
+            // Profile Image
+            if let profile = viewModel.userProfile {
+                profileImage(for: profile)
+                    .frame(width: 120, height: 120)
+            }
+            
+            // Name and Username
+            VStack(spacing: 4) {
+                Text(viewModel.userProfile?.displayName ?? viewModel.userName)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                if let username = viewModel.userProfile?.username {
+                    Text("@\(username)")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Verified Badge
+            if viewModel.userProfile?.isVerified == true {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.blue)
+                    Text("Verified")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            
+            // Level and Title
+            let levelInfo = XPCalculator.getLevel(for: viewModel.totalXP)
+            VStack(spacing: 4) {
+                Text("Level \(levelInfo.level)")
+                    .font(.headline)
+                    .foregroundColor(.purple)
+                Text(levelInfo.title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+    }
+    
+    private var loadingProfileSection: some View {
+        VStack(spacing: 20) {
+            if !container.cloudKitManager.isAvailable {
+                // CloudKit not signed in
+                Image(systemName: "icloud.slash")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+                
+                Text("iCloud Required")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                VStack(spacing: 8) {
+                    Text("Please sign in to iCloud to access your profile and sync your data.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Go to Settings → [Your Name] → iCloud")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .multilineTextAlignment(.center)
+                }
+            } else {
+                // CloudKit signed in but profile loading
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                
+                Text("Loading Profile...")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                
+                Text("Your fitness journey is loading")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 200)
+        .padding()
+    }
+    
+    // MARK: - Stats Grid
+    
+    private var statsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+            // Followers - Clickable
+            Button(action: {
+                selectedFollowTab = .followers
+                showingFollowersList = true
+            }) {
+                StatCard(
+                    title: "Followers",
+                    value: formatNumber(viewModel.followerCount),
+                    icon: "person.2.fill",
+                    color: .blue
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Following - Clickable
+            Button(action: {
+                selectedFollowTab = .following
+                showingFollowersList = true
+            }) {
+                StatCard(
+                    title: "Following",
+                    value: formatNumber(viewModel.followingCount),
+                    icon: "person.crop.circle.fill.badge.plus",
+                    color: .purple
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Workouts - Clickable
+            Button(action: {
+                showingWorkoutHistory = true
+            }) {
+                StatCard(
+                    title: "Workouts",
+                    value: "\(viewModel.totalWorkouts)",
+                    icon: "figure.run",
+                    color: .orange
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Streak
+            StatCard(
+                title: "Streak",
+                value: "\(viewModel.currentStreak)",
+                icon: "flame.fill",
+                color: .red
+            )
+            
+            // Total XP
+            StatCard(
+                title: "Total XP",
+                value: formatNumber(viewModel.totalXP),
+                icon: "star.fill",
+                color: .yellow
+            )
+            
+            // Status
+            if viewModel.userProfile?.isActive == true {
+                StatCard(
+                    title: "Status",
+                    value: "Active",
+                    icon: "bolt.fill",
+                    color: .green
+                )
+            } else {
+                StatCard(
+                    title: "Status",
+                    value: "Inactive",
+                    icon: "moon.zzz.fill",
+                    color: .gray
+                )
+            }
+        }
+    }
+    
+    // MARK: - Bio Section
+    
+    private func bioSection(_ profile: UserProfile) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("About")
+                .font(.headline)
+            
+            Text(profile.bio)
+                .font(.body)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Additional Info Sections
+    
+    private func privacyInfo(_ profile: UserProfile) -> some View {
+        HStack {
+            Image(systemName: privacyIcon(for: profile.privacyLevel))
+                .foregroundColor(.blue)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Privacy Setting")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(profile.privacyLevel.displayName)
+                    .font(.body)
+                    .fontWeight(.medium)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var memberInfoSection: some View {
+        HStack {
+            Image(systemName: "calendar")
+                .foregroundColor(.purple)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Member Since")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if let joinDate = viewModel.joinDate {
+                    Text(joinDate, style: .date)
+                        .font(.body)
+                        .fontWeight(.medium)
+                } else {
+                    Text("Today")
+                        .font(.body)
+                        .fontWeight(.medium)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var lastWorkoutSection: some View {
+        HStack {
+            Image(systemName: "figure.run")
+                .foregroundColor(.orange)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Last Workout")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if let lastWorkout = viewModel.lastWorkoutDate {
+                    Text(lastWorkout, style: .relative)
+                        .font(.body)
+                        .fontWeight(.medium)
+                } else {
+                    Text("No workouts yet")
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Helper Methods
     
     private func setupWorkoutSharingListener() {
         container.workoutObserver.workoutCompletedPublisher
@@ -268,15 +495,12 @@ struct MainView: View {
         showingWorkoutSharingPrompt = true
     }
     
-    // MARK: - Helper Views
-    
     private func profileImage(for profile: UserProfile) -> some View {
         Group {
             if let _ = profile.profileImageURL {
                 // TODO: Load actual image
                 Circle()
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 50, height: 50)
                     .overlay(
                         Text("Photo")
                             .font(.caption)
@@ -290,52 +514,65 @@ struct MainView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ))
-                        .frame(width: 50, height: 50)
                     
                     Text(profile.initials)
-                        .font(.headline)
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
             }
         }
     }
     
-    private var defaultProfileImage: some View {
-        ZStack {
-            Circle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 50, height: 50)
-            
-            Image(systemName: "person.fill")
-                .font(.title2)
-                .foregroundColor(.gray)
+    private func formatNumber(_ number: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
+    }
+    
+    private func privacyIcon(for level: ProfilePrivacyLevel) -> String {
+        switch level {
+        case .publicProfile:
+            return "globe"
+        case .friendsOnly:
+            return "person.2.fill"
+        case .privateProfile:
+            return "lock.fill"
         }
     }
 }
+
+// MARK: - Stat Card Component
 
 struct StatCard: View {
     let title: String
     let value: String
     let icon: String
+    let color: Color
 
     var body: some View {
-        VStack {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.purple)
-
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .font(.title3)
+                
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity)
         .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(15)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
 }
 
@@ -345,7 +582,8 @@ struct StatCard: View {
         authManager: container.authenticationManager,
         cloudKitManager: container.cloudKitManager,
         notificationStore: container.notificationStore,
-        userProfileService: container.userProfileService
+        userProfileService: container.userProfileService,
+        socialFollowingService: container.socialFollowingService
     )
     return MainView(viewModel: viewModel)
 }

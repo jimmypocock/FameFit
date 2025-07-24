@@ -94,7 +94,7 @@ The FameFit Push Notification Service is a backend service responsible for sendi
   target: "followed user",
   timing: "immediate",
   data: {
-    followerId: "uuid",
+    followerID: "uuid",
     followerName: "John Doe",
     followerUsername: "johndoe"
   }

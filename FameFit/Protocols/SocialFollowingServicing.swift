@@ -82,14 +82,14 @@ struct FollowRequest: Codable, Identifiable {
 
 struct UserRelationship: Codable, Identifiable {
     let id: String
-    let followerId: String
-    let followingId: String
-    let createdAt: Date
+    let followerID: String
+    let followingID: String
+    let createdTimestamp: Date
     let status: String // "active", "blocked", "muted"
     let notificationsEnabled: Bool
     
-    static func makeId(followerId: String, followingId: String) -> String {
-        "\(followerId)_\(followingId)"
+    static func makeId(followerID: String, followingID: String) -> String {
+        "\(followerID)_follows_\(followingID)"
     }
 }
 

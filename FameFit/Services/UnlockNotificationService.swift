@@ -93,7 +93,9 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
             ))
         )
         
-        notificationStore.addNotification(notification)
+        Task { @MainActor in
+            notificationStore.addNotification(notification)
+        }
         userDefaults.set(true, forKey: notificationKey)
         
         // Also send a local push notification if permissions granted
@@ -111,7 +113,9 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
             body: "\(unlock.name): \(unlock.description)"
         )
         
-        notificationStore.addNotification(notification)
+        Task { @MainActor in
+            notificationStore.addNotification(notification)
+        }
         
         // Also send a local push notification if permissions granted
         await sendLocalNotification(

@@ -107,23 +107,23 @@ class PushNotificationService {
     
     try {
       const relationship = change.record;
-      const followerId = relationship.fields.followerId?.value;
-      const followedId = relationship.fields.followedId?.value;
+      const followerID = relationship.fields.followerID?.value;
+      const followingID = relationship.fields.followingID?.value;
       
-      if (!followerId || !followedId) return;
+      if (!followerID || !followingID) return;
       
-      this.logger.debug(`Processing new follow: ${followerId} -> ${followedId}`);
+      this.logger.debug(`Processing new follow: ${followerID} -> ${followingID}`);
       
       // Get follower's profile info
-      const followerProfile = await this.getUserProfile(followerId);
+      const followerProfile = await this.getUserProfile(followerID);
       if (!followerProfile) return;
       
       const notification = {
-        userId: followedId,
+        userId: followingID,
         type: 'new_follower',
         priority: 'high',
         data: {
-          followerId: followerId,
+          followerID: followerID,
           followerName: followerProfile.displayName,
           followerUsername: followerProfile.username,
           followerXP: followerProfile.totalXP

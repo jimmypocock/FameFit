@@ -350,7 +350,7 @@ final class SocialFollowingServiceTests: XCTestCase {
         // Then
         await fulfillment(of: [expectation], timeout: 1.0)
         XCTAssertEqual(receivedUpdates.count, 1)
-        XCTAssertEqual(receivedUpdates.first?.followingId, "new-friend")
+        XCTAssertEqual(receivedUpdates.first?.followingID, "new-friend")
     }
     
     // MARK: - Edge Cases

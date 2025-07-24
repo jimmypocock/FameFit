@@ -81,7 +81,10 @@ class NotificationStore: ObservableObject, NotificationStoring {
     }
     
     private func updateUnreadCount() {
-        unreadCount = notifications.filter { !$0.isRead }.count
+        let newCount = notifications.filter { !$0.isRead }.count
+        Task { @MainActor in
+            unreadCount = newCount
+        }
     }
     
     private func updateBadgeCount() {

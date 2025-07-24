@@ -56,10 +56,10 @@ final class MockSocialFollowingService: SocialFollowingServicing {
         
         // Send update
         let relationship = UserRelationship(
-            id: UserRelationship.makeId(followerId: currentUserId, followingId: userId),
-            followerId: currentUserId,
-            followingId: userId,
-            createdAt: Date(),
+            id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
+            followerID: currentUserId,
+            followingID: userId,
+            createdTimestamp: Date(),
             status: "active",
             notificationsEnabled: true
         )

@@ -17,6 +17,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
     private let cloudKitManager: any CloudKitManaging
     private let notificationStore: any NotificationStoring
     private let userProfileService: any UserProfileServicing
+    private let socialFollowingService: any SocialFollowingServicing
     
     // MARK: - Published Properties
     @Published private var _userName: String = ""
@@ -28,6 +29,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
     @Published var userProfile: UserProfile?
+    @Published var followerCount: Int = 0
+    @Published var followingCount: Int = 0
     
     // MARK: - Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -37,12 +40,14 @@ class MainViewModel: ObservableObject, MainViewModeling {
         authManager: any AuthenticationManaging,
         cloudKitManager: any CloudKitManaging,
         notificationStore: any NotificationStoring,
-        userProfileService: any UserProfileServicing
+        userProfileService: any UserProfileServicing,
+        socialFollowingService: any SocialFollowingServicing
     ) {
         self.authManager = authManager
         self.cloudKitManager = cloudKitManager
         self.notificationStore = notificationStore
         self.userProfileService = userProfileService
+        self.socialFollowingService = socialFollowingService
         
         setupBindings()
     }
@@ -71,7 +76,6 @@ class MainViewModel: ObservableObject, MainViewModeling {
     func refreshData() {
         cloudKitManager.fetchUserRecord()
         refreshFromDependencies()
-        loadUserProfile()
     }
     
     func signOut() {
@@ -84,6 +88,9 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     func loadUserProfile() {
         Task {
+            // First ensure CloudKit is ready
+            await ensureCloudKitReady()
+            
             do {
                 let profile = try await userProfileService.fetchCurrentUserProfile()
                 await MainActor.run {
@@ -94,6 +101,50 @@ class MainViewModel: ObservableObject, MainViewModeling {
                 await MainActor.run {
                     self.userProfile = nil
                 }
+            }
+        }
+    }
+    
+    private func ensureCloudKitReady() async {
+        // Wait for CloudKit to be properly initialized
+        var attempts = 0
+        let maxAttempts = 30 // 3 seconds max wait
+        
+        while !cloudKitManager.isAvailable || cloudKitManager.currentUserID == nil {
+            if attempts >= maxAttempts {
+                print("⚠️ CloudKit initialization timeout after 3 seconds")
+                break
+            }
+            
+            // Trigger CloudKit initialization if needed
+            if attempts == 0 {
+                cloudKitManager.checkAccountStatus()
+            }
+            
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            attempts += 1
+        }
+    }
+    
+    func loadFollowerCounts() {
+        guard let userId = userProfile?.id ?? cloudKitManager.currentUserID else { return }
+        
+        Task {
+            do {
+                // Load counts in parallel
+                async let followers = socialFollowingService.getFollowerCount(for: userId)
+                async let following = socialFollowingService.getFollowingCount(for: userId)
+                
+                let followerCount = try await followers
+                let followingCount = try await following
+                
+                await MainActor.run {
+                    self.followerCount = followerCount
+                    self.followingCount = followingCount
+                }
+            } catch {
+                // Silently fail, counts are not critical
+                print("Failed to load follower counts: \(error)")
             }
         }
     }

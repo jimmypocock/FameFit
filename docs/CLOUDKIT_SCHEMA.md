@@ -138,17 +138,21 @@ Stores social following relationships between users.
 
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
-| followerId | String | Yes | Yes | Yes | User ID of follower |
-| followingId | String | Yes | Yes | Yes | User ID being followed |
-| createdAt | Date | Yes | Yes | Yes | Relationship creation timestamp |
-| status | String | Yes | Yes | Yes | Values: "active", "blocked", "muted" |
+| followerID | String | Yes | Yes | Yes | User ID of follower |
+| followingID | String | Yes | Yes | Yes | User ID being followed |
+| status | String | Yes | Yes | No | Values: "active", "blocked", "muted" |
 | notificationsEnabled | Int64 | Yes | No | No | 1 = notifications on, 0 = off |
 
+**System Fields** (automatically provided):
+- createdTimestamp (Date) - When the record was created
+- modificationTimestamp (Date) - When the record was last modified
+- recordName (String) - Unique identifier: "\(followerID)_follows_\(followingID)"
+
 **Required Indexes**:
-- Compound index: followerId + followingId (uniqueness constraint)
-- followerId + createdAt (rate limiting)
-- followerId + status (block filtering)
-- followingId (reverse lookups)
+- followerID (QUERYABLE, SORTABLE)
+- followingID (QUERYABLE, SORTABLE)
+- status (QUERYABLE)
+- ___recordID (QUERYABLE) - Critical for preventing query errors
 
 #### ActivityFeedItems (NEW)
 Stores user activities for social feeds.
