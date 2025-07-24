@@ -64,7 +64,7 @@ struct FameFitApp: App {
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
                 container.cloudKitManager.userName = "Test User"
-                container.cloudKitManager.influencerXP = 100
+                container.cloudKitManager.totalXP = 100
                 container.cloudKitManager.totalWorkouts = 20
                 container.cloudKitManager.currentStreak = 5
             }
@@ -90,6 +90,20 @@ struct FameFitApp: App {
                         // Start the reliable sync manager using HKAnchoredObjectQuery
                         // This provides more reliable workout tracking than observer queries
                         dependencyContainer.workoutSyncManager.startReliableSync()
+                        
+                        // Request APNS permissions if user has completed onboarding
+                        if dependencyContainer.authenticationManager.hasCompletedOnboarding {
+                            Task {
+                                do {
+                                    let granted = try await dependencyContainer.apnsManager.requestNotificationPermissions()
+                                    if granted {
+                                        dependencyContainer.apnsManager.registerForRemoteNotifications()
+                                    }
+                                } catch {
+                                    print("Failed to request APNS permissions: \(error)")
+                                }
+                            }
+                        }
                     }
                 }
         }
@@ -100,15 +114,18 @@ struct ContentView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var notificationStore: NotificationStore
+    @Environment(\.dependencyContainer) var container
     
     var body: some View {
         if authManager.isAuthenticated && authManager.hasCompletedOnboarding {
             let viewModel = MainViewModel(
                 authManager: authManager,
                 cloudKitManager: cloudKitManager,
-                notificationStore: notificationStore
+                notificationStore: notificationStore,
+                userProfileService: container.userProfileService,
+                socialFollowingService: container.socialFollowingService
             )
-            MainView(viewModel: viewModel)
+            TabMainView(viewModel: viewModel)
         } else {
             OnboardingView()
         }

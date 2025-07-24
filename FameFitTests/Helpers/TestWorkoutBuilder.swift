@@ -109,7 +109,7 @@ struct TestWorkoutBuilder {
         // - Moving to integration tests would make our test suite slow and device-dependent
         //
         // When Apple provides a proper testing API, we'll migrate immediately.
-        @available(iOS, deprecated: 17.0, message: "Using deprecated API for testing only - no alternative exists")
+        // Using deprecated API for testing - no viable alternative exists for unit testing
         let workout = HKWorkout(
             activityType: type,
             start: startDate,

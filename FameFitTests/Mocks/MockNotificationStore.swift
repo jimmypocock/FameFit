@@ -97,6 +97,20 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
         }
     }
     
+    func deleteNotification(_ id: String) {
+        deleteNotificationCalled = true
+        
+        if !shouldFailOperations {
+            notifications.removeAll { $0.id == id }
+            updateUnreadCount()
+            saveNotifications()
+        }
+    }
+    
+    func clearAllNotifications() {
+        clearAll()
+    }
+    
     func loadNotifications() {
         loadNotificationsCalled = true
         

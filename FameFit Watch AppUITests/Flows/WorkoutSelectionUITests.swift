@@ -44,14 +44,14 @@ final class WorkoutSelectionUITests: XCTestCase {
         
         // Look for workout buttons - they might be in a carousel list
         // Try different ways to find the buttons
-        let runButton = app.buttons["Run"]
-        let walkButton = app.buttons["Walk"]
-        let bikeButton = app.buttons["Bike"]
+        let runButton = app.buttons["Running"]
+        let walkButton = app.buttons["Walking"]
+        let bikeButton = app.buttons["Cycling"]
         
         // Also try finding by static text if buttons don't work
-        let runText = app.staticTexts["Run"]
-        let walkText = app.staticTexts["Walk"]
-        let bikeText = app.staticTexts["Bike"]
+        let runText = app.staticTexts["Running"]
+        let walkText = app.staticTexts["Walking"]
+        let bikeText = app.staticTexts["Cycling"]
         
         // Wait for at least one workout option to appear (button or text)
         let workoutExists = runButton.waitForExistence(timeout: 5) || 
@@ -68,9 +68,9 @@ final class WorkoutSelectionUITests: XCTestCase {
             print("DEBUG: Number of static texts found: \(app.staticTexts.count)")
             
             // Try to find any button or text containing workout names
-            let anyWorkoutButton = app.buttons.containing(.staticText, identifier: "Run").element.exists ||
-                                  app.buttons.containing(.staticText, identifier: "Walk").element.exists ||
-                                  app.buttons.containing(.staticText, identifier: "Bike").element.exists
+            let anyWorkoutButton = app.buttons.containing(.staticText, identifier: "Running").element.exists ||
+                                  app.buttons.containing(.staticText, identifier: "Walking").element.exists ||
+                                  app.buttons.containing(.staticText, identifier: "Cycling").element.exists
             
             XCTAssertTrue(anyWorkoutButton, "Should see at least one workout option")
         } else {

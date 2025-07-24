@@ -215,16 +215,7 @@ public class MockMessageProvider: MessageProviding {
     // MARK: - Private Helpers
     
     private func getWorkoutName(for type: HKWorkoutActivityType) -> String {
-        switch type {
-        case .running:
-            return "Run"
-        case .cycling:
-            return "Bike"
-        case .walking:
-            return "Walk"
-        default:
-            return "Workout"
-        }
+        return type.displayName
     }
 }
 

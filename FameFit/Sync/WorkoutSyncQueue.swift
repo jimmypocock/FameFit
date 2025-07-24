@@ -224,7 +224,7 @@ class WorkoutSyncQueue: ObservableObject, WorkoutSyncQueuing {
         // Check by comparing workout end dates and types
         return pendingWorkouts.contains { pending in
             pending.endDate == workout.endDate &&
-            pending.workoutType == workout.workoutActivityType.name
+            pending.workoutType == workout.workoutActivityType.displayName
         }
     }
     

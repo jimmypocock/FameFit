@@ -13,16 +13,7 @@ struct WorkoutTypeItem: Identifiable {
     let type: HKWorkoutActivityType
 
     var name: String {
-        switch type {
-        case .running:
-            return "Run"
-        case .cycling:
-            return "Bike"
-        case .walking:
-            return "Walk"
-        default:
-            return "Workout"
-        }
+        return type.displayName
     }
 }
 

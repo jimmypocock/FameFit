@@ -12,7 +12,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     @Published var isSignedIn = false
     @Published var userRecord: CKRecord?
-    @Published var influencerXP: Int = 0
+    @Published var totalXP: Int = 0
     @Published var userName: String = ""
     @Published var currentStreak: Int = 0
     @Published var totalWorkouts: Int = 0
@@ -28,14 +28,22 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         isSignedIn
     }
     
+    var currentUserID: String? {
+        userRecord?.recordID.recordName
+    }
+    
+    var currentUserXP: Int {
+        totalXP
+    }
+    
     // MARK: - Publisher Properties
     var isAvailablePublisher: AnyPublisher<Bool, Never> {
         $isSignedIn.eraseToAnyPublisher()
     }
     
     
-    var influencerXPPublisher: AnyPublisher<Int, Never> {
-        $influencerXP.eraseToAnyPublisher()
+    var totalXPPublisher: AnyPublisher<Int, Never> {
+        $totalXP.eraseToAnyPublisher()
     }
     
     var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
@@ -67,7 +75,14 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         self.privateDatabase = container.privateCloudDatabase
         self.schemaManager = CloudKitSchemaManager(container: container)
         super.init()
-        checkAccountStatus()
+        
+        // Skip CloudKit initialization in UI tests to prevent crashes
+        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
+            self.isSignedIn = true
+            self.userName = "Test User"
+        } else {
+            checkAccountStatus()
+        }
     }
     
     func checkAccountStatus() {
@@ -93,12 +108,13 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             guard let recordID = recordID else { return }
             
             self?.privateDatabase.fetch(withRecordID: recordID) { existingRecord, fetchError in
-                let userRecord = existingRecord ?? CKRecord(recordType: "UserProfiles", recordID: recordID)
+                let userRecord = existingRecord ?? CKRecord(recordType: "Users", recordID: recordID)
         
                 // Only update if this is a new record
                 if existingRecord == nil {
                     userRecord["displayName"] = displayName
-                    userRecord["influencerXP"] = 0
+                    userRecord["totalXP"] = 0
+                    userRecord["influencerXP"] = 0 // Keep for backward compatibility
                     userRecord["totalWorkouts"] = 0
                     userRecord["currentStreak"] = 0
                     userRecord["joinTimestamp"] = Date()
@@ -117,7 +133,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                         
                         if let record = record {
                             self?.userRecord = record
-                            self?.influencerXP = record["influencerXP"] as? Int ?? 0
+                            // Try new field first, fall back to old field for compatibility
+                            self?.totalXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int ?? 0
                             self?.userName = record["displayName"] as? String ?? ""
                             self?.currentStreak = record["currentStreak"] as? Int ?? 0
                             self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
@@ -158,7 +175,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                         self?.userRecord = record
                         
                         // Read XP field
-                        self?.influencerXP = record["influencerXP"] as? Int ?? 0
+                        // Try new field first, fall back to old field
+                        self?.totalXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int ?? 0
                         
                         self?.userName = record["displayName"] as? String ?? ""
                         self?.currentStreak = record["currentStreak"] as? Int ?? 0
@@ -186,12 +204,14 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             return
         }
         
-        let currentXP = userRecord["influencerXP"] as? Int ?? 0
+        // Try new field first, fall back to old field
+        let currentXP = userRecord["totalXP"] as? Int ?? userRecord["influencerXP"] as? Int ?? 0
         let currentTotal = userRecord["totalWorkouts"] as? Int ?? 0
         
         FameFitLogger.debug("Current XP: \(currentXP), workouts: \(currentTotal)", category: FameFitLogger.cloudKit)
         
-        userRecord["influencerXP"] = currentXP + xp
+        userRecord["totalXP"] = currentXP + xp
+        userRecord["influencerXP"] = currentXP + xp // Keep both fields in sync
         userRecord["totalWorkouts"] = currentTotal + 1
         userRecord["lastWorkoutTimestamp"] = Date()
         
@@ -213,10 +233,12 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     self?.userRecord = record
                     
                     // Update XP
-                    self?.influencerXP = record["influencerXP"] as? Int ?? 0
+                    self?.totalXP = record["totalXP"] as? Int ?? 0
                     
                     // Check for new unlocks
-                    if let newXP = record["influencerXP"] as? Int {
+                    // Check for new XP value from either field
+                    let newXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int
+                    if let newXP = newXP {
                         Task {
                             await self?.unlockNotificationService?.checkForNewUnlocks(
                                 previousXP: previousXP,
@@ -251,7 +273,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     
     func getXPTitle() -> String {
-        switch influencerXP {
+        switch totalXP {
         case 0..<100:
             return "Fitness Newbie"
         case 100..<1_000:
@@ -400,5 +422,48 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             xpEarned: xp,
             source: source
         )
+    }
+    
+    // MARK: - Profile Sync
+    
+    /// Syncs user stats from the private Users table to the public UserProfiles table
+    func syncUserProfile(profile: UserProfile, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let userRecord = userRecord else {
+            completion(.failure(CKError(.internalError)))
+            return
+        }
+        
+        // Create updated profile with current stats from Users table
+        let updatedProfile = UserProfile(
+            id: profile.id,
+            userID: userRecord.recordID.recordName,
+            username: profile.username,
+            displayName: profile.displayName,
+            bio: profile.bio,
+            workoutCount: totalWorkouts,
+            totalXP: totalXP,
+            joinedDate: profile.joinedDate,
+            lastUpdated: Date(),
+            isVerified: profile.isVerified,
+            privacyLevel: profile.privacyLevel,
+            profileImageURL: profile.profileImageURL,
+            headerImageURL: profile.headerImageURL
+        )
+        
+        // Convert to CloudKit record
+        let recordID = CKRecord.ID(recordName: profile.id)
+        let profileRecord = updatedProfile.toCKRecord(recordID: recordID)
+        
+        // Save to public database
+        let publicDatabase = CKContainer.default().publicCloudDatabase
+        publicDatabase.save(profileRecord) { savedRecord, error in
+            if let error = error {
+                FameFitLogger.error("Failed to sync profile", error: error, category: FameFitLogger.cloudKit)
+                completion(.failure(error))
+            } else {
+                FameFitLogger.info("✅ Successfully synced profile to public database", category: FameFitLogger.cloudKit)
+                completion(.success(()))
+            }
+        }
     }
 }

@@ -57,16 +57,7 @@ struct SessionPagingView: View {
 
     private func getWorkoutName(for workoutType: HKWorkoutActivityType?) -> String {
         guard let workoutType = workoutType else { return "" }
-        switch workoutType {
-        case .running:
-            return "Run"
-        case .cycling:
-            return "Bike"
-        case .walking:
-            return "Walk"
-        default:
-            return "Workout"
-        }
+        return workoutType.displayName
     }
 }
 

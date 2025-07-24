@@ -16,16 +16,21 @@ class MainViewModel: ObservableObject, MainViewModeling {
     private let authManager: any AuthenticationManaging
     private let cloudKitManager: any CloudKitManaging
     private let notificationStore: any NotificationStoring
+    private let userProfileService: any UserProfileServicing
+    private let socialFollowingService: any SocialFollowingServicing
     
     // MARK: - Published Properties
     @Published private var _userName: String = ""
-    @Published private var _influencerXP: Int = 0
+    @Published private var _totalXP: Int = 0
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
     @Published private var _joinDate: Date?
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
+    @Published var userProfile: UserProfile?
+    @Published var followerCount: Int = 0
+    @Published var followingCount: Int = 0
     
     // MARK: - Cancellables
     private var cancellables = Set<AnyCancellable>()
@@ -34,18 +39,22 @@ class MainViewModel: ObservableObject, MainViewModeling {
     init(
         authManager: any AuthenticationManaging,
         cloudKitManager: any CloudKitManaging,
-        notificationStore: any NotificationStoring
+        notificationStore: any NotificationStoring,
+        userProfileService: any UserProfileServicing,
+        socialFollowingService: any SocialFollowingServicing
     ) {
         self.authManager = authManager
         self.cloudKitManager = cloudKitManager
         self.notificationStore = notificationStore
+        self.userProfileService = userProfileService
+        self.socialFollowingService = socialFollowingService
         
         setupBindings()
     }
     
     // MARK: - Protocol Properties
     var userName: String { _userName }
-    var influencerXP: Int { _influencerXP }
+    var totalXP: Int { _totalXP }
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
@@ -57,6 +66,10 @@ class MainViewModel: ObservableObject, MainViewModeling {
     var daysAsMember: Int {
         guard let joinDate = _joinDate else { return 0 }
         return Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
+    }
+    
+    var hasProfile: Bool {
+        userProfile != nil
     }
     
     // MARK: - Protocol Methods
@@ -73,6 +86,69 @@ class MainViewModel: ObservableObject, MainViewModeling {
         notificationStore.markAllAsRead()
     }
     
+    func loadUserProfile() {
+        Task {
+            // First ensure CloudKit is ready
+            await ensureCloudKitReady()
+            
+            do {
+                let profile = try await userProfileService.fetchCurrentUserProfile()
+                await MainActor.run {
+                    self.userProfile = profile
+                }
+            } catch {
+                // Profile doesn't exist yet, that's ok
+                await MainActor.run {
+                    self.userProfile = nil
+                }
+            }
+        }
+    }
+    
+    private func ensureCloudKitReady() async {
+        // Wait for CloudKit to be properly initialized
+        var attempts = 0
+        let maxAttempts = 30 // 3 seconds max wait
+        
+        while !cloudKitManager.isAvailable || cloudKitManager.currentUserID == nil {
+            if attempts >= maxAttempts {
+                print("⚠️ CloudKit initialization timeout after 3 seconds")
+                break
+            }
+            
+            // Trigger CloudKit initialization if needed
+            if attempts == 0 {
+                cloudKitManager.checkAccountStatus()
+            }
+            
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            attempts += 1
+        }
+    }
+    
+    func loadFollowerCounts() {
+        guard let userId = userProfile?.id ?? cloudKitManager.currentUserID else { return }
+        
+        Task {
+            do {
+                // Load counts in parallel
+                async let followers = socialFollowingService.getFollowerCount(for: userId)
+                async let following = socialFollowingService.getFollowingCount(for: userId)
+                
+                let followerCount = try await followers
+                let followingCount = try await following
+                
+                await MainActor.run {
+                    self.followerCount = followerCount
+                    self.followingCount = followingCount
+                }
+            } catch {
+                // Silently fail, counts are not critical
+                print("Failed to load follower counts: \(error)")
+            }
+        }
+    }
+    
     // MARK: - Private Methods
     private func setupBindings() {
         // Initialize with current values from protocol-based dependencies
@@ -82,8 +158,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.userNamePublisher
             .assign(to: &$_userName)
         
-        cloudKitManager.influencerXPPublisher
-            .assign(to: &$_influencerXP)
+        cloudKitManager.totalXPPublisher
+            .assign(to: &$_totalXP)
         
         cloudKitManager.totalWorkoutsPublisher
             .assign(to: &$_totalWorkouts)
@@ -97,7 +173,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
         cloudKitManager.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
         
-        cloudKitManager.influencerXPPublisher
+        cloudKitManager.totalXPPublisher
             .map { [weak self] _ in
                 self?.cloudKitManager.getXPTitle() ?? ""
             }
@@ -109,7 +185,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
     
     private func refreshFromDependencies() {
         _userName = cloudKitManager.userName
-        _influencerXP = cloudKitManager.influencerXP
+        _totalXP = cloudKitManager.totalXP
         _totalWorkouts = cloudKitManager.totalWorkouts
         _currentStreak = cloudKitManager.currentStreak
         _joinDate = cloudKitManager.joinTimestamp

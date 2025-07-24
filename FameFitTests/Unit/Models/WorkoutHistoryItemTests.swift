@@ -117,7 +117,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     func testWorkoutActivityTypeConversion() {
         let historyItem = WorkoutHistoryItem(
             id: UUID(),
-            workoutType: "Running",
+            workoutType: "running",
             startDate: Date(),
             endDate: Date(),
             duration: 3600,

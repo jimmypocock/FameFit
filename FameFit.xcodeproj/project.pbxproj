@@ -13,6 +13,8 @@
 		54190BD92E205CA200C82874 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */; };
 		54190BDA2E205CA200C82874 /* DataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD62E205CA200C82874 /* DataValidator.swift */; };
 		54190BDB2E205CA200C82874 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */; };
+		548D7B142E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548D7B122E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift */; };
+		548D7B152E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548D7B122E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift */; };
 		54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
 		54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C99A8C2E20548F0051571C /* FameFitError.swift */; };
 /* End PBXBuildFile section */
@@ -78,6 +80,7 @@
 		54603EFE2E1E03D0008D4778 /* FameFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FameFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		54603EFF2E1E03D0008D4778 /* FameFit Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54804A702E1E146F00E8726E /* FameFit Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "FameFit Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		548D7B122E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HKWorkoutActivityType+Extensions.swift"; sourceTree = "<group>"; };
 		54C99A8C2E20548F0051571C /* FameFitError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FameFitError.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -196,9 +199,18 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		548D7B132E2ECEA6008AC512 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				548D7B122E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		54ABBC302E147D8400841B3E /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				548D7B132E2ECEA6008AC512 /* Extensions */,
 				54C99A8D2E20548F0051571C /* Models */,
 				54065FEB2E2052620026B8F7 /* Utilities */,
 			);
@@ -473,6 +485,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				54190BDA2E205CA200C82874 /* DataValidator.swift in Sources */,
+				548D7B142E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */,
 				54190BDB2E205CA200C82874 /* UserDefaultsKeys.swift in Sources */,
 				54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */,
 				54065FF62E2052620026B8F7 /* Logger.swift in Sources */,
@@ -497,6 +510,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				548D7B152E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */,
 				54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */,
 				540660032E2052620026B8F7 /* Logger.swift in Sources */,
 				54190BD82E205CA200C82874 /* DataValidator.swift in Sources */,

@@ -1,0 +1,102 @@
+//
+//  WorkoutKudos.swift
+//  FameFit
+//
+//  Model for workout kudos/cheers (like reactions)
+//
+
+import Foundation
+import CloudKit
+
+// MARK: - Kudos Model
+
+struct WorkoutKudos: Identifiable, Codable, Equatable {
+    let id: String
+    let workoutId: String
+    let userID: String           // User who gave the kudos
+    let workoutOwnerId: String   // User who owns the workout
+    let createdAt: Date
+    
+    init(
+        id: String = UUID().uuidString,
+        workoutId: String,
+        userID: String,
+        workoutOwnerId: String,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.workoutId = workoutId
+        self.userID = userID
+        self.workoutOwnerId = workoutOwnerId
+        self.createdAt = createdAt
+    }
+}
+
+// MARK: - Kudos Summary
+
+struct WorkoutKudosSummary: Codable, Equatable {
+    let workoutId: String
+    let totalCount: Int
+    let hasUserKudos: Bool  // Whether current user has given kudos
+    let recentUsers: [KudosUser]  // Recent users who gave kudos
+    
+    struct KudosUser: Codable, Equatable {
+        let userID: String
+        let username: String
+        let displayName: String
+        let profileImageURL: String?
+    }
+}
+
+// MARK: - CloudKit Extensions
+
+extension WorkoutKudos {
+    static let recordType = "WorkoutKudos"
+    
+    init?(record: CKRecord) {
+        guard record.recordType == Self.recordType,
+              let workoutId = record["workoutId"] as? String,
+              let userID = record["userID"] as? String,
+              let workoutOwnerId = record["workoutOwnerId"] as? String,
+              let createdAt = record["createdAt"] as? Date else {
+            return nil
+        }
+        
+        self.id = record.recordID.recordName
+        self.workoutId = workoutId
+        self.userID = userID
+        self.workoutOwnerId = workoutOwnerId
+        self.createdAt = createdAt
+    }
+    
+    func toCloudKitRecord(in database: CKDatabase) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: id)
+        let record = CKRecord(recordType: Self.recordType, recordID: recordID)
+        
+        record["workoutId"] = workoutId
+        record["userID"] = userID
+        record["workoutOwnerId"] = workoutOwnerId
+        record["createdAt"] = createdAt
+        
+        return record
+    }
+}
+
+// MARK: - Kudos Action Result
+
+enum KudosActionResult: Equatable {
+    case added
+    case removed
+    case error(Error)
+    
+    static func == (lhs: KudosActionResult, rhs: KudosActionResult) -> Bool {
+        switch (lhs, rhs) {
+        case (.added, .added), (.removed, .removed):
+            return true
+        case (.error(let error1), .error(let error2)):
+            return error1.localizedDescription == error2.localizedDescription
+        default:
+            return false
+        }
+    }
+}

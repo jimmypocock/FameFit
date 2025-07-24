@@ -5,10 +5,12 @@ struct OnboardingView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var workoutObserver: WorkoutObserver
+    @Environment(\.dependencyContainer) var container
 
     @State private var onboardingStep = 0
     @State private var showSignIn = false
     @State private var healthKitAuthorized = false
+    @State private var showProfileCreation = false
     
 
     var body: some View {
@@ -29,12 +31,22 @@ struct OnboardingView: View {
                 case 2:
                     HealthKitPermissionView(onboardingStep: $onboardingStep, healthKitAuthorized: $healthKitAuthorized)
                 case 3:
+                    ProfileSetupView(onboardingStep: $onboardingStep, showProfileCreation: $showProfileCreation)
+                case 4:
                     GameMechanicsView(onboardingStep: $onboardingStep)
                 default:
                     Text("Welcome to FameFit!")
                 }
             }
             .padding()
+        }
+        .sheet(isPresented: $showProfileCreation) {
+            ProfileCreationView()
+                .interactiveDismissDisabled()
+                .onDisappear {
+                    // Move to next step after profile creation
+                    onboardingStep = 4
+                }
         }
         .onAppear {
             // If user is already authenticated, skip to the appropriate step
@@ -207,6 +219,64 @@ struct HealthKitPermissionView: View {
                 Text("✅ Access Granted!")
                     .foregroundColor(.green)
                     .font(.headline)
+            }
+        }
+    }
+}
+
+struct ProfileSetupView: View {
+    @Binding var onboardingStep: Int
+    @Binding var showProfileCreation: Bool
+    @Environment(\.dependencyContainer) var container
+    
+    var body: some View {
+        VStack(spacing: 30) {
+            Text("CREATE YOUR PROFILE")
+                .font(.system(size: 35, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+            
+            Spacer()
+            
+            VStack(spacing: 20) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 80))
+                    .foregroundColor(.white)
+                
+                Text("Let's set up your fitness profile!")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                
+                Text("Choose a unique username, add a profile photo, and tell us about your fitness journey.")
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                showProfileCreation = true
+            }, label: {
+                Text("Create Profile")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white.opacity(0.3))
+                    .cornerRadius(15)
+            })
+        }
+        .task {
+            // Check if user already has a profile
+            do {
+                _ = try await container.userProfileService.fetchCurrentUserProfile()
+                // Profile exists, skip to next step
+                onboardingStep = 4
+            } catch {
+                // No profile, stay on this step
             }
         }
     }

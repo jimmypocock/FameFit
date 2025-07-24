@@ -18,6 +18,7 @@ class WorkoutSyncManager: ObservableObject {
     private let healthKitService: HealthKitService
     private weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
+    weak var notificationManager: (any NotificationManaging)?
     private var anchoredQuery: HKAnchoredObjectQuery?
     
     @Published var isSyncing = false
@@ -32,6 +33,9 @@ class WorkoutSyncManager: ObservableObject {
     /// Start monitoring workouts using HKAnchoredObjectQuery for reliable incremental updates
     func startReliableSync() {
         FameFitLogger.info("🏃 Starting WorkoutSyncManager reliable sync", category: FameFitLogger.workout)
+        
+        // Request notification permissions
+        requestNotificationPermissions()
         
         guard healthKitService.isHealthDataAvailable else {
             FameFitLogger.error("HealthKit not available", category: FameFitLogger.workout)
@@ -143,7 +147,7 @@ class WorkoutSyncManager: ObservableObject {
         // Log details about each workout found
         for workout in workouts {
             let duration = Int(workout.duration / 60)
-            FameFitLogger.info("📊 Found workout: \(workout.workoutActivityType.name) - Duration: \(duration) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
+            FameFitLogger.info("📊 Found workout: \(workout.workoutActivityType.displayName) - Duration: \(duration) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
         }
         
         // Process workouts
@@ -198,6 +202,7 @@ class WorkoutSyncManager: ObservableObject {
     
     /// Process workouts and update follower count
     private func processWorkouts(_ workouts: [HKWorkout], isInitialSync: Bool) {
+        
         // Get app install date to avoid counting pre-install workouts
         let appInstallDateKey = UserDefaultsKeys.appInstallDate
         if UserDefaults.standard.object(forKey: appInstallDateKey) == nil {
@@ -213,7 +218,7 @@ class WorkoutSyncManager: ObservableObject {
         for workout in workouts {
             // Skip workouts before app install
             guard workout.endDate > appInstallDate else {
-                FameFitLogger.info("⏭️ Skipping pre-install workout: \(workout.workoutActivityType.name) - Date: \(workout.endDate)", category: FameFitLogger.workout)
+                FameFitLogger.info("⏭️ Skipping pre-install workout: \(workout.workoutActivityType.displayName) - Date: \(workout.endDate)", category: FameFitLogger.workout)
                 continue
             }
             
@@ -227,7 +232,7 @@ class WorkoutSyncManager: ObservableObject {
             
             // Log workout info
             let duration = workout.duration / 60
-            FameFitLogger.info("🔄 Processing workout: \(workout.workoutActivityType.name) - Duration: \(Int(duration)) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
+            FameFitLogger.info("🔄 Processing workout: \(workout.workoutActivityType.displayName) - Duration: \(Int(duration)) min - Date: \(workout.endDate)", category: FameFitLogger.workout)
             FameFitLogger.info("📍 Workout source: \(workout.sourceRevision.source.name) - Bundle: \(workout.sourceRevision.source.bundleIdentifier)", category: FameFitLogger.workout)
             
             // Calculate XP for this workout
@@ -261,8 +266,13 @@ class WorkoutSyncManager: ObservableObject {
                 FameFitLogger.info("💾 Saving workout to CloudKit: \(historyItem.workoutType) with \(totalXP) XP", category: FameFitLogger.workout)
                 cloudKitManager?.saveWorkoutHistory(historyItem)
                 
-                // Send notification
-                sendWorkoutNotification(for: workout)
+                // Send notifications using both systems for now
+                sendWorkoutNotification(for: workout) // Legacy system
+                
+                // Send modern notification asynchronously
+                Task { @MainActor in
+                    await self.sendModernWorkoutNotification(for: historyItem)
+                }
             }
         }
         
@@ -287,7 +297,47 @@ class WorkoutSyncManager: ObservableObject {
         }
     }
     
-    /// Send notification for completed workout
+    /// Send notification using modern NotificationManager for completed workout
+    @MainActor
+    private func sendModernWorkoutNotification(for workout: WorkoutHistoryItem) async {
+        guard let notificationManager = notificationManager else {
+            FameFitLogger.debug("NotificationManager not available, skipping modern notification", category: FameFitLogger.workout)
+            return
+        }
+        
+        FameFitLogger.info("🔔 Sending workout notification via NotificationManager: \(workout.workoutType) with \(workout.xpEarned ?? 0) XP", category: FameFitLogger.workout)
+        
+        // Send workout completed notification
+        await notificationManager.notifyWorkoutCompleted(workout)
+        
+        // Check for XP milestones
+        let previousXP = (cloudKitManager?.totalXP ?? 0) - (workout.xpEarned ?? 0)
+        let currentXP = cloudKitManager?.totalXP ?? 0
+        await notificationManager.notifyXPMilestone(previousXP: previousXP, currentXP: currentXP)
+        
+        // Check for streak updates
+        let currentStreak = cloudKitManager?.currentStreak ?? 0
+        if currentStreak > 0 {
+            await notificationManager.notifyStreakUpdate(streak: currentStreak, isAtRisk: false)
+        }
+        
+        FameFitLogger.debug("✅ Modern workout notification sent successfully", category: FameFitLogger.workout)
+    }
+    
+    // MARK: - Testing Support
+    
+    #if DEBUG
+    /// Test helper method to simulate workout processing
+    func processWorkoutsForTesting(_ workouts: [HKWorkout], isInitialSync: Bool) async {
+        await MainActor.run {
+            processWorkouts(workouts, isInitialSync: isInitialSync)
+        }
+        // Wait a bit for all async tasks to complete
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds per workout
+    }
+    #endif
+    
+    /// Send notification for completed workout (legacy system)
     private func sendWorkoutNotification(for workout: HKWorkout) {
         let character = FameFitCharacter.characterForWorkoutType(workout.workoutActivityType)
         let duration = Int(workout.duration / 60)
@@ -356,6 +406,25 @@ class WorkoutSyncManager: ObservableObject {
                 FameFitLogger.error("Failed to send notification", error: error, category: FameFitLogger.workout)
             } else {
                 FameFitLogger.debug("Push notification sent successfully", category: FameFitLogger.workout)
+            }
+        }
+    }
+    
+    /// Request notification permissions if not already granted
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            if settings.authorizationStatus == .notDetermined {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error = error {
+                        FameFitLogger.error("Failed to request notification permissions", error: error, category: FameFitLogger.app)
+                    } else if granted {
+                        FameFitLogger.info("✅ Notification permissions granted", category: FameFitLogger.app)
+                    } else {
+                        FameFitLogger.notice("❌ Notification permissions denied", category: FameFitLogger.app)
+                    }
+                }
+            } else if settings.authorizationStatus == .authorized {
+                FameFitLogger.debug("Notification permissions already granted", category: FameFitLogger.app)
             }
         }
     }

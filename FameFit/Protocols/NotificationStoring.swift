@@ -40,6 +40,13 @@ protocol NotificationStoring: ObservableObject {
     /// - Parameter offsets: The index set of notifications to delete
     func deleteNotification(at offsets: IndexSet)
     
+    /// Delete a specific notification by ID
+    /// - Parameter id: The ID of the notification to delete
+    func deleteNotification(_ id: String)
+    
+    /// Clear all notifications (alias for clearAll)
+    func clearAllNotifications()
+    
     /// Load notifications from persistent storage
     func loadNotifications()
     

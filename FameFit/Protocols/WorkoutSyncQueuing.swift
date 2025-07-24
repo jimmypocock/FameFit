@@ -73,7 +73,7 @@ struct PendingWorkout: Codable, Equatable {
     /// - Parameter workout: The HealthKit workout to convert
     init(from workout: HKWorkout) {
         self.id = UUID()
-        self.workoutType = workout.workoutActivityType.name
+        self.workoutType = workout.workoutActivityType.displayName
         self.duration = workout.duration
         // Get calories from workout statistics
         if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),

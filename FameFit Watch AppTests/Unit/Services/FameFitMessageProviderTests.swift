@@ -61,7 +61,21 @@ class FameFitMessageProviderTests: XCTestCase {
         
         // Then
         XCTAssertFalse(message.isEmpty)
-        XCTAssertTrue(message.contains("bro") || message.contains("Let's") || message.contains("Time"))
+        // Check that we get one of the workout start messages
+        let workoutStartMessages = [
+            "Alright bro",
+            "Let's get this bread",
+            "Time to be legendary",
+            "Listen up champ",
+            "RISE AND GRIND",
+            "Yo! Your transformation",
+            "Welcome to the ELITE",
+            "Let's GO babe",
+            "This workout is sponsored",
+            "Bro, I woke up"
+        ]
+        let containsStartMessage = workoutStartMessages.contains { message.contains($0) }
+        XCTAssertTrue(containsStartMessage, "Message should be a workout start message, but got: \(message)")
     }
     
     func testWorkoutEndMessage() {
@@ -122,7 +136,9 @@ class FameFitMessageProviderTests: XCTestCase {
         // Then
         // Should return encouragement instead of roast
         let encouragementKeywords = ["amazing", "stronger", "believe", "proud", "crushing", 
-                                    "spirit", "doing", "got this", "Beautiful", "inspiring"]
+                                    "spirit", "doing", "got this", "Beautiful", "inspiring",
+                                    "determination", "Love", "sweetie", "energy", "nailing",
+                                    "progress", "moment", "Embrace"]
         let containsEncouragement = encouragementKeywords.contains { keyword in
             roastMessage.contains(keyword)
         }

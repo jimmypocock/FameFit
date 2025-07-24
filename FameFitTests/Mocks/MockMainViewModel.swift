@@ -14,7 +14,7 @@ class MockMainViewModel: MainViewModeling {
     
     // MARK: - Published Properties
     @Published var userName: String = "Test User"
-    @Published var influencerXP: Int = 42
+    @Published var totalXP: Int = 42
     @Published var xpTitle: String = "Rising Star"
     @Published var totalWorkouts: Int = 15
     @Published var currentStreak: Int = 3
@@ -22,6 +22,11 @@ class MockMainViewModel: MainViewModeling {
     @Published var lastWorkoutDate: Date? = Date().addingTimeInterval(-2 * 3600) // 2 hours ago
     @Published var hasUnreadNotifications: Bool = true
     @Published var unreadNotificationCount: Int = 2
+    @Published var userProfile: UserProfile? = UserProfile.mockProfile
+    
+    var hasProfile: Bool {
+        userProfile != nil
+    }
     
     // MARK: - Computed Properties
     var daysAsMember: Int {
@@ -33,10 +38,12 @@ class MockMainViewModel: MainViewModeling {
     var refreshDataCalled = false
     var signOutCalled = false
     var markNotificationsAsReadCalled = false
+    var loadUserProfileCalled = false
     
     // MARK: - Test Configuration
     var shouldFailRefresh = false
     var shouldFailSignOut = false
+    var shouldFailLoadProfile = false
     
     // MARK: - Protocol Methods
     func refreshData() {
@@ -48,7 +55,7 @@ class MockMainViewModel: MainViewModeling {
         }
         
         // Simulate successful data refresh
-        influencerXP += 1
+        totalXP += 1
         totalWorkouts += 1
     }
     
@@ -62,7 +69,7 @@ class MockMainViewModel: MainViewModeling {
         
         // Simulate successful sign out - reset data
         userName = ""
-        influencerXP = 0
+        totalXP = 0
         xpTitle = ""
         totalWorkouts = 0
         currentStreak = 0
@@ -78,10 +85,22 @@ class MockMainViewModel: MainViewModeling {
         unreadNotificationCount = 0
     }
     
+    func loadUserProfile() {
+        loadUserProfileCalled = true
+        
+        if shouldFailLoadProfile {
+            // Simulate no profile
+            userProfile = nil
+            return
+        }
+        
+        // Profile is already set in initialization
+    }
+    
     // MARK: - Test Helpers
     func simulateNewWorkout() {
         totalWorkouts += 1
-        influencerXP += 5
+        totalXP += 5
         currentStreak += 1
         lastWorkoutDate = Date()
     }
@@ -99,7 +118,7 @@ class MockMainViewModel: MainViewModeling {
         shouldFailSignOut = false
         
         userName = "Test User"
-        influencerXP = 42
+        totalXP = 42
         xpTitle = "Rising Star"
         totalWorkouts = 15
         currentStreak = 3

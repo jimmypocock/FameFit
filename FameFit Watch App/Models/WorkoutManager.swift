@@ -288,16 +288,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     }
     
     private func getWorkoutName(for workoutType: HKWorkoutActivityType) -> String {
-        switch workoutType {
-        case .running:
-            return "Run"
-        case .cycling:
-            return "Bike"
-        case .walking:
-            return "Walk"
-        default:
-            return "Workout"
-        }
+        return workoutType.displayName
     }
 }
 

@@ -18,6 +18,7 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
     private let notificationStore: any NotificationStoring
     private let unlockStorage: UnlockStorageServiceProtocol
     private let userDefaults: UserDefaults
+    private var preferences: NotificationPreferences = NotificationPreferences.load()
     
     private let unlockKeyPrefix = "unlock_notified_"
     private let levelKeyPrefix = "level_notified_"
@@ -30,6 +31,10 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         self.notificationStore = notificationStore
         self.unlockStorage = unlockStorage
         self.userDefaults = userDefaults
+    }
+    
+    func updatePreferences(_ newPreferences: NotificationPreferences) {
+        self.preferences = newPreferences
     }
     
     func checkForNewUnlocks(previousXP: Int, currentXP: Int) async {
@@ -73,16 +78,24 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         // Check if we've already notified about this level
         guard !userDefaults.bool(forKey: notificationKey) else { return }
         
+        let character = getCharacterForLevel(newLevel)
         let notification = NotificationItem(
-            title: "Level Up! 🎉",
+            type: .levelUp,
+            title: "\(character.emoji) Level Up!",
             body: "Congratulations! You've reached Level \(newLevel): \(title)",
-            character: getCharacterForLevel(newLevel),
-            workoutDuration: 0,
-            calories: 0,
-            followersEarned: 0
+            metadata: .achievement(AchievementNotificationMetadata(
+                achievementId: "level_\(newLevel)",
+                achievementName: title,
+                achievementDescription: "Reached Level \(newLevel)",
+                xpRequired: getLevelThreshold(for: newLevel),
+                category: "level",
+                iconEmoji: character.emoji
+            ))
         )
         
-        notificationStore.addNotification(notification)
+        Task { @MainActor in
+            notificationStore.addNotification(notification)
+        }
         userDefaults.set(true, forKey: notificationKey)
         
         // Also send a local push notification if permissions granted
@@ -95,15 +108,14 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
     
     private func notifyUnlock(_ unlock: XPUnlock) async {
         let notification = NotificationItem(
+            type: .unlockAchieved,
             title: "New Unlock! \(iconForUnlock(unlock))",
-            body: "\(unlock.name): \(unlock.description)",
-            character: .sierra,
-            workoutDuration: 0,
-            calories: 0,
-            followersEarned: 0
+            body: "\(unlock.name): \(unlock.description)"
         )
         
-        notificationStore.addNotification(notification)
+        Task { @MainActor in
+            notificationStore.addNotification(notification)
+        }
         
         // Also send a local push notification if permissions granted
         await sendLocalNotification(
@@ -128,14 +140,16 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
     private func sendLocalNotification(title: String, body: String, identifier: String) async {
         let center = UNUserNotificationCenter.current()
         
-        // Check if we have permission
+        // Check if we have permission and notifications are enabled
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized else { return }
+        guard settings.authorizationStatus == .authorized,
+              preferences.pushNotificationsEnabled else { return }
         
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        content.sound = preferences.soundEnabled ? .default : nil
+        content.badge = preferences.badgeEnabled ? NSNumber(value: notificationStore.unreadCount) : nil
         
         // Deliver immediately
         let request = UNNotificationRequest(
@@ -155,8 +169,10 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         switch level {
         case 1...4:
             return .zen
-        case 5...8:
+        case 5...9:
             return .sierra
+        case 10...14:
+            return .chad
         default:
             return .chad
         }

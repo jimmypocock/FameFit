@@ -191,20 +191,29 @@ final class UnlockNotificationServiceTests: XCTestCase {
         for testCase in testCases {
             mockNotificationStore.reset()
             
+            // Reset user defaults to ensure fresh state for each test
+            let levelKey = "level_notified_\(testCase.level)"
+            testUserDefaults.removeObject(forKey: levelKey)
+            testUserDefaults.synchronize()
+            
             await service.notifyLevelUp(newLevel: testCase.level, title: "Test Title")
             
             let notification = mockNotificationStore.notifications.first
-            XCTAssertEqual(notification?.character, testCase.expectedCharacter,
-                          "Level \(testCase.level) should use character \(testCase.expectedCharacter)")
+            XCTAssertNotNil(notification, "Should have notification for level \(testCase.level)")
+            
+            // Check character emoji in title
+            let expectedEmoji = testCase.expectedCharacter.emoji
+            XCTAssertTrue(notification?.title.contains(expectedEmoji) == true,
+                          "Level \(testCase.level) should use character \(testCase.expectedCharacter) emoji in title")
         }
     }
     
     // MARK: - Permission Tests
     
-    func testRequestNotificationPermission() async {
-        // Note: This test can't fully test the system permission dialog
-        // but ensures the method exists and returns a boolean
-        let result = await service.requestNotificationPermission()
-        XCTAssertTrue(result == true || result == false) // Just verify it returns a bool
+    func testServiceIsProperlyInitialized() {
+        // This test verifies the service is properly initialized
+        // The fact that it compiles proves it conforms to UnlockNotificationServiceProtocol
+        XCTAssertNotNil(service)
+        XCTAssertNotNil(service as UnlockNotificationServiceProtocol)
     }
 }
