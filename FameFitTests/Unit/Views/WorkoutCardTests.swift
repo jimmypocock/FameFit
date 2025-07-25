@@ -5,12 +5,11 @@
 //  Tests for WorkoutCard UI component with kudos integration
 //
 
-import XCTest
-import SwiftUI
 @testable import FameFit
+import SwiftUI
+import XCTest
 
 class WorkoutCardTests: XCTestCase {
-    
     func testWorkoutCardInitialization() {
         // Given
         let workout = WorkoutHistoryItem(
@@ -26,14 +25,14 @@ class WorkoutCardTests: XCTestCase {
             xpEarned: 50,
             source: "Watch"
         )
-        
+
         let kudosSummary = WorkoutKudosSummary(
             workoutId: workout.id.uuidString,
             totalCount: 3,
             hasUserKudos: false,
             recentUsers: []
         )
-        
+
         // When
         let card = WorkoutCard(
             workout: workout,
@@ -43,15 +42,15 @@ class WorkoutCardTests: XCTestCase {
             onProfileTap: {},
             onShareTap: {}
         )
-        
+
         // Then
         XCTAssertNotNil(card)
     }
-    
+
     func testWorkoutCardWithNilKudos() {
         // Given
         let workout = createMockWorkout()
-        
+
         // When
         let card = WorkoutCard(
             workout: workout,
@@ -61,16 +60,16 @@ class WorkoutCardTests: XCTestCase {
             onProfileTap: {},
             onShareTap: {}
         )
-        
+
         // Then
         XCTAssertNotNil(card)
     }
-    
+
     func testWorkoutCardDisplaysCorrectData() {
         // Given
         let startDate = Date()
         let endDate = startDate.addingTimeInterval(3600) // 1 hour
-        
+
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Cycling",
@@ -84,7 +83,7 @@ class WorkoutCardTests: XCTestCase {
             xpEarned: 75,
             source: "Watch"
         )
-        
+
         // Verify the workout data is properly formatted
         XCTAssertEqual(workout.workoutType, "Cycling")
         XCTAssertEqual(workout.formattedDuration, "60 min")
@@ -93,7 +92,7 @@ class WorkoutCardTests: XCTestCase {
         XCTAssertEqual(workout.followersEarned, 15)
         XCTAssertEqual(workout.xpEarned, 75)
     }
-    
+
     func testWorkoutCardWithVariousWorkoutTypes() {
         let workoutTypes = [
             "Running",
@@ -101,9 +100,9 @@ class WorkoutCardTests: XCTestCase {
             "Swimming",
             "Strength Training",
             "Yoga",
-            "HIIT"
+            "HIIT",
         ]
-        
+
         for workoutType in workoutTypes {
             let workout = WorkoutHistoryItem(
                 id: UUID(),
@@ -118,7 +117,7 @@ class WorkoutCardTests: XCTestCase {
                 xpEarned: 25,
                 source: "Watch"
             )
-            
+
             let card = WorkoutCard(
                 workout: workout,
                 userProfile: nil,
@@ -127,15 +126,15 @@ class WorkoutCardTests: XCTestCase {
                 onProfileTap: {},
                 onShareTap: {}
             )
-            
+
             XCTAssertNotNil(card)
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func createMockWorkout() -> WorkoutHistoryItem {
-        return WorkoutHistoryItem(
+        WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),

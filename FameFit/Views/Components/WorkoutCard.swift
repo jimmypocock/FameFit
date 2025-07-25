@@ -5,8 +5,8 @@
 //  Enhanced workout card with social interactions
 //
 
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct WorkoutCard: View {
     let workout: WorkoutHistoryItem
@@ -15,10 +15,10 @@ struct WorkoutCard: View {
     let onKudosTap: () async -> Void
     let onProfileTap: () -> Void
     let onShareTap: () -> Void
-    
+
     @State private var isExpanded = false
     @State private var showKudosList = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with user info
@@ -42,26 +42,26 @@ struct WorkoutCard: View {
                     .onTapGesture {
                         onProfileTap()
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Text(profile.displayName)
                                 .font(.system(size: 16, weight: .semibold))
-                            
+
                             if profile.isVerified {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 12))
                                     .foregroundColor(.blue)
                             }
                         }
-                        
+
                         Text("@\(profile.username)")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     // Workout time
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(workout.startDate, style: .relative)
@@ -71,7 +71,7 @@ struct WorkoutCard: View {
                 }
                 .padding()
             }
-            
+
             // Workout content
             VStack(alignment: .leading, spacing: 12) {
                 // Workout type and XP
@@ -80,18 +80,18 @@ struct WorkoutCard: View {
                         Image(systemName: workoutIcon(for: workout.workoutType))
                             .font(.system(size: 24))
                             .foregroundColor(.blue)
-                        
+
                         Text(workout.workoutType)
                             .font(.system(size: 20, weight: .semibold))
                     }
-                    
+
                     Spacer()
-                    
+
                     Text("+\(workout.effectiveXPEarned) XP")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.green)
                 }
-                
+
                 // Workout stats
                 HStack(spacing: 16) {
                     StatBadge(
@@ -99,13 +99,13 @@ struct WorkoutCard: View {
                         value: workout.formattedDuration,
                         color: .orange
                     )
-                    
+
                     StatBadge(
                         icon: "flame",
                         value: workout.formattedCalories,
                         color: .red
                     )
-                    
+
                     if let distance = workout.formattedDistance {
                         StatBadge(
                             icon: "location",
@@ -113,7 +113,7 @@ struct WorkoutCard: View {
                             color: .blue
                         )
                     }
-                    
+
                     if let heartRate = workout.averageHeartRate {
                         StatBadge(
                             icon: "heart",
@@ -122,43 +122,43 @@ struct WorkoutCard: View {
                         )
                     }
                 }
-                
+
                 // Expanded details
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 8) {
                         Divider()
-                        
+
                         HStack {
                             Label("Started", systemImage: "play.circle")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             Spacer()
-                            
+
                             Text(workout.startDate, style: .time)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Label("Ended", systemImage: "stop.circle")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             Spacer()
-                            
+
                             Text(workout.endDate, style: .time)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Label("Source", systemImage: "app.badge")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             Spacer()
-                            
+
                             Text(workout.source)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -175,7 +175,7 @@ struct WorkoutCard: View {
                     isExpanded.toggle()
                 }
             }
-            
+
             // Interaction bar
             HStack(spacing: 20) {
                 // Kudos button
@@ -190,13 +190,13 @@ struct WorkoutCard: View {
                         showKudosList = true
                     }
                 }
-                
+
                 // Share button
                 Button(action: onShareTap) {
                     HStack(spacing: 6) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18))
-                        
+
                         Text("Share")
                             .font(.system(size: 14))
                     }
@@ -208,7 +208,7 @@ struct WorkoutCard: View {
                             .fill(Color.gray.opacity(0.1))
                     )
                 }
-                
+
                 Spacer()
             }
             .padding(.horizontal)
@@ -220,7 +220,7 @@ struct WorkoutCard: View {
         .sheet(isPresented: $showKudosList) {
             if let summary = kudosSummary {
                 NavigationView {
-                    KudosListView(kudosSummary: summary) { userId in
+                    KudosListView(kudosSummary: summary) { _ in
                         // Handle user tap
                         showKudosList = false
                         // Navigate to user profile
@@ -238,25 +238,25 @@ struct WorkoutCard: View {
             }
         }
     }
-    
+
     private func workoutIcon(for type: String) -> String {
         switch type.lowercased() {
         case "running":
-            return "figure.run"
+            "figure.run"
         case "cycling":
-            return "bicycle"
+            "bicycle"
         case "swimming":
-            return "figure.pool.swim"
+            "figure.pool.swim"
         case "walking":
-            return "figure.walk"
+            "figure.walk"
         case "hiking":
-            return "figure.hiking"
+            "figure.hiking"
         case "yoga":
-            return "figure.yoga"
+            "figure.yoga"
         case "strength training", "functional strength training", "traditional strength training":
-            return "dumbbell"
+            "dumbbell"
         default:
-            return "figure.mixed.cardio"
+            "figure.mixed.cardio"
         }
     }
 }
@@ -267,13 +267,13 @@ private struct StatBadge: View {
     let icon: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 14))
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.primary)
@@ -286,4 +286,3 @@ private struct StatBadge: View {
         )
     }
 }
-

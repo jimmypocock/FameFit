@@ -11,31 +11,33 @@ struct CommentsListView: View {
     let workoutId: String
     let workoutOwnerId: String
     let currentUser: UserProfile?
-    
+
     @StateObject private var viewModel: CommentsViewModel
     @State private var showingInput = false
     @State private var replyToCommentId: String?
     @State private var editingComment: WorkoutComment?
     @State private var searchText = ""
-    
-    init(workoutId: String, 
-         workoutOwnerId: String, 
-         currentUser: UserProfile?,
-         commentsService: WorkoutCommentsServicing) {
+
+    init(
+        workoutId: String,
+        workoutOwnerId: String,
+        currentUser: UserProfile?,
+        commentsService: WorkoutCommentsServicing
+    ) {
         self.workoutId = workoutId
         self.workoutOwnerId = workoutOwnerId
         self.currentUser = currentUser
-        self._viewModel = StateObject(wrappedValue: CommentsViewModel(
+        _viewModel = StateObject(wrappedValue: CommentsViewModel(
             workoutId: workoutId,
             commentsService: commentsService
         ))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with comment count
             commentsHeader
-            
+
             // Content
             if viewModel.isLoading && viewModel.comments.isEmpty {
                 loadingView
@@ -44,7 +46,7 @@ struct CommentsListView: View {
             } else {
                 commentsList
             }
-            
+
             // Input area (sticky bottom)
             if showingInput || replyToCommentId != nil || editingComment != nil {
                 CommentInputView(
@@ -68,13 +70,13 @@ struct CommentsListView: View {
             await viewModel.refreshComments()
         }
         .searchable(text: $searchText, prompt: "Search comments...")
-        .onChange(of: searchText) { oldValue, newValue in
+        .onChange(of: searchText) { _, newValue in
             viewModel.filterComments(searchText: newValue)
         }
     }
-    
+
     // MARK: - Header
-    
+
     private var commentsHeader: some View {
         VStack(spacing: 0) {
             HStack {
@@ -82,16 +84,16 @@ struct CommentsListView: View {
                     Text("Comments")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     if viewModel.totalComments > 0 {
                         Text("\(viewModel.totalComments) comment\(viewModel.totalComments == 1 ? "" : "s")")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Sort options
                 Menu {
                     Button(action: { viewModel.setSortOrder(.newest) }) {
@@ -102,7 +104,7 @@ struct CommentsListView: View {
                             }
                         }
                     }
-                    
+
                     Button(action: { viewModel.setSortOrder(.oldest) }) {
                         HStack {
                             Text("Oldest First")
@@ -111,7 +113,7 @@ struct CommentsListView: View {
                             }
                         }
                     }
-                    
+
                     Button(action: { viewModel.setSortOrder(.mostLiked) }) {
                         HStack {
                             Text("Most Liked")
@@ -128,7 +130,7 @@ struct CommentsListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            
+
             // Add comment button (for authenticated users)
             if currentUser != nil {
                 HStack {
@@ -151,13 +153,13 @@ struct CommentsListView: View {
                                 .frame(width: 32, height: 32)
                                 .clipShape(Circle())
                             }
-                            
+
                             Text("Add a comment...")
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 20))
                                 .foregroundColor(.blue)
@@ -175,14 +177,14 @@ struct CommentsListView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }
-            
+
             Divider()
         }
         .background(Color(.systemGroupedBackground))
     }
-    
+
     // MARK: - Content Views
-    
+
     private var commentsList: some View {
         ScrollViewReader { proxy in
             List {
@@ -209,16 +211,16 @@ struct CommentsListView: View {
                                 await viewModel.toggleCommentLike(commentId: commentId)
                             }
                         },
-                        onUserTap: { userId in
+                        onUserTap: { _ in
                             // Handle user profile navigation
                         }
                     )
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }
-                
+
                 // Load more comments
-                if viewModel.hasMoreComments && !viewModel.isLoading {
+                if viewModel.hasMoreComments, !viewModel.isLoading {
                     Button("Load more comments") {
                         Task {
                             await viewModel.loadMoreComments()
@@ -231,9 +233,9 @@ struct CommentsListView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }
-                
+
                 // Loading indicator
-                if viewModel.isLoading && !viewModel.comments.isEmpty {
+                if viewModel.isLoading, !viewModel.comments.isEmpty {
                     HStack {
                         Spacer()
                         ProgressView()
@@ -243,7 +245,7 @@ struct CommentsListView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }
-                
+
                 // Invisible anchor for scrolling
                 Color.clear
                     .frame(height: 1)
@@ -254,12 +256,12 @@ struct CommentsListView: View {
             .listStyle(.plain)
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-            
+
             Text("Loading comments...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -267,25 +269,25 @@ struct CommentsListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 64))
                 .foregroundColor(.gray.opacity(0.5))
-            
+
             VStack(spacing: 8) {
                 Text("No comments yet")
                     .font(.title3)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                
+
                 Text("Be the first to share your thoughts about this workout!")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             if currentUser != nil {
                 Button("Add Comment") {
                     showingInput = true
@@ -303,26 +305,26 @@ struct CommentsListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var filteredComments: [CommentWithUser] {
         if searchText.isEmpty {
-            return viewModel.comments
+            viewModel.comments
         } else {
-            return viewModel.comments.filter { commentWithUser in
+            viewModel.comments.filter { commentWithUser in
                 commentWithUser.comment.content.localizedCaseInsensitiveContains(searchText) ||
-                commentWithUser.user.displayName.localizedCaseInsensitiveContains(searchText) ||
-                commentWithUser.user.username.localizedCaseInsensitiveContains(searchText)
+                    commentWithUser.user.displayName.localizedCaseInsensitiveContains(searchText) ||
+                    commentWithUser.user.username.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func handleCommentSubmit(_ content: String) {
         Task {
-            if let editingComment = editingComment {
+            if let editingComment {
                 await viewModel.updateComment(
                     commentId: editingComment.id,
                     newContent: content
@@ -338,7 +340,7 @@ struct CommentsListView: View {
             }
         }
     }
-    
+
     private func handleInputCancel() {
         withAnimation(.easeInOut(duration: 0.2)) {
             showingInput = false
@@ -358,43 +360,43 @@ class CommentsViewModel: ObservableObject {
     @Published var totalComments = 0
     @Published var hasMoreComments = true
     @Published var sortOrder: CommentSortOrder = .newest
-    
+
     private let workoutId: String
     private let commentsService: WorkoutCommentsServicing
     private let pageSize = 20
-    
+
     enum CommentSortOrder: CaseIterable {
         case newest, oldest, mostLiked
-        
+
         var displayName: String {
             switch self {
-            case .newest: return "Newest First"
-            case .oldest: return "Oldest First"  
-            case .mostLiked: return "Most Liked"
+            case .newest: "Newest First"
+            case .oldest: "Oldest First"
+            case .mostLiked: "Most Liked"
             }
         }
     }
-    
+
     init(workoutId: String, commentsService: WorkoutCommentsServicing) {
         self.workoutId = workoutId
         self.commentsService = commentsService
     }
-    
+
     func loadComments() {
         Task {
             await fetchComments(reset: true)
         }
     }
-    
+
     func refreshComments() async {
         await fetchComments(reset: true)
     }
-    
+
     func loadMoreComments() async {
-        guard hasMoreComments && !isLoading else { return }
+        guard hasMoreComments, !isLoading else { return }
         await fetchComments(reset: false)
     }
-    
+
     func postComment(content: String, parentCommentId: String?) async {
         do {
             _ = try await commentsService.postComment(
@@ -403,21 +405,21 @@ class CommentsViewModel: ObservableObject {
                 content: content,
                 parentCommentId: parentCommentId
             )
-            
+
             // Reload to get the updated list with proper threading
             await fetchComments(reset: true)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func updateComment(commentId: String, newContent: String) async {
         do {
             let updatedComment = try await commentsService.updateComment(
                 commentId: commentId,
                 newContent: newContent
             )
-            
+
             // Update the comment in the local list
             if let index = comments.firstIndex(where: { $0.comment.id == commentId }) {
                 comments[index].comment = updatedComment
@@ -426,7 +428,7 @@ class CommentsViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func deleteComment(commentId: String) async {
         do {
             try await commentsService.deleteComment(commentId: commentId)
@@ -436,7 +438,7 @@ class CommentsViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func toggleCommentLike(commentId: String) async {
         do {
             // This would typically check if user has already liked
@@ -445,48 +447,48 @@ class CommentsViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    
+
     func setSortOrder(_ newOrder: CommentSortOrder) {
         sortOrder = newOrder
         sortComments()
     }
-    
-    func filterComments(searchText: String) {
+
+    func filterComments(searchText _: String) {
         // Filtering is handled in the view
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func fetchComments(reset: Bool) async {
         if reset {
             isLoading = true
         }
-        
+
         do {
             let fetchedComments = try await commentsService.fetchComments(
                 for: workoutId,
                 limit: pageSize
             )
-            
+
             if reset {
                 comments = fetchedComments
             } else {
                 comments.append(contentsOf: fetchedComments)
             }
-            
+
             hasMoreComments = fetchedComments.count == pageSize
-            
+
             // Get total count
             totalComments = try await commentsService.fetchCommentCount(for: workoutId)
-            
+
             sortComments()
         } catch {
             errorMessage = error.localizedDescription
         }
-        
+
         isLoading = false
     }
-    
+
     private func sortComments() {
         switch sortOrder {
         case .newest:
@@ -528,12 +530,17 @@ class CommentsViewModel: ObservableObject {
 // MARK: - Preview Mock
 
 private class PreviewMockCommentsService: WorkoutCommentsServicing {
-    func fetchComments(for workoutId: String, limit: Int) async throws -> [CommentWithUser] {
-        return []
+    func fetchComments(for _: String, limit _: Int) async throws -> [CommentWithUser] {
+        []
     }
-    
-    func postComment(workoutId: String, workoutOwnerId: String, content: String, parentCommentId: String?) async throws -> WorkoutComment {
-        return WorkoutComment(
+
+    func postComment(
+        workoutId: String,
+        workoutOwnerId: String,
+        content: String,
+        parentCommentId _: String?
+    ) async throws -> WorkoutComment {
+        WorkoutComment(
             id: UUID().uuidString,
             workoutId: workoutId,
             userId: "current",
@@ -543,9 +550,9 @@ private class PreviewMockCommentsService: WorkoutCommentsServicing {
             updatedAt: Date()
         )
     }
-    
+
     func updateComment(commentId: String, newContent: String) async throws -> WorkoutComment {
-        return WorkoutComment(
+        WorkoutComment(
             id: commentId,
             workoutId: "workout",
             userId: "current",
@@ -556,20 +563,20 @@ private class PreviewMockCommentsService: WorkoutCommentsServicing {
             isEdited: true
         )
     }
-    
-    func deleteComment(commentId: String) async throws {
+
+    func deleteComment(commentId _: String) async throws {
         // Mock delete
     }
-    
-    func likeComment(commentId: String) async throws -> Int {
-        return 1
+
+    func likeComment(commentId _: String) async throws -> Int {
+        1
     }
-    
-    func unlikeComment(commentId: String) async throws -> Int {
-        return 0
+
+    func unlikeComment(commentId _: String) async throws -> Int {
+        0
     }
-    
-    func fetchCommentCount(for workoutId: String) async throws -> Int {
-        return 0
+
+    func fetchCommentCount(for _: String) async throws -> Int {
+        0
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 struct NotificationsListView: View {
     @EnvironmentObject var notificationStore: NotificationStore
     @Environment(\.dismiss) var dismiss
-    
+
     var body: some View {
         NavigationView {
             Group {
@@ -12,11 +12,11 @@ struct NotificationsListView: View {
                         Image(systemName: "bell.slash")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
-                        
+
                         Text("No Notifications")
                             .font(.title2)
                             .fontWeight(.medium)
-                        
+
                         Text("Your notifications will appear here")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -42,7 +42,7 @@ struct NotificationsListView: View {
                         dismiss()
                     }
                 }
-                
+
                 if !notificationStore.notifications.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Menu {
@@ -63,7 +63,7 @@ struct NotificationsListView: View {
             notificationStore.markAllAsRead()
         }
     }
-    
+
     private func deleteNotifications(at offsets: IndexSet) {
         notificationStore.deleteNotification(at: offsets)
     }
@@ -71,37 +71,37 @@ struct NotificationsListView: View {
 
 struct NotificationRow: View {
     let notification: NotificationItem
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(notification.character?.emoji ?? notification.type.icon)
                     .font(.title2)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(notification.title)
                         .font(.headline)
                         .lineLimit(1)
-                    
+
                     Text(notification.timestamp, style: .relative)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if !notification.isRead {
                     Circle()
                         .fill(Color.blue)
                         .frame(width: 8, height: 8)
                 }
             }
-            
+
             Text(notification.body)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .lineLimit(2)
-            
+
             HStack(spacing: 20) {
                 // Show workout-specific details if available
                 if let duration = notification.workoutDuration {
@@ -109,13 +109,13 @@ struct NotificationRow: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 if let calories = notification.calories {
                     Label("\(calories) cal", systemImage: "flame")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 if let xp = notification.followersEarned {
                     Label("+\(xp) XP", systemImage: "sparkles")
                         .font(.caption)

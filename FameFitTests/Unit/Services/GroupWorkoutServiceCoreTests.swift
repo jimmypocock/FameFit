@@ -5,36 +5,36 @@
 //  Core tests for GroupWorkoutService - Create, Update, Cancel operations
 //
 
-import XCTest
 import CloudKit
-import HealthKit
 @testable import FameFit
+import HealthKit
+import XCTest
 
 final class GroupWorkoutServiceCoreTests: XCTestCase {
     // MARK: - Properties
-    
+
     private var sut: MockGroupWorkoutService!
     private var mockCloudKitManager: MockCloudKitManager!
     private var mockUserProfileService: MockUserProfileService!
     private var mockNotificationManager: MockNotificationManager!
     private var mockRateLimiter: MockRateLimitingService!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUp() {
         super.setUp()
-        
+
         mockCloudKitManager = MockCloudKitManager()
         mockUserProfileService = MockUserProfileService()
         mockNotificationManager = MockNotificationManager()
         mockRateLimiter = MockRateLimitingService()
-        
+
         sut = MockGroupWorkoutService()
-        
+
         // Set up test user
         mockCloudKitManager.currentUserID = "test-user-123"
     }
-    
+
     override func tearDown() {
         sut = nil
         mockCloudKitManager = nil
@@ -43,9 +43,9 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
         mockRateLimiter = nil
         super.tearDown()
     }
-    
+
     // MARK: - Create Group Workout Tests
-    
+
     func testCreateGroupWorkout_Success() async throws {
         // Given
         let workout = GroupWorkout(
@@ -54,26 +54,26 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200)
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200)
         )
-        
+
         // When
         let createdWorkout = try await sut.createGroupWorkout(workout)
-        
+
         // Then
         XCTAssertEqual(createdWorkout.name, workout.name)
         XCTAssertEqual(createdWorkout.hostId, "test-user-123")
         XCTAssertEqual(createdWorkout.status, .scheduled)
         XCTAssertEqual(createdWorkout.participants.count, 1) // Host added as participant
         XCTAssertEqual(createdWorkout.participants.first?.userId, "test-user-123")
-        
+
         // Verify the workout was created
         XCTAssertTrue(sut.createGroupWorkoutCalled)
         XCTAssertEqual(sut.createdWorkouts.count, 1)
         XCTAssertEqual(sut.mockWorkouts.count, 1)
     }
-    
+
     func testCreateGroupWorkout_InvalidDuration_ThrowsError() async {
         // Given - workout less than 5 minutes
         let workout = GroupWorkout(
@@ -82,24 +82,24 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(3_700) // Only 100 seconds
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(3700) // Only 100 seconds
         )
-        
+
         // Set validation error
         sut.errorToThrow = GroupWorkoutError.invalidWorkout("Workout must be at least 5 minutes long")
-        
+
         // When/Then
         do {
             _ = try await sut.createGroupWorkout(workout)
             XCTFail("Expected error for short duration")
-        } catch GroupWorkoutError.invalidWorkout(let reason) {
+        } catch let GroupWorkoutError.invalidWorkout(reason) {
             XCTAssertTrue(reason.contains("5 minutes"))
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     func testCreateGroupWorkout_PastScheduledTime_ThrowsError() async {
         // Given - workout scheduled in the past
         let workout = GroupWorkout(
@@ -108,24 +108,24 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(-3_600), // 1 hour ago
+            scheduledStart: Date().addingTimeInterval(-3600), // 1 hour ago
             scheduledEnd: Date()
         )
-        
+
         // Set validation error
         sut.errorToThrow = GroupWorkoutError.invalidWorkout("Workout must be scheduled in the future")
-        
+
         // When/Then
         do {
             _ = try await sut.createGroupWorkout(workout)
             XCTFail("Expected error for past scheduled time")
-        } catch GroupWorkoutError.invalidWorkout(let reason) {
+        } catch let GroupWorkoutError.invalidWorkout(reason) {
             XCTAssertTrue(reason.contains("future"))
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     func testCreateGroupWorkout_NotHost_ThrowsError() async {
         // Given - workout with different host ID
         let workout = GroupWorkout(
@@ -134,13 +134,13 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "different-user-456",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200)
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200)
         )
-        
+
         // Set error to throw
         sut.errorToThrow = GroupWorkoutError.notAuthorized
-        
+
         // When/Then
         do {
             _ = try await sut.createGroupWorkout(workout)
@@ -151,7 +151,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     func testCreateGroupWorkout_RateLimited_ThrowsError() async {
         // Given
         let workout = GroupWorkout(
@@ -160,13 +160,13 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200)
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200)
         )
-        
+
         // Set rate limit error
         sut.shouldFail = true
-        
+
         // When/Then
         do {
             _ = try await sut.createGroupWorkout(workout)
@@ -175,9 +175,9 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             // Expected error
         }
     }
-    
+
     // MARK: - Update Workout Tests
-    
+
     func testUpdateGroupWorkout_AsHost_Success() async throws {
         // Given
         let originalWorkout = GroupWorkout(
@@ -187,24 +187,24 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200),
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200),
             status: .scheduled
         )
         // Add workout to mock
         sut.mockWorkouts.append(originalWorkout)
-        
+
         let updatedWorkout = originalWorkout
-        
+
         // When
         let result = try await sut.updateGroupWorkout(updatedWorkout)
-        
+
         // Then
         XCTAssertEqual(result.name, originalWorkout.name)
         XCTAssertTrue(result.updatedAt > originalWorkout.updatedAt)
         XCTAssertTrue(sut.updateGroupWorkoutCalled)
     }
-    
+
     func testUpdateGroupWorkout_NotHost_ThrowsError() async {
         // Given
         let workout = GroupWorkout(
@@ -214,13 +214,13 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "different-user-456",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200)
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200)
         )
         // Add workout to mock
         sut.mockWorkouts.append(workout)
         sut.errorToThrow = GroupWorkoutError.notAuthorized
-        
+
         // When/Then
         do {
             _ = try await sut.updateGroupWorkout(workout)
@@ -231,9 +231,9 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     // MARK: - Cancel Workout Tests
-    
+
     func testCancelGroupWorkout_AsHost_Success() async throws {
         // Given
         let workout = GroupWorkout(
@@ -252,25 +252,25 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
                     userId: "participant-456",
                     displayName: "Other User",
                     profileImageURL: nil
-                )
+                ),
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200),
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200),
             status: .scheduled
         )
         // Add workout to mock
         sut.mockWorkouts.append(workout)
-        
+
         // When
         try await sut.cancelGroupWorkout(workoutId: workout.id)
-        
+
         // Then
         let cancelledWorkout = sut.mockWorkouts.first(where: { $0.id == workout.id })!
         XCTAssertEqual(cancelledWorkout.status, .cancelled)
         XCTAssertTrue(sut.cancelGroupWorkoutCalled)
     }
-    
+
     func testCancelGroupWorkout_NotHost_ThrowsError() async {
         // Given
         let workout = GroupWorkout(
@@ -284,17 +284,17 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
                     userId: "other-host-789",
                     displayName: "Other User",
                     profileImageURL: nil
-                )
+                ),
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200),
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200),
             status: .scheduled
         )
         // Add workout to mock
         sut.mockWorkouts.append(workout)
         sut.errorToThrow = GroupWorkoutError.notAuthorized
-        
+
         // When/Then
         do {
             try await sut.cancelGroupWorkout(workoutId: workout.id)
@@ -305,24 +305,24 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     // MARK: - Join Code Generation Tests
-    
+
     func testJoinCodeGeneration_Length() {
         // When
         let code = GroupWorkout.generateJoinCode()
-        
+
         // Then
         XCTAssertEqual(code.count, 6)
         XCTAssertTrue(code.allSatisfy { $0.isLetter || $0.isNumber })
         XCTAssertEqual(code, code.uppercased()) // Should be uppercase
     }
-    
+
     func testJoinCodeGeneration_Uniqueness() {
         // When
-        let codes = (0..<100).map { _ in GroupWorkout.generateJoinCode() }
+        let codes = (0 ..< 100).map { _ in GroupWorkout.generateJoinCode() }
         let uniqueCodes = Set(codes)
-        
+
         // Then
         XCTAssertEqual(codes.count, uniqueCodes.count) // All should be unique (statistically)
     }

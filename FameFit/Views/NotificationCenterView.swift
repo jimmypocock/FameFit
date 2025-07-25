@@ -11,12 +11,12 @@ struct NotificationCenterView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
     @StateObject private var viewModel = NotificationCenterViewModel()
-    
+
     @State private var showingSettings = false
     @State private var selectedTab = 0
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -30,9 +30,9 @@ struct NotificationCenterView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
-                
+
                 // Notifications list with animations
-                if viewModel.isLoading && viewModel.notifications.isEmpty {
+                if viewModel.isLoading, viewModel.notifications.isEmpty {
                     loadingView
                         .transition(.opacity)
                 } else if viewModel.filteredNotifications(for: selectedTab).isEmpty {
@@ -62,7 +62,7 @@ struct NotificationCenterView: View {
                                     insertion: .move(edge: .top).combined(with: .opacity),
                                     removal: .move(edge: .trailing).combined(with: .opacity)
                                 ))
-                                
+
                                 if notification.id != viewModel.filteredNotifications(for: selectedTab).last?.id {
                                     Divider()
                                         .padding(.leading, 60)
@@ -85,18 +85,18 @@ struct NotificationCenterView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button("Mark All Read") {
                             hapticFeedback(.heavy)
                             viewModel.markAllAsRead()
                         }
-                        
+
                         Button("Settings") {
                             showingSettings = true
                         }
-                        
+
                         Button("Clear All", role: .destructive) {
                             hapticFeedback(.heavy)
                             viewModel.clearAllNotifications()
@@ -113,7 +113,7 @@ struct NotificationCenterView: View {
             NotificationSettingsView()
         }
         .alert("Error", isPresented: $showingErrorAlert) {
-            Button("OK") { }
+            Button("OK") {}
         } message: {
             Text(errorMessage)
         }
@@ -121,25 +121,25 @@ struct NotificationCenterView: View {
             viewModel.configure(notificationStore: container.notificationStore)
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
                     .fill(Color(.systemGray5))
                     .frame(width: 120, height: 120)
-                
+
                 Image(systemName: getEmptyStateIcon())
                     .font(.system(size: 50, weight: .light))
                     .foregroundColor(.secondary)
             }
-            
+
             VStack(spacing: 8) {
                 Text(getEmptyStateTitle())
                     .font(.title2)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                
+
                 Text(getEmptyStateMessage())
                     .font(.body)
                     .foregroundColor(.secondary)
@@ -151,52 +151,52 @@ struct NotificationCenterView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
     }
-    
+
     private func getEmptyStateIcon() -> String {
         switch selectedTab {
-        case 1: return "bell.badge"
-        case 2: return "person.2"
-        case 3: return "figure.run"
-        default: return "bell"
+        case 1: "bell.badge"
+        case 2: "person.2"
+        case 3: "figure.run"
+        default: "bell"
         }
     }
-    
+
     private func getEmptyStateTitle() -> String {
         switch selectedTab {
-        case 1: return "No Unread Notifications"
-        case 2: return "No Social Activity"
-        case 3: return "No Workout Notifications"
-        default: return "No Notifications"
+        case 1: "No Unread Notifications"
+        case 2: "No Social Activity"
+        case 3: "No Workout Notifications"
+        default: "No Notifications"
         }
     }
-    
+
     private func getEmptyStateMessage() -> String {
         switch selectedTab {
-        case 1: return "All caught up! You have no unread notifications."
-        case 2: return "Social notifications like follows, kudos, and comments will appear here."
-        case 3: return "Workout completion notifications and achievements will appear here."
-        default: return "Your notifications will appear here when you receive them."
+        case 1: "All caught up! You have no unread notifications."
+        case 2: "Social notifications like follows, kudos, and comments will appear here."
+        case 3: "Workout completion notifications and achievements will appear here."
+        default: "Your notifications will appear here when you receive them."
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
                     .fill(Color(.systemGray6))
                     .frame(width: 80, height: 80)
-                
+
                 ProgressView()
                     .scaleEffect(1.5)
                     .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
             }
-            
+
             VStack(spacing: 6) {
                 Text("Loading notifications...")
                     .font(.title3)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                
+
                 Text("Fetching your latest updates")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -205,13 +205,13 @@ struct NotificationCenterView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func handleNotificationAction(notification: NotificationItem, action: NotificationAction) {
         viewModel.handleNotificationAction(notification, action: action)
     }
-    
+
     private func refreshNotifications() async {
         hapticFeedback(.light)
         // Add a small delay for better UX
@@ -220,7 +220,7 @@ struct NotificationCenterView: View {
             viewModel.loadNotifications()
         }
     }
-    
+
     private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         let impactFeedback = UIImpactFeedbackGenerator(style: style)
         impactFeedback.impactOccurred()

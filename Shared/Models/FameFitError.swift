@@ -6,130 +6,122 @@ enum FameFitError: LocalizedError, Equatable {
     case cloudKitSyncFailed(Error)
     case cloudKitUserNotFound
     case cloudKitNetworkError
-    
+
     // HealthKit Errors
     case healthKitNotAvailable
     case healthKitAuthorizationDenied
     case healthKitDataNotFound
-    
+
     // Authentication Errors
     case authenticationFailed(Error)
     case authenticationCancelled
     case userNotAuthenticated
-    
+
     // Workout Errors
     case workoutSessionFailed(Error)
     case workoutDataCorrupted
-    
+
     // General Errors
     case networkUnavailable
     case unknownError(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .cloudKitNotAvailable:
-            return "iCloud is not available. Please check your iCloud settings."
-        case .cloudKitSyncFailed(let error):
-            return "Failed to sync data: \(error.localizedDescription)"
+            "iCloud is not available. Please check your iCloud settings."
+        case let .cloudKitSyncFailed(error):
+            "Failed to sync data: \(error.localizedDescription)"
         case .cloudKitUserNotFound:
-            return "User record not found. Please try signing in again."
+            "User record not found. Please try signing in again."
         case .cloudKitNetworkError:
-            return "Network error. Please check your connection and try again."
-            
+            "Network error. Please check your connection and try again."
         case .healthKitNotAvailable:
-            return "Health data is not available on this device."
+            "Health data is not available on this device."
         case .healthKitAuthorizationDenied:
-            return "Health data access was denied. Please grant permission in Settings."
+            "Health data access was denied. Please grant permission in Settings."
         case .healthKitDataNotFound:
-            return "No health data found."
-            
-        case .authenticationFailed(let error):
-            return "Sign in failed: \(error.localizedDescription)"
+            "No health data found."
+        case let .authenticationFailed(error):
+            "Sign in failed: \(error.localizedDescription)"
         case .authenticationCancelled:
-            return "Sign in was cancelled."
+            "Sign in was cancelled."
         case .userNotAuthenticated:
-            return "Please sign in to continue."
-            
-        case .workoutSessionFailed(let error):
-            return "Workout session failed: \(error.localizedDescription)"
+            "Please sign in to continue."
+        case let .workoutSessionFailed(error):
+            "Workout session failed: \(error.localizedDescription)"
         case .workoutDataCorrupted:
-            return "Workout data appears to be corrupted."
-            
+            "Workout data appears to be corrupted."
         case .networkUnavailable:
-            return "No network connection available."
-        case .unknownError(let error):
-            return "An unexpected error occurred: \(error.localizedDescription)"
+            "No network connection available."
+        case let .unknownError(error):
+            "An unexpected error occurred: \(error.localizedDescription)"
         }
     }
-    
+
     var recoverySuggestion: String? {
         switch self {
         case .cloudKitNotAvailable:
-            return "Go to Settings > [Your Name] > iCloud and ensure iCloud is enabled."
+            "Go to Settings > [Your Name] > iCloud and ensure iCloud is enabled."
         case .cloudKitSyncFailed:
-            return "Try again later or check your internet connection."
+            "Try again later or check your internet connection."
         case .cloudKitUserNotFound:
-            return "Sign out and sign back in to recreate your user profile."
+            "Sign out and sign back in to recreate your user profile."
         case .cloudKitNetworkError:
-            return "Check your Wi-Fi or cellular connection."
-            
+            "Check your Wi-Fi or cellular connection."
         case .healthKitNotAvailable:
-            return "This feature requires an iPhone or Apple Watch."
+            "This feature requires an iPhone or Apple Watch."
         case .healthKitAuthorizationDenied:
-            return "Go to Settings > Privacy & Security > Health > FameFit and enable all permissions."
+            "Go to Settings > Privacy & Security > Health > FameFit and enable all permissions."
         case .healthKitDataNotFound:
-            return "Complete a workout to see your data."
-            
+            "Complete a workout to see your data."
         case .authenticationFailed:
-            return "Try signing in again."
+            "Try signing in again."
         case .authenticationCancelled:
-            return "Tap Sign in with Apple to continue."
+            "Tap Sign in with Apple to continue."
         case .userNotAuthenticated:
-            return "Use Sign in with Apple to create your account."
-            
+            "Use Sign in with Apple to create your account."
         case .workoutSessionFailed:
-            return "Try starting your workout again."
+            "Try starting your workout again."
         case .workoutDataCorrupted:
-            return "Start a new workout session."
-            
+            "Start a new workout session."
         case .networkUnavailable:
-            return "Connect to Wi-Fi or enable cellular data."
+            "Connect to Wi-Fi or enable cellular data."
         case .unknownError:
-            return "Try again or contact support if the problem persists."
+            "Try again or contact support if the problem persists."
         }
     }
-    
+
     /// User-friendly error messages that don't expose internal details
     var userFriendlyMessage: String {
         switch self {
         case .healthKitNotAvailable:
-            return "Health data is not available on this device."
+            "Health data is not available on this device."
         case .healthKitAuthorizationDenied:
-            return "Please grant health data permissions in Settings."
+            "Please grant health data permissions in Settings."
         case .healthKitDataNotFound:
-            return "No health data found. Please try again."
+            "No health data found. Please try again."
         case .workoutSessionFailed:
-            return "Unable to start workout session. Please try again."
+            "Unable to start workout session. Please try again."
         case .workoutDataCorrupted:
-            return "Workout data is invalid. Please try again."
+            "Workout data is invalid. Please try again."
         case .cloudKitNotAvailable:
-            return "iCloud is not available. Please check your settings."
+            "iCloud is not available. Please check your settings."
         case .cloudKitUserNotFound:
-            return "Unable to access your account. Please sign in to iCloud."
+            "Unable to access your account. Please sign in to iCloud."
         case .cloudKitSyncFailed:
-            return "Unable to sync data. Please check your connection."
+            "Unable to sync data. Please check your connection."
         case .cloudKitNetworkError:
-            return "Network error. Please check your connection."
+            "Network error. Please check your connection."
         case .authenticationFailed:
-            return "Sign in failed. Please try again."
+            "Sign in failed. Please try again."
         case .authenticationCancelled:
-            return "Sign in was cancelled."
+            "Sign in was cancelled."
         case .userNotAuthenticated:
-            return "Please sign in to continue."
+            "Please sign in to continue."
         case .networkUnavailable:
-            return "No internet connection. Please check your network."
+            "No internet connection. Please check your network."
         case .unknownError:
-            return "An unexpected error occurred. Please try again."
+            "An unexpected error occurred. Please try again."
         }
     }
 }
@@ -140,10 +132,10 @@ extension Error {
         if let fameFitError = self as? FameFitError {
             return fameFitError
         }
-        
+
         // Convert common errors to FameFitError
         let nsError = self as NSError
-        
+
         switch nsError.domain {
         case "CKErrorDomain":
             switch nsError.code {
@@ -163,6 +155,7 @@ extension Error {
 }
 
 // MARK: - Equatable implementation for testing
+
 extension FameFitError {
     static func == (lhs: FameFitError, rhs: FameFitError) -> Bool {
         switch (lhs, rhs) {
@@ -176,16 +169,16 @@ extension FameFitError {
              (.userNotAuthenticated, .userNotAuthenticated),
              (.workoutDataCorrupted, .workoutDataCorrupted),
              (.networkUnavailable, .networkUnavailable):
-            return true
-            
-        case (.cloudKitSyncFailed(let error1), .cloudKitSyncFailed(let error2)),
-             (.authenticationFailed(let error1), .authenticationFailed(let error2)),
-             (.workoutSessionFailed(let error1), .workoutSessionFailed(let error2)),
-             (.unknownError(let error1), .unknownError(let error2)):
-            return error1.localizedDescription == error2.localizedDescription
-            
+            true
+
+        case let (.cloudKitSyncFailed(error1), .cloudKitSyncFailed(error2)),
+             let (.authenticationFailed(error1), .authenticationFailed(error2)),
+             let (.workoutSessionFailed(error1), .workoutSessionFailed(error2)),
+             let (.unknownError(error1), .unknownError(error2)):
+            error1.localizedDescription == error2.localizedDescription
+
         default:
-            return false
+            false
         }
     }
 }

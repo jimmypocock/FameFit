@@ -14,12 +14,12 @@ protocol NotificationManaging: AnyObject {
     // Permission management
     func requestNotificationPermission() async -> Bool
     func checkNotificationPermission() async -> UNAuthorizationStatus
-    
+
     // Workout notifications
     func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async
     func notifyXPMilestone(previousXP: Int, currentXP: Int) async
     func notifyStreakUpdate(streak: Int, isAtRisk: Bool) async
-    
+
     // Social notifications
     func notifyNewFollower(from user: UserProfile) async
     func notifyFollowRequest(from user: UserProfile) async
@@ -27,11 +27,11 @@ protocol NotificationManaging: AnyObject {
     func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async
     func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async
     func notifyMention(by user: UserProfile, in context: String) async
-    
+
     // System notifications
     func notifySecurityAlert(title: String, message: String) async
     func notifyFeatureAnnouncement(feature: String, description: String) async
-    
+
     // Preference management
     func updatePreferences(_ preferences: NotificationPreferences)
     func getPreferences() -> NotificationPreferences
@@ -45,7 +45,7 @@ final class NotificationManager: NotificationManaging {
     private let unlockService: UnlockNotificationServiceProtocol
     private let messageProvider: MessageProviding
     private var apnsManager: APNSManaging?
-    
+
     init(
         scheduler: NotificationScheduling,
         notificationStore: any NotificationStoring,
@@ -58,29 +58,29 @@ final class NotificationManager: NotificationManaging {
         self.unlockService = unlockService
         self.messageProvider = messageProvider
         self.apnsManager = apnsManager
-        
+
         // Set up notification categories for actions
         setupNotificationCategories()
     }
-    
+
     // Allow setting APNS manager after init (for dependency injection order)
     func setAPNSManager(_ manager: APNSManaging) {
-        self.apnsManager = manager
+        apnsManager = manager
     }
-    
+
     // MARK: - Permission Management
-    
+
     func requestNotificationPermission() async -> Bool {
-        return await unlockService.requestNotificationPermission()
+        await unlockService.requestNotificationPermission()
     }
-    
+
     func checkNotificationPermission() async -> UNAuthorizationStatus {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         return settings.authorizationStatus
     }
-    
+
     // MARK: - Workout Notifications
-    
+
     func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
         // Get character message
         let message = messageProvider.getWorkoutEndMessage(
@@ -89,7 +89,7 @@ final class NotificationManager: NotificationManaging {
             calories: Int(workout.totalEnergyBurned),
             xpEarned: workout.xpEarned ?? 0
         )
-        
+
         let metadata = NotificationMetadataContainer.workout(
             WorkoutNotificationMetadata(
                 workoutId: workout.id.uuidString,
@@ -101,7 +101,7 @@ final class NotificationManager: NotificationManaging {
                 averageHeartRate: workout.averageHeartRate != nil ? Int(workout.averageHeartRate!) : nil
             )
         )
-        
+
         let request = NotificationRequest(
             type: .workoutCompleted,
             title: "Workout Complete! 💪",
@@ -109,25 +109,25 @@ final class NotificationManager: NotificationManaging {
             metadata: metadata,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule workout notification: \(error)")
         }
     }
-    
+
     func notifyXPMilestone(previousXP: Int, currentXP: Int) async {
         // Delegate to unlock service for XP-related notifications
         await unlockService.checkForNewUnlocks(previousXP: previousXP, currentXP: currentXP)
     }
-    
+
     func notifyStreakUpdate(streak: Int, isAtRisk: Bool) async {
         let type: NotificationType = isAtRisk ? .streakAtRisk : .streakMaintained
-        
+
         let title: String
         let body: String
-        
+
         if isAtRisk {
             title = "Streak at Risk! ⚠️"
             body = "Don't lose your \(streak)-day streak! Complete a workout today to keep it going."
@@ -135,23 +135,23 @@ final class NotificationManager: NotificationManaging {
             title = "Streak Maintained! 🔥"
             body = "Amazing! You've maintained your \(streak)-day workout streak!"
         }
-        
+
         let request = NotificationRequest(
             type: type,
             title: title,
             body: body,
             priority: isAtRisk ? .high : .medium
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule streak notification: \(error)")
         }
     }
-    
+
     // MARK: - Social Notifications
-    
+
     func notifyNewFollower(from user: UserProfile) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
@@ -163,7 +163,7 @@ final class NotificationManager: NotificationManaging {
                 actionCount: nil
             )
         )
-        
+
         let request = NotificationRequest(
             type: .newFollower,
             title: "New Follower! 👥",
@@ -171,14 +171,14 @@ final class NotificationManager: NotificationManaging {
             metadata: metadata,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule new follower notification: \(error)")
         }
     }
-    
+
     func notifyFollowRequest(from user: UserProfile) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
@@ -190,7 +190,7 @@ final class NotificationManager: NotificationManaging {
                 actionCount: nil
             )
         )
-        
+
         let request = NotificationRequest(
             type: .followRequest,
             title: "Follow Request",
@@ -199,14 +199,14 @@ final class NotificationManager: NotificationManaging {
             priority: .immediate,
             actions: [.accept, .decline]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule follow request notification: \(error)")
         }
     }
-    
+
     func notifyFollowAccepted(by user: UserProfile) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
@@ -218,7 +218,7 @@ final class NotificationManager: NotificationManaging {
                 actionCount: nil
             )
         )
-        
+
         let request = NotificationRequest(
             type: .followAccepted,
             title: "Follow Request Accepted",
@@ -226,14 +226,14 @@ final class NotificationManager: NotificationManaging {
             metadata: metadata,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule follow accepted notification: \(error)")
         }
     }
-    
+
     func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
@@ -245,7 +245,7 @@ final class NotificationManager: NotificationManaging {
                 actionCount: 1
             )
         )
-        
+
         let request = NotificationRequest(
             type: .workoutKudos,
             title: "Workout Kudos! ❤️",
@@ -254,15 +254,15 @@ final class NotificationManager: NotificationManaging {
             actions: [.view],
             groupId: "kudos_\(workoutId)"
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule kudos notification: \(error)")
         }
     }
-    
-    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async {
+
+    func notifyWorkoutComment(from user: UserProfile, comment: String, for _: String) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
                 userID: user.userID,
@@ -273,10 +273,10 @@ final class NotificationManager: NotificationManaging {
                 actionCount: nil
             )
         )
-        
+
         // Truncate comment for notification
         let truncatedComment = comment.count > 50 ? String(comment.prefix(47)) + "..." : comment
-        
+
         let request = NotificationRequest(
             type: .workoutComment,
             title: "\(user.displayName) commented",
@@ -285,14 +285,14 @@ final class NotificationManager: NotificationManaging {
             priority: .high,
             actions: [.view, .reply]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule comment notification: \(error)")
         }
     }
-    
+
     func notifyMention(by user: UserProfile, in context: String) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
@@ -304,7 +304,7 @@ final class NotificationManager: NotificationManaging {
                 actionCount: nil
             )
         )
-        
+
         let request = NotificationRequest(
             type: .mentioned,
             title: "\(user.displayName) mentioned you",
@@ -313,16 +313,16 @@ final class NotificationManager: NotificationManaging {
             priority: .immediate,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule mention notification: \(error)")
         }
     }
-    
+
     // MARK: - System Notifications
-    
+
     func notifySecurityAlert(title: String, message: String) async {
         let metadata = NotificationMetadataContainer.system(
             SystemNotificationMetadata(
@@ -331,7 +331,7 @@ final class NotificationManager: NotificationManaging {
                 requiresAction: true
             )
         )
-        
+
         let request = NotificationRequest(
             type: .securityAlert,
             title: title,
@@ -340,14 +340,14 @@ final class NotificationManager: NotificationManaging {
             priority: .immediate,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule security alert: \(error)")
         }
     }
-    
+
     func notifyFeatureAnnouncement(feature: String, description: String) async {
         let metadata = NotificationMetadataContainer.system(
             SystemNotificationMetadata(
@@ -356,7 +356,7 @@ final class NotificationManager: NotificationManaging {
                 requiresAction: false
             )
         )
-        
+
         let request = NotificationRequest(
             type: .featureAnnouncement,
             title: "New Feature: \(feature)",
@@ -365,29 +365,29 @@ final class NotificationManager: NotificationManaging {
             priority: .low,
             actions: [.view]
         )
-        
+
         do {
             try await scheduler.scheduleNotification(request)
         } catch {
             print("Failed to schedule feature announcement: \(error)")
         }
     }
-    
+
     // MARK: - Preference Management
-    
+
     func updatePreferences(_ preferences: NotificationPreferences) {
         scheduler.updatePreferences(preferences)
     }
-    
+
     func getPreferences() -> NotificationPreferences {
-        return NotificationPreferences.load()
+        NotificationPreferences.load()
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func setupNotificationCategories() {
         var categories: [UNNotificationCategory] = []
-        
+
         // Follow request category
         let acceptAction = UNNotificationAction(
             identifier: NotificationAction.accept.rawValue,
@@ -405,7 +405,7 @@ final class NotificationManager: NotificationManaging {
             intentIdentifiers: []
         )
         categories.append(followCategory)
-        
+
         // Comment category
         let replyAction = UNNotificationAction(
             identifier: NotificationAction.reply.rawValue,
@@ -423,7 +423,7 @@ final class NotificationManager: NotificationManaging {
             intentIdentifiers: []
         )
         categories.append(commentCategory)
-        
+
         // Set categories
         UNUserNotificationCenter.current().setNotificationCategories(Set(categories))
     }
@@ -436,64 +436,64 @@ final class MockNotificationManager: NotificationManaging {
     var currentAuthStatus = UNAuthorizationStatus.authorized
     var preferences = NotificationPreferences()
     var sentNotifications: [String] = []
-    
+
     func requestNotificationPermission() async -> Bool {
-        return requestPermissionResult
+        requestPermissionResult
     }
-    
+
     func checkNotificationPermission() async -> UNAuthorizationStatus {
-        return currentAuthStatus
+        currentAuthStatus
     }
-    
+
     func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
         sentNotifications.append("workout_completed_\(workout.id)")
     }
-    
-    func notifyXPMilestone(previousXP: Int, currentXP: Int) async {
+
+    func notifyXPMilestone(previousXP _: Int, currentXP: Int) async {
         sentNotifications.append("xp_milestone_\(currentXP)")
     }
-    
+
     func notifyStreakUpdate(streak: Int, isAtRisk: Bool) async {
         sentNotifications.append("streak_\(streak)_risk_\(isAtRisk)")
     }
-    
+
     func notifyNewFollower(from user: UserProfile) async {
         sentNotifications.append("new_follower_\(user.id)")
     }
-    
+
     func notifyFollowRequest(from user: UserProfile) async {
         sentNotifications.append("follow_request_\(user.id)")
     }
-    
+
     func notifyFollowAccepted(by user: UserProfile) async {
         sentNotifications.append("follow_accepted_\(user.id)")
     }
-    
+
     func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async {
         sentNotifications.append("kudos_\(user.id)_\(workoutId)")
     }
-    
-    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async {
+
+    func notifyWorkoutComment(from user: UserProfile, comment _: String, for workoutId: String) async {
         sentNotifications.append("comment_\(user.id)_\(workoutId)")
     }
-    
-    func notifyMention(by user: UserProfile, in context: String) async {
+
+    func notifyMention(by user: UserProfile, in _: String) async {
         sentNotifications.append("mention_\(user.id)")
     }
-    
-    func notifySecurityAlert(title: String, message: String) async {
+
+    func notifySecurityAlert(title _: String, message _: String) async {
         sentNotifications.append("security_alert")
     }
-    
-    func notifyFeatureAnnouncement(feature: String, description: String) async {
+
+    func notifyFeatureAnnouncement(feature: String, description _: String) async {
         sentNotifications.append("feature_\(feature)")
     }
-    
+
     func updatePreferences(_ preferences: NotificationPreferences) {
         self.preferences = preferences
     }
-    
+
     func getPreferences() -> NotificationPreferences {
-        return preferences
+        preferences
     }
 }

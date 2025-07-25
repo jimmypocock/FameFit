@@ -1,5 +1,5 @@
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct WorkoutHistoryView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
@@ -7,11 +7,11 @@ struct WorkoutHistoryView: View {
     @State private var workoutHistory: [WorkoutHistoryItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
-    
+
     var totalXP: Int {
         workoutHistory.reduce(0) { $0 + $1.effectiveXPEarned }
     }
-    
+
     var body: some View {
         NavigationView {
             Group {
@@ -45,17 +45,17 @@ struct WorkoutHistoryView: View {
             loadWorkoutHistory()
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "figure.run.circle")
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
-            
+
             Text("No Workouts Yet")
                 .font(.title2)
                 .fontWeight(.medium)
-            
+
             Text("Complete workouts to see them here\nWorkouts are tracked from any fitness app")
                 .font(.body)
                 .foregroundColor(.secondary)
@@ -64,7 +64,7 @@ struct WorkoutHistoryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var workoutListView: some View {
         List {
             Section {
@@ -76,9 +76,9 @@ struct WorkoutHistoryView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     Text("\(totalXP) XP")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -86,7 +86,7 @@ struct WorkoutHistoryView: View {
                 }
                 .padding(.vertical, 8)
             }
-            
+
             Section("Workouts") {
                 ForEach(workoutHistory) { workout in
                     WorkoutHistoryRow(workout: workout)
@@ -95,20 +95,23 @@ struct WorkoutHistoryView: View {
         }
         .listStyle(InsetGroupedListStyle())
     }
-    
+
     private func loadWorkoutHistory() {
         cloudKitManager.fetchWorkoutHistory { result in
             DispatchQueue.main.async { [self] in
                 switch result {
-                case .success(let history):
-                    self.workoutHistory = history
-                    self.isLoading = false
+                case let .success(history):
+                    workoutHistory = history
+                    isLoading = false
                     if !history.isEmpty {
-                        FameFitLogger.info("☁️ Loaded \(history.count) workouts from CloudKit", category: FameFitLogger.app)
+                        FameFitLogger.info(
+                            "☁️ Loaded \(history.count) workouts from CloudKit",
+                            category: FameFitLogger.app
+                        )
                     }
-                case .failure(let error):
-                    self.errorMessage = "Unable to load workout history"
-                    self.isLoading = false
+                case let .failure(error):
+                    errorMessage = "Unable to load workout history"
+                    isLoading = false
                     FameFitLogger.error("Failed to load workout history", error: error, category: FameFitLogger.app)
                 }
             }
@@ -118,52 +121,52 @@ struct WorkoutHistoryView: View {
 
 struct WorkoutHistoryRow: View {
     let workout: WorkoutHistoryItem
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(workout.workoutType)
                         .font(.headline)
-                    
+
                     Text(workout.startDate, style: .date)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text(workout.startDate, style: .time)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 Text("+\(workout.effectiveXPEarned) XP")
                     .font(.headline)
                     .foregroundColor(.green)
             }
-            
+
             HStack(spacing: 20) {
                 Label(workout.formattedDuration, systemImage: "clock")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Label(workout.formattedCalories, systemImage: "flame")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 if let distance = workout.formattedDistance {
                     Label(distance, systemImage: "location")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 if let heartRate = workout.averageHeartRate {
                     Label("\(Int(heartRate)) bpm", systemImage: "heart")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Text("Source: \(workout.source)")
                 .font(.caption2)
                 .foregroundColor(.secondary)

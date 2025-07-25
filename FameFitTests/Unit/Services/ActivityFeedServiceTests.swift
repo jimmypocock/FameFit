@@ -5,16 +5,16 @@
 //  Unit tests for activity feed service
 //
 
-import XCTest
 import CloudKit
 @testable import FameFit
+import XCTest
 
 final class ActivityFeedServiceTests: XCTestCase {
-    var activityFeedService: ActivityFeedService!
-    var mockActivityFeedService: MockActivityFeedService!
-    var mockCloudKitManager: MockCloudKitManager!
-    var privacySettings: WorkoutPrivacySettings!
-    
+    private var activityFeedService: ActivityFeedService!
+    private var mockActivityFeedService: MockActivityFeedService!
+    private var mockCloudKitManager: MockCloudKitManager!
+    private var privacySettings: WorkoutPrivacySettings!
+
     override func setUp() {
         super.setUp()
         mockCloudKitManager = MockCloudKitManager()
@@ -25,7 +25,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         )
         mockActivityFeedService = MockActivityFeedService()
     }
-    
+
     override func tearDown() {
         activityFeedService = nil
         mockActivityFeedService = nil
@@ -33,9 +33,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         privacySettings = nil
         super.tearDown()
     }
-    
+
     // MARK: - Post Workout Activity Tests
-    
+
     func testPostWorkoutActivity_PublicPrivacy_Success() async throws {
         // Given
         let workout = WorkoutHistoryItem(
@@ -51,14 +51,14 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 25,
             source: "FameFit"
         )
-        
+
         // When
         try await mockActivityFeedService.postWorkoutActivity(
             workoutHistory: workout,
             privacy: .public,
             includeDetails: true
         )
-        
+
         // Then
         XCTAssertEqual(mockActivityFeedService.postedActivities.count, 1)
         let activity = mockActivityFeedService.postedActivities.first!
@@ -67,7 +67,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         XCTAssertEqual(activity.workoutId, workout.id.uuidString)
         XCTAssertEqual(activity.xpEarned, 25)
     }
-    
+
     func testPostWorkoutActivity_PrivatePrivacy_NotPosted() async throws {
         // Given
         let workout = WorkoutHistoryItem(
@@ -83,18 +83,18 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 15,
             source: "FameFit"
         )
-        
+
         // When - Real service would not post private workouts
         try await activityFeedService.postWorkoutActivity(
             workoutHistory: workout,
             privacy: .private,
             includeDetails: true
         )
-        
+
         // Then - No activity should be posted (mock doesn't enforce this)
         // In real implementation, private workouts are not saved to CloudKit
     }
-    
+
     func testPostWorkoutActivity_WithoutDetails() async throws {
         // Given
         let workout = WorkoutHistoryItem(
@@ -110,37 +110,38 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 35,
             source: "FameFit"
         )
-        
+
         // When
         try await mockActivityFeedService.postWorkoutActivity(
             workoutHistory: workout,
             privacy: .friendsOnly,
             includeDetails: false
         )
-        
+
         // Then
         XCTAssertEqual(mockActivityFeedService.postedActivities.count, 1)
         let activity = mockActivityFeedService.postedActivities.first!
-        
+
         // Parse content to verify no details
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
+           let content = try? JSONDecoder().decode(FeedContent.self, from: data)
+        {
             XCTAssertNil(content.details["duration"])
             XCTAssertNil(content.details["calories"])
             XCTAssertNil(content.details["distance"])
         }
     }
-    
+
     func testPostWorkoutActivity_COPPACompliance() async throws {
         // Given - User under 13 (COPPA restricted)
         var restrictedSettings = WorkoutPrivacySettings()
         restrictedSettings.allowPublicSharing = false
-        
+
         let restrictedService = ActivityFeedService(
             cloudKitManager: mockCloudKitManager,
             privacySettings: restrictedSettings
         )
-        
+
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "swimming",
@@ -154,20 +155,20 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 20,
             source: "FameFit"
         )
-        
+
         // When - Try to post publicly (should be downgraded to friends only)
         try await restrictedService.postWorkoutActivity(
             workoutHistory: workout,
             privacy: .public,
             includeDetails: true
         )
-        
+
         // Then - Privacy should be enforced
         // Real implementation would downgrade to friendsOnly
     }
-    
+
     // MARK: - Achievement Activity Tests
-    
+
     func testPostAchievementActivity_Success() async throws {
         // When
         try await mockActivityFeedService.postAchievementActivity(
@@ -175,7 +176,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 100,
             privacy: .public
         )
-        
+
         // Then
         XCTAssertEqual(mockActivityFeedService.postedActivities.count, 1)
         let activity = mockActivityFeedService.postedActivities.first!
@@ -183,29 +184,29 @@ final class ActivityFeedServiceTests: XCTestCase {
         XCTAssertEqual(activity.achievementName, "Workout Warrior")
         XCTAssertEqual(activity.xpEarned, 100)
     }
-    
+
     func testPostAchievementActivity_DisabledSharing() async throws {
         // Given
         var settings = WorkoutPrivacySettings()
         settings.shareAchievements = false
-        
+
         let service = ActivityFeedService(
             cloudKitManager: mockCloudKitManager,
             privacySettings: settings
         )
-        
+
         // When
         try await service.postAchievementActivity(
             achievementName: "First Workout",
             xpEarned: 50,
             privacy: .public
         )
-        
+
         // Then - Should not post when sharing is disabled
     }
-    
+
     // MARK: - Level Up Activity Tests
-    
+
     func testPostLevelUpActivity_Success() async throws {
         // When
         try await mockActivityFeedService.postLevelUpActivity(
@@ -213,37 +214,38 @@ final class ActivityFeedServiceTests: XCTestCase {
             newTitle: "Fitness Enthusiast",
             privacy: .friendsOnly
         )
-        
+
         // Then
         XCTAssertEqual(mockActivityFeedService.postedActivities.count, 1)
         let activity = mockActivityFeedService.postedActivities.first!
         XCTAssertEqual(activity.activityType, "level_up")
         XCTAssertEqual(activity.visibility, "friends_only")
-        
+
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
+           let content = try? JSONDecoder().decode(FeedContent.self, from: data)
+        {
             XCTAssertEqual(content.title, "Reached Level 5!")
             XCTAssertEqual(content.subtitle, "Fitness Enthusiast")
         }
     }
-    
+
     // MARK: - Feed Fetching Tests
-    
+
     func testFetchFeed_ReturnsEmptyForRealService() async throws {
         // Given
         let userIds: Set<String> = ["user1", "user2", "user3"]
-        
+
         // When
         let items = try await activityFeedService.fetchFeed(
             for: userIds,
             since: nil,
             limit: 20
         )
-        
+
         // Then - Real service returns empty array (CloudKit not implemented)
         XCTAssertEqual(items.count, 0)
     }
-    
+
     func testFetchFeed_MockServiceReturnsFilteredItems() async throws {
         // Given
         let workout = WorkoutHistoryItem(
@@ -259,7 +261,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 25,
             source: "FameFit"
         )
-        
+
         // Post activities for different users
         mockActivityFeedService.postedActivities = []
         try await mockActivityFeedService.postWorkoutActivity(
@@ -267,42 +269,42 @@ final class ActivityFeedServiceTests: XCTestCase {
             privacy: .public,
             includeDetails: true
         )
-        
+
         // When
         let items = try await mockActivityFeedService.fetchFeed(
             for: ["mock-user"],
             since: nil,
             limit: 10
         )
-        
+
         // Then
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(items.first?.userID, "mock-user")
     }
-    
+
     // MARK: - Privacy Update Tests
-    
+
     func testUpdateActivityPrivacy_Success() async throws {
         // Given
         let activityId = "test-activity"
-        
+
         // When
         try await mockActivityFeedService.updateActivityPrivacy(
             activityId,
             newPrivacy: .friendsOnly
         )
-        
+
         // Then - Mock doesn't actually update, but real service would
         XCTAssertTrue(true) // Placeholder
     }
-    
+
     // MARK: - Error Handling Tests
-    
+
     func testPostWorkoutActivity_NetworkError() async {
         // Given
         mockActivityFeedService.shouldFail = true
         mockActivityFeedService.mockError = .networkError("Connection failed")
-        
+
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
@@ -316,7 +318,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 25,
             source: "FameFit"
         )
-        
+
         // When/Then
         do {
             try await mockActivityFeedService.postWorkoutActivity(
@@ -326,7 +328,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             )
             XCTFail("Expected error to be thrown")
         } catch let error as ActivityFeedError {
-            if case .networkError(let message) = error {
+            if case let .networkError(message) = error {
                 XCTAssertEqual(message, "Connection failed")
             } else {
                 XCTFail("Unexpected error type: \(error)")
@@ -335,9 +337,9 @@ final class ActivityFeedServiceTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
-    
+
     // MARK: - Content Creation Tests
-    
+
     func testWorkoutContentCreation_WithAllDetails() {
         // Given
         _ = WorkoutHistoryItem(
@@ -353,7 +355,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             xpEarned: 45,
             source: "FameFit"
         )
-        
+
         // When - Test private helper through mock
         let content = FeedContent(
             title: "Completed a High Intensity Interval Training workout",
@@ -364,30 +366,30 @@ final class ActivityFeedServiceTests: XCTestCase {
                 "duration": "1800",
                 "calories": "450",
                 "distance": "2.5",
-                "xpEarned": "45"
+                "xpEarned": "45",
             ]
         )
-        
+
         // Then
         XCTAssertEqual(content.duration, 1800)
         XCTAssertEqual(content.calories, 450)
         XCTAssertEqual(content.xpEarned, 45)
     }
-    
+
     // MARK: - Privacy Level Comparison Tests
-    
+
     func testPrivacyLevelComparison() {
         // Test that the min function works correctly
         let service = activityFeedService!
-        
+
         // Private is most restrictive
         XCTAssertEqual(service.effectivePrivacy(.private, .public), .private)
         XCTAssertEqual(service.effectivePrivacy(.public, .private), .private)
-        
+
         // Friends only is middle
         XCTAssertEqual(service.effectivePrivacy(.friendsOnly, .public), .friendsOnly)
         XCTAssertEqual(service.effectivePrivacy(.public, .friendsOnly), .friendsOnly)
-        
+
         // Same returns same
         XCTAssertEqual(service.effectivePrivacy(.public, .public), .public)
         XCTAssertEqual(service.effectivePrivacy(.private, .private), .private)

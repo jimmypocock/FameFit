@@ -5,105 +5,108 @@
 //  Mock implementation of WorkoutSyncQueuing for testing
 //
 
-import Foundation
-import HealthKit
 import Combine
 @testable import FameFit
+import Foundation
+import HealthKit
 
 /// Mock workout sync queue for testing
 class MockWorkoutSyncQueue: WorkoutSyncQueuing {
-    
     // MARK: - Published Properties
+
     @Published var pendingWorkouts: [PendingWorkout] = []
     @Published var isProcessing = false
     @Published var failedCount = 0
-    
+
     // MARK: - Publisher Properties
+
     var pendingWorkoutsPublisher: AnyPublisher<[PendingWorkout], Never> {
         $pendingWorkouts.eraseToAnyPublisher()
     }
-    
+
     var isProcessingPublisher: AnyPublisher<Bool, Never> {
         $isProcessing.eraseToAnyPublisher()
     }
-    
+
     var failedCountPublisher: AnyPublisher<Int, Never> {
         $failedCount.eraseToAnyPublisher()
     }
-    
+
     // MARK: - Test Control Properties
+
     var enqueueWorkoutCalled = false
     var enqueueWorkoutCallCount = 0
     var lastEnqueuedWorkout: HKWorkout?
-    
+
     var processQueueCalled = false
     var processQueueCallCount = 0
-    
+
     var clearQueueCalled = false
     var retryFailedCalled = false
-    
+
     var shouldFailProcessing = false
     var processDelay: TimeInterval = 0
-    
+
     // Control whether workout is already in queue
     var workoutInQueueResponse = false
-    
+
     // MARK: - Initialization
+
     init() {
         // Empty initializer for test setup
     }
-    
+
     // MARK: - WorkoutSyncQueuing Methods
-    
+
     func enqueueWorkout(_ workout: HKWorkout) {
         enqueueWorkoutCalled = true
         enqueueWorkoutCallCount += 1
         lastEnqueuedWorkout = workout
-        
+
         let pending = PendingWorkout(from: workout)
         pendingWorkouts.append(pending)
     }
-    
+
     func processQueue() {
         processQueueCalled = true
         processQueueCallCount += 1
-        
+
         guard !pendingWorkouts.isEmpty else { return }
-        
+
         isProcessing = true
-        
+
         // Simulate async processing
         DispatchQueue.main.asyncAfter(deadline: .now() + processDelay) { [weak self] in
-            guard let self = self else { return }
-            
-            if self.shouldFailProcessing {
+            guard let self else { return }
+
+            if shouldFailProcessing {
                 // Simulate failures - increase retry counts
-                self.pendingWorkouts = self.pendingWorkouts.map { workout in
+                pendingWorkouts = pendingWorkouts.map { workout in
                     var updated = workout
                     updated.retryCount += 1
                     updated.lastRetryDate = Date()
                     return updated
                 }
-                self.failedCount = self.pendingWorkouts.filter { $0.retryCount >= 3 }.count
+                failedCount = pendingWorkouts.filter { $0.retryCount >= 3 }.count
             } else {
                 // Simulate success - clear the queue
-                self.pendingWorkouts.removeAll()
-                self.failedCount = 0
+                pendingWorkouts.removeAll()
+                failedCount = 0
             }
-            
-            self.isProcessing = false
+
+            isProcessing = false
         }
     }
-    
+
     func clearQueue() {
         clearQueueCalled = true
         pendingWorkouts.removeAll()
         failedCount = 0
     }
-    
+
     func retryFailed() {
         retryFailedCalled = true
-        
+
         // Reset retry counts for failed workouts
         pendingWorkouts = pendingWorkouts.map { workout in
             if workout.retryCount >= 3 {
@@ -114,53 +117,53 @@ class MockWorkoutSyncQueue: WorkoutSyncQueuing {
             }
             return workout
         }
-        
+
         failedCount = 0
     }
-    
-    func isWorkoutInQueue(_ workout: HKWorkout) -> Bool {
-        return workoutInQueueResponse
+
+    func isWorkoutInQueue(_: HKWorkout) -> Bool {
+        workoutInQueueResponse
     }
-    
+
     func pendingCount() -> Int {
-        return pendingWorkouts.count
+        pendingWorkouts.count
     }
-    
+
     // MARK: - Test Helper Methods
-    
+
     func reset() {
         pendingWorkouts.removeAll()
         isProcessing = false
         failedCount = 0
-        
+
         enqueueWorkoutCalled = false
         enqueueWorkoutCallCount = 0
         lastEnqueuedWorkout = nil
-        
+
         processQueueCalled = false
         processQueueCallCount = 0
-        
+
         clearQueueCalled = false
         retryFailedCalled = false
-        
+
         shouldFailProcessing = false
         processDelay = 0
         workoutInQueueResponse = false
     }
-    
+
     func simulateWorkoutInQueue(_ workout: PendingWorkout) {
         pendingWorkouts.append(workout)
     }
-    
+
     func simulateProcessingState(_ processing: Bool) {
         isProcessing = processing
     }
-    
+
     func simulateFailedWorkouts(count: Int) {
         failedCount = count
-        
+
         // Add some failed workouts to the queue
-        for index in 0..<count {
+        for index in 0 ..< count {
             var workout = PendingWorkout(from: TestWorkoutBuilder.createWorkout(
                 type: .running,
                 startDate: Date().addingTimeInterval(Double(-index * 3600 - 1800)),

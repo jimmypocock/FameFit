@@ -10,18 +10,18 @@ import Foundation
 // MARK: - Notification Category
 
 enum NotificationCategory: String, Codable, CaseIterable {
-    case workout = "workout"
-    case social = "social"
-    case system = "system"
-    
+    case workout
+    case social
+    case system
+
     var displayName: String {
         switch self {
         case .workout:
-            return "Workout"
+            "Workout"
         case .social:
-            return "Social"
+            "Social"
         case .system:
-            return "System"
+            "System"
         }
     }
 }
@@ -36,162 +36,165 @@ enum NotificationType: String, Codable, CaseIterable {
     case streakMaintained = "streak_maintained"
     case streakAtRisk = "streak_at_risk"
     case unlockAchieved = "unlock_achieved"
-    
+
     // Social notifications
     case newFollower = "new_follower"
     case followRequest = "follow_request"
     case followAccepted = "follow_accepted"
     case workoutKudos = "workout_kudos"
     case workoutComment = "workout_comment"
-    case mentioned = "mentioned"
+    case mentioned
     case challengeInvite = "challenge_invite"
     case challengeStarted = "challenge_started"
     case challengeCompleted = "challenge_completed"
     case leaderboardChange = "leaderboard_change"
-    
+
     // System notifications
     case securityAlert = "security_alert"
     case privacyUpdate = "privacy_update"
     case featureAnnouncement = "feature_announcement"
     case maintenanceNotice = "maintenance_notice"
-    
+
     var category: NotificationCategory {
         switch self {
         case .workoutCompleted, .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk, .unlockAchieved:
-            return .workout
-        case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned, .challengeInvite, .challengeStarted, .challengeCompleted, .leaderboardChange:
-            return .social
+            .workout
+        case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned,
+             .challengeInvite,
+             .challengeStarted, .challengeCompleted, .leaderboardChange:
+            .social
         case .securityAlert, .privacyUpdate, .featureAnnouncement, .maintenanceNotice:
-            return .system
+            .system
         }
     }
-    
+
     var defaultPriority: NotificationPriority {
         switch self {
         case .securityAlert, .mentioned, .followRequest:
-            return .immediate
+            .immediate
         case .workoutCompleted, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted:
-            return .high
+            .high
         case .newFollower, .workoutComment, .streakMaintained, .unlockAchieved:
-            return .medium
+            .medium
         case .workoutKudos, .leaderboardChange, .streakAtRisk:
-            return .low
+            .low
         case .privacyUpdate, .featureAnnouncement, .maintenanceNotice, .challengeCompleted:
-            return .low
+            .low
         }
     }
-    
+
     var defaultSetting: NotificationSetting {
         switch self {
         case .workoutCompleted, .xpMilestone, .levelUp, .unlockAchieved:
-            return .enabled
+            .enabled
         case .streakMaintained, .streakAtRisk:
-            return .enabled
+            .enabled
         case .newFollower, .followRequest, .followAccepted:
-            return .enabled
+            .enabled
         case .workoutKudos:
-            return .batched
+            .batched
         case .workoutComment, .mentioned, .challengeInvite:
-            return .immediate
+            .immediate
         case .challengeStarted:
-            return .enabled
+            .enabled
         case .leaderboardChange:
-            return .weekly
+            .weekly
         case .securityAlert:
-            return .immediate
+            .immediate
         case .privacyUpdate, .featureAnnouncement, .maintenanceNotice:
-            return .enabled
+            .enabled
         case .challengeCompleted:
-            return .enabled
+            .enabled
         }
     }
-    
+
     var soundEnabled: Bool {
         switch self {
-        case .workoutCompleted, .xpMilestone, .levelUp, .followRequest, .mentioned, .challengeInvite, .challengeStarted, .securityAlert:
-            return true
+        case .workoutCompleted, .xpMilestone, .levelUp, .followRequest, .mentioned, .challengeInvite, .challengeStarted,
+             .securityAlert:
+            true
         default:
-            return false
+            false
         }
     }
-    
+
     var displayName: String {
         switch self {
         case .workoutCompleted:
-            return "Workout Completed"
+            "Workout Completed"
         case .xpMilestone:
-            return "XP Milestone"
+            "XP Milestone"
         case .levelUp:
-            return "Level Up"
+            "Level Up"
         case .streakMaintained:
-            return "Streak Maintained"
+            "Streak Maintained"
         case .streakAtRisk:
-            return "Streak at Risk"
+            "Streak at Risk"
         case .unlockAchieved:
-            return "New Unlock"
+            "New Unlock"
         case .newFollower:
-            return "New Follower"
+            "New Follower"
         case .followRequest:
-            return "Follow Request"
+            "Follow Request"
         case .followAccepted:
-            return "Follow Accepted"
+            "Follow Accepted"
         case .workoutKudos:
-            return "Workout Kudos"
+            "Workout Kudos"
         case .workoutComment:
-            return "Workout Comment"
+            "Workout Comment"
         case .mentioned:
-            return "Mentioned"
+            "Mentioned"
         case .challengeInvite:
-            return "Challenge Invite"
+            "Challenge Invite"
         case .challengeStarted:
-            return "Challenge Started"
+            "Challenge Started"
         case .challengeCompleted:
-            return "Challenge Completed"
+            "Challenge Completed"
         case .leaderboardChange:
-            return "Leaderboard Update"
+            "Leaderboard Update"
         case .securityAlert:
-            return "Security Alert"
+            "Security Alert"
         case .privacyUpdate:
-            return "Privacy Update"
+            "Privacy Update"
         case .featureAnnouncement:
-            return "New Feature"
+            "New Feature"
         case .maintenanceNotice:
-            return "Maintenance"
+            "Maintenance"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .workoutCompleted:
-            return "🏃"
+            "🏃"
         case .xpMilestone, .levelUp:
-            return "🎉"
+            "🎉"
         case .streakMaintained:
-            return "🔥"
+            "🔥"
         case .streakAtRisk:
-            return "⚠️"
+            "⚠️"
         case .unlockAchieved:
-            return "🏆"
+            "🏆"
         case .newFollower, .followRequest, .followAccepted:
-            return "👥"
+            "👥"
         case .workoutKudos:
-            return "❤️"
+            "❤️"
         case .workoutComment:
-            return "💬"
+            "💬"
         case .mentioned:
-            return "@"
+            "@"
         case .challengeInvite, .challengeStarted, .challengeCompleted:
-            return "⚔️"
+            "⚔️"
         case .leaderboardChange:
-            return "📊"
+            "📊"
         case .securityAlert:
-            return "🔐"
+            "🔐"
         case .privacyUpdate:
-            return "🔒"
+            "🔒"
         case .featureAnnouncement:
-            return "✨"
+            "✨"
         case .maintenanceNotice:
-            return "🔧"
+            "🔧"
         }
     }
 }
@@ -203,68 +206,68 @@ enum NotificationPriority: Int, Codable, Comparable {
     case medium = 1
     case high = 2
     case immediate = 3
-    
+
     static func < (lhs: NotificationPriority, rhs: NotificationPriority) -> Bool {
-        return lhs.rawValue < rhs.rawValue
+        lhs.rawValue < rhs.rawValue
     }
 }
 
 // MARK: - Notification Setting
 
 enum NotificationSetting: String, Codable, CaseIterable {
-    case disabled       // Never notify
-    case enabled        // Notify immediately
-    case batched        // Group notifications
-    case immediate      // Always immediate, ignore batching
-    case daily          // Once per day summary
-    case weekly         // Once per week summary
-    
+    case disabled // Never notify
+    case enabled // Notify immediately
+    case batched // Group notifications
+    case immediate // Always immediate, ignore batching
+    case daily // Once per day summary
+    case weekly // Once per week summary
+
     var displayName: String {
         switch self {
         case .disabled:
-            return "Off"
+            "Off"
         case .enabled:
-            return "On"
+            "On"
         case .batched:
-            return "Grouped"
+            "Grouped"
         case .immediate:
-            return "Instant"
+            "Instant"
         case .daily:
-            return "Daily Summary"
+            "Daily Summary"
         case .weekly:
-            return "Weekly Summary"
+            "Weekly Summary"
         }
     }
-    
+
     var isEnabled: Bool {
-        return self != .disabled
+        self != .disabled
     }
 }
 
 // MARK: - Notification Action
 
 enum NotificationAction: String, Codable {
-    case view = "view"
-    case kudos = "kudos"
-    case reply = "reply"
-    case accept = "accept"
-    case decline = "decline"
-    case dismiss = "dismiss"
-    
+    case view
+    case kudos
+    case reply
+    case accept
+    case decline
+    case dismiss
+
     var displayName: String {
         switch self {
         case .view:
-            return "View"
+            "View"
         case .kudos:
-            return "Kudos"
+            "Kudos"
         case .reply:
-            return "Reply"
+            "Reply"
         case .accept:
-            return "Accept"
+            "Accept"
         case .decline:
-            return "Decline"
+            "Decline"
         case .dismiss:
-            return "Dismiss"
+            "Dismiss"
         }
     }
 }

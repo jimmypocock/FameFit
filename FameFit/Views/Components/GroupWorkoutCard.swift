@@ -5,8 +5,8 @@
 //  Card component for displaying group workout sessions
 //
 
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct GroupWorkoutCard: View {
     let groupWorkout: GroupWorkout
@@ -15,21 +15,21 @@ struct GroupWorkoutCard: View {
     let onLeave: () -> Void
     let onStart: () -> Void
     let onViewDetails: () -> Void
-    
+
     @State private var showParticipants = false
     @State private var isAnimating = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with workout info
             workoutHeader
-            
+
             // Workout details
             workoutDetails
-            
+
             // Participants preview
             participantsPreview
-            
+
             // Action buttons
             actionButtons
         }
@@ -48,14 +48,14 @@ struct GroupWorkoutCard: View {
             onViewDetails()
         }
     }
-    
+
     // MARK: - Header
-    
+
     private var workoutHeader: some View {
         HStack(alignment: .top, spacing: 12) {
             // Status indicator
             statusIndicator
-            
+
             // Workout info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -63,25 +63,25 @@ struct GroupWorkoutCard: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(2)
-                    
+
                     Spacer()
-                    
+
                     if !groupWorkout.isPublic {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 12))
                             .foregroundColor(.orange)
                     }
                 }
-                
+
                 HStack(spacing: 8) {
                     Image(systemName: workoutTypeIcon)
                         .font(.system(size: 16))
                         .foregroundColor(.blue)
-                    
+
                     Text(workoutTypeDisplayName)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
-                    
+
                     if groupWorkout.status == .active {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 6))
@@ -92,13 +92,13 @@ struct GroupWorkoutCard: View {
                                     isAnimating = true
                                 }
                             }
-                        
+
                         Text("LIVE")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.green)
                     }
                 }
-                
+
                 // Description (if provided)
                 if !groupWorkout.description.isEmpty {
                     Text(groupWorkout.description)
@@ -108,15 +108,15 @@ struct GroupWorkoutCard: View {
                         .padding(.top, 2)
                 }
             }
-            
+
             Spacer()
-            
+
             // Timing info
             VStack(alignment: .trailing, spacing: 4) {
                 Text(timeDisplayText)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(timeDisplayColor)
-                
+
                 if groupWorkout.status == .scheduled {
                     Text(groupWorkout.scheduledStart, style: .relative)
                         .font(.caption)
@@ -127,9 +127,9 @@ struct GroupWorkoutCard: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
     }
-    
+
     // MARK: - Workout Details
-    
+
     private var workoutDetails: some View {
         HStack(spacing: 16) {
             // Duration
@@ -138,14 +138,14 @@ struct GroupWorkoutCard: View {
                 value: formatDuration(groupWorkout.duration),
                 color: .orange
             )
-            
+
             // Participants count
             DetailPill(
                 icon: "person.2",
                 value: "\(groupWorkout.participants.count)/\(groupWorkout.maxParticipants)",
                 color: .blue
             )
-            
+
             // Difficulty or tags (if available)
             if let firstTag = groupWorkout.tags.first {
                 DetailPill(
@@ -154,24 +154,24 @@ struct GroupWorkoutCard: View {
                     color: .purple
                 )
             }
-            
+
             Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }
-    
+
     // MARK: - Participants Preview
-    
+
     private var participantsPreview: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Participants")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 if groupWorkout.participants.count > 3 {
                     Button("View All (\(groupWorkout.participants.count))") {
                         showParticipants = true
@@ -180,19 +180,22 @@ struct GroupWorkoutCard: View {
                     .foregroundColor(.blue)
                 }
             }
-            
+
             // Participant avatars
             HStack(spacing: -8) {
-                ForEach(Array(groupWorkout.participants.prefix(4).enumerated()), id: \.element.id) { index, participant in
+                ForEach(
+                    Array(groupWorkout.participants.prefix(4).enumerated()),
+                    id: \.element.id
+                ) { index, participant in
                     participantAvatar(participant: participant, index: index)
                 }
-                
+
                 if groupWorkout.participants.count > 4 {
                     ZStack {
                         Circle()
                             .fill(Color(.systemGray4))
                             .frame(width: 32, height: 32)
-                        
+
                         Text("+\(groupWorkout.participants.count - 4)")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.secondary)
@@ -202,16 +205,16 @@ struct GroupWorkoutCard: View {
                             .stroke(Color(.systemBackground), lineWidth: 2)
                     )
                 }
-                
+
                 Spacer()
-                
+
                 // Host indicator
                 if let host = groupWorkout.participants.first(where: { $0.userId == groupWorkout.hostId }) {
                     HStack(spacing: 4) {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 12))
                             .foregroundColor(.yellow)
-                        
+
                         Text("Host: \(host.displayName)")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -222,9 +225,9 @@ struct GroupWorkoutCard: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }
-    
+
     // MARK: - Action Buttons
-    
+
     private var actionButtons: some View {
         HStack(spacing: 12) {
             if isParticipant {
@@ -244,9 +247,9 @@ struct GroupWorkoutCard: View {
                             .fill(Color.red.opacity(0.1))
                     )
                 }
-                
+
                 // Start button (if host and scheduled)
-                if isHost && groupWorkout.status == .scheduled {
+                if isHost, groupWorkout.status == .scheduled {
                     Button(action: onStart) {
                         HStack(spacing: 6) {
                             Image(systemName: "play.fill")
@@ -263,7 +266,7 @@ struct GroupWorkoutCard: View {
                         )
                     }
                 }
-            } else if groupWorkout.status.canJoin && groupWorkout.hasSpace {
+            } else if groupWorkout.status.canJoin, groupWorkout.hasSpace {
                 // Join button
                 Button(action: onJoin) {
                     HStack(spacing: 6) {
@@ -281,9 +284,9 @@ struct GroupWorkoutCard: View {
                     )
                 }
             }
-            
+
             Spacer()
-            
+
             // Share button
             Button(action: {}) {
                 Image(systemName: "square.and.arrow.up")
@@ -300,9 +303,9 @@ struct GroupWorkoutCard: View {
         .padding(.bottom, 16)
         .padding(.top, 12)
     }
-    
+
     // MARK: - Helper Views
-    
+
     private var statusIndicator: some View {
         VStack {
             Circle()
@@ -315,12 +318,12 @@ struct GroupWorkoutCard: View {
                         .opacity(groupWorkout.status == .active ? (isAnimating ? 0 : 1) : 1)
                         .animation(.easeOut(duration: 1.0).repeatForever(autoreverses: false), value: isAnimating)
                 )
-            
+
             Spacer()
         }
         .frame(width: 20)
     }
-    
+
     private func participantAvatar(participant: GroupWorkoutParticipant, index: Int) -> some View {
         ZStack {
             Circle()
@@ -331,7 +334,7 @@ struct GroupWorkoutCard: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.blue)
                 )
-            
+
             // Status indicator for active participants
             if participant.status == .active {
                 Circle()
@@ -346,18 +349,18 @@ struct GroupWorkoutCard: View {
         )
         .zIndex(Double(4 - index)) // Reverse z-order for overlap effect
     }
-    
+
     private struct DetailPill: View {
         let icon: String
         let value: String
         let color: Color
-        
+
         var body: some View {
             HStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
                     .foregroundColor(color)
-                
+
                 Text(value)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)
@@ -370,161 +373,161 @@ struct GroupWorkoutCard: View {
             )
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var workoutTypeIcon: String {
         switch groupWorkout.workoutType {
         case .running:
-            return "figure.run"
+            "figure.run"
         case .cycling:
-            return "bicycle"
+            "bicycle"
         case .swimming:
-            return "figure.pool.swim"
+            "figure.pool.swim"
         case .walking:
-            return "figure.walk"
+            "figure.walk"
         case .hiking:
-            return "figure.hiking"
+            "figure.hiking"
         case .yoga:
-            return "figure.yoga"
+            "figure.yoga"
         case .functionalStrengthTraining, .traditionalStrengthTraining:
-            return "dumbbell"
+            "dumbbell"
         default:
-            return "figure.mixed.cardio"
+            "figure.mixed.cardio"
         }
     }
-    
+
     private var workoutTypeDisplayName: String {
         switch groupWorkout.workoutType {
         case .running:
-            return "Running"
+            "Running"
         case .walking:
-            return "Walking"
+            "Walking"
         case .hiking:
-            return "Hiking"
+            "Hiking"
         case .cycling:
-            return "Cycling"
+            "Cycling"
         case .swimming:
-            return "Swimming"
+            "Swimming"
         case .functionalStrengthTraining:
-            return "Strength Training"
+            "Strength Training"
         case .traditionalStrengthTraining:
-            return "Weight Training"
+            "Weight Training"
         case .yoga:
-            return "Yoga"
+            "Yoga"
         case .pilates:
-            return "Pilates"
+            "Pilates"
         case .dance:
-            return "Dance"
+            "Dance"
         case .boxing:
-            return "Boxing"
+            "Boxing"
         case .kickboxing:
-            return "Kickboxing"
+            "Kickboxing"
         default:
-            return "Workout"
+            "Workout"
         }
     }
-    
+
     private var statusColor: Color {
         switch groupWorkout.status {
         case .scheduled:
-            return .blue
+            .blue
         case .active:
-            return .green
+            .green
         case .completed:
-            return .gray
+            .gray
         case .cancelled:
-            return .red
+            .red
         }
     }
-    
+
     private var backgroundColor: Color {
         switch groupWorkout.status {
         case .active:
-            return Color.green.opacity(0.05)
+            Color.green.opacity(0.05)
         case .scheduled:
-            return Color(.systemBackground)
+            Color(.systemBackground)
         case .completed:
-            return Color(.systemGray6)
+            Color(.systemGray6)
         case .cancelled:
-            return Color.red.opacity(0.05)
+            Color.red.opacity(0.05)
         }
     }
-    
+
     private var shadowColor: Color {
         switch groupWorkout.status {
         case .active:
-            return .green.opacity(0.2)
+            .green.opacity(0.2)
         case .scheduled:
-            return .black.opacity(0.1)
+            .black.opacity(0.1)
         default:
-            return .clear
+            .clear
         }
     }
-    
+
     private var shadowRadius: CGFloat {
         groupWorkout.status == .active ? 8 : 4
     }
-    
+
     private var shadowOffset: CGFloat {
         groupWorkout.status == .active ? 4 : 2
     }
-    
+
     private var borderColor: Color {
         switch groupWorkout.status {
         case .active:
-            return .green.opacity(0.3)
+            .green.opacity(0.3)
         default:
-            return .clear
+            .clear
         }
     }
-    
+
     private var borderWidth: CGFloat {
         groupWorkout.status == .active ? 1 : 0
     }
-    
+
     private var timeDisplayText: String {
         switch groupWorkout.status {
         case .scheduled:
-            return "Starts"
+            "Starts"
         case .active:
-            return "Live"
+            "Live"
         case .completed:
-            return "Ended"
+            "Ended"
         case .cancelled:
-            return "Cancelled"
+            "Cancelled"
         }
     }
-    
+
     private var timeDisplayColor: Color {
         switch groupWorkout.status {
         case .scheduled:
-            return .blue
+            .blue
         case .active:
-            return .green
+            .green
         case .completed:
-            return .secondary
+            .secondary
         case .cancelled:
-            return .red
+            .red
         }
     }
-    
+
     private var isParticipant: Bool {
-        guard let currentUserId = currentUserId else { return false }
+        guard let currentUserId else { return false }
         return groupWorkout.participantIds.contains(currentUserId)
     }
-    
+
     private var isHost: Bool {
-        guard let currentUserId = currentUserId else { return false }
+        guard let currentUserId else { return false }
         return groupWorkout.hostId == currentUserId
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
-        
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
@@ -560,7 +563,7 @@ struct GroupWorkoutCard: View {
                             userId: "user3",
                             displayName: "Emma Chen",
                             profileImageURL: nil
-                        )
+                        ),
                     ],
                     maxParticipants: 8,
                     scheduledStart: Date().addingTimeInterval(3600),
@@ -574,7 +577,7 @@ struct GroupWorkoutCard: View {
                 onStart: {},
                 onViewDetails: {}
             )
-            
+
             // Active workout
             GroupWorkoutCard(
                 groupWorkout: GroupWorkout(
@@ -594,7 +597,7 @@ struct GroupWorkoutCard: View {
                             displayName: "Current User",
                             profileImageURL: nil,
                             status: .active
-                        )
+                        ),
                     ],
                     maxParticipants: 10,
                     scheduledStart: Date().addingTimeInterval(-1800),

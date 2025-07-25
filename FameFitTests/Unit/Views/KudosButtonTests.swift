@@ -5,13 +5,13 @@
 //  Tests for KudosButton UI component
 //
 
-import XCTest
 import SwiftUI
+import XCTest
+
 // import ViewInspector // Temporarily disabled - missing dependency
 @testable import FameFit
 
 class KudosButtonTests: XCTestCase {
-    
     func testKudosButtonInitialization() {
         // Given
         let workoutId = "workout123"
@@ -22,7 +22,7 @@ class KudosButtonTests: XCTestCase {
             hasUserKudos: true,
             recentUsers: []
         )
-        
+
         // When
         let button = KudosButton(
             workoutId: workoutId,
@@ -30,16 +30,16 @@ class KudosButtonTests: XCTestCase {
             kudosSummary: kudosSummary,
             onTap: {}
         )
-        
+
         // Then
         XCTAssertNotNil(button)
     }
-    
+
     func testKudosButtonWithNilSummary() {
         // Given
         let workoutId = "workout123"
         let ownerId = "owner456"
-        
+
         // When
         let button = KudosButton(
             workoutId: workoutId,
@@ -47,20 +47,20 @@ class KudosButtonTests: XCTestCase {
             kudosSummary: nil,
             onTap: {}
         )
-        
+
         // Then
         XCTAssertNotNil(button)
     }
-    
+
     func testKudosButtonStates() {
         // Test different kudos states
         let scenarios: [(count: Int, hasKudos: Bool, expectedColor: Color)] = [
-            (0, false, .gray),           // No kudos
-            (1, true, .red),            // User has given kudos
-            (5, false, .gray),          // Others have given kudos
-            (10, true, .red)            // User and others have given kudos
+            (0, false, .gray), // No kudos
+            (1, true, .red), // User has given kudos
+            (5, false, .gray), // Others have given kudos
+            (10, true, .red), // User and others have given kudos
         ]
-        
+
         for scenario in scenarios {
             let summary = WorkoutKudosSummary(
                 workoutId: "test",
@@ -68,7 +68,7 @@ class KudosButtonTests: XCTestCase {
                 hasUserKudos: scenario.hasKudos,
                 recentUsers: []
             )
-            
+
             // Verify the button can be created with each state
             let button = KudosButton(
                 workoutId: "test",
@@ -76,7 +76,7 @@ class KudosButtonTests: XCTestCase {
                 kudosSummary: summary,
                 onTap: {}
             )
-            
+
             XCTAssertNotNil(button)
         }
     }

@@ -1,11 +1,15 @@
-import Foundation
 import CloudKit
-import HealthKit
 @testable import FameFit
+import Foundation
+import HealthKit
 
 /// Mock CloudKitManager for unit testing
 class MockCloudKitManager: CloudKitManager {
-    
+    // MARK: - Database Mocking
+
+    var mockPublicDatabase: MockCKDatabase!
+    var mockPrivateDatabase: MockCKDatabase!
+
     // Track method calls
     var addFollowersCalled = false
     var addFollowersCallCount = 0
@@ -17,85 +21,92 @@ class MockCloudKitManager: CloudKitManager {
     var recordWorkoutCalled = false
     var addFollowersCalls: [(count: Int, date: Date)] = []
     var addXPCalls: [(xp: Int, date: Date)] = []
-    
+    var saveCallCount = 0 // Add this property
+    var mockRecords: [String: CKRecord] = [:] // Add this property
+    var mockQueryResults: [CKRecord] = [] // Add this property
+
     // Control test behavior
     var shouldFailAddFollowers = false
     var shouldFailAddXP = false
     var shouldFailFetchUserRecord = false
     var mockIsAvailable = true
     var mockCurrentUserID: String? = "mock-user-id"
-    
+
     // Override CloudKit availability
     override var isAvailable: Bool {
-        return mockIsAvailable
+        mockIsAvailable
     }
-    
+
     override var currentUserID: String? {
-        get { return mockCurrentUserID }
+        get { mockCurrentUserID }
         set { mockCurrentUserID = newValue }
     }
-    
+
     override init() {
         super.init()
         // Set initial test values
-        self.isSignedIn = true
-        self.totalXP = 100
-        self.userName = "Test User"
-        self.currentStreak = 5
-        self.totalWorkouts = 20
-        self.joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
-        self.lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60) // 1 day ago
+        isSignedIn = true
+        totalXP = 100
+        userName = "Test User"
+        currentStreak = 5
+        totalWorkouts = 20
+        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60) // 1 day ago
+
+        // Initialize mock databases
+        mockPublicDatabase = MockCKDatabase()
+        mockPrivateDatabase = MockCKDatabase()
     }
-    
+
     override func addFollowers(_ count: Int) {
         addFollowersCalled = true
         addFollowersCallCount += 1
         lastAddedFollowerCount = count
         addFollowersCalls.append((count: count, date: Date()))
-        
+
         // Match the real implementation - addFollowers calls addXP
         addXP(count)
     }
-    
+
     override func addXP(_ xp: Int) {
         addXPCalled = true
         addXPCallCount += 1
         lastAddedXPCount = xp
         addXPCalls.append((xp: xp, date: Date()))
-        
+
         if !shouldFailAddXP {
             // Update values synchronously
-            let newXP = self.totalXP + xp
-            let newWorkoutCount = self.totalWorkouts + 1
-            
-            self.totalXP = newXP
-            self.totalWorkouts = newWorkoutCount
-            self.lastWorkoutTimestamp = Date()
-            self.lastError = nil
+            let newXP = totalXP + xp
+            let newWorkoutCount = totalWorkouts + 1
+
+            totalXP = newXP
+            totalWorkouts = newWorkoutCount
+            lastWorkoutTimestamp = Date()
+            lastError = nil
         } else {
-            self.lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+            lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
         }
     }
-    
+
     override func fetchUserRecord() {
         fetchUserRecordCalled = true
-        
+
         if shouldFailFetchUserRecord {
-            self.lastError = .cloudKitUserNotFound
+            lastError = .cloudKitUserNotFound
         } else {
             // Simulate successful fetch with no changes
-            self.lastError = nil
+            lastError = nil
         }
     }
-    
-    override func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void) {
+
+    override func recordWorkout(_: HKWorkout, completion: @escaping (Bool) -> Void) {
         recordWorkoutCalled = true
-        
+
         DispatchQueue.main.async {
             completion(!self.shouldFailAddFollowers)
         }
     }
-    
+
     // Test helper methods
     func reset() {
         addFollowersCalled = false
@@ -108,7 +119,7 @@ class MockCloudKitManager: CloudKitManager {
         recordWorkoutCalled = false
         addFollowersCalls.removeAll()
         addXPCalls.removeAll()
-        
+
         totalXP = 100
         totalWorkouts = 20
         currentStreak = 5
@@ -116,7 +127,7 @@ class MockCloudKitManager: CloudKitManager {
         lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
         lastError = nil
     }
-    
+
     func simulateUserSignOut() {
         isSignedIn = false
         userRecord = nil
@@ -127,34 +138,34 @@ class MockCloudKitManager: CloudKitManager {
         joinTimestamp = nil
         lastWorkoutTimestamp = nil
     }
-    
+
     // MARK: - Workout History
-    
+
     private var workoutHistory: [WorkoutHistoryItem] = []
-    
+
     override func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem) {
         self.workoutHistory.append(workoutHistory)
     }
-    
+
     override func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void) {
         // Sort by endDate descending to match CloudKit implementation
         let sortedHistory = workoutHistory.sorted { $0.endDate > $1.endDate }
         completion(.success(sortedHistory))
     }
-    
+
     // Override the new XP title method
     override func getXPTitle() -> String {
         switch totalXP {
-        case 0..<100:
-            return "Fitness Newbie"
-        case 100..<1_000:
-            return "Micro-Influencer"
-        case 1_000..<10_000:
-            return "Rising Star"
-        case 10_000..<100_000:
-            return "Verified Influencer"
+        case 0 ..< 100:
+            "Fitness Newbie"
+        case 100 ..< 1000:
+            "Micro-Influencer"
+        case 1000 ..< 10000:
+            "Rising Star"
+        case 10000 ..< 100_000:
+            "Verified Influencer"
         default:
-            return "FameFit Elite"
+            "FameFit Elite"
         }
     }
 }

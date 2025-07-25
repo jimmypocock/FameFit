@@ -5,15 +5,17 @@
 //  Created by paige on 2021/12/11.
 //
 
-import SwiftUI
 import HealthKit
+import SwiftUI
 #if os(watchOS)
-import WatchKit
+    import WatchKit
 #endif
 
 // MARK: - TABVIEW WITH ENUM
+
 struct SessionPagingView: View {
     // MARK: isLuminanceReduced
+
     @Environment(\.isLuminanceReduced)
     var isLuminanceReduced
     /*
@@ -36,9 +38,11 @@ struct SessionPagingView: View {
         TabView(selection: $selection) {
             ControlsView().tag(Tab.controls)
             MetricsView().tag(Tab.metrics)
+
             // MARK: NowPlayingView is provided by WatchKit
+
             #if os(watchOS)
-            NowPlayingView().tag(Tab.nowPlaying)
+                NowPlayingView().tag(Tab.nowPlaying)
             #endif
         }
         .navigationTitle(getWorkoutName(for: workoutManager.selectedWorkout))
@@ -54,9 +58,8 @@ struct SessionPagingView: View {
         }
     }
 
-
     private func getWorkoutName(for workoutType: HKWorkoutActivityType?) -> String {
-        guard let workoutType = workoutType else { return "" }
+        guard let workoutType else { return "" }
         return workoutType.displayName
     }
 }

@@ -17,7 +17,7 @@ struct NotificationDebugView: View {
     @State private var deliveredNotifications: [UNNotification] = []
     @State private var isLoading = false
     @State private var testMessage = ""
-    
+
     var body: some View {
         NavigationView {
             List {
@@ -37,9 +37,9 @@ struct NotificationDebugView: View {
             }
         }
     }
-    
+
     // MARK: - Sections
-    
+
     private var permissionSection: some View {
         Section("Permission Status") {
             HStack {
@@ -49,21 +49,21 @@ struct NotificationDebugView: View {
                     .foregroundColor(statusColor)
                     .fontWeight(.semibold)
             }
-            
+
             if notificationStatus != .authorized {
                 Button("Request Permission") {
                     requestPermission()
                 }
                 .foregroundColor(.blue)
             }
-            
+
             Button("Open Settings") {
                 openNotificationSettings()
             }
             .foregroundColor(.secondary)
         }
     }
-    
+
     private var deviceTokenSection: some View {
         Section("Push Notifications") {
             HStack {
@@ -73,14 +73,14 @@ struct NotificationDebugView: View {
                     .foregroundColor(deviceTokenStatus == "Registered" ? .green : .orange)
                     .fontWeight(.semibold)
             }
-            
+
             Button("Re-register for Push") {
                 reregisterForPush()
             }
             .foregroundColor(.blue)
         }
     }
-    
+
     private var badgeSection: some View {
         Section("Badge Management") {
             HStack {
@@ -89,15 +89,15 @@ struct NotificationDebugView: View {
                 Text("\(badgeCount)")
                     .fontWeight(.semibold)
             }
-            
+
             HStack {
                 Button("Clear Badge") {
                     clearBadge()
                 }
                 .foregroundColor(.red)
-                
+
                 Spacer()
-                
+
                 Button("Set Badge to 5") {
                     setBadgeCount(5)
                 }
@@ -105,7 +105,7 @@ struct NotificationDebugView: View {
             }
         }
     }
-    
+
     private var notificationQueuesSection: some View {
         Section("Notification Queues") {
             NavigationLink(destination: PendingNotificationsView(notifications: pendingNotifications)) {
@@ -117,7 +117,7 @@ struct NotificationDebugView: View {
                         .fontWeight(.semibold)
                 }
             }
-            
+
             NavigationLink(destination: DeliveredNotificationsView(notifications: deliveredNotifications)) {
                 HStack {
                     Text("Delivered Notifications")
@@ -127,30 +127,30 @@ struct NotificationDebugView: View {
                         .fontWeight(.semibold)
                 }
             }
-            
+
             Button("Clear All Notifications") {
                 clearAllNotifications()
             }
             .foregroundColor(.red)
         }
     }
-    
+
     private var testingSection: some View {
         Section("Test Notifications") {
             TextField("Test message", text: $testMessage)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            
+
             VStack(spacing: 8) {
                 Button("Send Test Workout Notification") {
                     sendTestWorkoutNotification()
                 }
                 .foregroundColor(.blue)
-                
+
                 Button("Send Test Social Notification") {
                     sendTestSocialNotification()
                 }
                 .foregroundColor(.green)
-                
+
                 Button("Send Test Achievement Notification") {
                     sendTestAchievementNotification()
                 }
@@ -158,7 +158,7 @@ struct NotificationDebugView: View {
             }
         }
     }
-    
+
     private var troubleshootingSection: some View {
         Section("Troubleshooting") {
             VStack(alignment: .leading, spacing: 12) {
@@ -168,39 +168,39 @@ struct NotificationDebugView: View {
                         "Check notification permissions in Settings",
                         "Ensure Do Not Disturb is disabled",
                         "Restart the app",
-                        "Re-register for push notifications"
+                        "Re-register for push notifications",
                     ]
                 )
-                
+
                 troubleshootingItem(
                     title: "Badge Count Not Updating",
                     steps: [
                         "Check notification settings allow badges",
                         "Try clearing and setting badge manually",
-                        "Restart device if needed"
+                        "Restart device if needed",
                     ]
                 )
-                
+
                 troubleshootingItem(
                     title: "Push Notifications Not Working",
                     steps: [
                         "Check internet connection",
                         "Verify device token registration",
-                        "Test with local notifications first"
+                        "Test with local notifications first",
                     ]
                 )
             }
         }
     }
-    
+
     // MARK: - Helper Views
-    
+
     private func troubleshootingItem(title: String, steps: [String]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(.primary)
-            
+
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .top, spacing: 8) {
                     Text("\(index + 1).")
@@ -214,9 +214,9 @@ struct NotificationDebugView: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var statusDescription: String {
         switch notificationStatus {
         case .authorized:
@@ -233,7 +233,7 @@ struct NotificationDebugView: View {
             return "Unknown"
         }
     }
-    
+
     private var statusColor: Color {
         switch notificationStatus {
         case .authorized:
@@ -250,55 +250,55 @@ struct NotificationDebugView: View {
             return .gray
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func checkStatus() {
         isLoading = true
-        
+
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
-            
+
             await MainActor.run {
                 notificationStatus = settings.authorizationStatus
                 badgeCount = dependencies.notificationStore.unreadCount
-                
+
                 loadNotificationQueues()
                 checkDeviceTokenStatus()
-                
+
                 isLoading = false
             }
         }
     }
-    
+
     private func refreshStatus() async {
         checkStatus()
     }
-    
+
     private func loadNotificationQueues() {
         Task {
             let center = UNUserNotificationCenter.current()
-            
+
             let pending = await center.pendingNotificationRequests()
             let delivered = await center.deliveredNotifications()
-            
+
             await MainActor.run {
-                self.pendingNotifications = pending
-                self.deliveredNotifications = delivered
+                pendingNotifications = pending
+                deliveredNotifications = delivered
             }
         }
     }
-    
+
     private func checkDeviceTokenStatus() {
         // This would require accessing the APNS manager's device token status
         // For now, we'll show a placeholder
         deviceTokenStatus = "Check APNS Manager"
     }
-    
+
     private func requestPermission() {
         Task {
             let granted = await dependencies.notificationManager.requestNotificationPermission()
-            
+
             await MainActor.run {
                 if granted {
                     checkStatus()
@@ -306,46 +306,46 @@ struct NotificationDebugView: View {
             }
         }
     }
-    
+
     private func openNotificationSettings() {
         if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(settingsUrl)
         }
     }
-    
+
     private func reregisterForPush() {
         dependencies.apnsManager.registerForRemoteNotifications()
         checkDeviceTokenStatus()
     }
-    
+
     private func clearBadge() {
         Task {
             await dependencies.apnsManager.updateBadgeCount(0)
-            
+
             await MainActor.run {
                 badgeCount = 0
             }
         }
     }
-    
+
     private func setBadgeCount(_ count: Int) {
         Task {
             await dependencies.apnsManager.updateBadgeCount(count)
-            
+
             await MainActor.run {
                 badgeCount = count
             }
         }
     }
-    
+
     private func clearAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         dependencies.notificationStore.clearAll()
-        
+
         loadNotificationQueues()
     }
-    
+
     private func sendTestWorkoutNotification() {
         let testWorkout = WorkoutHistoryItem(
             id: UUID(),
@@ -360,13 +360,13 @@ struct NotificationDebugView: View {
             xpEarned: 25,
             source: "FameFit Debug"
         )
-        
+
         Task {
             await dependencies.notificationManager.notifyWorkoutCompleted(testWorkout)
             await refreshStatus()
         }
     }
-    
+
     private func sendTestSocialNotification() {
         let testUser = UserProfile(
             id: "debug-user",
@@ -381,13 +381,13 @@ struct NotificationDebugView: View {
             isVerified: false,
             privacyLevel: .publicProfile
         )
-        
+
         Task {
             await dependencies.notificationManager.notifyNewFollower(from: testUser)
             await refreshStatus()
         }
     }
-    
+
     private func sendTestAchievementNotification() {
         Task {
             await dependencies.notificationManager.notifyXPMilestone(previousXP: 950, currentXP: 1050)
@@ -400,17 +400,17 @@ struct NotificationDebugView: View {
 
 struct PendingNotificationsView: View {
     let notifications: [UNNotificationRequest]
-    
+
     var body: some View {
         List(notifications, id: \.identifier) { notification in
             VStack(alignment: .leading, spacing: 4) {
                 Text(notification.content.title)
                     .font(.headline)
-                
+
                 Text(notification.content.body)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 if let triggerDate = (notification.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate() {
                     Text("Scheduled: \(triggerDate, formatter: dateFormatter)")
                         .font(.caption2)
@@ -425,17 +425,17 @@ struct PendingNotificationsView: View {
 
 struct DeliveredNotificationsView: View {
     let notifications: [UNNotification]
-    
+
     var body: some View {
         List(notifications, id: \.request.identifier) { notification in
             VStack(alignment: .leading, spacing: 4) {
                 Text(notification.request.content.title)
                     .font(.headline)
-                
+
                 Text(notification.request.content.body)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Text("Delivered: \(notification.date, formatter: dateFormatter)")
                     .font(.caption2)
                     .foregroundColor(.green)

@@ -11,7 +11,7 @@ let userDefaults = UserDefaults.standard
 let fameFitKeys = [
     "FameFitUserID",
     "FameFitUserName",
-    "com.jimmypocock.FameFit.hasCompletedOnboarding"
+    "com.jimmypocock.FameFit.hasCompletedOnboarding",
 ]
 
 for key in fameFitKeys {

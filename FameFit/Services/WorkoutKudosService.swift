@@ -5,9 +5,9 @@
 //  Service for managing workout kudos/cheers
 //
 
-import Foundation
 import CloudKit
 import Combine
+import Foundation
 
 // MARK: - Kudos Service Protocol
 
@@ -15,15 +15,15 @@ protocol WorkoutKudosServicing {
     // Kudos actions
     func toggleKudos(for workoutId: String, ownerId: String) async throws -> KudosActionResult
     func removeKudos(for workoutId: String) async throws
-    
+
     // Fetching kudos
     func getKudosSummary(for workoutId: String) async throws -> WorkoutKudosSummary
     func getUserKudos(for userId: String, limit: Int) async throws -> [WorkoutKudos]
     func hasUserGivenKudos(workoutId: String, userId: String) async throws -> Bool
-    
+
     // Batch operations
     func getKudosSummaries(for workoutIds: [String]) async throws -> [String: WorkoutKudosSummary]
-    
+
     // Real-time updates
     var kudosUpdates: AnyPublisher<KudosUpdate, Never> { get }
 }
@@ -35,7 +35,7 @@ struct KudosUpdate {
     let action: KudosAction
     let userID: String
     let newCount: Int
-    
+
     enum KudosAction {
         case added
         case removed
@@ -51,16 +51,16 @@ final class WorkoutKudosService: WorkoutKudosServicing {
     private let userProfileService: UserProfileServicing
     private let notificationManager: NotificationManaging
     private let rateLimiter: RateLimitingServicing
-    
+
     private let kudosSubject = PassthroughSubject<KudosUpdate, Never>()
     var kudosUpdates: AnyPublisher<KudosUpdate, Never> {
         kudosSubject.eraseToAnyPublisher()
     }
-    
+
     // Cache for quick lookups
     private var kudosCache = [String: Set<String>]() // workoutId -> Set of userIds
     private let cacheQueue = DispatchQueue(label: "com.famefit.kudoscache")
-    
+
     init(
         container: CKContainer = .default(),
         userProfileService: UserProfileServicing,
@@ -68,18 +68,18 @@ final class WorkoutKudosService: WorkoutKudosServicing {
         rateLimiter: RateLimitingServicing
     ) {
         self.container = container
-        self.publicDatabase = container.publicCloudDatabase
-        self.privateDatabase = container.privateCloudDatabase
+        publicDatabase = container.publicCloudDatabase
+        privateDatabase = container.privateCloudDatabase
         self.userProfileService = userProfileService
         self.notificationManager = notificationManager
         self.rateLimiter = rateLimiter
     }
-    
+
     // MARK: - Kudos Actions
-    
+
     func toggleKudos(for workoutId: String, ownerId: String) async throws -> KudosActionResult {
         let currentUserId = try await getCurrentUserId()
-        
+
         // Check rate limiting
         do {
             let allowed = try await rateLimiter.checkLimit(for: .like, userId: currentUserId)
@@ -89,13 +89,13 @@ final class WorkoutKudosService: WorkoutKudosServicing {
         } catch {
             throw KudosError.rateLimited
         }
-        
+
         // Check if kudos already exists
         if try await hasUserGivenKudos(workoutId: workoutId, userId: currentUserId) {
             // Remove kudos
             try await removeKudos(for: workoutId)
             updateCache(workoutId: workoutId, userId: currentUserId, action: .remove)
-            
+
             // Emit update
             let newCount = getCachedCount(for: workoutId)
             kudosSubject.send(KudosUpdate(
@@ -104,7 +104,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 userID: currentUserId,
                 newCount: newCount
             ))
-            
+
             return .removed
         } else {
             // Add kudos
@@ -113,15 +113,15 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 userID: currentUserId,
                 workoutOwnerId: ownerId
             )
-            
+
             let record = kudos.toCloudKitRecord(in: publicDatabase)
             try await publicDatabase.save(record)
-            
+
             updateCache(workoutId: workoutId, userId: currentUserId, action: .add)
-            
+
             // Record the action for rate limiting
             await rateLimiter.recordAction(.like, userId: currentUserId)
-            
+
             // Send notification if not own workout
             if currentUserId != ownerId {
                 if let userProfile = try? await userProfileService.fetchProfile(userId: currentUserId) {
@@ -131,7 +131,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                     )
                 }
             }
-            
+
             // Emit update
             let newCount = getCachedCount(for: workoutId)
             kudosSubject.send(KudosUpdate(
@@ -140,57 +140,57 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 userID: currentUserId,
                 newCount: newCount
             ))
-            
+
             return .added
         }
     }
-    
+
     func removeKudos(for workoutId: String) async throws {
         let currentUserId = try await getCurrentUserId()
-        
+
         // Find and delete the kudos record
         let predicate = NSPredicate(
             format: "workoutId == %@ AND userID == %@",
             workoutId,
             currentUserId
         )
-        
+
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
         let results = try await publicDatabase.records(matching: query)
-        
+
         for (recordId, _) in results.matchResults {
             try await publicDatabase.deleteRecord(withID: recordId)
         }
     }
-    
+
     // MARK: - Fetching Kudos
-    
+
     func getKudosSummary(for workoutId: String) async throws -> WorkoutKudosSummary {
         let currentUserId = try await getCurrentUserId()
-        
+
         // Fetch all kudos for the workout
         let predicate = NSPredicate(format: "workoutId == %@", workoutId)
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
-        
+
         let results = try await publicDatabase.records(matching: query)
         var kudosList: [WorkoutKudos] = []
-        
+
         for (_, result) in results.matchResults {
             switch result {
-            case .success(let record):
+            case let .success(record):
                 if let kudos = WorkoutKudos(record: record) {
                     kudosList.append(kudos)
                 }
-            case .failure(let error):
+            case let .failure(error):
                 print("Error fetching kudos: \(error)")
             }
         }
-        
+
         // Get user info for recent kudos
-        let recentUserIds = kudosList.prefix(3).map { $0.userID }
+        let recentUserIds = kudosList.prefix(3).map(\.userID)
         var recentUsers: [WorkoutKudosSummary.KudosUser] = []
-        
+
         for userID in recentUserIds {
             if let profile = try? await userProfileService.fetchProfile(userId: userID) {
                 recentUsers.append(WorkoutKudosSummary.KudosUser(
@@ -201,7 +201,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 ))
             }
         }
-        
+
         return WorkoutKudosSummary(
             workoutId: workoutId,
             totalCount: kudosList.count,
@@ -209,89 +209,89 @@ final class WorkoutKudosService: WorkoutKudosServicing {
             recentUsers: recentUsers
         )
     }
-    
+
     func getUserKudos(for userId: String, limit: Int = 20) async throws -> [WorkoutKudos] {
         let predicate = NSPredicate(format: "userID == %@", userId)
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
-        
+
         var kudosList: [WorkoutKudos] = []
         let operation = CKQueryOperation(query: query)
         operation.resultsLimit = limit
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             var hasResumed = false
-            
+
             operation.recordMatchedBlock = { _, result in
                 switch result {
-                case .success(let record):
+                case let .success(record):
                     if let kudos = WorkoutKudos(record: record) {
                         kudosList.append(kudos)
                     }
-                case .failure(let error):
+                case let .failure(error):
                     print("Error fetching kudos record: \(error)")
                 }
             }
-            
+
             operation.queryResultBlock = { result in
                 if !hasResumed {
                     hasResumed = true
                     switch result {
                     case .success:
                         continuation.resume(returning: kudosList)
-                    case .failure(let error):
+                    case let .failure(error):
                         continuation.resume(throwing: error)
                     }
                 }
             }
-            
+
             publicDatabase.add(operation)
         }
     }
-    
+
     func hasUserGivenKudos(workoutId: String, userId: String) async throws -> Bool {
         // Check cache first
         if let cached = getCachedKudos(workoutId: workoutId, userId: userId) {
             return cached
         }
-        
+
         let predicate = NSPredicate(
             format: "workoutId == %@ AND userID == %@",
             workoutId,
             userId
         )
-        
+
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
         let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
-        
+
         let hasKudos = !results.matchResults.isEmpty
         updateCache(workoutId: workoutId, userId: userId, action: hasKudos ? .add : .remove)
-        
+
         return hasKudos
     }
-    
+
     // MARK: - Batch Operations
-    
+
     func getKudosSummaries(for workoutIds: [String]) async throws -> [String: WorkoutKudosSummary] {
         guard !workoutIds.isEmpty else { return [:] }
-        
+
         var summaries: [String: WorkoutKudosSummary] = [:]
-        
+
         // Batch fetch kudos for all workouts
         let chunks = workoutIds.chunked(into: 20) // CloudKit limit
-        
+
         for chunk in chunks {
             let predicate = NSPredicate(format: "workoutId IN %@", chunk)
             let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
-            
+
             let results = try await publicDatabase.records(matching: query)
-            
+
             // Group by workout
             var kudosByWorkout: [String: [WorkoutKudos]] = [:]
-            
+
             for (_, result) in results.matchResults {
                 switch result {
-                case .success(let record):
+                case let .success(record):
                     if let kudos = WorkoutKudos(record: record) {
                         kudosByWorkout[kudos.workoutId, default: []].append(kudos)
                     }
@@ -299,12 +299,12 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                     continue
                 }
             }
-            
+
             // Create summaries
             for workoutId in chunk {
                 let kudosList = kudosByWorkout[workoutId] ?? []
                 let currentUserId = try await getCurrentUserId()
-                
+
                 summaries[workoutId] = WorkoutKudosSummary(
                     workoutId: workoutId,
                     totalCount: kudosList.count,
@@ -313,17 +313,17 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 )
             }
         }
-        
+
         return summaries
     }
-    
+
     // MARK: - Private Helpers
-    
+
     private func getCurrentUserId() async throws -> String {
         let recordID = try await container.userRecordID()
         return recordID.recordName
     }
-    
+
     private func updateCache(workoutId: String, userId: String, action: CacheAction) {
         cacheQueue.async { [weak self] in
             switch action {
@@ -334,19 +334,19 @@ final class WorkoutKudosService: WorkoutKudosServicing {
             }
         }
     }
-    
+
     private func getCachedKudos(workoutId: String, userId: String) -> Bool? {
         cacheQueue.sync {
             kudosCache[workoutId]?.contains(userId)
         }
     }
-    
+
     private func getCachedCount(for workoutId: String) -> Int {
         cacheQueue.sync {
             kudosCache[workoutId]?.count ?? 0
         }
     }
-    
+
     private enum CacheAction {
         case add
         case remove
@@ -359,15 +359,15 @@ enum KudosError: LocalizedError {
     case rateLimited
     case unauthorized
     case workoutNotFound
-    
+
     var errorDescription: String? {
         switch self {
         case .rateLimited:
-            return "You're doing that too fast. Please try again later."
+            "You're doing that too fast. Please try again later."
         case .unauthorized:
-            return "You don't have permission to perform this action."
+            "You don't have permission to perform this action."
         case .workoutNotFound:
-            return "The workout could not be found."
+            "The workout could not be found."
         }
     }
 }
@@ -376,8 +376,8 @@ enum KudosError: LocalizedError {
 
 private extension Array {
     func chunked(into size: Int) -> [[Element]] {
-        return stride(from: 0, to: count, by: size).map {
-            Array(self[$0..<Swift.min($0 + size, count)])
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
         }
     }
 }

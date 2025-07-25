@@ -1,22 +1,22 @@
+@testable import FameFit
 import Foundation
 import HealthKit
-@testable import FameFit
 
 /// Builder for creating test workout data
-struct TestWorkoutBuilder {
+enum TestWorkoutBuilder {
     // MARK: - Mock Workout Creation
-    
+
     /// Creates a mock walking workout
     static func createWalkWorkout(
-        duration: TimeInterval = 1_800, // 30 minutes default
+        duration: TimeInterval = 1800, // 30 minutes default
         distance: Double? = nil,
         calories: Double? = nil,
-        startDate: Date = Date().addingTimeInterval(-3_600)
+        startDate: Date = Date().addingTimeInterval(-3600)
     ) -> HKWorkout {
         let endDate = startDate.addingTimeInterval(duration)
         let distanceValue = distance ?? (duration * 1.2) // ~1.2 meters per second walking
         let caloriesValue = calories ?? (duration * 0.05) // ~0.05 calories per second
-        
+
         return createWorkout(
             type: .walking,
             startDate: startDate,
@@ -25,18 +25,18 @@ struct TestWorkoutBuilder {
             calories: caloriesValue
         )
     }
-    
+
     /// Creates a mock running workout
     static func createRunWorkout(
-        duration: TimeInterval = 1_800, // 30 minutes default
+        duration: TimeInterval = 1800, // 30 minutes default
         distance: Double? = nil,
         calories: Double? = nil,
-        startDate: Date = Date().addingTimeInterval(-3_600)
+        startDate: Date = Date().addingTimeInterval(-3600)
     ) -> HKWorkout {
         let endDate = startDate.addingTimeInterval(duration)
         let distanceValue = distance ?? (duration * 2.5) // ~2.5 meters per second running
         let caloriesValue = calories ?? (duration * 0.15) // ~0.15 calories per second
-        
+
         return createWorkout(
             type: .running,
             startDate: startDate,
@@ -45,18 +45,18 @@ struct TestWorkoutBuilder {
             calories: caloriesValue
         )
     }
-    
+
     /// Creates a mock cycling workout
     static func createCycleWorkout(
         duration: TimeInterval = 2700, // 45 minutes default
         distance: Double? = nil,
         calories: Double? = nil,
-        startDate: Date = Date().addingTimeInterval(-3_600)
+        startDate: Date = Date().addingTimeInterval(-3600)
     ) -> HKWorkout {
         let endDate = startDate.addingTimeInterval(duration)
         let distanceValue = distance ?? (duration * 5.0) // ~5 meters per second cycling
         let caloriesValue = calories ?? (duration * 0.12) // ~0.12 calories per second
-        
+
         return createWorkout(
             type: .cycling,
             startDate: startDate,
@@ -65,7 +65,7 @@ struct TestWorkoutBuilder {
             calories: caloriesValue
         )
     }
-    
+
     /// Creates a custom workout with specified parameters
     static func createWorkout(
         type: HKWorkoutActivityType,
@@ -77,23 +77,23 @@ struct TestWorkoutBuilder {
         // Create energy and distance quantities
         var totalEnergyBurned: HKQuantity?
         var totalDistance: HKQuantity?
-        
-        if let calories = calories {
+
+        if let calories {
             totalEnergyBurned = HKQuantity(
                 unit: .kilocalorie(),
                 doubleValue: calories
             )
         }
-        
-        if let distance = distance {
+
+        if let distance {
             totalDistance = HKQuantity(
                 unit: .meter(),
                 doubleValue: distance
             )
         }
-        
+
         // CRITICAL: Using deprecated HKWorkout initializer for unit testing
-        // 
+        //
         // This is currently the ONLY way to create HKWorkout objects in unit tests.
         // HKWorkoutBuilder (the recommended replacement) requires:
         // 1. A real HKHealthStore instance
@@ -110,6 +110,9 @@ struct TestWorkoutBuilder {
         //
         // When Apple provides a proper testing API, we'll migrate immediately.
         // Using deprecated API for testing - no viable alternative exists for unit testing
+        #if compiler(>=5.9)
+        @available(iOS, deprecated: 17.0)
+        #endif
         let workout = HKWorkout(
             activityType: type,
             start: startDate,
@@ -119,71 +122,70 @@ struct TestWorkoutBuilder {
             totalDistance: totalDistance,
             metadata: nil
         )
-        
+
         return workout
     }
-    
+
     // MARK: - Test Scenarios
-    
+
     /// Creates multiple workouts for testing
     static func createMultipleWorkouts(count: Int) -> [HKWorkout] {
-        return createWorkoutSeries(count: count)
+        createWorkoutSeries(count: count)
     }
-    
+
     /// Creates a series of workouts for testing multiple workout detection
     static func createWorkoutSeries(count: Int = 3) -> [HKWorkout] {
         var workouts: [HKWorkout] = []
         let now = Date()
-        
-        for index in 0..<count {
-            let hoursAgo = TimeInterval((index + 1) * 2) * 3_600 // 2, 4, 6 hours ago
+
+        for index in 0 ..< count {
+            let hoursAgo = TimeInterval((index + 1) * 2) * 3600 // 2, 4, 6 hours ago
             let startDate = now.addingTimeInterval(-hoursAgo)
-            
+
             // Alternate between workout types
-            let workout: HKWorkout
-            switch index % 3 {
+            let workout: HKWorkout = switch index % 3 {
             case 0:
-                workout = createRunWorkout(startDate: startDate)
+                createRunWorkout(startDate: startDate)
             case 1:
-                workout = createWalkWorkout(startDate: startDate)
+                createWalkWorkout(startDate: startDate)
             default:
-                workout = createCycleWorkout(startDate: startDate)
+                createCycleWorkout(startDate: startDate)
             }
-            
+
             workouts.append(workout)
         }
-        
+
         return workouts
     }
-    
+
     /// Creates today's workouts for testing daily summary
     static func createTodaysWorkouts() -> [HKWorkout] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        
+
         return [
             createRunWorkout(
-                duration: 1_800,
-                startDate: today.addingTimeInterval(7 * 3_600) // 7 AM
+                duration: 1800,
+                startDate: today.addingTimeInterval(7 * 3600) // 7 AM
             ),
             createWalkWorkout(
-                duration: 1_200,
-                startDate: today.addingTimeInterval(12 * 3_600) // Noon
+                duration: 1200,
+                startDate: today.addingTimeInterval(12 * 3600) // Noon
             ),
             createCycleWorkout(
-                duration: 2_400,
-                startDate: today.addingTimeInterval(17 * 3_600) // 5 PM
-            )
+                duration: 2400,
+                startDate: today.addingTimeInterval(17 * 3600) // 5 PM
+            ),
         ]
     }
-    
+
     /// Creates a workout from the Apple Watch (FameFit source)
     static func createFameFitWorkout(
         type: HKWorkoutActivityType = .running,
         duration: TimeInterval = 1800
     ) -> HKWorkout {
         // Simulate a workout from our Watch app
-        return createWorkout(
+        createWorkout(
             type: type,
             startDate: Date().addingTimeInterval(-duration),
             endDate: Date(),

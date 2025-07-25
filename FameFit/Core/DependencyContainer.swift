@@ -6,10 +6,67 @@
 //
 
 import Foundation
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 class DependencyContainer: ObservableObject {
+    // MARK: - Factory Methods
+
+    private struct CoreServices {
+        let cloudKitManager: CloudKitManager
+        let authenticationManager: AuthenticationManager
+        let healthKitService: HealthKitService
+        let notificationStore: NotificationStore
+        let unlockStorageService: UnlockStorageService
+    }
+
+    private static func createCoreServices() -> CoreServices {
+        let cloudKitManager = CloudKitManager()
+        let authenticationManager = AuthenticationManager(cloudKitManager: cloudKitManager)
+        let healthKitService = RealHealthKitService()
+        let notificationStore = NotificationStore()
+        let unlockStorageService = UnlockStorageService()
+
+        return CoreServices(
+            cloudKitManager: cloudKitManager,
+            authenticationManager: authenticationManager,
+            healthKitService: healthKitService,
+            notificationStore: notificationStore,
+            unlockStorageService: unlockStorageService
+        )
+    }
+
+    private struct WorkoutServices {
+        let workoutObserver: WorkoutObserver
+        let workoutSyncManager: WorkoutSyncManager
+        let workoutSyncQueue: WorkoutSyncQueue
+    }
+
+    private static func createWorkoutServices(
+        cloudKitManager: CloudKitManager,
+        healthKitService: HealthKitService
+    ) -> WorkoutServices {
+        let workoutObserver = WorkoutObserver(
+            cloudKitManager: cloudKitManager,
+            healthKitService: healthKitService
+        )
+
+        let workoutSyncManager = WorkoutSyncManager(
+            cloudKitManager: cloudKitManager,
+            healthKitService: healthKitService
+        )
+
+        let workoutSyncQueue = WorkoutSyncQueue(
+            cloudKitManager: cloudKitManager
+        )
+
+        return WorkoutServices(
+            workoutObserver: workoutObserver,
+            workoutSyncManager: workoutSyncManager,
+            workoutSyncQueue: workoutSyncQueue
+        )
+    }
+
     let authenticationManager: AuthenticationManager
     let cloudKitManager: CloudKitManager
     let workoutObserver: WorkoutObserver
@@ -30,118 +87,144 @@ class DependencyContainer: ObservableObject {
     let apnsManager: APNSManaging
     let workoutCommentsService: WorkoutCommentsServicing
     let groupWorkoutService: GroupWorkoutServicing
-    
+    let workoutChallengesService: WorkoutChallengesServicing
+    let subscriptionManager: CloudKitSubscriptionManaging
+    let realTimeSyncCoordinator: RealTimeSyncCoordinating
+
     init() {
-        // Create instances with proper dependency injection
-        self.cloudKitManager = CloudKitManager()
-        self.authenticationManager = AuthenticationManager(cloudKitManager: cloudKitManager)
-        self.healthKitService = RealHealthKitService()
-        self.notificationStore = NotificationStore()
-        
-        self.workoutObserver = WorkoutObserver(
+        // Initialize core services
+        let core = Self.createCoreServices()
+        cloudKitManager = core.cloudKitManager
+        authenticationManager = core.authenticationManager
+        healthKitService = core.healthKitService
+        notificationStore = core.notificationStore
+        unlockStorageService = core.unlockStorageService
+
+        // Initialize workout services
+        let workout = Self.createWorkoutServices(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
-        
-        self.workoutSyncManager = WorkoutSyncManager(
-            cloudKitManager: cloudKitManager,
-            healthKitService: healthKitService
-        )
-        
-        self.workoutSyncQueue = WorkoutSyncQueue(
-            cloudKitManager: cloudKitManager
-        )
-        
-        self.unlockStorageService = UnlockStorageService()
-        
-        self.unlockNotificationService = UnlockNotificationService(
+        workoutObserver = workout.workoutObserver
+        workoutSyncManager = workout.workoutSyncManager
+        workoutSyncQueue = workout.workoutSyncQueue
+
+        // Initialize notification services (before social services that depend on them)
+        unlockNotificationService = UnlockNotificationService(
             notificationStore: notificationStore,
             unlockStorage: unlockStorageService
         )
-        
-        // Use mock services in DEBUG builds for easier testing
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["USE_MOCK_SOCIAL"] == "1" {
-            self.userProfileService = MockUserProfileService()
-        } else {
-            self.userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
-        }
-        #else
-        self.userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
-        #endif
-        
-        self.rateLimitingService = RateLimitingService()
-        
-        self.socialFollowingService = SocialFollowingService(
-            cloudKitManager: cloudKitManager,
-            rateLimiter: rateLimitingService,
-            profileService: userProfileService
-        )
-        
-        // Create activity feed service with default privacy settings
-        let defaultPrivacySettings = WorkoutPrivacySettings()
-        self.activityFeedService = ActivityFeedService(
-            cloudKitManager: cloudKitManager,
-            privacySettings: defaultPrivacySettings
-        )
-        
-        // Create message provider
-        self.messageProvider = FameFitMessageProvider()
-        
-        // Create notification scheduler
-        self.notificationScheduler = NotificationScheduler(
+
+        messageProvider = FameFitMessageProvider()
+
+        notificationScheduler = NotificationScheduler(
             notificationStore: notificationStore
         )
-        
-        // Create APNS manager placeholder (will be set after init)
+
         let tempAPNSManager = APNSManager(cloudKitManager: cloudKitManager, notificationStore: notificationStore)
-        self.apnsManager = tempAPNSManager
-        
-        // Create notification manager with APNS manager
-        self.notificationManager = NotificationManager(
+        apnsManager = tempAPNSManager
+
+        notificationManager = NotificationManager(
             scheduler: notificationScheduler,
             notificationStore: notificationStore,
             unlockService: unlockNotificationService,
             messageProvider: messageProvider,
             apnsManager: apnsManager
         )
-        
-        // Create workout kudos service
-        self.workoutKudosService = WorkoutKudosService(
+
+        // Initialize social services
+        // Use mock services in DEBUG builds for easier testing
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["USE_MOCK_SOCIAL"] == "1" {
+                userProfileService = MockUserProfileService()
+            } else {
+                userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
+            }
+        #else
+            userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
+        #endif
+
+        rateLimitingService = RateLimitingService()
+
+        socialFollowingService = SocialFollowingService(
+            cloudKitManager: cloudKitManager,
+            rateLimiter: rateLimitingService,
+            profileService: userProfileService
+        )
+
+        let defaultPrivacySettings = WorkoutPrivacySettings()
+        activityFeedService = ActivityFeedService(
+            cloudKitManager: cloudKitManager,
+            privacySettings: defaultPrivacySettings
+        )
+
+        // Create social services
+        workoutKudosService = WorkoutKudosService(
             userProfileService: userProfileService,
             notificationManager: notificationManager,
             rateLimiter: rateLimitingService
         )
-        
-        // Create workout comments service
-        self.workoutCommentsService = WorkoutCommentsService(
+
+        workoutCommentsService = WorkoutCommentsService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
             notificationManager: notificationManager,
             rateLimiter: rateLimitingService
         )
-        
-        // Create group workout service
-        self.groupWorkoutService = GroupWorkoutService(
+
+        groupWorkoutService = GroupWorkoutService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
             notificationManager: notificationManager,
             rateLimiter: rateLimitingService
         )
-        
+
+        workoutChallengesService = WorkoutChallengesService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager,
+            rateLimiter: rateLimitingService
+        )
+
+        // Initialize sync coordinator
+        subscriptionManager = CloudKitSubscriptionManager()
+
+        // Capture all dependencies before the closure to avoid self capture
+        let capturedSubscriptionManager = subscriptionManager
+        let capturedCloudKitManager = cloudKitManager
+        let capturedSocialFollowingService = socialFollowingService
+        let capturedUserProfileService = userProfileService
+        let capturedWorkoutKudosService = workoutKudosService
+        let capturedWorkoutCommentsService = workoutCommentsService
+        let capturedWorkoutChallengesService = workoutChallengesService
+        let capturedGroupWorkoutService = groupWorkoutService
+        let capturedActivityFeedService = activityFeedService
+
+        realTimeSyncCoordinator = MainActor.assumeIsolated {
+            RealTimeSyncCoordinator(
+                subscriptionManager: capturedSubscriptionManager,
+                cloudKitManager: capturedCloudKitManager,
+                socialFollowingService: capturedSocialFollowingService,
+                userProfileService: capturedUserProfileService,
+                workoutKudosService: capturedWorkoutKudosService,
+                workoutCommentsService: capturedWorkoutCommentsService,
+                workoutChallengesService: capturedWorkoutChallengesService,
+                groupWorkoutService: capturedGroupWorkoutService,
+                activityFeedService: capturedActivityFeedService
+            )
+        }
+
         // Wire up dependencies
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.unlockNotificationService = unlockNotificationService
-        
-        // Give workout observer access to notification store and APNS manager
+
         workoutObserver.notificationStore = notificationStore
         workoutObserver.apnsManager = apnsManager
-        
-        // Give workout sync manager access to notification store and manager
+
         workoutSyncManager.notificationStore = notificationStore
         workoutSyncManager.notificationManager = notificationManager
     }
-    
+
     // For testing, allow injection of mock managers
     init(
         authenticationManager: AuthenticationManager,
@@ -163,7 +246,10 @@ class DependencyContainer: ObservableObject {
         workoutKudosService: WorkoutKudosServicing? = nil,
         apnsManager: APNSManaging? = nil,
         workoutCommentsService: WorkoutCommentsServicing? = nil,
-        groupWorkoutService: GroupWorkoutServicing? = nil
+        groupWorkoutService: GroupWorkoutServicing? = nil,
+        workoutChallengesService: WorkoutChallengesServicing? = nil,
+        subscriptionManager: CloudKitSubscriptionManaging? = nil,
+        realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -191,163 +277,203 @@ class DependencyContainer: ObservableObject {
             rateLimiter: self.rateLimitingService,
             profileService: self.userProfileService
         )
-        
+
         let defaultPrivacySettings = WorkoutPrivacySettings()
         self.activityFeedService = activityFeedService ?? ActivityFeedService(
             cloudKitManager: cloudKitManager,
             privacySettings: defaultPrivacySettings
         )
-        
+
         self.messageProvider = messageProvider ?? FameFitMessageProvider()
-        
+
         self.notificationScheduler = notificationScheduler ?? NotificationScheduler(
             notificationStore: self.notificationStore
         )
-        
+
         self.notificationManager = notificationManager ?? NotificationManager(
             scheduler: self.notificationScheduler,
             notificationStore: self.notificationStore,
             unlockService: self.unlockNotificationService,
             messageProvider: self.messageProvider
         )
-        
+
         self.workoutKudosService = workoutKudosService ?? WorkoutKudosService(
             userProfileService: self.userProfileService,
             notificationManager: self.notificationManager,
             rateLimiter: self.rateLimitingService
         )
-        
-        if let apnsManager = apnsManager {
+
+        if let apnsManager {
             self.apnsManager = apnsManager
         } else {
             let tempAPNSManager = APNSManager(cloudKitManager: self.cloudKitManager)
             self.apnsManager = tempAPNSManager
         }
-        
+
         self.workoutCommentsService = workoutCommentsService ?? WorkoutCommentsService(
             cloudKitManager: self.cloudKitManager,
             userProfileService: self.userProfileService,
             notificationManager: self.notificationManager,
             rateLimiter: self.rateLimitingService
         )
-        
+
         self.groupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
             cloudKitManager: self.cloudKitManager,
             userProfileService: self.userProfileService,
             notificationManager: self.notificationManager,
             rateLimiter: self.rateLimitingService
         )
-        
+
+        self.workoutChallengesService = workoutChallengesService ?? WorkoutChallengesService(
+            cloudKitManager: self.cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+
+        self.subscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
+
+        if let realTimeSyncCoordinator {
+            self.realTimeSyncCoordinator = realTimeSyncCoordinator
+        } else {
+            // Capture all dependencies before the closure to avoid self capture
+            let capturedSubscriptionManager = self.subscriptionManager
+            let capturedCloudKitManager = self.cloudKitManager
+            let capturedSocialFollowingService = self.socialFollowingService
+            let capturedUserProfileService = self.userProfileService
+            let capturedWorkoutKudosService = self.workoutKudosService
+            let capturedWorkoutCommentsService = self.workoutCommentsService
+            let capturedWorkoutChallengesService = self.workoutChallengesService
+            let capturedGroupWorkoutService = self.groupWorkoutService
+            let capturedActivityFeedService = self.activityFeedService
+
+            let coordinator = MainActor.assumeIsolated {
+                RealTimeSyncCoordinator(
+                    subscriptionManager: capturedSubscriptionManager,
+                    cloudKitManager: capturedCloudKitManager,
+                    socialFollowingService: capturedSocialFollowingService,
+                    userProfileService: capturedUserProfileService,
+                    workoutKudosService: capturedWorkoutKudosService,
+                    workoutCommentsService: capturedWorkoutCommentsService,
+                    workoutChallengesService: capturedWorkoutChallengesService,
+                    groupWorkoutService: capturedGroupWorkoutService,
+                    activityFeedService: capturedActivityFeedService
+                )
+            }
+            self.realTimeSyncCoordinator = coordinator
+        }
+
         // Wire up dependencies for WorkoutSyncManager
         self.workoutSyncManager.notificationStore = self.notificationStore
         self.workoutSyncManager.notificationManager = self.notificationManager
     }
-    
+
     // MARK: - Testing Support
-    
+
     #if DEBUG
-    /// Test notification settings integration by verifying preferences are respected
-    func testNotificationSettingsIntegration() {
-        // Create test preferences with some notifications disabled
-        var testPreferences = NotificationPreferences()
-        testPreferences.soundEnabled = false
-        testPreferences.badgeEnabled = false
-        testPreferences.enabledTypes[.workoutKudos] = false
-        testPreferences.enabledTypes[.newFollower] = true
-        
-        // Update all services with test preferences
-        notificationScheduler.updatePreferences(testPreferences)
-        notificationManager.updatePreferences(testPreferences)
-        unlockNotificationService.updatePreferences(testPreferences)
-        workoutObserver.updatePreferences(testPreferences)
-        
-        print("✅ Notification settings integration test completed")
-        print("   - Sound disabled: \(!testPreferences.soundEnabled)")
-        print("   - Badge disabled: \(!testPreferences.badgeEnabled)")
-        print("   - Workout kudos disabled: \(testPreferences.enabledTypes[.workoutKudos] == false)")
-        print("   - New followers enabled: \(testPreferences.enabledTypes[.newFollower] == true)")
-    }
-    
-    /// Populate the notification store with test notifications for manual testing
-    func addTestNotifications() {
-        let testNotifications = [
-            NotificationItem(
-                type: .workoutCompleted,
-                title: "🏃 Chad",
-                body: "Awesome! You crushed that 30-minute run and earned 15 followers!",
-                metadata: .workout(WorkoutNotificationMetadata(
-                    workoutId: "test-workout-1",
-                    workoutType: "Running",
-                    duration: 30,
-                    calories: 250,
-                    xpEarned: 15,
-                    distance: 5000,
-                    averageHeartRate: 145
-                ))
-            ),
-            
-            NotificationItem(
-                type: .newFollower,
-                title: "New Follower! 👥",
-                body: "FitnessGuru started following you",
-                metadata: .social(SocialNotificationMetadata(
-                    userID: "user123",
-                    username: "fitnessguru",
-                    displayName: "Fitness Guru",
-                    profileImageUrl: nil,
-                    relationshipType: "follower",
-                    actionCount: nil
-                )),
-                actions: [.view]
-            ),
-            
-            NotificationItem(
-                type: .unlockAchieved,
-                title: "Achievement Unlocked! 🏆",
-                body: "You've earned the 'Workout Warrior' achievement!",
-                metadata: .achievement(AchievementNotificationMetadata(
-                    achievementId: "warrior",
-                    achievementName: "Workout Warrior",
-                    achievementDescription: "Complete 50 workouts",
-                    xpRequired: 1000,
-                    category: "fitness",
-                    iconEmoji: "🏆"
-                )),
-                actions: [.view]
-            ),
-            
-            NotificationItem(
-                type: .levelUp,
-                title: "Level Up! ⭐",
-                body: "Congratulations! You've reached level 5!",
-                actions: [.view]
-            ),
-            
-            NotificationItem(
-                type: .workoutKudos,
-                title: "Workout Kudos! ❤️",
-                body: "2 people gave kudos to your morning run",
-                metadata: .social(SocialNotificationMetadata(
-                    userID: "kudos-user",
-                    username: "runner123",
-                    displayName: "Runner 123",
-                    profileImageUrl: nil,
-                    relationshipType: "kudos",
-                    actionCount: 2
-                )),
-                actions: [.view, .reply]
-            )
-        ]
-        
-        // Add test notifications
-        testNotifications.forEach { notification in
-            notificationStore.addNotification(notification)
+        /// Test notification settings integration by verifying preferences are respected
+        func testNotificationSettingsIntegration() {
+            // Create test preferences with some notifications disabled
+            var testPreferences = NotificationPreferences()
+            testPreferences.soundEnabled = false
+            testPreferences.badgeEnabled = false
+            testPreferences.enabledTypes[.workoutKudos] = false
+            testPreferences.enabledTypes[.newFollower] = true
+
+            // Update all services with test preferences
+            notificationScheduler.updatePreferences(testPreferences)
+            notificationManager.updatePreferences(testPreferences)
+            unlockNotificationService.updatePreferences(testPreferences)
+            workoutObserver.updatePreferences(testPreferences)
+
+            print("✅ Notification settings integration test completed")
+            print("   - Sound disabled: \(!testPreferences.soundEnabled)")
+            print("   - Badge disabled: \(!testPreferences.badgeEnabled)")
+            print("   - Workout kudos disabled: \(testPreferences.enabledTypes[.workoutKudos] == false)")
+            print("   - New followers enabled: \(testPreferences.enabledTypes[.newFollower] == true)")
         }
-    }
+
+        /// Populate the notification store with test notifications for manual testing
+        func addTestNotifications() {
+            let testNotifications = [
+                NotificationItem(
+                    type: .workoutCompleted,
+                    title: "🏃 Chad",
+                    body: "Awesome! You crushed that 30-minute run and earned 15 followers!",
+                    metadata: .workout(WorkoutNotificationMetadata(
+                        workoutId: "test-workout-1",
+                        workoutType: "Running",
+                        duration: 30,
+                        calories: 250,
+                        xpEarned: 15,
+                        distance: 5000,
+                        averageHeartRate: 145
+                    ))
+                ),
+
+                NotificationItem(
+                    type: .newFollower,
+                    title: "New Follower! 👥",
+                    body: "FitnessGuru started following you",
+                    metadata: .social(SocialNotificationMetadata(
+                        userID: "user123",
+                        username: "fitnessguru",
+                        displayName: "Fitness Guru",
+                        profileImageUrl: nil,
+                        relationshipType: "follower",
+                        actionCount: nil
+                    )),
+                    actions: [.view]
+                ),
+
+                NotificationItem(
+                    type: .unlockAchieved,
+                    title: "Achievement Unlocked! 🏆",
+                    body: "You've earned the 'Workout Warrior' achievement!",
+                    metadata: .achievement(AchievementNotificationMetadata(
+                        achievementId: "warrior",
+                        achievementName: "Workout Warrior",
+                        achievementDescription: "Complete 50 workouts",
+                        xpRequired: 1000,
+                        category: "fitness",
+                        iconEmoji: "🏆"
+                    )),
+                    actions: [.view]
+                ),
+
+                NotificationItem(
+                    type: .levelUp,
+                    title: "Level Up! ⭐",
+                    body: "Congratulations! You've reached level 5!",
+                    actions: [.view]
+                ),
+
+                NotificationItem(
+                    type: .workoutKudos,
+                    title: "Workout Kudos! ❤️",
+                    body: "2 people gave kudos to your morning run",
+                    metadata: .social(SocialNotificationMetadata(
+                        userID: "kudos-user",
+                        username: "runner123",
+                        displayName: "Runner 123",
+                        profileImageUrl: nil,
+                        relationshipType: "kudos",
+                        actionCount: 2
+                    )),
+                    actions: [.view, .reply]
+                ),
+            ]
+
+            // Add test notifications
+            for notification in testNotifications {
+                notificationStore.addNotification(notification)
+            }
+        }
     #endif
 }
 
 // MARK: - Environment Key
+
 struct DependencyContainerKey: EnvironmentKey {
     static let defaultValue = DependencyContainer()
 }

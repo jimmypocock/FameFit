@@ -80,15 +80,15 @@ enum NotificationMetadataContainer: Codable {
     case achievement(AchievementNotificationMetadata)
     case challenge(ChallengeNotificationMetadata)
     case system(SystemNotificationMetadata)
-    
+
     private enum CodingKeys: String, CodingKey {
         case type
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let type = try container.decode(String.self, forKey: .type)
-        
+
         switch type {
         case "workout":
             let metadata = try WorkoutNotificationMetadata(from: decoder)
@@ -113,18 +113,18 @@ enum NotificationMetadataContainer: Codable {
             )
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         switch self {
-        case .workout(let metadata):
+        case let .workout(metadata):
             try metadata.encode(to: encoder)
-        case .social(let metadata):
+        case let .social(metadata):
             try metadata.encode(to: encoder)
-        case .achievement(let metadata):
+        case let .achievement(metadata):
             try metadata.encode(to: encoder)
-        case .challenge(let metadata):
+        case let .challenge(metadata):
             try metadata.encode(to: encoder)
-        case .system(let metadata):
+        case let .system(metadata):
             try metadata.encode(to: encoder)
         }
     }
@@ -135,31 +135,31 @@ enum NotificationMetadataContainer: Codable {
 extension NotificationItem {
     var workoutMetadata: WorkoutNotificationMetadata? {
         guard let container = metadata,
-              case .workout(let meta) = container else { return nil }
+              case let .workout(meta) = container else { return nil }
         return meta
     }
-    
+
     var socialMetadata: SocialNotificationMetadata? {
         guard let container = metadata,
-              case .social(let meta) = container else { return nil }
+              case let .social(meta) = container else { return nil }
         return meta
     }
-    
+
     var achievementMetadata: AchievementNotificationMetadata? {
         guard let container = metadata,
-              case .achievement(let meta) = container else { return nil }
+              case let .achievement(meta) = container else { return nil }
         return meta
     }
-    
+
     var challengeMetadata: ChallengeNotificationMetadata? {
         guard let container = metadata,
-              case .challenge(let meta) = container else { return nil }
+              case let .challenge(meta) = container else { return nil }
         return meta
     }
-    
+
     var systemMetadata: SystemNotificationMetadata? {
         guard let container = metadata,
-              case .system(let meta) = container else { return nil }
+              case let .system(meta) = container else { return nil }
         return meta
     }
 }

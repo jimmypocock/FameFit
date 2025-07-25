@@ -23,7 +23,7 @@ struct MetricsView: View {
                         .cornerRadius(8)
                         .padding(.bottom)
                 }
-                
+
                 // Show FameFit message
                 if !workoutManager.currentMessage.isEmpty {
                     Text(workoutManager.currentMessage)
@@ -36,8 +36,9 @@ struct MetricsView: View {
                         .cornerRadius(10)
                         .padding(.bottom, 10)
                 }
-                
+
                 // MARK: TIMELINE VIEW, Timer
+
                 ElapsedTimeView(
                     elapsedTime: workoutManager.displayElapsedTime,
                     showSubseconds: workoutManager.isWorkoutRunning
@@ -45,20 +46,22 @@ struct MetricsView: View {
                 .foregroundColor(.yellow)
 
                 // MARK: - MEASUREMENT
+
                 Text(
                     Measurement(
                         value: workoutManager.activeEnergy,
                         unit: UnitEnergy.kilocalories
                     )
                     .formatted(
-                        .measurement(width: .abbreviated,
-                                     usage: .workout,
-                                     numberFormatStyle:
-                                        FloatingPointFormatStyle
-                                        .number
-                                        .precision(
-                                            .fractionLength(0)
-                                        )
+                        .measurement(
+                            width: .abbreviated,
+                            usage: .workout,
+                            numberFormatStyle:
+                            FloatingPointFormatStyle
+                                .number
+                                .precision(
+                                    .fractionLength(0)
+                                )
                         )
                     )
                 ) // CALORIES TEXT
@@ -81,11 +84,12 @@ struct MetricsView: View {
                         unit: UnitLength.meters
                     )
                     .formatted(
-                        .measurement(width: .abbreviated,
-                                     usage: .road)
+                        .measurement(
+                            width: .abbreviated,
+                            usage: .road
+                        )
                     )
                 ) // ROAD TEXT
-
             } //: VSTACK - PAGE WRAPPER
         } //: SCROLLVIEW
         .font(
@@ -106,6 +110,7 @@ struct MetricsView_Previews: PreviewProvider {
 }
 
 // MARK: TIMELINE SCHEDULE FOR TIMER
+
 private struct MetricsTimelinesSchedule: TimelineSchedule {
     var startDate: Date
     init(from startDate: Date) {
@@ -115,7 +120,7 @@ private struct MetricsTimelinesSchedule: TimelineSchedule {
     func entries(from startDate: Date, mode: TimelineScheduleMode) -> PeriodicTimelineSchedule.Entries {
         PeriodicTimelineSchedule(
             from: self.startDate,
-            by: (mode == .lowFrequency ? 1.0 : 1.0 / 30.0)
+            by: mode == .lowFrequency ? 1.0 : 1.0 / 30.0
         )
         .entries(
             from: startDate,

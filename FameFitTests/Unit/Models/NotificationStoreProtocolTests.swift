@@ -5,35 +5,35 @@
 //  Tests for NotificationStoring protocol implementations
 //
 
-import XCTest
 @testable import FameFit
+import XCTest
 
 class NotificationStoreProtocolTests: XCTestCase {
     private var mockStore: MockNotificationStore!
     private var realStore: NotificationStore!
-    
+
     override func setUp() {
         super.setUp()
         // Clear UserDefaults before each test
         UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
-        
+
         mockStore = MockNotificationStore()
         realStore = NotificationStore()
     }
-    
+
     override func tearDown() {
         mockStore = nil
         realStore = nil
         UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
         super.tearDown()
     }
-    
+
     // MARK: - Protocol Conformance Tests
-    
+
     func testMockStoreConformsToProtocol() {
         // Given
         let protocolStore: any NotificationStoring = mockStore
-        
+
         // When
         let notification = NotificationItem(
             title: "Test",
@@ -44,16 +44,16 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         protocolStore.addNotification(notification)
-        
+
         // Then
         XCTAssertEqual(protocolStore.notifications.count, 1)
         XCTAssertEqual(protocolStore.unreadCount, 1)
     }
-    
+
     func testRealStoreConformsToProtocol() {
         // Given
         let protocolStore: any NotificationStoring = realStore
-        
+
         // When
         let notification = NotificationItem(
             title: "Test",
@@ -64,14 +64,14 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         protocolStore.addNotification(notification)
-        
+
         // Then
         XCTAssertEqual(protocolStore.notifications.count, 1)
         XCTAssertEqual(protocolStore.unreadCount, 1)
     }
-    
+
     // MARK: - Mock Store Behavior Tests
-    
+
     func testMockStoreTracksMethodCalls() {
         // Given
         let notification = NotificationItem(
@@ -82,7 +82,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 400,
             followersEarned: 5
         )
-        
+
         // When
         mockStore.addNotification(notification)
         mockStore.markAsRead(notification.id)
@@ -91,7 +91,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         mockStore.clearAll()
         mockStore.loadNotifications()
         mockStore.saveNotifications()
-        
+
         // Then
         XCTAssertTrue(mockStore.addNotificationCalled)
         XCTAssertTrue(mockStore.markAsReadCalled)
@@ -100,17 +100,17 @@ class NotificationStoreProtocolTests: XCTestCase {
         XCTAssertTrue(mockStore.clearAllCalled)
         XCTAssertTrue(mockStore.loadNotificationsCalled)
         XCTAssertTrue(mockStore.saveNotificationsCalled)
-        
+
         XCTAssertEqual(mockStore.lastAddedNotification?.title, "Track")
         XCTAssertEqual(mockStore.lastMarkedReadId, notification.id)
         XCTAssertEqual(mockStore.lastDeletedOffsets, IndexSet(integer: 0))
     }
-    
+
     func testMockStoreCanSimulateFailure() {
         // Given
         mockStore.shouldFailOperations = true
         let initialCount = mockStore.notifications.count
-        
+
         // When
         let notification = NotificationItem(
             title: "Fail",
@@ -121,31 +121,31 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         mockStore.addNotification(notification)
-        
+
         // Then
         XCTAssertTrue(mockStore.addNotificationCalled)
         XCTAssertEqual(mockStore.notifications.count, initialCount) // No change
     }
-    
+
     func testMockStoreSimulateNotifications() {
         // Given & When
         mockStore.simulateNotifications(count: 10, unreadCount: 3)
-        
+
         // Then
         XCTAssertEqual(mockStore.notifications.count, 10)
         XCTAssertEqual(mockStore.unreadCount, 3)
-        
+
         // Verify the last 3 are unread
         let unreadNotifications = mockStore.notifications.filter { !$0.isRead }
         XCTAssertEqual(unreadNotifications.count, 3)
     }
-    
+
     // MARK: - Type-Erased Wrapper Tests
-    
+
     func testAnyNotificationStoreWithMock() {
         // Given
         let anyStore = AnyNotificationStore(mockStore)
-        
+
         // When
         let notification = NotificationItem(
             title: "Wrapped",
@@ -156,17 +156,17 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         anyStore.addNotification(notification)
-        
+
         // Then
         XCTAssertEqual(anyStore.notifications.count, 1)
         XCTAssertEqual(anyStore.unreadCount, 1)
         XCTAssertTrue(mockStore.addNotificationCalled)
     }
-    
+
     func testAnyNotificationStoreWithReal() {
         // Given
         let anyStore = AnyNotificationStore(realStore)
-        
+
         // When
         let notification = NotificationItem(
             title: "Wrapped Real",
@@ -177,17 +177,17 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         anyStore.addNotification(notification)
-        
+
         // Then
         XCTAssertEqual(anyStore.notifications.count, 1)
         XCTAssertEqual(anyStore.unreadCount, 1)
     }
-    
+
     func testAnyNotificationStorePublishesChanges() {
         // Given
         let anyStore = AnyNotificationStore(mockStore)
         var receivedNotificationCount = 0
-        
+
         let expectation = XCTestExpectation(description: "Notification published")
         let cancellable = anyStore.$notifications.sink { notifications in
             receivedNotificationCount = notifications.count
@@ -195,7 +195,7 @@ class NotificationStoreProtocolTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         // When
         let notification = NotificationItem(
             title: "Publish",
@@ -206,20 +206,20 @@ class NotificationStoreProtocolTests: XCTestCase {
             followersEarned: 5
         )
         anyStore.addNotification(notification)
-        
+
         // Then
         wait(for: [expectation], timeout: 1.0)
         XCTAssertEqual(receivedNotificationCount, 1)
-        
+
         cancellable.cancel()
     }
-    
+
     // MARK: - Protocol Usage in Business Logic Tests
-    
+
     func testBusinessLogicCanUseProtocol() {
         // Given
         let store: any NotificationStoring = mockStore
-        
+
         // Simulate a business logic function that uses the protocol
         func processWorkoutNotification(store: any NotificationStoring, workout: String) {
             let notification = NotificationItem(
@@ -232,10 +232,10 @@ class NotificationStoreProtocolTests: XCTestCase {
             )
             store.addNotification(notification)
         }
-        
+
         // When
         processWorkoutNotification(store: store, workout: "Morning Run")
-        
+
         // Then
         XCTAssertEqual(store.notifications.count, 1)
         XCTAssertEqual(store.notifications.first?.title, "Morning Run")

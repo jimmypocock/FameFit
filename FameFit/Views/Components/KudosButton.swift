@@ -12,19 +12,19 @@ struct KudosButton: View {
     let ownerId: String
     let kudosSummary: WorkoutKudosSummary?
     let onTap: () async -> Void
-    
+
     @State private var isAnimating = false
     @State private var showHeart = false
     @State private var particleOffsets: [(x: CGFloat, y: CGFloat)] = []
-    
+
     private var kudosCount: Int {
         kudosSummary?.totalCount ?? 0
     }
-    
+
     private var hasKudos: Bool {
         kudosSummary?.hasUserKudos ?? false
     }
-    
+
     var body: some View {
         HStack(spacing: 8) {
             ZStack {
@@ -34,7 +34,7 @@ struct KudosButton: View {
                     .foregroundColor(hasKudos ? .red : .gray)
                     .scaleEffect(isAnimating ? 1.3 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isAnimating)
-                
+
                 // Animated heart overlay
                 if showHeart {
                     Image(systemName: "heart.fill")
@@ -44,10 +44,10 @@ struct KudosButton: View {
                         .opacity(showHeart ? 0 : 1)
                         .animation(.easeOut(duration: 0.5), value: showHeart)
                 }
-                
+
                 // Particle effects
-                ForEach(0..<6, id: \.self) { index in
-                    if showHeart && index < particleOffsets.count {
+                ForEach(0 ..< 6, id: \.self) { index in
+                    if showHeart, index < particleOffsets.count {
                         Circle()
                             .fill(Color.red)
                             .frame(width: 4, height: 4)
@@ -63,7 +63,7 @@ struct KudosButton: View {
                     }
                 }
             }
-            
+
             if kudosCount > 0 {
                 Text("\(kudosCount)")
                     .font(.system(size: 14, weight: .medium))
@@ -84,30 +84,30 @@ struct KudosButton: View {
             }
         }
     }
-    
+
     private func triggerAnimation() {
         // Generate random particle positions
-        particleOffsets = (0..<6).map { _ in
-            let angle = Double.random(in: 0...(2 * .pi))
-            let distance = CGFloat.random(in: 20...40)
+        particleOffsets = (0 ..< 6).map { _ in
+            let angle = Double.random(in: 0 ... (2 * .pi))
+            let distance = CGFloat.random(in: 20 ... 40)
             return (
                 x: cos(angle) * distance,
                 y: sin(angle) * distance
             )
         }
-        
+
         // Trigger animations
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
             isAnimating = true
         }
-        
+
         showHeart = true
-        
+
         // Reset animations
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             isAnimating = false
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             showHeart = false
         }
@@ -119,28 +119,28 @@ struct KudosButton: View {
 struct KudosListView: View {
     let kudosSummary: WorkoutKudosSummary
     let onUserTap: (String) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(kudosSummary.totalCount) Kudos")
                 .font(.headline)
-            
+
             if !kudosSummary.recentUsers.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(kudosSummary.recentUsers, id: \.userID) { user in
                         HStack(spacing: 12) {
                             // Profile image
                             profileImage(for: user)
-                            
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(user.displayName)
                                     .font(.system(size: 14, weight: .medium))
-                                
+
                                 Text("@\(user.username)")
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             Spacer()
                         }
                         .contentShape(Rectangle())
@@ -148,7 +148,7 @@ struct KudosListView: View {
                             onUserTap(user.userID)
                         }
                     }
-                    
+
                     if kudosSummary.totalCount > kudosSummary.recentUsers.count {
                         Text("and \(kudosSummary.totalCount - kudosSummary.recentUsers.count) others")
                             .font(.system(size: 12))
@@ -162,7 +162,7 @@ struct KudosListView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
     }
-    
+
     private func profileImage(for user: WorkoutKudosSummary.KudosUser) -> some View {
         AsyncImage(url: profileImageURL(for: user)) { image in
             image
@@ -179,7 +179,7 @@ struct KudosListView: View {
         .frame(width: 36, height: 36)
         .clipShape(Circle())
     }
-    
+
     private func profileImageURL(for user: WorkoutKudosSummary.KudosUser) -> URL? {
         guard let urlString = user.profileImageURL else { return nil }
         return URL(string: urlString)
@@ -203,7 +203,7 @@ struct KudosButton_Previews: PreviewProvider {
                 ),
                 onTap: {}
             )
-            
+
             // With kudos (not liked)
             KudosButton(
                 workoutId: "123",
@@ -216,7 +216,7 @@ struct KudosButton_Previews: PreviewProvider {
                 ),
                 onTap: {}
             )
-            
+
             // With kudos (liked)
             KudosButton(
                 workoutId: "123",

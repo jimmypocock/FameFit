@@ -13,29 +13,29 @@ struct XPProgressView: View {
     let title: String
     let nextLevelXP: Int
     let nextUnlock: XPUnlock?
-    
+
     init(currentXP: Int) {
         self.currentXP = currentXP
         let levelInfo = XPCalculator.getLevel(for: currentXP)
-        self.level = levelInfo.level
-        self.title = levelInfo.title
-        self.nextLevelXP = levelInfo.nextLevelXP
-        self.nextUnlock = XPCalculator.getNextUnlock(for: currentXP)
+        level = levelInfo.level
+        title = levelInfo.title
+        nextLevelXP = levelInfo.nextLevelXP
+        nextUnlock = XPCalculator.getNextUnlock(for: currentXP)
     }
-    
+
     private var progressToNextLevel: Double {
         XPCalculator.calculateProgress(currentXP: currentXP, toNextLevel: nextLevelXP)
     }
-    
+
     private var xpToNextLevel: Int {
         nextLevelXP == Int.max ? 0 : nextLevelXP - currentXP
     }
-    
+
     var body: some View {
         VStack(spacing: 20) {
             levelHeader
             progressBar
-            if let nextUnlock = nextUnlock {
+            if let nextUnlock {
                 nextUnlockView(nextUnlock)
             }
         }
@@ -46,16 +46,16 @@ struct XPProgressView: View {
                 .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
         )
     }
-    
+
     private var levelHeader: some View {
         VStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Level \(level)")
                     .font(.headline)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Influencer XP")
                         .font(.caption)
@@ -66,15 +66,15 @@ struct XPProgressView: View {
                         .foregroundColor(.primary)
                 }
             }
-            
+
             HStack {
                 Text(title)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 if xpToNextLevel > 0 {
                     Text("\(xpToNextLevel.formattedWithSeparator()) to next level")
                         .font(.caption)
@@ -83,14 +83,14 @@ struct XPProgressView: View {
             }
         }
     }
-    
+
     private var progressBar: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(.systemGray5))
                     .frame(height: 12)
-                
+
                 RoundedRectangle(cornerRadius: 8)
                     .fill(
                         LinearGradient(
@@ -114,7 +114,7 @@ struct XPProgressView: View {
                 .opacity(progressToNextLevel > 0.1 ? 1 : 0)
         )
     }
-    
+
     private func nextUnlockView(_ unlock: XPUnlock) -> some View {
         HStack(spacing: 12) {
             Image(systemName: iconForCategory(unlock.category))
@@ -122,24 +122,24 @@ struct XPProgressView: View {
                 .foregroundColor(.accentColor)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(Color.accentColor.opacity(0.1)))
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("Next Unlock: \(unlock.name)")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 Text(unlock.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(unlock.xpRequired.formattedWithSeparator()) XP")
                     .font(.caption)
                     .fontWeight(.medium)
-                
+
                 Text("\((unlock.xpRequired - currentXP).formattedWithSeparator()) away")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -151,17 +151,17 @@ struct XPProgressView: View {
                 .fill(Color(.systemGray6))
         )
     }
-    
+
     private func iconForCategory(_ category: XPUnlock.UnlockCategory) -> String {
         switch category {
         case .badge:
-            return "rosette"
+            "rosette"
         case .feature:
-            return "sparkles"
+            "sparkles"
         case .customization:
-            return "paintbrush.fill"
+            "paintbrush.fill"
         case .achievement:
-            return "trophy.fill"
+            "trophy.fill"
         }
     }
 }
@@ -180,7 +180,7 @@ struct XPProgressView_Previews: PreviewProvider {
         VStack(spacing: 20) {
             XPProgressView(currentXP: 0)
             XPProgressView(currentXP: 250)
-            XPProgressView(currentXP: 1_234)
+            XPProgressView(currentXP: 1234)
             XPProgressView(currentXP: 999_999)
         }
         .padding()

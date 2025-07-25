@@ -5,24 +5,24 @@
 //  User privacy and notification settings
 //
 
-import Foundation
 import CloudKit
+import Foundation
 
 // MARK: - Notification Settings
 
 enum NotificationPreference: String, CaseIterable, Codable {
-    case all = "all"
+    case all
     case friendsOnly = "friends"
-    case none = "none"
-    
+    case none
+
     var displayName: String {
         switch self {
         case .all:
-            return "Everyone"
+            "Everyone"
         case .friendsOnly:
-            return "Friends Only"
+            "Friends Only"
         case .none:
-            return "None"
+            "None"
         }
     }
 }
@@ -30,29 +30,29 @@ enum NotificationPreference: String, CaseIterable, Codable {
 // MARK: - Content Filter
 
 enum ContentFilterLevel: String, CaseIterable, Codable {
-    case strict = "strict"
-    case moderate = "moderate"
-    case off = "off"
-    
+    case strict
+    case moderate
+    case off
+
     var displayName: String {
         switch self {
         case .strict:
-            return "Strict"
+            "Strict"
         case .moderate:
-            return "Moderate"
+            "Moderate"
         case .off:
-            return "Off"
+            "Off"
         }
     }
-    
+
     var description: String {
         switch self {
         case .strict:
-            return "Filters all potentially inappropriate content"
+            "Filters all potentially inappropriate content"
         case .moderate:
-            return "Filters only explicit content"
+            "Filters only explicit content"
         case .off:
-            return "No content filtering"
+            "No content filtering"
         }
     }
 }
@@ -68,15 +68,15 @@ struct UserSettings: Codable, Equatable {
     var blockedUsers: Set<String>
     var mutedUsers: Set<String>
     var contentFilter: ContentFilterLevel
-    
+
     // Additional preferences
     var showWorkoutStats: Bool
     var allowFriendRequests: Bool
     var showOnLeaderboards: Bool
-    
+
     // Default settings for new users
     static func defaultSettings(for userID: String) -> UserSettings {
-        return UserSettings(
+        UserSettings(
             userID: userID,
             emailNotifications: true,
             pushNotifications: true,
@@ -90,21 +90,21 @@ struct UserSettings: Codable, Equatable {
             showOnLeaderboards: true
         )
     }
-    
+
     // Check if a user is blocked
     func isUserBlocked(_ userID: String) -> Bool {
-        return blockedUsers.contains(userID)
+        blockedUsers.contains(userID)
     }
-    
+
     // Check if a user is muted
     func isUserMuted(_ userID: String) -> Bool {
-        return mutedUsers.contains(userID)
+        mutedUsers.contains(userID)
     }
-    
+
     // Check if user can receive messages from sender
     func canReceiveMessagesFrom(_ senderID: String, isFriend: Bool) -> Bool {
         if isUserBlocked(senderID) { return false }
-        
+
         switch allowMessages {
         case .all:
             return true
@@ -121,53 +121,55 @@ struct UserSettings: Codable, Equatable {
 extension UserSettings {
     init?(from record: CKRecord) {
         guard let userID = record["userID"] as? String else { return nil }
-        
+
         self.userID = userID
-        self.emailNotifications = (record["emailNotifications"] as? Int64) == 1
-        self.pushNotifications = (record["pushNotifications"] as? Int64) == 1
-        
+        emailNotifications = (record["emailNotifications"] as? Int64) == 1
+        pushNotifications = (record["pushNotifications"] as? Int64) == 1
+
         // Privacy settings
         if let privacyString = record["workoutPrivacy"] as? String,
-           let privacy = ProfilePrivacyLevel(rawValue: privacyString) {
-            self.workoutPrivacy = privacy
+           let privacy = ProfilePrivacyLevel(rawValue: privacyString)
+        {
+            workoutPrivacy = privacy
         } else {
-            self.workoutPrivacy = .friendsOnly
+            workoutPrivacy = .friendsOnly
         }
-        
+
         // Message settings
         if let messageString = record["allowMessages"] as? String,
-           let messages = NotificationPreference(rawValue: messageString) {
-            self.allowMessages = messages
+           let messages = NotificationPreference(rawValue: messageString)
+        {
+            allowMessages = messages
         } else {
-            self.allowMessages = .friendsOnly
+            allowMessages = .friendsOnly
         }
-        
+
         // User lists
-        self.blockedUsers = Set((record["blockedUsers"] as? [String]) ?? [])
-        self.mutedUsers = Set((record["mutedUsers"] as? [String]) ?? [])
-        
+        blockedUsers = Set((record["blockedUsers"] as? [String]) ?? [])
+        mutedUsers = Set((record["mutedUsers"] as? [String]) ?? [])
+
         // Content filter
         if let filterString = record["contentFilter"] as? String,
-           let filter = ContentFilterLevel(rawValue: filterString) {
-            self.contentFilter = filter
+           let filter = ContentFilterLevel(rawValue: filterString)
+        {
+            contentFilter = filter
         } else {
-            self.contentFilter = .moderate
+            contentFilter = .moderate
         }
-        
+
         // Additional preferences
-        self.showWorkoutStats = (record["showWorkoutStats"] as? Int64) != 0
-        self.allowFriendRequests = (record["allowFriendRequests"] as? Int64) != 0
-        self.showOnLeaderboards = (record["showOnLeaderboards"] as? Int64) != 0
+        showWorkoutStats = (record["showWorkoutStats"] as? Int64) != 0
+        allowFriendRequests = (record["allowFriendRequests"] as? Int64) != 0
+        showOnLeaderboards = (record["showOnLeaderboards"] as? Int64) != 0
     }
-    
+
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
-        let record: CKRecord
-        if let recordID = recordID {
-            record = CKRecord(recordType: "UserSettings", recordID: recordID)
+        let record = if let recordID {
+            CKRecord(recordType: "UserSettings", recordID: recordID)
         } else {
-            record = CKRecord(recordType: "UserSettings")
+            CKRecord(recordType: "UserSettings")
         }
-        
+
         record["userID"] = userID
         record["emailNotifications"] = emailNotifications ? Int64(1) : Int64(0)
         record["pushNotifications"] = pushNotifications ? Int64(1) : Int64(0)
@@ -183,10 +185,10 @@ extension UserSettings {
         record["showWorkoutStats"] = showWorkoutStats ? Int64(1) : Int64(0)
         record["allowFriendRequests"] = allowFriendRequests ? Int64(1) : Int64(0)
         record["showOnLeaderboards"] = showOnLeaderboards ? Int64(1) : Int64(0)
-        
+
         return record
     }
-    
+
     // Create a copy with modifications
     func with(
         emailNotifications: Bool? = nil,
@@ -200,8 +202,8 @@ extension UserSettings {
         allowFriendRequests: Bool? = nil,
         showOnLeaderboards: Bool? = nil
     ) -> UserSettings {
-        return UserSettings(
-            userID: self.userID,
+        UserSettings(
+            userID: userID,
             emailNotifications: emailNotifications ?? self.emailNotifications,
             pushNotifications: pushNotifications ?? self.pushNotifications,
             workoutPrivacy: workoutPrivacy ?? self.workoutPrivacy,
@@ -232,7 +234,7 @@ extension UserSettings {
         allowFriendRequests: true,
         showOnLeaderboards: true
     )
-    
+
     static let mockPrivateSettings = UserSettings(
         userID: "mock-user-2",
         emailNotifications: false,

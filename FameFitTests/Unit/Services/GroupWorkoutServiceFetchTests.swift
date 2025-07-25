@@ -5,36 +5,36 @@
 //  Tests for GroupWorkoutService fetch and search operations
 //
 
-import XCTest
 import CloudKit
-import HealthKit
 @testable import FameFit
+import HealthKit
+import XCTest
 
 final class GroupWorkoutServiceFetchTests: XCTestCase {
     // MARK: - Properties
-    
+
     private var sut: MockGroupWorkoutService!
     private var mockCloudKitManager: MockCloudKitManager!
     private var mockUserProfileService: MockUserProfileService!
     private var mockNotificationManager: MockNotificationManager!
     private var mockRateLimiter: MockRateLimitingService!
-    
+
     // MARK: - Setup & Teardown
-    
+
     override func setUp() {
         super.setUp()
-        
+
         mockCloudKitManager = MockCloudKitManager()
         mockUserProfileService = MockUserProfileService()
         mockNotificationManager = MockNotificationManager()
         mockRateLimiter = MockRateLimitingService()
-        
+
         sut = MockGroupWorkoutService()
-        
+
         // Set up test user
         mockCloudKitManager.currentUserID = "test-user-123"
     }
-    
+
     override func tearDown() {
         sut = nil
         mockCloudKitManager = nil
@@ -43,9 +43,9 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
         mockRateLimiter = nil
         super.tearDown()
     }
-    
+
     // MARK: - Fetch Upcoming Workouts Tests
-    
+
     func testFetchUpcomingWorkouts_Success() async throws {
         // Given
         let upcomingWorkouts = [
@@ -56,8 +56,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3_600),
-                scheduledEnd: Date().addingTimeInterval(7_200),
+                scheduledStart: Date().addingTimeInterval(3600),
+                scheduledEnd: Date().addingTimeInterval(7200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -68,8 +68,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7_200),
-                scheduledEnd: Date().addingTimeInterval(10_800),
+                scheduledStart: Date().addingTimeInterval(7200),
+                scheduledEnd: Date().addingTimeInterval(10800),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -80,26 +80,26 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "host-3",
                 maxParticipants: 5,
-                scheduledStart: Date().addingTimeInterval(5_400),
-                scheduledEnd: Date().addingTimeInterval(9_000),
+                scheduledStart: Date().addingTimeInterval(5400),
+                scheduledEnd: Date().addingTimeInterval(9000),
                 status: .scheduled,
                 isPublic: false // Should not be included
-            )
+            ),
         ]
-        
+
         sut.mockWorkouts = upcomingWorkouts
-        
+
         // When
         let fetchedWorkouts = try await sut.fetchUpcomingWorkouts(limit: 10)
-        
+
         // Then
         XCTAssertEqual(fetchedWorkouts.count, 2) // Only public workouts
-        XCTAssertTrue(fetchedWorkouts.allSatisfy { $0.isPublic })
+        XCTAssertTrue(fetchedWorkouts.allSatisfy(\.isPublic))
         XCTAssertTrue(fetchedWorkouts.allSatisfy { $0.status == .scheduled })
     }
-    
+
     // MARK: - Fetch My Workouts Tests
-    
+
     func testFetchMyWorkouts_Success() async throws {
         // Given
         let myWorkouts = [
@@ -110,8 +110,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "test-user-123", // Current user is host
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3_600),
-                scheduledEnd: Date().addingTimeInterval(7_200)
+                scheduledStart: Date().addingTimeInterval(3600),
+                scheduledEnd: Date().addingTimeInterval(7200)
             ),
             GroupWorkout(
                 id: "my-joined-1",
@@ -129,11 +129,11 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                         userId: "test-user-123", // Current user is participant
                         displayName: "Me",
                         profileImageURL: nil
-                    )
+                    ),
                 ],
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(7_200),
-                scheduledEnd: Date().addingTimeInterval(10_800)
+                scheduledStart: Date().addingTimeInterval(7200),
+                scheduledEnd: Date().addingTimeInterval(10800)
             ),
             GroupWorkout(
                 id: "not-mine-1",
@@ -142,25 +142,25 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "random-host",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(5_400),
-                scheduledEnd: Date().addingTimeInterval(9_000)
-            )
+                scheduledStart: Date().addingTimeInterval(5400),
+                scheduledEnd: Date().addingTimeInterval(9000)
+            ),
         ]
-        
+
         sut.mockWorkouts = myWorkouts
-        
+
         // When
         let fetchedWorkouts = try await sut.fetchMyWorkouts(userId: "test-user-123")
-        
+
         // Then
         XCTAssertEqual(fetchedWorkouts.count, 2)
         XCTAssertTrue(fetchedWorkouts.contains { $0.id == "my-hosted-1" })
         XCTAssertTrue(fetchedWorkouts.contains { $0.id == "my-joined-1" })
         XCTAssertFalse(fetchedWorkouts.contains { $0.id == "not-mine-1" })
     }
-    
+
     // MARK: - Search Workouts Tests
-    
+
     func testSearchWorkouts_ByName_Success() async throws {
         // Given
         let workouts = [
@@ -171,8 +171,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3_600),
-                scheduledEnd: Date().addingTimeInterval(7_200),
+                scheduledStart: Date().addingTimeInterval(3600),
+                scheduledEnd: Date().addingTimeInterval(7200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -183,8 +183,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7_200),
-                scheduledEnd: Date().addingTimeInterval(10_800),
+                scheduledStart: Date().addingTimeInterval(7200),
+                scheduledEnd: Date().addingTimeInterval(10800),
                 status: .scheduled,
                 isPublic: true,
                 tags: ["yoga", "relaxation"]
@@ -196,27 +196,27 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-3",
                 maxParticipants: 15,
-                scheduledStart: Date().addingTimeInterval(5_400),
-                scheduledEnd: Date().addingTimeInterval(9_000),
+                scheduledStart: Date().addingTimeInterval(5400),
+                scheduledEnd: Date().addingTimeInterval(9000),
                 status: .scheduled,
                 isPublic: true
-            )
+            ),
         ]
-        
+
         sut.mockWorkouts = workouts
-        
+
         // When
         let yogaResults = try await sut.searchWorkouts(query: "yoga", workoutType: nil)
-        
+
         // Then
         XCTAssertEqual(yogaResults.count, 2)
         XCTAssertTrue(yogaResults.allSatisfy {
             $0.name.lowercased().contains("yoga") ||
-            $0.description.lowercased().contains("yoga") ||
-            $0.tags.contains("yoga")
+                $0.description.lowercased().contains("yoga") ||
+                $0.tags.contains("yoga")
         })
     }
-    
+
     func testSearchWorkouts_ByType_Success() async throws {
         // Given
         let workouts = [
@@ -227,8 +227,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3_600),
-                scheduledEnd: Date().addingTimeInterval(7_200),
+                scheduledStart: Date().addingTimeInterval(3600),
+                scheduledEnd: Date().addingTimeInterval(7200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -239,8 +239,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7_200),
-                scheduledEnd: Date().addingTimeInterval(10_800),
+                scheduledStart: Date().addingTimeInterval(7200),
+                scheduledEnd: Date().addingTimeInterval(10800),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -251,25 +251,25 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-3",
                 maxParticipants: 12,
-                scheduledStart: Date().addingTimeInterval(5_400),
-                scheduledEnd: Date().addingTimeInterval(9_000),
+                scheduledStart: Date().addingTimeInterval(5400),
+                scheduledEnd: Date().addingTimeInterval(9000),
                 status: .scheduled,
                 isPublic: true
-            )
+            ),
         ]
-        
+
         sut.mockWorkouts = workouts
-        
+
         // When
         let runningWorkouts = try await sut.searchWorkouts(query: "", workoutType: .running)
-        
+
         // Then
         XCTAssertEqual(runningWorkouts.count, 2)
         XCTAssertTrue(runningWorkouts.allSatisfy { $0.workoutType == .running })
     }
-    
+
     // MARK: - Fetch Active Workouts Tests
-    
+
     func testFetchActiveWorkouts_Success() async throws {
         // Given
         let workouts = [
@@ -281,7 +281,7 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 hostId: "host-1",
                 maxParticipants: 10,
                 scheduledStart: Date().addingTimeInterval(-600),
-                scheduledEnd: Date().addingTimeInterval(3_000),
+                scheduledEnd: Date().addingTimeInterval(3000),
                 status: .active
             ),
             GroupWorkout(
@@ -292,7 +292,7 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 hostId: "host-2",
                 maxParticipants: 8,
                 scheduledStart: Date().addingTimeInterval(-300),
-                scheduledEnd: Date().addingTimeInterval(3_300),
+                scheduledEnd: Date().addingTimeInterval(3300),
                 status: .active
             ),
             GroupWorkout(
@@ -302,24 +302,24 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "host-3",
                 maxParticipants: 12,
-                scheduledStart: Date().addingTimeInterval(3_600),
-                scheduledEnd: Date().addingTimeInterval(7_200),
+                scheduledStart: Date().addingTimeInterval(3600),
+                scheduledEnd: Date().addingTimeInterval(7200),
                 status: .scheduled
-            )
+            ),
         ]
-        
+
         sut.mockWorkouts = workouts
-        
+
         // When
         let activeWorkouts = try await sut.fetchActiveWorkouts()
-        
+
         // Then
         XCTAssertEqual(activeWorkouts.count, 2)
         XCTAssertTrue(activeWorkouts.allSatisfy { $0.status == .active })
     }
-    
+
     // MARK: - Caching Tests
-    
+
     func testFetchWorkout_UsesCacheWhenAvailable() async throws {
         // Given
         let workout = GroupWorkout(
@@ -329,25 +329,25 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
             workoutType: .running,
             hostId: "host-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3_600),
-            scheduledEnd: Date().addingTimeInterval(7_200)
+            scheduledStart: Date().addingTimeInterval(3600),
+            scheduledEnd: Date().addingTimeInterval(7200)
         )
-        
+
         // First fetch to populate cache
         sut.mockWorkouts = [workout]
         _ = try await sut.fetchWorkout(workoutId: workout.id)
-        
+
         // Note: MockGroupWorkoutService doesn't have cache simulation
         // This test would need to be updated to properly test caching
-        
+
         // When - fetch again (should use cache)
         let cachedWorkout = try await sut.fetchWorkout(workoutId: workout.id)
-        
+
         // Then
         XCTAssertEqual(cachedWorkout.id, workout.id)
         XCTAssertEqual(cachedWorkout.name, workout.name)
     }
-    
+
     func testFetchWorkout_NotFound_ThrowsError() async {
         // When/Then
         do {

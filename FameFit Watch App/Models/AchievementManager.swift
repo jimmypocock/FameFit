@@ -25,47 +25,47 @@ class AchievementManager: ObservableObject, AchievementManaging {
 
         var title: String {
             switch self {
-            case .firstWorkout: return "First Timer"
-            case .fiveMinutes: return "5 Minute Hero"
-            case .tenMinutes: return "10 Minute Wonder"
-            case .thirtyMinutes: return "30 Minute Machine"
-            case .oneHour: return "Hour of Power"
-            case .fastPace: return "Speed Demon"
-            case .slowPace: return "Slow & Steady"
-            case .earlyBird: return "Early Bird"
-            case .nightOwl: return "Night Owl"
-            case .weekStreak: return "Week Warrior"
-            case .hundredCalories: return "Calorie Crusher"
-            case .fiveHundredCalories: return "Inferno Mode"
+            case .firstWorkout: "First Timer"
+            case .fiveMinutes: "5 Minute Hero"
+            case .tenMinutes: "10 Minute Wonder"
+            case .thirtyMinutes: "30 Minute Machine"
+            case .oneHour: "Hour of Power"
+            case .fastPace: "Speed Demon"
+            case .slowPace: "Slow & Steady"
+            case .earlyBird: "Early Bird"
+            case .nightOwl: "Night Owl"
+            case .weekStreak: "Week Warrior"
+            case .hundredCalories: "Calorie Crusher"
+            case .fiveHundredCalories: "Inferno Mode"
             }
         }
 
         var roastMessage: String {
             switch self {
             case .firstWorkout:
-                return "Congrats on your first workout! Only took you how long to start?"
+                "Congrats on your first workout! Only took you how long to start?"
             case .fiveMinutes:
-                return "5 whole minutes? Your attention span is improving!"
+                "5 whole minutes? Your attention span is improving!"
             case .tenMinutes:
-                return "10 minutes! That's longer than your usual commitment!"
+                "10 minutes! That's longer than your usual commitment!"
             case .thirtyMinutes:
-                return "30 minutes? Did you get lost on the way out?"
+                "30 minutes? Did you get lost on the way out?"
             case .oneHour:
-                return "An hour? Did someone lock the gym doors?"
+                "An hour? Did someone lock the gym doors?"
             case .fastPace:
-                return "Slow down there, Speed Racer. This isn't the bathroom line."
+                "Slow down there, Speed Racer. This isn't the bathroom line."
             case .slowPace:
-                return "Achievement unlocked: Moving slower than continental drift!"
+                "Achievement unlocked: Moving slower than continental drift!"
             case .earlyBird:
-                return "Working out before noon? Who are you trying to impress?"
+                "Working out before noon? Who are you trying to impress?"
             case .nightOwl:
-                return "Late night workout? Couldn't sleep thinking about your fitness?"
+                "Late night workout? Couldn't sleep thinking about your fitness?"
             case .weekStreak:
-                return "A whole week? Your couch filed a missing person report."
+                "A whole week? Your couch filed a missing person report."
             case .hundredCalories:
-                return "100 calories burned! That's almost a cookie!"
+                "100 calories burned! That's almost a cookie!"
             case .fiveHundredCalories:
-                return "500 calories? You can almost eat dinner guilt-free!"
+                "500 calories? You can almost eat dinner guilt-free!"
             }
         }
     }
@@ -74,7 +74,7 @@ class AchievementManager: ObservableObject, AchievementManaging {
     @Published var recentAchievement: Achievement?
 
     private let persister: AchievementPersisting
-    
+
     init(persister: AchievementPersisting? = nil) {
         self.persister = persister ?? UserDefaultsAchievementPersister()
         loadAchievements()
@@ -87,15 +87,17 @@ class AchievementManager: ObservableObject, AchievementManaging {
     }
 
     private func saveAchievements() {
-        let achievementStrings = unlockedAchievements.map { $0.rawValue }
+        let achievementStrings = unlockedAchievements.map(\.rawValue)
         persister.saveAchievements(achievementStrings)
     }
 
-    func checkAchievements(for workout: HKWorkout?,
-                           duration: TimeInterval,
-                           calories: Double,
-                           distance: Double,
-                           averageHeartRate: Double) {
+    func checkAchievements(
+        for workout: HKWorkout?,
+        duration: TimeInterval,
+        calories: Double,
+        distance: Double,
+        averageHeartRate _: Double
+    ) {
         var newAchievements: [Achievement] = []
 
         // First workout
@@ -104,49 +106,49 @@ class AchievementManager: ObservableObject, AchievementManaging {
         }
 
         // Duration achievements
-        if duration >= 300 && !unlockedAchievements.contains(.fiveMinutes) {
+        if duration >= 300, !unlockedAchievements.contains(.fiveMinutes) {
             newAchievements.append(.fiveMinutes)
         }
 
-        if duration >= 600 && !unlockedAchievements.contains(.tenMinutes) {
+        if duration >= 600, !unlockedAchievements.contains(.tenMinutes) {
             newAchievements.append(.tenMinutes)
         }
 
-        if duration >= 1_800 && !unlockedAchievements.contains(.thirtyMinutes) {
+        if duration >= 1800, !unlockedAchievements.contains(.thirtyMinutes) {
             newAchievements.append(.thirtyMinutes)
         }
 
-        if duration >= 3_600 && !unlockedAchievements.contains(.oneHour) {
+        if duration >= 3600, !unlockedAchievements.contains(.oneHour) {
             newAchievements.append(.oneHour)
         }
 
         // Calorie achievements
-        if calories >= 100 && !unlockedAchievements.contains(.hundredCalories) {
+        if calories >= 100, !unlockedAchievements.contains(.hundredCalories) {
             newAchievements.append(.hundredCalories)
         }
 
-        if calories >= 500 && !unlockedAchievements.contains(.fiveHundredCalories) {
+        if calories >= 500, !unlockedAchievements.contains(.fiveHundredCalories) {
             newAchievements.append(.fiveHundredCalories)
         }
 
         // Time-based achievements
         let hour = Calendar.current.component(.hour, from: Date())
-        if hour < 7 && !unlockedAchievements.contains(.earlyBird) {
+        if hour < 7, !unlockedAchievements.contains(.earlyBird) {
             newAchievements.append(.earlyBird)
         }
 
-        if hour >= 21 && !unlockedAchievements.contains(.nightOwl) {
+        if hour >= 21, !unlockedAchievements.contains(.nightOwl) {
             newAchievements.append(.nightOwl)
         }
 
         // Pace achievements (for running/walking)
         if let workoutType = workout?.workoutActivityType {
             if workoutType == .running || workoutType == .walking {
-                let pace = duration / (distance / 1_000) // minutes per km
-                if pace < 6 && !unlockedAchievements.contains(.fastPace) {
+                let pace = duration / (distance / 1000) // minutes per km
+                if pace < 6, !unlockedAchievements.contains(.fastPace) {
                     newAchievements.append(.fastPace)
                 }
-                if pace > 12 && !unlockedAchievements.contains(.slowPace) {
+                if pace > 12, !unlockedAchievements.contains(.slowPace) {
                     newAchievements.append(.slowPace)
                 }
             }
@@ -169,6 +171,6 @@ class AchievementManager: ObservableObject, AchievementManaging {
     }
 
     func getAchievementProgress() -> (unlocked: Int, total: Int) {
-        return (unlockedAchievements.count, Achievement.allCases.count)
+        (unlockedAchievements.count, Achievement.allCases.count)
     }
 }

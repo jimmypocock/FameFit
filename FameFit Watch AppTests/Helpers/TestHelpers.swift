@@ -1,6 +1,6 @@
-import XCTest
-import HealthKit
 @testable import FameFit_Watch_App
+import HealthKit
+import XCTest
 
 // MARK: - Test Expectations
 
@@ -11,18 +11,18 @@ extension XCTestCase {
         toEqual expectedValue: T,
         in manager: WorkoutManager,
         timeout: TimeInterval = 5.0,
-        file: StaticString = #file,
-        line: UInt = #line
+        file _: StaticString = #file,
+        line _: UInt = #line
     ) {
         let expectation = expectation(description: "Waiting for \(keyPath) to equal \(expectedValue)")
-        
+
         var cancellable: Any?
         cancellable = manager.objectWillChange.sink { _ in
             if manager[keyPath: keyPath] == expectedValue {
                 expectation.fulfill()
             }
         }
-        
+
         wait(for: [expectation], timeout: timeout)
         _ = cancellable // Keep reference
     }
@@ -34,17 +34,19 @@ class MockWorkoutSessionDelegate: NSObject, HKWorkoutSessionDelegate {
     var didChangeToStateCalled = false
     var lastToState: HKWorkoutSessionState?
     var lastFromState: HKWorkoutSessionState?
-    
-    func workoutSession(_ workoutSession: HKWorkoutSession, 
-                       didChangeTo toState: HKWorkoutSessionState, 
-                       from fromState: HKWorkoutSessionState, 
-                       date: Date) {
+
+    func workoutSession(
+        _: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
+        date _: Date
+    ) {
         didChangeToStateCalled = true
         lastToState = toState
         lastFromState = fromState
     }
-    
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+
+    func workoutSession(_: HKWorkoutSession, didFailWithError _: Error) {
         // Handle error
     }
 }
@@ -53,7 +55,7 @@ class MockWorkoutSessionDelegate: NSObject, HKWorkoutSessionDelegate {
 
 extension HKWorkoutActivityType {
     static var testTypes: [HKWorkoutActivityType] {
-        return [.running, .cycling, .walking]
+        [.running, .cycling, .walking]
     }
 }
 
@@ -62,12 +64,12 @@ extension HKWorkoutActivityType {
 extension XCTestCase {
     func waitForAsync(timeout: TimeInterval = 5.0, completion: @escaping () -> Void) {
         let expectation = expectation(description: "Async operation")
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             completion()
             expectation.fulfill()
         }
-        
+
         wait(for: [expectation], timeout: timeout)
     }
 }

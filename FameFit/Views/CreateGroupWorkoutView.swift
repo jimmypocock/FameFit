@@ -5,13 +5,13 @@
 //  View for creating new group workout sessions
 //
 
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct CreateGroupWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencyContainer) private var container
-    
+
     @State private var workoutName = ""
     @State private var workoutDescription = ""
     @State private var selectedWorkoutType: HKWorkoutActivityType = .running
@@ -22,47 +22,47 @@ struct CreateGroupWorkoutView: View {
     @State private var tags: [String] = []
     @State private var newTag = ""
     @State private var showingTagInput = false
-    
+
     @State private var isCreating = false
     @State private var errorMessage: String?
-    
+
     private let workoutTypes: [HKWorkoutActivityType] = [
         .running, .walking, .hiking, .cycling, .swimming,
         .functionalStrengthTraining, .traditionalStrengthTraining,
-        .yoga, .pilates, .boxing, .kickboxing
+        .yoga, .pilates, .boxing, .kickboxing,
     ]
-    
+
     private let durationOptions: [(String, TimeInterval)] = [
         ("30 min", 1800),
-        ("45 min", 2700), 
+        ("45 min", 2700),
         ("1 hour", 3600),
         ("1.5 hours", 5400),
         ("2 hours", 7200),
-        ("3 hours", 10800)
+        ("3 hours", 10800),
     ]
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
                     // Basic Info Section
                     basicInfoSection
-                    
+
                     // Workout Details Section
                     workoutDetailsSection
-                    
+
                     // Schedule Section
                     scheduleSection
-                    
+
                     // Participants Section
                     participantsSection
-                    
+
                     // Privacy Section
                     privacySection
-                    
+
                     // Tags Section
                     tagsSection
-                    
+
                     // Create Button
                     createButton
                 }
@@ -82,40 +82,40 @@ struct CreateGroupWorkoutView: View {
                     errorMessage = nil
                 }
             } message: {
-                if let errorMessage = errorMessage {
+                if let errorMessage {
                     Text(errorMessage)
                 }
             }
         }
     }
-    
+
     // MARK: - Basic Info Section
-    
+
     private var basicInfoSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Basic Information", icon: "info.circle")
-            
+
             VStack(spacing: 16) {
                 // Workout Name
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Workout Name")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     TextField("e.g., Morning Run Club", text: $workoutName)
                         .textFieldStyle(.roundedBorder)
                         .submitLabel(.next)
                 }
-                
+
                 // Description
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Description")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     TextField("Optional description...", text: $workoutDescription, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
-                        .lineLimit(3...6)
+                        .lineLimit(3 ... 6)
                 }
             }
             .padding()
@@ -125,20 +125,20 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Workout Details Section
-    
+
     private var workoutDetailsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Workout Details", icon: "figure.run")
-            
+
             VStack(spacing: 16) {
                 // Workout Type
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Workout Type")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(workoutTypes, id: \.self) { type in
@@ -152,13 +152,13 @@ struct CreateGroupWorkoutView: View {
                         .padding(.horizontal, 4)
                     }
                 }
-                
+
                 // Duration
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Duration")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
                         ForEach(durationOptions, id: \.0) { option in
                             Button(action: { duration = option.1 }) {
@@ -183,13 +183,13 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Schedule Section
-    
+
     private var scheduleSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Schedule", icon: "calendar")
-            
+
             VStack(spacing: 16) {
                 DatePicker(
                     "Start Time",
@@ -198,13 +198,13 @@ struct CreateGroupWorkoutView: View {
                     displayedComponents: [.date, .hourAndMinute]
                 )
                 .datePickerStyle(.compact)
-                
+
                 HStack {
                     Text("End Time:")
                         .font(.system(size: 16, weight: .medium))
-                    
+
                     Spacer()
-                    
+
                     Text(endDate, style: .time)
                         .font(.system(size: 16))
                         .foregroundColor(.secondary)
@@ -217,23 +217,23 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Participants Section
-    
+
     private var participantsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Participants", icon: "person.2")
-            
+
             VStack(spacing: 16) {
                 HStack {
                     Text("Maximum Participants")
                         .font(.system(size: 16, weight: .medium))
-                    
+
                     Spacer()
-                    
+
                     Stepper(
                         value: $maxParticipants,
-                        in: 2...50,
+                        in: 2 ... 50,
                         step: 1
                     ) {
                         Text("\(maxParticipants)")
@@ -241,7 +241,7 @@ struct CreateGroupWorkoutView: View {
                             .foregroundColor(.blue)
                     }
                 }
-                
+
                 Text("Including yourself as the host")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -253,22 +253,24 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Privacy Section
-    
+
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Privacy", icon: "lock.shield")
-            
+
             VStack(spacing: 16) {
                 Toggle(isOn: $isPublic) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Public Workout")
                             .font(.system(size: 16, weight: .medium))
-                        
-                        Text(isPublic ? "Anyone can find and join this workout" : "Only people with the join code can participate")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+
+                        Text(isPublic ? "Anyone can find and join this workout" :
+                            "Only people with the join code can participate"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     }
                 }
                 .toggleStyle(.switch)
@@ -280,13 +282,13 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Tags Section
-    
+
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionHeader(title: "Tags", icon: "tag")
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 // Existing tags
                 if !tags.isEmpty {
@@ -299,7 +301,7 @@ struct CreateGroupWorkoutView: View {
                         }
                     }
                 }
-                
+
                 // Add tag button
                 Button(action: { showingTagInput = true }) {
                     HStack(spacing: 8) {
@@ -316,7 +318,7 @@ struct CreateGroupWorkoutView: View {
                             .stroke(Color.blue, lineWidth: 1)
                     )
                 }
-                
+
                 Text("Tags help others find your workout (e.g., Beginner, Outdoor, HIIT)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -339,9 +341,9 @@ struct CreateGroupWorkoutView: View {
             Text("Enter a short tag to help categorize this workout")
         }
     }
-    
+
     // MARK: - Create Button
-    
+
     private var createButton: some View {
         Button(action: createWorkout) {
             HStack(spacing: 12) {
@@ -353,7 +355,7 @@ struct CreateGroupWorkoutView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20))
                 }
-                
+
                 Text(isCreating ? "Creating..." : "Create Group Workout")
                     .font(.system(size: 18, weight: .semibold))
             }
@@ -367,38 +369,38 @@ struct CreateGroupWorkoutView: View {
         }
         .disabled(!canCreate || isCreating)
     }
-    
+
     // MARK: - Helper Views
-    
+
     private struct SectionHeader: View {
         let title: String
         let icon: String
-        
+
         var body: some View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 18))
                     .foregroundColor(.blue)
-                
+
                 Text(title)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             }
         }
     }
-    
+
     private struct WorkoutTypeButton: View {
         let type: HKWorkoutActivityType
         let isSelected: Bool
         let action: () -> Void
-        
+
         var body: some View {
             Button(action: action) {
                 VStack(spacing: 8) {
                     Image(systemName: iconForWorkoutType(type))
                         .font(.system(size: 24))
                         .foregroundColor(isSelected ? .white : .blue)
-                    
+
                     Text(nameForWorkoutType(type))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(isSelected ? .white : .primary)
@@ -412,53 +414,53 @@ struct CreateGroupWorkoutView: View {
                 )
             }
         }
-        
+
         private func iconForWorkoutType(_ type: HKWorkoutActivityType) -> String {
             switch type {
-            case .running: return "figure.run"
-            case .walking: return "figure.walk"
-            case .hiking: return "figure.hiking"
-            case .cycling: return "bicycle"
-            case .swimming: return "figure.pool.swim"
-            case .functionalStrengthTraining: return "dumbbell"
-            case .traditionalStrengthTraining: return "dumbbell.fill"
-            case .yoga: return "figure.yoga"
-            case .pilates: return "figure.pilates"
-            case .dance: return "figure.dance"
-            case .boxing: return "figure.boxing"
-            case .kickboxing: return "figure.kickboxing"
-            default: return "figure.mixed.cardio"
+            case .running: "figure.run"
+            case .walking: "figure.walk"
+            case .hiking: "figure.hiking"
+            case .cycling: "bicycle"
+            case .swimming: "figure.pool.swim"
+            case .functionalStrengthTraining: "dumbbell"
+            case .traditionalStrengthTraining: "dumbbell.fill"
+            case .yoga: "figure.yoga"
+            case .pilates: "figure.pilates"
+            case .dance: "figure.dance"
+            case .boxing: "figure.boxing"
+            case .kickboxing: "figure.kickboxing"
+            default: "figure.mixed.cardio"
             }
         }
-        
+
         private func nameForWorkoutType(_ type: HKWorkoutActivityType) -> String {
             switch type {
-            case .running: return "Running"
-            case .walking: return "Walking"
-            case .hiking: return "Hiking"
-            case .cycling: return "Cycling"
-            case .swimming: return "Swimming"
-            case .functionalStrengthTraining: return "Strength"
-            case .traditionalStrengthTraining: return "Weights"
-            case .yoga: return "Yoga"
-            case .pilates: return "Pilates"
-            case .dance: return "Dance"
-            case .boxing: return "Boxing"
-            case .kickboxing: return "Kickboxing"
-            default: return "Workout"
+            case .running: "Running"
+            case .walking: "Walking"
+            case .hiking: "Hiking"
+            case .cycling: "Cycling"
+            case .swimming: "Swimming"
+            case .functionalStrengthTraining: "Strength"
+            case .traditionalStrengthTraining: "Weights"
+            case .yoga: "Yoga"
+            case .pilates: "Pilates"
+            case .dance: "Dance"
+            case .boxing: "Boxing"
+            case .kickboxing: "Kickboxing"
+            default: "Workout"
             }
         }
     }
-    
+
     private struct TagView: View {
         let text: String
         let onRemove: () -> Void
-        
+
         var body: some View {
             HStack(spacing: 4) {
                 Text(text)
                     .font(.system(size: 12, weight: .medium))
-                
+
                 Button(action: onRemove) {
                     Image(systemName: "xmark")
                         .font(.system(size: 10))
@@ -473,39 +475,39 @@ struct CreateGroupWorkoutView: View {
             )
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var endDate: Date {
         selectedDate.addingTimeInterval(duration)
     }
-    
+
     private var canCreate: Bool {
         !workoutName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        selectedDate > Date() &&
-        duration > 0 &&
-        maxParticipants >= 2
+            selectedDate > Date() &&
+            duration > 0 &&
+            maxParticipants >= 2
     }
-    
+
     // MARK: - Actions
-    
+
     private func addTag() {
         let trimmedTag = newTag.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedTag.isEmpty && !tags.contains(trimmedTag) && tags.count < 5 {
+        if !trimmedTag.isEmpty, !tags.contains(trimmedTag), tags.count < 5 {
             tags.append(trimmedTag)
         }
         newTag = ""
     }
-    
+
     private func removeTag(_ tag: String) {
         tags.removeAll { $0 == tag }
     }
-    
+
     private func createWorkout() {
         guard canCreate else { return }
-        
+
         isCreating = true
-        
+
         Task {
             do {
                 let groupWorkout = GroupWorkout(
@@ -519,9 +521,9 @@ struct CreateGroupWorkoutView: View {
                     isPublic: isPublic,
                     tags: tags
                 )
-                
+
                 _ = try await container.groupWorkoutService.createGroupWorkout(groupWorkout)
-                
+
                 await MainActor.run {
                     dismiss()
                 }
@@ -539,40 +541,44 @@ struct CreateGroupWorkoutView: View {
 
 struct FlowLayout: Layout {
     let spacing: CGFloat
-    
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return layout(sizes: sizes, spacing: spacing, containerWidth: proposal.width ?? 0).size
     }
-    
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         let offsets = layout(sizes: sizes, spacing: spacing, containerWidth: bounds.width).offsets
-        
+
         for (offset, subview) in zip(offsets, subviews) {
             subview.place(at: CGPoint(x: bounds.minX + offset.x, y: bounds.minY + offset.y), proposal: .unspecified)
         }
     }
-    
-    private func layout(sizes: [CGSize], spacing: CGFloat, containerWidth: CGFloat) -> (offsets: [CGPoint], size: CGSize) {
+
+    private func layout(
+        sizes: [CGSize],
+        spacing: CGFloat,
+        containerWidth: CGFloat
+    ) -> (offsets: [CGPoint], size: CGSize) {
         var result: [CGPoint] = []
         var currentPosition = CGPoint.zero
         var lineHeight: CGFloat = 0
         var maxX: CGFloat = 0
-        
+
         for size in sizes {
-            if currentPosition.x + size.width > containerWidth && !result.isEmpty {
+            if currentPosition.x + size.width > containerWidth, !result.isEmpty {
                 currentPosition.x = 0
                 currentPosition.y += lineHeight + spacing
                 lineHeight = 0
             }
-            
+
             result.append(currentPosition)
             currentPosition.x += size.width + spacing
             lineHeight = max(lineHeight, size.height)
             maxX = max(maxX, currentPosition.x - spacing)
         }
-        
+
         return (result, CGSize(width: maxX, height: currentPosition.y + lineHeight))
     }
 }

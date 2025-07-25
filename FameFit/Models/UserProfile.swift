@@ -5,8 +5,8 @@
 //  User profile model for social features
 //
 
-import Foundation
 import CloudKit
+import Foundation
 
 // MARK: - Privacy Level
 
@@ -14,26 +14,26 @@ enum ProfilePrivacyLevel: String, CaseIterable, Codable {
     case publicProfile = "public"
     case friendsOnly = "friends"
     case privateProfile = "private"
-    
+
     var displayName: String {
         switch self {
         case .publicProfile:
-            return "Public"
+            "Public"
         case .friendsOnly:
-            return "Friends Only"
+            "Friends Only"
         case .privateProfile:
-            return "Private"
+            "Private"
         }
     }
-    
+
     var description: String {
         switch self {
         case .publicProfile:
-            return "Anyone can view your profile and workouts"
+            "Anyone can view your profile and workouts"
         case .friendsOnly:
-            return "Only approved friends can view your profile"
+            "Only approved friends can view your profile"
         case .privateProfile:
-            return "Your profile is hidden from everyone"
+            "Your profile is hidden from everyone"
         }
     }
 }
@@ -46,21 +46,21 @@ struct UserProfile: Identifiable, Codable, Equatable {
     let username: String
     let displayName: String
     let bio: String
-    
+
     // Cached stats from Users table
     let workoutCount: Int
     let totalXP: Int
     let joinedDate: Date
-    
+
     // Profile-specific fields
     let lastUpdated: Date // For cache invalidation
     let isVerified: Bool
     let privacyLevel: ProfilePrivacyLevel
-    
+
     // Image URLs will be stored as strings after upload
     var profileImageURL: String?
     var headerImageURL: String?
-    
+
     // Computed properties
     var initials: String {
         let components = displayName.split(separator: " ")
@@ -72,18 +72,18 @@ struct UserProfile: Identifiable, Codable, Equatable {
             return String(username.prefix(2))
         }
     }
-    
+
     var formattedJoinDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         return "Joined \(formatter.string(from: joinedDate))"
     }
-    
+
     var isActive: Bool {
         // Consider active if updated within 7 days
-        return lastUpdated.timeIntervalSinceNow > -7 * 24 * 60 * 60
+        lastUpdated.timeIntervalSinceNow > -7 * 24 * 60 * 60
     }
-    
+
     // Validation
     static func isValidUsername(_ username: String) -> Bool {
         let pattern = "^[a-zA-Z0-9_]{3,30}$"
@@ -91,13 +91,13 @@ struct UserProfile: Identifiable, Codable, Equatable {
         let range = NSRange(location: 0, length: username.utf16.count)
         return regex?.firstMatch(in: username, options: [], range: range) != nil
     }
-    
+
     static func isValidDisplayName(_ name: String) -> Bool {
-        return !name.isEmpty && name.count <= 50 && name.trimmingCharacters(in: .whitespacesAndNewlines).count > 0
+        !name.isEmpty && name.count <= 50 && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
+
     static func isValidBio(_ bio: String) -> Bool {
-        return bio.count <= 500
+        bio.count <= 500
     }
 }
 
@@ -114,11 +114,12 @@ extension UserProfile {
               let joinedDate = record["joinedDate"] as? Date,
               let lastUpdated = record["lastUpdated"] as? Date,
               let privacyLevelString = record["privacyLevel"] as? String,
-              let privacyLevel = ProfilePrivacyLevel(rawValue: privacyLevelString) else {
+              let privacyLevel = ProfilePrivacyLevel(rawValue: privacyLevelString)
+        else {
             return nil
         }
-        
-        self.id = record.recordID.recordName
+
+        id = record.recordID.recordName
         self.userID = userID
         self.username = username
         self.displayName = displayName
@@ -127,20 +128,19 @@ extension UserProfile {
         self.totalXP = Int(totalXP)
         self.joinedDate = joinedDate
         self.lastUpdated = lastUpdated
-        self.isVerified = (record["isVerified"] as? Int64) == 1
+        isVerified = (record["isVerified"] as? Int64) == 1
         self.privacyLevel = privacyLevel
-        self.profileImageURL = record["profileImageURL"] as? String
-        self.headerImageURL = record["headerImageURL"] as? String
+        profileImageURL = record["profileImageURL"] as? String
+        headerImageURL = record["headerImageURL"] as? String
     }
-    
+
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
-        let record: CKRecord
-        if let recordID = recordID {
-            record = CKRecord(recordType: "UserProfiles", recordID: recordID)
+        let record = if let recordID {
+            CKRecord(recordType: "UserProfiles", recordID: recordID)
         } else {
-            record = CKRecord(recordType: "UserProfiles")
+            CKRecord(recordType: "UserProfiles")
         }
-        
+
         record["userID"] = userID
         record["username"] = username.lowercased()
         record["displayName"] = displayName
@@ -151,14 +151,14 @@ extension UserProfile {
         record["lastUpdated"] = lastUpdated
         record["isVerified"] = isVerified ? Int64(1) : Int64(0)
         record["privacyLevel"] = privacyLevel.rawValue
-        
-        if let profileImageURL = profileImageURL {
+
+        if let profileImageURL {
             record["profileImageURL"] = profileImageURL
         }
-        if let headerImageURL = headerImageURL {
+        if let headerImageURL {
             record["headerImageURL"] = headerImageURL
         }
-        
+
         return record
     }
 }
@@ -181,7 +181,7 @@ extension UserProfile {
         profileImageURL: nil,
         headerImageURL: nil
     )
-    
+
     static let mockPrivateProfile = UserProfile(
         id: "mock-profile-2",
         userID: "mock-user-2",
@@ -197,7 +197,7 @@ extension UserProfile {
         profileImageURL: nil,
         headerImageURL: nil
     )
-    
+
     // Additional mock profiles for testing social features
     static let mockProfiles: [UserProfile] = [
         UserProfile(
@@ -274,6 +274,6 @@ extension UserProfile {
             privacyLevel: .friendsOnly,
             profileImageURL: nil,
             headerImageURL: nil
-        )
+        ),
     ]
 }

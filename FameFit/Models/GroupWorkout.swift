@@ -5,8 +5,8 @@
 //  Model for group workout sessions
 //
 
-import Foundation
 import CloudKit
+import Foundation
 import HealthKit
 
 // MARK: - Group Workout Model
@@ -27,49 +27,51 @@ struct GroupWorkout: Identifiable, Equatable {
     let isPublic: Bool
     let joinCode: String? // For private groups
     let tags: [String]
-    
+
     // Computed Properties
     var duration: TimeInterval {
         scheduledEnd.timeIntervalSince(scheduledStart)
     }
-    
+
     var isUpcoming: Bool {
         status == .scheduled && scheduledStart > Date()
     }
-    
+
     var isActive: Bool {
         status == .active
     }
-    
+
     var isCompleted: Bool {
         status == .completed
     }
-    
+
     var hasSpace: Bool {
         participants.count < maxParticipants
     }
-    
+
     var participantIds: [String] {
-        participants.map { $0.userId }
+        participants.map(\.userId)
     }
-    
+
     // MARK: - Initialization
-    
-    init(id: String = UUID().uuidString,
-         name: String,
-         description: String,
-         workoutType: HKWorkoutActivityType,
-         hostId: String,
-         participants: [GroupWorkoutParticipant] = [],
-         maxParticipants: Int = 10,
-         scheduledStart: Date,
-         scheduledEnd: Date,
-         status: GroupWorkoutStatus = .scheduled,
-         createdAt: Date = Date(),
-         updatedAt: Date = Date(),
-         isPublic: Bool = true,
-         joinCode: String? = nil,
-         tags: [String] = []) {
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        description: String,
+        workoutType: HKWorkoutActivityType,
+        hostId: String,
+        participants: [GroupWorkoutParticipant] = [],
+        maxParticipants: Int = 10,
+        scheduledStart: Date,
+        scheduledEnd: Date,
+        status: GroupWorkoutStatus = .scheduled,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        isPublic: Bool = true,
+        joinCode: String? = nil,
+        tags: [String] = []
+    ) {
         self.id = id
         self.name = name
         self.description = description
@@ -86,9 +88,9 @@ struct GroupWorkout: Identifiable, Equatable {
         self.joinCode = joinCode ?? (isPublic ? nil : Self.generateJoinCode())
         self.tags = tags
     }
-    
+
     // MARK: - CloudKit Integration
-    
+
     init?(from record: CKRecord) {
         guard record.recordType == "GroupWorkouts",
               let name = record["name"] as? String,
@@ -103,18 +105,19 @@ struct GroupWorkout: Identifiable, Equatable {
               let status = GroupWorkoutStatus(rawValue: statusRaw),
               let createdAt = record["createdAt"] as? Date,
               let updatedAt = record["updatedAt"] as? Date,
-              let isPublic = record["isPublic"] as? Int64 else {
+              let isPublic = record["isPublic"] as? Int64
+        else {
             return nil
         }
-        
+
         // Decode participants from JSON
         var participants: [GroupWorkoutParticipant] = []
         if let participantsData = record["participants"] as? Data {
             participants = (try? JSONDecoder().decode([GroupWorkoutParticipant].self, from: participantsData)) ?? []
         }
-        
+
         let tags = record["tags"] as? [String] ?? []
-        
+
         self.init(
             id: record.recordID.recordName,
             name: name,
@@ -133,13 +136,13 @@ struct GroupWorkout: Identifiable, Equatable {
             tags: tags
         )
     }
-    
+
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
         let record = CKRecord(
             recordType: "GroupWorkouts",
             recordID: recordID ?? CKRecord.ID(recordName: id)
         )
-        
+
         record["name"] = name
         record["description"] = description
         record["workoutType"] = Int64(workoutType.rawValue)
@@ -154,15 +157,15 @@ struct GroupWorkout: Identifiable, Equatable {
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
         record["joinCode"] = joinCode
         record["tags"] = tags
-        
+
         return record
     }
-    
+
     // MARK: - Helper Methods
-    
+
     static func generateJoinCode() -> String {
         let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<6).map { _ in letters.randomElement()! })
+        return String((0 ..< 6).map { _ in letters.randomElement()! })
     }
 }
 
@@ -174,22 +177,24 @@ extension GroupWorkout: Codable {
         case maxParticipants, scheduledStart, scheduledEnd, status
         case createdAt, updatedAt, isPublic, joinCode, tags
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         description = try container.decode(String.self, forKey: .description)
-        
+
         // Decode workout type from raw value
         let workoutTypeRaw = try container.decode(UInt.self, forKey: .workoutType)
         guard let type = HKWorkoutActivityType(rawValue: workoutTypeRaw) else {
-            throw DecodingError.dataCorruptedError(forKey: .workoutType,
-                                                  in: container,
-                                                  debugDescription: "Invalid workout type")
+            throw DecodingError.dataCorruptedError(
+                forKey: .workoutType,
+                in: container,
+                debugDescription: "Invalid workout type"
+            )
         }
         workoutType = type
-        
+
         hostId = try container.decode(String.self, forKey: .hostId)
         participants = try container.decode([GroupWorkoutParticipant].self, forKey: .participants)
         maxParticipants = try container.decode(Int.self, forKey: .maxParticipants)
@@ -202,7 +207,7 @@ extension GroupWorkout: Codable {
         joinCode = try container.decodeIfPresent(String.self, forKey: .joinCode)
         tags = try container.decode([String].self, forKey: .tags)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -233,14 +238,16 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     let joinedAt: Date
     var status: ParticipantStatus
     var workoutData: GroupWorkoutData?
-    
-    init(id: String = UUID().uuidString,
-         userId: String,
-         displayName: String,
-         profileImageURL: String? = nil,
-         joinedAt: Date = Date(),
-         status: ParticipantStatus = .joined,
-         workoutData: GroupWorkoutData? = nil) {
+
+    init(
+        id: String = UUID().uuidString,
+        userId: String,
+        displayName: String,
+        profileImageURL: String? = nil,
+        joinedAt: Date = Date(),
+        status: ParticipantStatus = .joined,
+        workoutData: GroupWorkoutData? = nil
+    ) {
         self.id = id
         self.userId = userId
         self.displayName = displayName
@@ -261,11 +268,11 @@ struct GroupWorkoutData: Codable, Equatable {
     var averageHeartRate: Double?
     var currentHeartRate: Double?
     var lastUpdated: Date
-    
+
     var isActive: Bool {
         endTime == nil
     }
-    
+
     var duration: TimeInterval {
         let end = endTime ?? Date()
         return end.timeIntervalSince(startTime)
@@ -275,50 +282,50 @@ struct GroupWorkoutData: Codable, Equatable {
 // MARK: - Enums
 
 enum GroupWorkoutStatus: String, Codable, CaseIterable {
-    case scheduled = "scheduled"
-    case active = "active"
-    case completed = "completed"
-    case cancelled = "cancelled"
-    
+    case scheduled
+    case active
+    case completed
+    case cancelled
+
     var displayName: String {
         switch self {
         case .scheduled:
-            return "Scheduled"
+            "Scheduled"
         case .active:
-            return "Active"
+            "Active"
         case .completed:
-            return "Completed"
+            "Completed"
         case .cancelled:
-            return "Cancelled"
+            "Cancelled"
         }
     }
-    
+
     var canJoin: Bool {
         switch self {
         case .scheduled, .active:
-            return true
+            true
         case .completed, .cancelled:
-            return false
+            false
         }
     }
 }
 
 enum ParticipantStatus: String, Codable {
-    case joined = "joined"
-    case active = "active"
-    case completed = "completed"
-    case dropped = "dropped"
-    
+    case joined
+    case active
+    case completed
+    case dropped
+
     var displayName: String {
         switch self {
         case .joined:
-            return "Ready"
+            "Ready"
         case .active:
-            return "Working Out"
+            "Working Out"
         case .completed:
-            return "Finished"
+            "Finished"
         case .dropped:
-            return "Left"
+            "Left"
         }
     }
 }
@@ -331,7 +338,7 @@ struct GroupWorkoutUpdate {
     let updateType: UpdateType
     let data: GroupWorkoutData?
     let timestamp: Date
-    
+
     enum UpdateType: String {
         case joined
         case started

@@ -5,8 +5,8 @@
 //  View model for managing notification center state and interactions
 //
 
-import Foundation
 import Combine
+import Foundation
 import UserNotifications
 
 @MainActor
@@ -15,15 +15,15 @@ final class NotificationCenterViewModel: ObservableObject {
     @Published var unreadCount: Int = 0
     @Published var isLoading = false
     @Published var error: String?
-    
+
     private var notificationStore: (any NotificationStoring)?
     private var cancellables = Set<AnyCancellable>()
-    
+
     // MARK: - Configuration
-    
+
     func configure(notificationStore: any NotificationStoring) {
         self.notificationStore = notificationStore
-        
+
         // Subscribe to notification updates
         notificationStore.notificationsPublisher
             .receive(on: DispatchQueue.main)
@@ -31,116 +31,116 @@ final class NotificationCenterViewModel: ObservableObject {
                 self?.notifications = notifications
             }
             .store(in: &cancellables)
-        
+
         notificationStore.unreadCountPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] count in
                 self?.unreadCount = count
             }
             .store(in: &cancellables)
-        
+
         // Load initial data
         loadNotifications()
     }
-    
+
     // MARK: - Data Loading
-    
+
     func loadNotifications() {
         isLoading = true
         notificationStore?.loadNotifications()
         isLoading = false
     }
-    
+
     func refreshNotifications() async {
         isLoading = true
         notificationStore?.loadNotifications()
         isLoading = false
     }
-    
+
     // MARK: - Filtering
-    
+
     func filteredNotifications(for tab: Int) -> [NotificationItem] {
         switch tab {
         case 1: // Unread
-            return notifications.filter { !$0.isRead }
+            notifications.filter { !$0.isRead }
         case 2: // Social
-            return notifications.filter { notification in
+            notifications.filter { notification in
                 switch notification.type {
                 case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment,
                      .challengeInvite, .challengeCompleted, .mentioned, .leaderboardChange:
-                    return true
+                    true
                 default:
-                    return false
+                    false
                 }
             }
         case 3: // Workouts
-            return notifications.filter { notification in
+            notifications.filter { notification in
                 switch notification.type {
                 case .workoutCompleted, .unlockAchieved, .levelUp, .xpMilestone, .streakMaintained, .streakAtRisk:
-                    return true
+                    true
                 default:
-                    return false
+                    false
                 }
             }
         default: // All
-            return notifications
+            notifications
         }
     }
-    
+
     // MARK: - Actions
-    
+
     func markAsRead(_ id: String) {
         notificationStore?.markAsRead(id)
     }
-    
+
     func markAllAsRead() {
         notificationStore?.markAllAsRead()
     }
-    
+
     func clearAllNotifications() {
         notificationStore?.clearAllNotifications()
     }
-    
+
     func deleteNotification(_ id: String) {
         notificationStore?.deleteNotification(id)
     }
-    
+
     // MARK: - Interaction Handling
-    
+
     func handleNotificationTap(_ notification: NotificationItem) {
         // Mark as read if not already
         if !notification.isRead {
             markAsRead(notification.id)
         }
-        
+
         // Handle type-specific navigation
         switch notification.type {
         case .workoutCompleted, .xpMilestone:
             // Navigate to workout history
             handleWorkoutNotification(notification)
-            
+
         case .newFollower, .followRequest:
             // Navigate to followers/social
             handleSocialNotification(notification)
-            
+
         case .workoutKudos, .workoutComment:
             // Navigate to specific workout
             handleWorkoutInteractionNotification(notification)
-            
+
         case .unlockAchieved, .levelUp:
             // Show achievement details or navigate to profile
             handleAchievementNotification(notification)
-            
+
         case .challengeInvite, .challengeCompleted:
             // Navigate to challenges (future)
             handleChallengeNotification(notification)
-            
+
         default:
             // Generic notification - no specific action
             break
         }
     }
-    
+
     func handleNotificationAction(_ notification: NotificationItem, action: NotificationAction) {
         switch action {
         case .accept:
@@ -157,44 +157,44 @@ final class NotificationCenterViewModel: ObservableObject {
             handleDismissAction(notification)
         }
     }
-    
+
     // MARK: - Private Notification Handlers
-    
+
     private func handleWorkoutNotification(_ notification: NotificationItem) {
         // TODO: Navigate to workout history or specific workout
         print("Navigate to workout: \(notification.title)")
     }
-    
+
     private func handleSocialNotification(_ notification: NotificationItem) {
         // TODO: Navigate to social/followers view
         if let socialMetadata = notification.socialMetadata {
             print("Navigate to user profile: \(socialMetadata.username)")
         }
     }
-    
+
     private func handleWorkoutInteractionNotification(_ notification: NotificationItem) {
         // TODO: Navigate to specific workout with comments/kudos
         if let workoutMetadata = notification.workoutMetadata {
             print("Navigate to workout details: \(workoutMetadata.workoutId ?? "unknown")")
         }
     }
-    
+
     private func handleAchievementNotification(_ notification: NotificationItem) {
         // TODO: Show achievement modal or navigate to achievements
         if let achievementMetadata = notification.achievementMetadata {
             print("Show achievement: \(achievementMetadata.achievementName)")
         }
     }
-    
+
     private func handleChallengeNotification(_ notification: NotificationItem) {
         // TODO: Navigate to challenges view (future feature)
         if let challengeMetadata = notification.challengeMetadata {
             print("Navigate to challenge: \(challengeMetadata.challengeName)")
         }
     }
-    
+
     // MARK: - Private Action Handlers
-    
+
     private func handleAcceptAction(_ notification: NotificationItem) {
         switch notification.type {
         case .followRequest:
@@ -207,7 +207,7 @@ final class NotificationCenterViewModel: ObservableObject {
             break
         }
     }
-    
+
     private func handleDeclineAction(_ notification: NotificationItem) {
         switch notification.type {
         case .followRequest:
@@ -220,22 +220,22 @@ final class NotificationCenterViewModel: ObservableObject {
             break
         }
     }
-    
-    private func handleReplyAction(_ notification: NotificationItem) {
+
+    private func handleReplyAction(_: NotificationItem) {
         // TODO: Open reply interface
         print("Reply to notification")
     }
-    
+
     private func handleViewAction(_ notification: NotificationItem) {
         // Same as tap - navigate to relevant view
         handleNotificationTap(notification)
     }
-    
-    private func handleKudosAction(_ notification: NotificationItem) {
+
+    private func handleKudosAction(_: NotificationItem) {
         // TODO: Give kudos to the content (workout, comment, etc.)
         print("Give kudos to content")
     }
-    
+
     private func handleDismissAction(_ notification: NotificationItem) {
         // Mark as read and potentially hide
         markAsRead(notification.id)

@@ -5,8 +5,8 @@
 //  Main tabbed interface with activity feed as home
 //
 
-import SwiftUI
 import Combine
+import SwiftUI
 
 struct TabMainView: View {
     @StateObject private var viewModel: MainViewModel
@@ -18,12 +18,12 @@ struct TabMainView: View {
     @State private var showingWorkoutSharingPrompt = false
     @State private var showingNotificationDebug = false
     @State private var workoutToShare: WorkoutHistoryItem?
-    
+
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
-    
+
     init(viewModel: MainViewModel) {
-        self._viewModel = StateObject(wrappedValue: viewModel)
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
@@ -37,7 +37,7 @@ struct TabMainView: View {
                         ToolbarItem(placement: .navigationBarLeading) {
                             notificationButton
                         }
-                        
+
                         ToolbarItem(placement: .navigationBarTrailing) {
                             discoverButton
                         }
@@ -48,7 +48,7 @@ struct TabMainView: View {
                 Text("Feed")
             }
             .tag(0)
-            
+
             // Workout History
             NavigationView {
                 WorkoutHistoryView()
@@ -60,7 +60,29 @@ struct TabMainView: View {
                 Text("Workouts")
             }
             .tag(1)
-            
+
+            // Group Workouts
+            NavigationView {
+                GroupWorkoutsView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: "person.3")
+                Text("Groups")
+            }
+            .tag(2)
+
+            // Challenges
+            NavigationView {
+                ChallengesView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: "trophy")
+                Text("Challenges")
+            }
+            .tag(3)
+
             // Profile
             NavigationView {
                 if let currentUserId = container.cloudKitManager.currentUserID {
@@ -82,7 +104,7 @@ struct TabMainView: View {
                 Image(systemName: "person.circle")
                 Text("Profile")
             }
-            .tag(2)
+            .tag(4)
         }
         .sheet(isPresented: $showingNotifications) {
             NotificationCenterView()
@@ -116,35 +138,37 @@ struct TabMainView: View {
             viewModel.loadUserProfile()
             viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
-            
+
             #if DEBUG
-            // Add test notifications for manual verification of notification pipeline
-            if container.notificationStore.notifications.isEmpty {
-                container.addTestNotifications()
-                // Test notification settings integration
-                container.testNotificationSettingsIntegration()
-            }
+                // Add test notifications for manual verification of notification pipeline
+                if container.notificationStore.notifications.isEmpty {
+                    container.addTestNotifications()
+                    // Test notification settings integration
+                    container.testNotificationSettingsIntegration()
+                }
             #endif
         }
     }
-    
+
     // MARK: - Toolbar Components
-    
+
     private var notificationButton: some View {
         Button(action: {
             showingNotifications = true
         }) {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: "bell")
-                
+
                 if viewModel.unreadNotificationCount > 0 {
                     ZStack {
                         Circle()
                             .fill(Color.red)
-                            .frame(width: max(18, CGFloat(String(viewModel.unreadNotificationCount).count) * 10 + 8), 
-                                   height: 18)
+                            .frame(
+                                width: max(18, CGFloat(String(viewModel.unreadNotificationCount).count) * 10 + 8),
+                                height: 18
+                            )
                             .shadow(color: .red.opacity(0.3), radius: 2, x: 0, y: 1)
-                        
+
                         Text("\(viewModel.unreadNotificationCount)")
                             .font(.caption2)
                             .fontWeight(.semibold)
@@ -152,13 +176,16 @@ struct TabMainView: View {
                     }
                     .offset(x: 10, y: -10)
                     .scaleEffect(viewModel.unreadNotificationCount > 0 ? 1.0 : 0.1)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0), value: viewModel.unreadNotificationCount)
+                    .animation(
+                        .spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0),
+                        value: viewModel.unreadNotificationCount
+                    )
                     .transition(.scale.combined(with: .opacity))
                 }
             }
         }
     }
-    
+
     private var discoverButton: some View {
         Button(action: {
             showingUserSearch = true
@@ -166,7 +193,7 @@ struct TabMainView: View {
             Image(systemName: "magnifyingglass")
         }
     }
-    
+
     private var profileMenu: some View {
         Menu {
             if viewModel.hasProfile {
@@ -175,20 +202,20 @@ struct TabMainView: View {
                 }) {
                     Label("Edit Profile", systemImage: "pencil")
                 }
-                
+
                 Divider()
             }
-            
+
             #if DEBUG
-            Button(action: {
-                showingNotificationDebug = true
-            }) {
-                Label("Debug Notifications", systemImage: "bell.badge.waveform")
-            }
-            
-            Divider()
+                Button(action: {
+                    showingNotificationDebug = true
+                }) {
+                    Label("Debug Notifications", systemImage: "bell.badge.waveform")
+                }
+
+                Divider()
             #endif
-            
+
             Button(action: {
                 viewModel.signOut()
             }) {
@@ -199,9 +226,9 @@ struct TabMainView: View {
             Image(systemName: "ellipsis.circle")
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func setupWorkoutSharingListener() {
         container.workoutObserver.workoutCompletedPublisher
             .receive(on: DispatchQueue.main)
@@ -210,11 +237,11 @@ struct TabMainView: View {
             }
             .store(in: &cancellables)
     }
-    
+
     private func showWorkoutSharingPrompt(for workout: WorkoutHistoryItem) {
         // Only show prompt if user is authenticated and has a profile
         guard viewModel.hasProfile else { return }
-        
+
         workoutToShare = workout
         showingWorkoutSharingPrompt = true
     }

@@ -11,9 +11,9 @@ struct NotificationRowView: View {
     let notification: NotificationItem
     let onTap: () -> Void
     let onAction: (NotificationAction) -> Void
-    
+
     @State private var showingActions = false
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 12) {
@@ -22,11 +22,11 @@ struct NotificationRowView: View {
                     Circle()
                         .fill(notification.isRead ? Color.gray.opacity(0.2) : iconColor.opacity(0.2))
                         .frame(width: 44, height: 44)
-                    
+
                     Image(systemName: iconName)
                         .font(.system(size: 20))
                         .foregroundColor(notification.isRead ? .gray : iconColor)
-                    
+
                     // Unread indicator
                     if !notification.isRead {
                         Circle()
@@ -43,7 +43,7 @@ struct NotificationRowView: View {
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
-                
+
                 // Content
                 VStack(alignment: .leading, spacing: 4) {
                     // Title and timestamp
@@ -53,14 +53,14 @@ struct NotificationRowView: View {
                             .fontWeight(notification.isRead ? .regular : .semibold)
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.leading)
-                        
+
                         Spacer()
-                        
+
                         Text(timeAgoString)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     // Body text
                     Text(notification.body)
                         .font(.subheadline)
@@ -68,11 +68,11 @@ struct NotificationRowView: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(notification.isRead ? 2 : 3)
                         .animation(.easeInOut(duration: 0.2), value: notification.isRead)
-                    
+
                     // Type-specific content
                     typeSpecificContent
                         .padding(.top, 4)
-                    
+
                     // Actions
                     if !notification.actions.isEmpty {
                         actionButtons
@@ -111,91 +111,91 @@ struct NotificationRowView: View {
             contextMenuItems
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var iconName: String {
         switch notification.type {
         case .workoutCompleted:
-            return "figure.run"
+            "figure.run"
         case .unlockAchieved:
-            return "trophy.fill"
+            "trophy.fill"
         case .levelUp:
-            return "arrow.up.circle.fill"
+            "arrow.up.circle.fill"
         case .newFollower:
-            return "person.badge.plus"
+            "person.badge.plus"
         case .followRequest:
-            return "person.crop.circle.badge.questionmark"
+            "person.crop.circle.badge.questionmark"
         case .workoutKudos:
-            return "heart.fill"
+            "heart.fill"
         case .workoutComment:
-            return "bubble.left.fill"
+            "bubble.left.fill"
         case .xpMilestone:
-            return "star.circle.fill"
+            "star.circle.fill"
         case .challengeInvite:
-            return "flag.fill"
+            "flag.fill"
         case .challengeStarted:
-            return "flag.fill"
+            "flag.fill"
         case .challengeCompleted:
-            return "flag.checkered"
+            "flag.checkered"
         case .streakMaintained:
-            return "flame.fill"
+            "flame.fill"
         case .streakAtRisk:
-            return "exclamationmark.triangle.fill"
+            "exclamationmark.triangle.fill"
         case .securityAlert:
-            return "exclamationmark.triangle.fill"
+            "exclamationmark.triangle.fill"
         case .followAccepted:
-            return "person.check.fill"
+            "person.check.fill"
         case .mentioned:
-            return "at"
+            "at"
         case .leaderboardChange:
-            return "chart.bar.fill"
+            "chart.bar.fill"
         case .privacyUpdate:
-            return "lock.fill"
+            "lock.fill"
         case .featureAnnouncement:
-            return "sparkles"
+            "sparkles"
         case .maintenanceNotice:
-            return "gear"
+            "gear"
         }
     }
-    
+
     private var iconColor: Color {
         switch notification.type {
         case .workoutCompleted, .xpMilestone:
-            return .blue
+            .blue
         case .unlockAchieved:
-            return .yellow
+            .yellow
         case .levelUp:
-            return .purple
+            .purple
         case .newFollower, .followRequest, .followAccepted:
-            return .green
+            .green
         case .workoutKudos:
-            return .red
+            .red
         case .workoutComment, .mentioned:
-            return .orange
+            .orange
         case .challengeInvite, .challengeStarted, .challengeCompleted:
-            return .indigo
+            .indigo
         case .streakMaintained:
-            return .orange
+            .orange
         case .streakAtRisk, .securityAlert:
-            return .red
+            .red
         case .leaderboardChange:
-            return .blue
+            .blue
         case .privacyUpdate:
-            return .gray
+            .gray
         case .featureAnnouncement:
-            return .purple
+            .purple
         case .maintenanceNotice:
-            return .gray
+            .gray
         }
     }
-    
+
     private var timeAgoString: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: notification.timestamp, relativeTo: Date())
     }
-    
+
     @ViewBuilder
     private var typeSpecificContent: some View {
         switch notification.type {
@@ -218,7 +218,7 @@ struct NotificationRowView: View {
             EmptyView()
         }
     }
-    
+
     private var actionButtons: some View {
         HStack(spacing: 8) {
             ForEach(notification.actions, id: \.self) { action in
@@ -234,7 +234,7 @@ struct NotificationRowView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var contextMenuItems: some View {
         if !notification.isRead {
@@ -242,18 +242,18 @@ struct NotificationRowView: View {
                 Label("Mark as Read", systemImage: "checkmark.circle")
             }
         }
-        
+
         Button(action: { onAction(.view) }) {
             Label("View", systemImage: "eye")
         }
-        
+
         Button(role: .destructive, action: {}) {
             Label("Delete", systemImage: "trash")
         }
     }
-    
+
     // MARK: - Type-Specific Views
-    
+
     private func workoutDetails(_ metadata: WorkoutNotificationMetadata) -> some View {
         HStack(spacing: 16) {
             if metadata.duration > 0 {
@@ -261,39 +261,39 @@ struct NotificationRowView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             if metadata.calories > 0 {
                 Label("\(metadata.calories) cal", systemImage: "flame")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             if metadata.xpEarned > 0 {
                 Label("+\(metadata.xpEarned) XP", systemImage: "star.fill")
                     .font(.caption)
                     .foregroundColor(.yellow)
             }
-            
+
             Spacer()
         }
     }
-    
+
     private func achievementDetails(_ metadata: AchievementNotificationMetadata) -> some View {
         HStack {
             Text(metadata.iconEmoji)
                 .font(.title2)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(metadata.achievementName)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
-                
+
                 Text(metadata.category.capitalized)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
         .padding(.horizontal, 8)
@@ -301,7 +301,7 @@ struct NotificationRowView: View {
         .background(Color.yellow.opacity(0.1))
         .cornerRadius(8)
     }
-    
+
     private func socialDetails(_ metadata: SocialNotificationMetadata) -> some View {
         HStack {
             // Profile placeholder (future: actual profile image)
@@ -314,50 +314,50 @@ struct NotificationRowView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.blue)
                 )
-            
+
             Text("@\(metadata.username)")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             if let count = metadata.actionCount, count > 1 {
                 Text("and \(count - 1) others")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func actionButtonColor(for action: NotificationAction) -> Color {
         switch action {
         case .accept:
-            return .green
+            .green
         case .decline:
-            return .red.opacity(0.2)
+            .red.opacity(0.2)
         case .reply:
-            return .blue.opacity(0.2)
+            .blue.opacity(0.2)
         case .kudos:
-            return .red.opacity(0.2)
+            .red.opacity(0.2)
         case .view, .dismiss:
-            return .gray.opacity(0.2)
+            .gray.opacity(0.2)
         }
     }
-    
+
     private func actionButtonTextColor(for action: NotificationAction) -> Color {
         switch action {
         case .accept:
-            return .white
+            .white
         case .decline:
-            return .red
+            .red
         case .reply:
-            return .blue
+            .blue
         case .kudos:
-            return .red
+            .red
         case .view, .dismiss:
-            return .gray
+            .gray
         }
     }
 }
@@ -385,9 +385,9 @@ struct NotificationRowView: View {
             onTap: {},
             onAction: { _ in }
         )
-        
+
         Divider()
-        
+
         // Social notification
         NotificationRowView(
             notification: NotificationItem(
@@ -406,9 +406,9 @@ struct NotificationRowView: View {
             onTap: {},
             onAction: { _ in }
         )
-        
+
         Divider()
-        
+
         // Achievement notification
         NotificationRowView(
             notification: NotificationItem(

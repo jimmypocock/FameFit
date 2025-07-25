@@ -10,34 +10,34 @@ import SwiftUI
 // MARK: - Feed Item Types
 
 enum FeedItemType: String {
-    case workout = "workout"
-    case achievement = "achievement"
+    case workout
+    case achievement
     case levelUp = "level_up"
-    case milestone = "milestone"
-    
+    case milestone
+
     var icon: String {
         switch self {
         case .workout:
-            return "figure.run"
+            "figure.run"
         case .achievement:
-            return "trophy.fill"
+            "trophy.fill"
         case .levelUp:
-            return "arrow.up.circle.fill"
+            "arrow.up.circle.fill"
         case .milestone:
-            return "star.circle.fill"
+            "star.circle.fill"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .workout:
-            return .blue
+            .blue
         case .achievement:
-            return .yellow
+            .yellow
         case .levelUp:
-            return .purple
+            .purple
         case .milestone:
-            return .orange
+            .orange
         }
     }
 }
@@ -50,16 +50,17 @@ struct FeedItem: Identifiable {
     let timestamp: Date
     let content: FeedContent
     var kudosSummary: WorkoutKudosSummary? // For workout items
-    
+    var commentCount: Int = 0 // For workout items
+
     var timeAgo: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: timestamp, relativeTo: Date())
     }
-    
+
     var workoutId: String? {
         // For workout feed items, the id is the workout ID
-        return type == .workout ? id : nil
+        type == .workout ? id : nil
     }
 }
 
@@ -67,38 +68,42 @@ struct FeedContent: Codable {
     let title: String
     let subtitle: String?
     let details: [String: String] // Changed from Any to String for Codable compliance
-    
+
     // Workout specific
     var workoutType: String? {
         details["workoutType"]
     }
+
     var duration: TimeInterval? {
         if let durationString = details["duration"] {
             return TimeInterval(durationString)
         }
         return nil
     }
+
     var calories: Double? {
         if let caloriesString = details["calories"] {
             return Double(caloriesString)
         }
         return nil
     }
+
     var xpEarned: Int? {
         if let xpString = details["xpEarned"] {
             return Int(xpString)
         }
         return nil
     }
-    
+
     // Achievement specific
     var achievementName: String? {
         details["achievementName"]
     }
+
     var achievementIcon: String? {
         details["achievementIcon"]
     }
-    
+
     // Level up specific
     var newLevel: Int? {
         if let levelString = details["newLevel"] {
@@ -106,6 +111,7 @@ struct FeedContent: Codable {
         }
         return nil
     }
+
     var newTitle: String? {
         details["newTitle"]
     }
@@ -116,19 +122,21 @@ struct FeedContent: Codable {
 struct SocialFeedView: View {
     @Environment(\.dependencyContainer) var container
     @StateObject private var viewModel = SocialFeedViewModel()
-    
+
     @State private var selectedUserId: String?
     @State private var showingProfile = false
     @State private var showingFilters = false
-    
+    @State private var selectedWorkoutForComments: FeedItem?
+    @State private var showingComments = false
+
     private var currentUserId: String? {
         container.cloudKitManager.currentUserID
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
-                if viewModel.isLoading && viewModel.feedItems.isEmpty {
+                if viewModel.isLoading, viewModel.feedItems.isEmpty {
                     loadingView
                 } else if viewModel.feedItems.isEmpty {
                     emptyView
@@ -160,6 +168,27 @@ struct SocialFeedView: View {
                     viewModel.updateFilters(newFilters)
                 }
             }
+            .sheet(isPresented: $showingComments) {
+                if let workout = selectedWorkoutForComments {
+                    // Convert FeedItem to WorkoutHistoryItem for WorkoutCommentsView
+                    WorkoutCommentsView(
+                        workout: WorkoutHistoryItem(
+                            id: UUID(uuidString: workout.id) ?? UUID(),
+                            workoutType: workout.content.workoutType ?? "Unknown",
+                            startDate: workout.timestamp,
+                            endDate: workout.timestamp.addingTimeInterval(workout.content.duration ?? 0),
+                            duration: workout.content.duration ?? 0,
+                            totalEnergyBurned: workout.content.calories ?? 0,
+                            totalDistance: 0, // Not available in feed item
+                            averageHeartRate: 0, // Not available in feed item
+                            followersEarned: 0, // Deprecated
+                            xpEarned: workout.content.xpEarned ?? 0,
+                            source: "healthkit"
+                        ),
+                        workoutOwner: workout.userProfile
+                    )
+                }
+            }
         }
         .task {
             viewModel.configure(
@@ -167,14 +196,15 @@ struct SocialFeedView: View {
                 profileService: container.userProfileService,
                 activityFeedService: container.activityFeedService,
                 kudosService: container.workoutKudosService,
+                commentsService: container.workoutCommentsService,
                 currentUserId: currentUserId ?? ""
             )
             await viewModel.loadInitialFeed()
         }
     }
-    
+
     // MARK: - Content Views
-    
+
     private var feedContent: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -187,17 +217,21 @@ struct SocialFeedView: View {
                         },
                         onKudosTap: { feedItem in
                             await viewModel.toggleKudos(for: feedItem)
+                        },
+                        onCommentsTap: { feedItem in
+                            selectedWorkoutForComments = feedItem
+                            showingComments = true
                         }
                     )
-                    
+
                     if item.id != viewModel.filteredFeedItems.last?.id {
                         Divider()
                             .padding(.horizontal)
                     }
                 }
-                
+
                 // Load more indicator
-                if viewModel.hasMoreItems && !viewModel.isLoading {
+                if viewModel.hasMoreItems, !viewModel.isLoading {
                     HStack {
                         ProgressView()
                             .scaleEffect(0.8)
@@ -216,7 +250,7 @@ struct SocialFeedView: View {
             }
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 20) {
             ProgressView()
@@ -225,22 +259,22 @@ struct SocialFeedView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var emptyView: some View {
         VStack(spacing: 20) {
             Image(systemName: "newspaper")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
-            
+
             Text("No Activities Yet")
                 .font(.headline)
-            
+
             Text("Follow users to see their workout activities here")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Button("Discover Users") {
                 // TODO: Navigate to user search
             }
@@ -257,7 +291,8 @@ struct FeedItemView: View {
     let item: FeedItem
     let onProfileTap: () -> Void
     let onKudosTap: (FeedItem) async -> Void
-    
+    let onCommentsTap: (FeedItem) -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
@@ -266,40 +301,40 @@ struct FeedItemView: View {
                 Button(action: onProfileTap) {
                     profileImage
                 }
-                
+
                 // User info and time
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text(item.userProfile?.displayName ?? "Unknown User")
                             .font(.body)
                             .fontWeight(.medium)
-                        
+
                         if item.userProfile?.isVerified == true {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundColor(.blue)
                                 .font(.caption)
                         }
                     }
-                    
+
                     Text(item.timeAgo)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 // Activity type icon
                 Image(systemName: item.type.icon)
                     .foregroundColor(item.type.color)
                     .font(.title3)
             }
-            
+
             // Content
             contentView
         }
         .padding()
     }
-    
+
     private var profileImage: some View {
         Group {
             if let profile = item.userProfile, profile.profileImageURL != nil {
@@ -327,21 +362,21 @@ struct FeedItemView: View {
             }
         }
     }
-    
+
     private var contentView: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Title
             Text(item.content.title)
                 .font(.body)
                 .fontWeight(.medium)
-            
+
             // Subtitle if available
             if let subtitle = item.content.subtitle {
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             // Type-specific content
             switch item.type {
             case .workout:
@@ -355,7 +390,7 @@ struct FeedItemView: View {
             }
         }
     }
-    
+
     private var workoutDetails: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 16) {
@@ -366,7 +401,7 @@ struct FeedItemView: View {
                         color: .blue
                     )
                 }
-                
+
                 if let calories = item.content.calories {
                     DetailBadge(
                         icon: "flame",
@@ -374,7 +409,7 @@ struct FeedItemView: View {
                         color: .orange
                     )
                 }
-                
+
                 if let xp = item.content.xpEarned {
                     DetailBadge(
                         icon: "star.fill",
@@ -382,13 +417,13 @@ struct FeedItemView: View {
                         color: .yellow
                     )
                 }
-                
+
                 Spacer()
             }
-            
-            // Kudos button for workout items
+
+            // Kudos and Comments buttons for workout items
             if item.type == .workout {
-                HStack {
+                HStack(spacing: 12) {
                     KudosButton(
                         workoutId: item.id,
                         ownerId: item.userID,
@@ -397,14 +432,22 @@ struct FeedItemView: View {
                             await onKudosTap(item)
                         }
                     )
-                    
+
+                    CommentsButton(
+                        workoutId: item.id,
+                        commentCount: item.commentCount,
+                        onTap: {
+                            onCommentsTap(item)
+                        }
+                    )
+
                     Spacer()
                 }
             }
         }
         .padding(.top, 4)
     }
-    
+
     private var achievementDetails: some View {
         HStack {
             if let icon = item.content.achievementIcon {
@@ -412,17 +455,17 @@ struct FeedItemView: View {
                     .foregroundColor(.yellow)
                     .font(.title2)
             }
-            
+
             Text("Unlocked!")
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.yellow)
-            
+
             Spacer()
         }
         .padding(.top, 4)
     }
-    
+
     private var levelUpDetails: some View {
         HStack {
             if let level = item.content.newLevel {
@@ -430,7 +473,7 @@ struct FeedItemView: View {
                     .font(.headline)
                     .foregroundColor(.purple)
             }
-            
+
             if let title = item.content.newTitle {
                 Text("•")
                     .foregroundColor(.secondary)
@@ -439,20 +482,20 @@ struct FeedItemView: View {
                     .fontWeight(.medium)
                     .foregroundColor(.purple)
             }
-            
+
             Spacer()
         }
         .padding(.top, 4)
     }
-    
+
     private var milestoneDetails: some View {
         EmptyView() // Milestone details are in the title/subtitle
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration / 60)
         let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
-        
+
         if minutes > 0 {
             return "\(minutes)m \(seconds)s"
         } else {
@@ -467,13 +510,13 @@ struct DetailBadge: View {
     let icon: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.caption2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -493,7 +536,7 @@ struct FeedFilters {
     var showLevelUps = true
     var showMilestones = true
     var timeRange: TimeRange = .all
-    
+
     enum TimeRange: String, CaseIterable {
         case today = "Today"
         case week = "This Week"
@@ -506,12 +549,12 @@ struct FeedFiltersView: View {
     @Environment(\.dismiss) var dismiss
     @State private var filters: FeedFilters
     let onApply: (FeedFilters) -> Void
-    
+
     init(filters: FeedFilters, onApply: @escaping (FeedFilters) -> Void) {
-        self._filters = State(initialValue: filters)
+        _filters = State(initialValue: filters)
         self.onApply = onApply
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -521,7 +564,7 @@ struct FeedFiltersView: View {
                     Toggle("Level Ups", isOn: $filters.showLevelUps)
                     Toggle("Milestones", isOn: $filters.showMilestones)
                 }
-                
+
                 Section("Time Range") {
                     Picker("Show activities from", selection: $filters.timeRange) {
                         ForEach(FeedFilters.TimeRange.allCases, id: \.self) { range in
@@ -538,7 +581,7 @@ struct FeedFiltersView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Apply") {
                         onApply(filters)

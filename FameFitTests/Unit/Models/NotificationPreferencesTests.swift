@@ -5,29 +5,28 @@
 //  Tests for NotificationPreferences model and persistence
 //
 
-import XCTest
 @testable import FameFit
+import XCTest
 
 class NotificationPreferencesTests: XCTestCase {
-    
     override func setUp() {
         super.setUp()
         // Clear UserDefaults before each test to ensure clean state
         UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
     }
-    
+
     override func tearDown() {
         // Clear UserDefaults after each test - use the correct storage key
         UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
         super.tearDown()
     }
-    
+
     // MARK: - Initialization Tests
-    
+
     func testDefaultInitialization_SetsCorrectDefaults() {
         // When
         let preferences = NotificationPreferences()
-        
+
         // Then
         XCTAssertTrue(preferences.pushNotificationsEnabled)
         XCTAssertEqual(preferences.maxNotificationsPerHour, 10)
@@ -36,15 +35,15 @@ class NotificationPreferencesTests: XCTestCase {
         XCTAssertNil(preferences.quietHoursEnd)
         XCTAssertTrue(preferences.groupSimilarNotifications)
         XCTAssertTrue(preferences.showPreviewsWhenLocked)
-        
+
         // Check all notification types are enabled by default
         for type in NotificationType.allCases {
             XCTAssertTrue(preferences.enabledTypes[type] ?? true)
         }
     }
-    
+
     // MARK: - Persistence Tests
-    
+
     func testSave_PersistsToUserDefaults() {
         // Given
         var preferences = NotificationPreferences()
@@ -53,10 +52,10 @@ class NotificationPreferencesTests: XCTestCase {
         preferences.quietHoursEnabled = true
         preferences.quietHoursStart = Date()
         preferences.enabledTypes[.workoutCompleted] = false
-        
+
         // When
         preferences.save()
-        
+
         // Then
         let loaded = NotificationPreferences.load()
         XCTAssertEqual(loaded.pushNotificationsEnabled, false)
@@ -65,128 +64,128 @@ class NotificationPreferencesTests: XCTestCase {
         XCTAssertNotNil(loaded.quietHoursStart)
         XCTAssertEqual(loaded.enabledTypes[.workoutCompleted], false)
     }
-    
+
     func testLoad_ReturnsDefaultsWhenNoSavedData() {
         // Given - No saved preferences
         UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
-        
+
         // When
         let loaded = NotificationPreferences.load()
-        
+
         // Then
         XCTAssertTrue(loaded.pushNotificationsEnabled)
         XCTAssertEqual(loaded.maxNotificationsPerHour, 10)
     }
-    
+
     // MARK: - Quiet Hours Tests
-    
+
     func testIsInQuietHours_WhenDisabled_ReturnsFalse() {
         // Given
         let preferences = NotificationPreferences()
         XCTAssertFalse(preferences.quietHoursEnabled)
-        
+
         // When/Then
         XCTAssertFalse(preferences.isInQuietHours())
     }
-    
+
     func testIsInQuietHours_WhenEnabledButNoTimes_ReturnsFalse() {
         // Given
         var preferences = NotificationPreferences()
         preferences.quietHoursEnabled = true
         // No start/end times set
-        
+
         // When/Then
         XCTAssertFalse(preferences.isInQuietHours())
     }
-    
+
     func testIsInQuietHours_DuringQuietHours_ReturnsTrue() {
         // Given
         var preferences = NotificationPreferences()
         preferences.quietHoursEnabled = true
-        
+
         let calendar = Calendar.current
         let now = Date()
         preferences.quietHoursStart = calendar.date(byAdding: .hour, value: -1, to: now)
         preferences.quietHoursEnd = calendar.date(byAdding: .hour, value: 1, to: now)
-        
+
         // When/Then
         XCTAssertTrue(preferences.isInQuietHours(at: now))
     }
-    
+
     func testIsInQuietHours_OutsideQuietHours_ReturnsFalse() {
         // Given
         var preferences = NotificationPreferences()
         preferences.quietHoursEnabled = true
-        
+
         let calendar = Calendar.current
         let now = Date()
         preferences.quietHoursStart = calendar.date(byAdding: .hour, value: -3, to: now)
         preferences.quietHoursEnd = calendar.date(byAdding: .hour, value: -1, to: now)
-        
+
         // When/Then
         XCTAssertFalse(preferences.isInQuietHours(at: now))
     }
-    
+
     func testIsInQuietHours_AcrossMidnight_HandlesCorrectly() {
         // Given
         var preferences = NotificationPreferences()
         preferences.quietHoursEnabled = true
-        
+
         let calendar = Calendar.current
         // Set quiet hours from 10 PM to 6 AM
         preferences.quietHoursStart = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: Date())
         preferences.quietHoursEnd = calendar.date(bySettingHour: 6, minute: 0, second: 0, of: Date())
-        
+
         // Test at 11 PM
         let elevenPM = calendar.date(bySettingHour: 23, minute: 0, second: 0, of: Date())!
         XCTAssertTrue(preferences.isInQuietHours(at: elevenPM))
-        
+
         // Test at 2 AM
         let twoAM = calendar.date(bySettingHour: 2, minute: 0, second: 0, of: Date())!
         XCTAssertTrue(preferences.isInQuietHours(at: twoAM))
-        
+
         // Test at 7 AM (outside quiet hours)
         let sevenAM = calendar.date(bySettingHour: 7, minute: 0, second: 0, of: Date())!
         XCTAssertFalse(preferences.isInQuietHours(at: sevenAM))
     }
-    
+
     // MARK: - Notification Type Tests
-    
+
     func testIsNotificationTypeEnabled_DefaultsToTrue() {
         // Given
         let preferences = NotificationPreferences()
-        
+
         // When/Then
         for type in NotificationType.allCases {
             XCTAssertTrue(preferences.isNotificationTypeEnabled(type))
         }
     }
-    
+
     func testIsNotificationTypeEnabled_RespectsDisabledTypes() {
         // Given
         var preferences = NotificationPreferences()
         preferences.enabledTypes[.workoutCompleted] = false
         preferences.enabledTypes[.newFollower] = false
-        
+
         // When/Then
         XCTAssertFalse(preferences.isNotificationTypeEnabled(.workoutCompleted))
         XCTAssertFalse(preferences.isNotificationTypeEnabled(.newFollower))
         XCTAssertTrue(preferences.isNotificationTypeEnabled(.workoutKudos))
     }
-    
+
     func testIsNotificationTypeEnabled_WhenPushDisabled_ReturnsFalse() {
         // Given
         var preferences = NotificationPreferences()
         preferences.pushNotificationsEnabled = false
-        
+
         // When/Then
         for type in NotificationType.allCases {
             XCTAssertFalse(preferences.isNotificationTypeEnabled(type))
         }
     }
-    
+
     // MARK: - Codable Tests
-    
+
     func testCodable_EncodesAndDecodes() throws {
         // Given
         var original = NotificationPreferences()
@@ -199,11 +198,11 @@ class NotificationPreferencesTests: XCTestCase {
         original.showPreviewsWhenLocked = false
         original.enabledTypes[.workoutCompleted] = false
         original.enabledTypes[.newFollower] = true
-        
+
         // When
         let encoded = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(NotificationPreferences.self, from: encoded)
-        
+
         // Then
         XCTAssertEqual(decoded.pushNotificationsEnabled, original.pushNotificationsEnabled)
         XCTAssertEqual(decoded.maxNotificationsPerHour, original.maxNotificationsPerHour)
@@ -213,24 +212,24 @@ class NotificationPreferencesTests: XCTestCase {
         XCTAssertEqual(decoded.enabledTypes[.workoutCompleted], false)
         XCTAssertEqual(decoded.enabledTypes[.newFollower], true)
     }
-    
+
     // MARK: - Equatable Tests
-    
+
     func testEquatable_SameValues_AreEqual() {
         // Given
         let preferences1 = NotificationPreferences()
         let preferences2 = NotificationPreferences()
-        
+
         // When/Then
         XCTAssertEqual(preferences1, preferences2)
     }
-    
+
     func testEquatable_DifferentValues_AreNotEqual() {
         // Given
         let preferences1 = NotificationPreferences()
         var preferences2 = NotificationPreferences()
         preferences2.maxNotificationsPerHour = 5
-        
+
         // When/Then
         XCTAssertNotEqual(preferences1, preferences2)
     }

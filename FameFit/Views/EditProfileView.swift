@@ -5,41 +5,41 @@
 //  View for editing user profiles
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 struct EditProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
-    
+
     @State private var displayName: String
     @State private var bio: String
     @State private var privacyLevel: ProfilePrivacyLevel
     @State private var selectedImage: PhotosPickerItem?
     @State private var profileImage: UIImage?
-    
+
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var hasChanges = false
     @State private var showDiscardAlert = false
-    
+
     let profile: UserProfile
     let onSave: (UserProfile) -> Void
-    
+
     private var profileService: UserProfileServicing {
         container.userProfileService
     }
-    
+
     init(profile: UserProfile, onSave: @escaping (UserProfile) -> Void) {
         self.profile = profile
         self.onSave = onSave
-        
+
         // Initialize state with current values
         _displayName = State(initialValue: profile.displayName)
         _bio = State(initialValue: profile.bio)
         _privacyLevel = State(initialValue: profile.privacyLevel)
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -47,9 +47,9 @@ struct EditProfileView: View {
                 Section {
                     HStack {
                         Spacer()
-                        
+
                         PhotosPicker(selection: $selectedImage, matching: .images) {
-                            if let profileImage = profileImage {
+                            if let profileImage {
                                 Image(uiImage: profileImage)
                                     .resizable()
                                     .scaledToFill()
@@ -66,18 +66,19 @@ struct EditProfileView: View {
                         .onChange(of: selectedImage) { _, newItem in
                             Task {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self),
-                                   let image = UIImage(data: data) {
+                                   let image = UIImage(data: data)
+                                {
                                     profileImage = image
                                     hasChanges = true
                                 }
                             }
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 // Account Info Section
                 Section(header: Text("Account Info")) {
                     HStack {
@@ -87,7 +88,7 @@ struct EditProfileView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 // Profile Info Section
                 Section(header: Text("Profile Info")) {
                     HStack {
@@ -99,7 +100,7 @@ struct EditProfileView: View {
                                 hasChanges = true
                             }
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Bio")
@@ -108,7 +109,7 @@ struct EditProfileView: View {
                                 .font(.caption)
                                 .foregroundColor(bio.count > 500 ? .red : .secondary)
                         }
-                        
+
                         TextEditor(text: $bio)
                             .frame(minHeight: 100)
                             .onChange(of: bio) { _, _ in
@@ -116,7 +117,7 @@ struct EditProfileView: View {
                             }
                     }
                 }
-                
+
                 // Privacy Section
                 Section(header: Text("Privacy")) {
                     Picker("Profile Visibility", selection: $privacyLevel) {
@@ -135,7 +136,7 @@ struct EditProfileView: View {
                         hasChanges = true
                     }
                 }
-                
+
                 // Character Counter Section
                 Section {
                     if !isDisplayNameValid {
@@ -143,7 +144,7 @@ struct EditProfileView: View {
                             .foregroundColor(.red)
                             .font(.caption)
                     }
-                    
+
                     if !isBioValid {
                         Label("Bio must be 500 characters or less", systemImage: "exclamationmark.circle")
                             .foregroundColor(.red)
@@ -164,7 +165,7 @@ struct EditProfileView: View {
                         }
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveProfile()
@@ -202,9 +203,9 @@ struct EditProfileView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Views
-    
+
     private var profileImagePlaceholder: some View {
         ZStack {
             Circle()
@@ -214,7 +215,7 @@ struct EditProfileView: View {
                     endPoint: .bottomTrailing
                 ))
                 .frame(width: 100, height: 100)
-            
+
             VStack {
                 Image(systemName: "camera.fill")
                     .font(.system(size: 30))
@@ -224,27 +225,27 @@ struct EditProfileView: View {
             .foregroundColor(.white)
         }
     }
-    
+
     // MARK: - Validation
-    
+
     private var isDisplayNameValid: Bool {
         UserProfile.isValidDisplayName(displayName)
     }
-    
+
     private var isBioValid: Bool {
         UserProfile.isValidBio(bio)
     }
-    
+
     private var canSave: Bool {
         hasChanges && isDisplayNameValid && isBioValid && !displayName.isEmpty
     }
-    
+
     // MARK: - Save Profile
-    
+
     private func saveProfile() {
         isSaving = true
         saveError = nil
-        
+
         Task {
             do {
                 // Create updated profile
@@ -263,9 +264,9 @@ struct EditProfileView: View {
                     profileImageURL: profile.profileImageURL, // TODO: Handle image upload
                     headerImageURL: profile.headerImageURL
                 )
-                
+
                 let savedProfile = try await profileService.updateProfile(updatedProfile)
-                
+
                 await MainActor.run {
                     onSave(savedProfile)
                     dismiss()

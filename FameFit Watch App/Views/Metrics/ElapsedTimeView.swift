@@ -25,8 +25,10 @@ struct ElapsedTimeView: View {
 }
 
 // MARK: Elasped Time Formatter
+
 class ElapsedTimeFormatter: Formatter {
     // MARK: CUSTOM FORMATTER
+
     let componentsFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]

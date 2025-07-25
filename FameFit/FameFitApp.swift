@@ -11,12 +11,12 @@ import SwiftUI
 struct FameFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var dependencyContainer: DependencyContainer
-    
+
     init() {
         // Create the dependency container
         let container = DependencyContainer()
         _dependencyContainer = StateObject(wrappedValue: container)
-        
+
         // Check for UI testing mode
         if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
             if ProcessInfo.processInfo.arguments.contains("--reset-state") {
@@ -25,7 +25,7 @@ struct FameFitApp: App {
                 UserDefaults.standard.removeObject(forKey: "FameFitUserName")
                 UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
                 UserDefaults.standard.synchronize()
-                
+
                 // Also reset the authentication state in the container
                 container.authenticationManager.isAuthenticated = false
                 container.authenticationManager.hasCompletedOnboarding = false
@@ -36,12 +36,12 @@ struct FameFitApp: App {
                 // This simulates a user who has signed in but not completed onboarding
                 UserDefaults.standard.set("test-user", forKey: "FameFitUserID")
                 UserDefaults.standard.set("Test User", forKey: "FameFitUserName")
-                
+
                 container.authenticationManager.userID = "test-user"
                 container.authenticationManager.userName = "Test User"
                 container.authenticationManager.isAuthenticated = true
                 container.authenticationManager.hasCompletedOnboarding = false
-                
+
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
                 container.cloudKitManager.userName = "Test User"
@@ -51,26 +51,47 @@ struct FameFitApp: App {
                 UserDefaults.standard.set("test-user", forKey: "FameFitUserID")
                 UserDefaults.standard.set("Test User", forKey: "FameFitUserName")
                 // UserDefaults automatically synchronizes
-                
+
                 // Set authentication immediately (synchronously)
                 // Set onboarding complete in UserDefaults too
                 UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
-                
+
                 container.authenticationManager.userID = "test-user"
                 container.authenticationManager.userName = "Test User"
                 container.authenticationManager.isAuthenticated = true
                 container.authenticationManager.hasCompletedOnboarding = true
-                
+
                 // Set up CloudKit mock data
                 container.cloudKitManager.isSignedIn = true
                 container.cloudKitManager.userName = "Test User"
                 container.cloudKitManager.totalXP = 100
                 container.cloudKitManager.totalWorkouts = 20
                 container.cloudKitManager.currentStreak = 5
+
+                // Create a mock user profile for UI testing
+                let mockProfile = UserProfile(
+                    id: "test-user",
+                    userID: "test-user",
+                    username: "testuser",
+                    displayName: "Test User",
+                    bio: "Test bio for UI testing",
+                    workoutCount: 20,
+                    totalXP: 100,
+                    joinedDate: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 7 days ago
+                    lastUpdated: Date(),
+                    isVerified: false,
+                    privacyLevel: .publicProfile,
+                    profileImageURL: nil
+                )
+
+                if let profileService = container.userProfileService as? MockUserProfileService {
+                    profileService.profiles["test-user"] = mockProfile
+                    profileService.setCurrentProfile(mockProfile)
+                }
             }
         }
-        
-        // Share it with AppDelegate  
+
+        // Share it with AppDelegate
         // Note: We'll handle this in onAppear since init is too early
     }
 
@@ -86,16 +107,17 @@ struct FameFitApp: App {
                     // Share container with AppDelegate if it doesn't have one
                     if appDelegate.dependencyContainer == nil {
                         appDelegate.dependencyContainer = dependencyContainer
-                        
+
                         // Start the reliable sync manager using HKAnchoredObjectQuery
                         // This provides more reliable workout tracking than observer queries
                         dependencyContainer.workoutSyncManager.startReliableSync()
-                        
+
                         // Request APNS permissions if user has completed onboarding
                         if dependencyContainer.authenticationManager.hasCompletedOnboarding {
                             Task {
                                 do {
-                                    let granted = try await dependencyContainer.apnsManager.requestNotificationPermissions()
+                                    let granted = try await dependencyContainer.apnsManager
+                                        .requestNotificationPermissions()
                                     if granted {
                                         dependencyContainer.apnsManager.registerForRemoteNotifications()
                                     }
@@ -115,9 +137,9 @@ struct ContentView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @EnvironmentObject var notificationStore: NotificationStore
     @Environment(\.dependencyContainer) var container
-    
+
     var body: some View {
-        if authManager.isAuthenticated && authManager.hasCompletedOnboarding {
+        if authManager.isAuthenticated, authManager.hasCompletedOnboarding {
             let viewModel = MainViewModel(
                 authManager: authManager,
                 cloudKitManager: cloudKitManager,

@@ -14,10 +14,10 @@ struct FameFitApp: App {
     var body: some Scene {
         WindowGroup {
             WatchStartView()
-            .sheet(isPresented: $workoutManager.showingSummaryView) {
-                SummaryView()
-            }
-            .environmentObject(workoutManager)
+                .sheet(isPresented: $workoutManager.showingSummaryView) {
+                    SummaryView()
+                }
+                .environmentObject(workoutManager)
         }
     }
 }

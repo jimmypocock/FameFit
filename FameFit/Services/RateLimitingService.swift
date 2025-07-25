@@ -5,8 +5,8 @@
 //  Rate limiting service to prevent abuse and spam
 //
 
-import Foundation
 import Combine
+import Foundation
 
 // MARK: - Rate Limit Error
 
@@ -14,10 +14,10 @@ enum RateLimitError: LocalizedError {
     case limitExceeded(action: String, resetTime: Date)
     case invalidUserId
     case serviceUnavailable
-    
+
     var errorDescription: String? {
         switch self {
-        case .limitExceeded(let action, let resetTime):
+        case let .limitExceeded(action, resetTime):
             let formatter = DateComponentsFormatter()
             formatter.unitsStyle = .abbreviated
             formatter.maximumUnitCount = 1
@@ -38,48 +38,48 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
         let timestamp: Date
         let action: RateLimitAction
     }
-    
+
     private struct UserActionHistory {
         var actions: [ActionRecord] = []
-        var lastCleanup: Date = Date()
+        var lastCleanup: Date = .init()
     }
-    
+
     // Thread-safe storage
     private let queue = DispatchQueue(label: "com.famefit.ratelimiting", attributes: .concurrent)
     private var userHistories: [String: UserActionHistory] = [:]
-    
+
     // Cleanup old records every hour
     private let cleanupInterval: TimeInterval = 3600
-    private let maxHistoryAge: TimeInterval = 604800 // 7 days
-    
+    private let maxHistoryAge: TimeInterval = 604_800 // 7 days
+
     init() {
         // Start periodic cleanup
         startPeriodicCleanup()
     }
-    
+
     // MARK: - Public Methods
-    
+
     func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool {
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
             queue.async(flags: .barrier) {
                 self.cleanupIfNeeded(for: userId)
-                
+
                 let history = self.userHistories[userId, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
-                
+
                 // Check minutely limit
                 if let minuteLimit = limits.minutely {
                     let minuteAgo = now.addingTimeInterval(-60)
-                    let recentMinuteActions = history.actions.filter { 
-                        $0.action == action && $0.timestamp > minuteAgo 
+                    let recentMinuteActions = history.actions.filter {
+                        $0.action == action && $0.timestamp > minuteAgo
                     }.count
-                    
+
                     if recentMinuteActions >= minuteLimit {
                         let resetTime = history.actions
                             .filter { $0.action == action && $0.timestamp > minuteAgo }
                             .first?.timestamp.addingTimeInterval(60) ?? now.addingTimeInterval(60)
-                        
+
                         continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                             action: action.rawValue,
                             resetTime: resetTime
@@ -87,55 +87,55 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                         return
                     }
                 }
-                
+
                 // Check hourly limit
                 let hourAgo = now.addingTimeInterval(-3600)
-                let recentHourActions = history.actions.filter { 
-                    $0.action == action && $0.timestamp > hourAgo 
+                let recentHourActions = history.actions.filter {
+                    $0.action == action && $0.timestamp > hourAgo
                 }.count
-                
+
                 if recentHourActions >= limits.hourly {
                     let resetTime = history.actions
                         .filter { $0.action == action && $0.timestamp > hourAgo }
                         .first?.timestamp.addingTimeInterval(3600) ?? now.addingTimeInterval(3600)
-                    
+
                     continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                         action: action.rawValue,
                         resetTime: resetTime
                     ))
                     return
                 }
-                
+
                 // Check daily limit
                 let dayAgo = now.addingTimeInterval(-86400)
-                let recentDayActions = history.actions.filter { 
-                    $0.action == action && $0.timestamp > dayAgo 
+                let recentDayActions = history.actions.filter {
+                    $0.action == action && $0.timestamp > dayAgo
                 }.count
-                
+
                 if recentDayActions >= limits.daily {
                     let resetTime = history.actions
                         .filter { $0.action == action && $0.timestamp > dayAgo }
                         .first?.timestamp.addingTimeInterval(86400) ?? now.addingTimeInterval(86400)
-                    
+
                     continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                         action: action.rawValue,
                         resetTime: resetTime
                     ))
                     return
                 }
-                
+
                 // Check weekly limit
                 if let weeklyLimit = limits.weekly {
-                    let weekAgo = now.addingTimeInterval(-604800)
-                    let recentWeekActions = history.actions.filter { 
-                        $0.action == action && $0.timestamp > weekAgo 
+                    let weekAgo = now.addingTimeInterval(-604_800)
+                    let recentWeekActions = history.actions.filter {
+                        $0.action == action && $0.timestamp > weekAgo
                     }.count
-                    
+
                     if recentWeekActions >= weeklyLimit {
                         let resetTime = history.actions
                             .filter { $0.action == action && $0.timestamp > weekAgo }
-                            .first?.timestamp.addingTimeInterval(604800) ?? now.addingTimeInterval(604800)
-                        
+                            .first?.timestamp.addingTimeInterval(604_800) ?? now.addingTimeInterval(604_800)
+
                         continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                             action: action.rawValue,
                             resetTime: resetTime
@@ -143,19 +143,19 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                         return
                     }
                 }
-                
+
                 // Record the action before returning success
                 var updatedHistory = history
                 updatedHistory.actions.append(ActionRecord(timestamp: now, action: action))
                 self.userHistories[userId] = updatedHistory
-                
+
                 continuation.resume(returning: true)
             }
         }
     }
-    
+
     func recordAction(_ action: RateLimitAction, userId: String) async {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             queue.async(flags: .barrier) {
                 var history = self.userHistories[userId, default: UserActionHistory()]
                 history.actions.append(ActionRecord(timestamp: Date(), action: action))
@@ -164,102 +164,103 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
             }
         }
     }
-    
+
     func resetLimits(for userId: String) async {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             queue.async(flags: .barrier) {
                 self.userHistories.removeValue(forKey: userId)
                 continuation.resume()
             }
         }
     }
-    
+
     func getRemainingActions(for action: RateLimitAction, userId: String) async -> Int {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             queue.sync {
                 let history = self.userHistories[userId, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
-                
+
                 // Use the most restrictive limit
                 var remainingCounts: [Int] = []
-                
+
                 // Check minutely limit
                 if let minuteLimit = limits.minutely {
                     let minuteAgo = now.addingTimeInterval(-60)
-                    let recentMinuteActions = history.actions.filter { 
-                        $0.action == action && $0.timestamp > minuteAgo 
+                    let recentMinuteActions = history.actions.filter {
+                        $0.action == action && $0.timestamp > minuteAgo
                     }.count
                     remainingCounts.append(minuteLimit - recentMinuteActions)
                 }
-                
+
                 // Check hourly limit
                 let hourAgo = now.addingTimeInterval(-3600)
-                let recentHourActions = history.actions.filter { 
-                    $0.action == action && $0.timestamp > hourAgo 
+                let recentHourActions = history.actions.filter {
+                    $0.action == action && $0.timestamp > hourAgo
                 }.count
                 remainingCounts.append(limits.hourly - recentHourActions)
-                
+
                 // Check daily limit
                 let dayAgo = now.addingTimeInterval(-86400)
-                let recentDayActions = history.actions.filter { 
-                    $0.action == action && $0.timestamp > dayAgo 
+                let recentDayActions = history.actions.filter {
+                    $0.action == action && $0.timestamp > dayAgo
                 }.count
                 remainingCounts.append(limits.daily - recentDayActions)
-                
+
                 // Check weekly limit
                 if let weeklyLimit = limits.weekly {
-                    let weekAgo = now.addingTimeInterval(-604800)
-                    let recentWeekActions = history.actions.filter { 
-                        $0.action == action && $0.timestamp > weekAgo 
+                    let weekAgo = now.addingTimeInterval(-604_800)
+                    let recentWeekActions = history.actions.filter {
+                        $0.action == action && $0.timestamp > weekAgo
                     }.count
                     remainingCounts.append(weeklyLimit - recentWeekActions)
                 }
-                
+
                 let remaining = remainingCounts.min() ?? 0
                 continuation.resume(returning: max(0, remaining))
             }
         }
     }
-    
+
     func getResetTime(for action: RateLimitAction, userId: String) async -> Date? {
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             queue.sync {
                 let history = self.userHistories[userId, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
-                
+
                 var resetTimes: [Date] = []
-                
+
                 // Check each limit period
                 if let minuteLimit = limits.minutely {
                     let minuteAgo = now.addingTimeInterval(-60)
-                    let recentMinuteActions = history.actions.filter { 
-                        $0.action == action && $0.timestamp > minuteAgo 
+                    let recentMinuteActions = history.actions.filter {
+                        $0.action == action && $0.timestamp > minuteAgo
                     }.count
-                    
+
                     if recentMinuteActions >= minuteLimit {
                         if let oldestAction = history.actions
                             .filter({ $0.action == action && $0.timestamp > minuteAgo })
-                            .first {
+                            .first
+                        {
                             resetTimes.append(oldestAction.timestamp.addingTimeInterval(60))
                         }
                     }
                 }
-                
+
                 // Similar checks for hour, day, week...
                 // (Implementation follows same pattern)
-                
+
                 continuation.resume(returning: resetTimes.min())
             }
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func cleanupIfNeeded(for userId: String) {
         guard var history = userHistories[userId] else { return }
-        
+
         let now = Date()
         if now.timeIntervalSince(history.lastCleanup) > cleanupInterval {
             let cutoffDate = now.addingTimeInterval(-maxHistoryAge)
@@ -268,17 +269,17 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
             userHistories[userId] = history
         }
     }
-    
+
     private func startPeriodicCleanup() {
         Timer.scheduledTimer(withTimeInterval: cleanupInterval, repeats: true) { _ in
             self.queue.async(flags: .barrier) {
                 let now = Date()
                 let cutoffDate = now.addingTimeInterval(-self.maxHistoryAge)
-                
+
                 for (userId, var history) in self.userHistories {
                     history.actions.removeAll { $0.timestamp < cutoffDate }
                     history.lastCleanup = now
-                    
+
                     if history.actions.isEmpty {
                         self.userHistories.removeValue(forKey: userId)
                     } else {
@@ -295,9 +296,9 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
 final class MockRateLimitingService: RateLimitingServicing {
     var shouldAllowAction = true
     var mockRemainingActions = 10
-    var mockResetTime: Date? = nil
-    
-    func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool {
+    var mockResetTime: Date?
+
+    func checkLimit(for action: RateLimitAction, userId _: String) async throws -> Bool {
         if !shouldAllowAction {
             throw SocialServiceError.rateLimitExceeded(
                 action: action.rawValue,
@@ -306,21 +307,21 @@ final class MockRateLimitingService: RateLimitingServicing {
         }
         return true
     }
-    
-    func recordAction(_ action: RateLimitAction, userId: String) async {
+
+    func recordAction(_: RateLimitAction, userId _: String) async {
         // No-op for mock
     }
-    
-    func resetLimits(for userId: String) async {
+
+    func resetLimits(for _: String) async {
         shouldAllowAction = true
         mockRemainingActions = 10
     }
-    
-    func getRemainingActions(for action: RateLimitAction, userId: String) async -> Int {
-        return mockRemainingActions
+
+    func getRemainingActions(for _: RateLimitAction, userId _: String) async -> Int {
+        mockRemainingActions
     }
-    
-    func getResetTime(for action: RateLimitAction, userId: String) async -> Date? {
-        return mockResetTime
+
+    func getResetTime(for _: RateLimitAction, userId _: String) async -> Date? {
+        mockResetTime
     }
 }

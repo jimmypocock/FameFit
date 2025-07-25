@@ -5,8 +5,8 @@
 //  Model for comments on workout activities
 //
 
-import Foundation
 import CloudKit
+import Foundation
 
 struct WorkoutComment: Identifiable, Codable, Equatable {
     let id: String // CKRecord.ID as String
@@ -16,12 +16,12 @@ struct WorkoutComment: Identifiable, Codable, Equatable {
     var content: String
     let createdAt: Date
     var updatedAt: Date
-    
+
     // Optional fields
     var parentCommentId: String? // For threaded replies
     var isEdited: Bool = false
     var likeCount: Int = 0
-    
+
     // Validation
     static func isValidComment(_ content: String) -> Bool {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -38,44 +38,44 @@ extension WorkoutComment {
               let workoutOwnerId = record["workoutOwnerId"] as? String,
               let content = record["content"] as? String,
               let createdAt = record["createdAt"] as? Date,
-              let updatedAt = record["updatedAt"] as? Date else {
+              let updatedAt = record["updatedAt"] as? Date
+        else {
             return nil
         }
-        
-        self.id = record.recordID.recordName
+
+        id = record.recordID.recordName
         self.workoutId = workoutId
         self.userId = userId
         self.workoutOwnerId = workoutOwnerId
         self.content = content
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.parentCommentId = record["parentCommentId"] as? String
-        self.isEdited = (record["isEdited"] as? Int64) == 1
-        self.likeCount = Int(record["likeCount"] as? Int64 ?? 0)
+        parentCommentId = record["parentCommentId"] as? String
+        isEdited = (record["isEdited"] as? Int64) == 1
+        likeCount = Int(record["likeCount"] as? Int64 ?? 0)
     }
-    
+
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
-        let record: CKRecord
-        if let recordID = recordID {
-            record = CKRecord(recordType: "WorkoutComments", recordID: recordID)
+        let record = if let recordID {
+            CKRecord(recordType: "WorkoutComments", recordID: recordID)
         } else {
-            record = CKRecord(recordType: "WorkoutComments")
+            CKRecord(recordType: "WorkoutComments")
         }
-        
+
         record["workoutId"] = workoutId
         record["userId"] = userId
         record["workoutOwnerId"] = workoutOwnerId
         record["content"] = content
         record["createdAt"] = createdAt
         record["updatedAt"] = updatedAt
-        
-        if let parentCommentId = parentCommentId {
+
+        if let parentCommentId {
             record["parentCommentId"] = parentCommentId
         }
-        
+
         record["isEdited"] = isEdited ? Int64(1) : Int64(0)
         record["likeCount"] = Int64(likeCount)
-        
+
         return record
     }
 }
@@ -85,7 +85,7 @@ extension WorkoutComment {
 struct CommentWithUser: Identifiable {
     var comment: WorkoutComment
     let user: UserProfile
-    
+
     var id: String { comment.id }
 }
 
@@ -94,7 +94,7 @@ struct CommentWithUser: Identifiable {
 struct CommentThread {
     let parentComment: CommentWithUser
     var replies: [CommentWithUser]
-    
+
     var totalComments: Int {
         1 + replies.count
     }

@@ -11,15 +11,15 @@ struct CommentsButton: View {
     let workoutId: String
     let commentCount: Int
     let onTap: () -> Void
-    
+
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: {
             withAnimation(.easeInOut(duration: 0.1)) {
                 isPressed = true
             }
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.easeInOut(duration: 0.1)) {
                     isPressed = false
@@ -31,7 +31,7 @@ struct CommentsButton: View {
                 Image(systemName: "bubble.left")
                     .font(.system(size: 18))
                     .foregroundColor(.primary)
-                
+
                 if commentCount > 0 {
                     Text("\(commentCount)")
                         .font(.system(size: 14, weight: .medium))
@@ -64,21 +64,21 @@ struct CommentsButton: View {
         CommentsButton(
             workoutId: "workout1",
             commentCount: 0,
-            onTap: { }
+            onTap: {}
         )
-        
+
         // With comments
         CommentsButton(
-            workoutId: "workout2", 
+            workoutId: "workout2",
             commentCount: 5,
-            onTap: { }
+            onTap: {}
         )
-        
+
         // Many comments
         CommentsButton(
             workoutId: "workout3",
             commentCount: 23,
-            onTap: { }
+            onTap: {}
         )
     }
     .padding()

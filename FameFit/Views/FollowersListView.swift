@@ -10,13 +10,13 @@ import SwiftUI
 enum FollowListTab: String, CaseIterable {
     case followers = "Followers"
     case following = "Following"
-    
+
     var systemImage: String {
         switch self {
         case .followers:
-            return "person.2.fill"
+            "person.2.fill"
         case .following:
-            return "person.crop.circle.fill.badge.plus"
+            "person.crop.circle.fill.badge.plus"
         }
     }
 }
@@ -24,10 +24,10 @@ enum FollowListTab: String, CaseIterable {
 struct FollowersListView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
-    
+
     let userId: String
     let initialTab: FollowListTab
-    
+
     @State private var selectedTab: FollowListTab
     @State private var followers: [UserProfile] = []
     @State private var following: [UserProfile] = []
@@ -38,46 +38,46 @@ struct FollowersListView: View {
     @State private var searchText = ""
     @State private var followingStatuses: [String: RelationshipStatus] = [:]
     @State private var pendingActions: Set<String> = []
-    
+
     // Counts
     @State private var followerCount = 0
     @State private var followingCount = 0
-    
+
     private var socialService: SocialFollowingServicing {
         container.socialFollowingService
     }
-    
+
     private var profileService: UserProfileServicing {
         container.userProfileService
     }
-    
+
     private var currentUserId: String? {
         container.cloudKitManager.currentUserID
     }
-    
+
     private var isOwnProfile: Bool {
         userId == currentUserId
     }
-    
+
     init(userId: String, initialTab: FollowListTab = .followers) {
         self.userId = userId
         self.initialTab = initialTab
-        self._selectedTab = State(initialValue: initialTab)
+        _selectedTab = State(initialValue: initialTab)
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Tab picker
                 tabPicker
-                
+
                 // Search bar
                 if !currentList.isEmpty {
                     searchBar
                         .padding(.horizontal)
                         .padding(.vertical, 8)
                 }
-                
+
                 // Content
                 ZStack {
                     if isCurrentlyLoading {
@@ -108,43 +108,43 @@ struct FollowersListView: View {
             await refreshCurrentTab()
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var navigationTitle: String {
         if isOwnProfile {
-            return selectedTab == .followers ? "My Followers" : "Following"
+            selectedTab == .followers ? "My Followers" : "Following"
         } else {
-            return selectedTab == .followers ? "Followers" : "Following"
+            selectedTab == .followers ? "Followers" : "Following"
         }
     }
-    
+
     private var currentList: [UserProfile] {
         selectedTab == .followers ? followers : following
     }
-    
+
     private var filteredList: [UserProfile] {
         if searchText.isEmpty {
             return currentList
         }
-        
+
         let query = searchText.lowercased()
         return currentList.filter { profile in
             profile.username.lowercased().contains(query) ||
-            profile.displayName.lowercased().contains(query)
+                profile.displayName.lowercased().contains(query)
         }
     }
-    
+
     private var isCurrentlyLoading: Bool {
         selectedTab == .followers ? isLoadingFollowers : isLoadingFollowing
     }
-    
+
     private var currentError: String? {
         selectedTab == .followers ? followersError : followingError
     }
-    
+
     // MARK: - Tab Picker
-    
+
     private var tabPicker: some View {
         Picker("List Type", selection: $selectedTab) {
             ForEach(FollowListTab.allCases, id: \.self) { tab in
@@ -166,26 +166,26 @@ struct FollowersListView: View {
         .padding()
         .onChange(of: selectedTab) { _, newTab in
             searchText = ""
-            if newTab == .following && following.isEmpty && !isLoadingFollowing {
+            if newTab == .following, following.isEmpty, !isLoadingFollowing {
                 Task {
                     await loadFollowing()
                 }
             }
         }
     }
-    
+
     // MARK: - Search Bar
-    
+
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-            
+
             TextField("Search \(selectedTab.rawValue.lowercased())...", text: $searchText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
-            
+
             if !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
@@ -196,9 +196,9 @@ struct FollowersListView: View {
             }
         }
     }
-    
+
     // MARK: - Content Views
-    
+
     private var listContent: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -213,7 +213,7 @@ struct FollowersListView: View {
                     } onTap: {
                         // Navigate to profile
                     }
-                    
+
                     if profile.id != filteredList.last?.id {
                         Divider()
                             .padding(.leading, 76)
@@ -222,7 +222,7 @@ struct FollowersListView: View {
             }
         }
     }
-    
+
     private var loadingView: some View {
         VStack(spacing: 20) {
             ProgressView()
@@ -231,22 +231,22 @@ struct FollowersListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private func errorView(_ error: String) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 50))
                 .foregroundColor(.red)
-            
+
             Text("Error Loading \(selectedTab.rawValue)")
                 .font(.headline)
-            
+
             Text(error)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Button("Try Again") {
                 Task {
                     await refreshCurrentTab()
@@ -257,16 +257,16 @@ struct FollowersListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var emptyView: some View {
         VStack(spacing: 20) {
             Image(systemName: selectedTab == .followers ? "person.2.slash" : "person.crop.circle.badge.xmark")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
-            
+
             Text(emptyTitle)
                 .font(.headline)
-            
+
             Text(emptyMessage)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -276,50 +276,50 @@ struct FollowersListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     private var emptyTitle: String {
         if !searchText.isEmpty {
             return "No Results"
         }
-        
+
         if selectedTab == .followers {
             return isOwnProfile ? "No Followers Yet" : "No Followers"
         } else {
             return isOwnProfile ? "Not Following Anyone" : "Not Following Anyone"
         }
     }
-    
+
     private var emptyMessage: String {
         if !searchText.isEmpty {
             return "Try searching with a different term"
         }
-        
+
         if selectedTab == .followers {
             return isOwnProfile ? "When people follow you, they'll appear here" : "This user has no followers yet"
         } else {
             return isOwnProfile ? "Discover users to follow" : "This user isn't following anyone yet"
         }
     }
-    
+
     // MARK: - Data Loading
-    
+
     private func loadInitialData() async {
         await loadFollowers()
-        
+
         // Load following statuses if viewing own profile
         if isOwnProfile {
             await loadFollowingStatuses()
         }
     }
-    
+
     private func loadFollowers() async {
         isLoadingFollowers = true
         followersError = nil
-        
+
         do {
             followers = try await socialService.getFollowers(for: userId, limit: 1000)
             followerCount = try await socialService.getFollowerCount(for: userId)
-            
+
             // Load following statuses for these users
             if currentUserId != nil {
                 await loadFollowingStatuses(for: followers)
@@ -327,18 +327,18 @@ struct FollowersListView: View {
         } catch {
             followersError = "Failed to load followers"
         }
-        
+
         isLoadingFollowers = false
     }
-    
+
     private func loadFollowing() async {
         isLoadingFollowing = true
         followingError = nil
-        
+
         do {
             following = try await socialService.getFollowing(for: userId, limit: 1000)
             followingCount = try await socialService.getFollowingCount(for: userId)
-            
+
             // All following relationships are active
             for profile in following {
                 followingStatuses[profile.id] = .following
@@ -346,34 +346,34 @@ struct FollowersListView: View {
         } catch {
             followingError = "Failed to load following"
         }
-        
+
         isLoadingFollowing = false
     }
-    
+
     private func loadFollowingStatuses(for profiles: [UserProfile]? = nil) async {
-        guard let currentUserId = currentUserId else { return }
-        
+        guard let currentUserId else { return }
+
         let profilesToCheck = profiles ?? currentList
-        
+
         await withTaskGroup(of: (String, RelationshipStatus?).self) { group in
             for profile in profilesToCheck {
                 group.addTask {
-                    let status = try? await self.socialService.checkRelationship(
+                    let status = try? await socialService.checkRelationship(
                         between: currentUserId,
                         and: profile.id
                     )
                     return (profile.id, status)
                 }
             }
-            
+
             for await (profileId, status) in group {
-                if let status = status {
+                if let status {
                     followingStatuses[profileId] = status
                 }
             }
         }
     }
-    
+
     private func refreshCurrentTab() async {
         if selectedTab == .followers {
             await loadFollowers()
@@ -381,22 +381,22 @@ struct FollowersListView: View {
             await loadFollowing()
         }
     }
-    
+
     // MARK: - Follow Actions
-    
+
     private func handleFollowAction(for profile: UserProfile) async {
-        guard let currentUserId = currentUserId else { return }
-        
+        guard let currentUserId else { return }
+
         pendingActions.insert(profile.id)
-        
+
         do {
             let currentStatus = followingStatuses[profile.id] ?? .notFollowing
-            
+
             switch currentStatus {
             case .following, .mutualFollow:
                 try await socialService.unfollow(userId: profile.id)
                 followingStatuses[profile.id] = .notFollowing
-                
+
             case .notFollowing:
                 if profile.privacyLevel == .privateProfile {
                     try await socialService.requestFollow(userId: profile.id, message: nil)
@@ -410,7 +410,7 @@ struct FollowersListView: View {
                     )
                     followingStatuses[profile.id] = newStatus
                 }
-                
+
             default:
                 break
             }
@@ -418,7 +418,7 @@ struct FollowersListView: View {
             // Revert status on error
             await loadFollowingStatuses(for: [profile])
         }
-        
+
         pendingActions.remove(profile.id)
     }
 }
@@ -432,9 +432,9 @@ struct FollowerRow: View {
     let showFollowButton: Bool
     let onFollowAction: () async -> Void
     let onTap: () -> Void
-    
+
     @State private var showingProfile = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Profile image
@@ -442,20 +442,20 @@ struct FollowerRow: View {
                 .onTapGesture {
                     showingProfile = true
                 }
-            
+
             // User info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(profile.displayName)
                         .font(.body)
                         .fontWeight(.medium)
-                    
+
                     if profile.isVerified {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.blue)
                             .font(.caption)
                     }
-                    
+
                     if relationshipStatus == .mutualFollow {
                         Text("Friends")
                             .font(.caption2)
@@ -466,11 +466,11 @@ struct FollowerRow: View {
                             .cornerRadius(4)
                     }
                 }
-                
+
                 Text("@\(profile.username)")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 if profile.workoutCount > 0 {
                     HStack(spacing: 8) {
                         HStack(spacing: 4) {
@@ -479,10 +479,10 @@ struct FollowerRow: View {
                             Text("\(profile.workoutCount)")
                                 .font(.caption2)
                         }
-                        
+
                         Text("•")
                             .font(.caption2)
-                        
+
                         HStack(spacing: 4) {
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
@@ -494,9 +494,9 @@ struct FollowerRow: View {
                     .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             // Follow button
             if showFollowButton {
                 followButton
@@ -512,7 +512,7 @@ struct FollowerRow: View {
             ProfileView(userId: profile.id)
         }
     }
-    
+
     private var profileImage: some View {
         ZStack {
             if profile.profileImageURL != nil {
@@ -536,7 +536,7 @@ struct FollowerRow: View {
             }
         }
     }
-    
+
     private var followButton: some View {
         Button(action: {
             Task {
@@ -559,44 +559,44 @@ struct FollowerRow: View {
         }
         .disabled(isProcessing || relationshipStatus == .blocked)
     }
-    
+
     private var followButtonTitle: String {
         switch relationshipStatus {
         case .following, .mutualFollow:
-            return "Following"
+            "Following"
         case .blocked:
-            return "Blocked"
+            "Blocked"
         case .pending:
-            return "Requested"
+            "Requested"
         default:
-            return "Follow"
+            "Follow"
         }
     }
-    
+
     private var followButtonForegroundColor: Color {
         switch relationshipStatus {
         case .following, .mutualFollow:
-            return .primary
+            .primary
         case .blocked:
-            return .red
+            .red
         default:
-            return .white
+            .white
         }
     }
-    
+
     private var followButtonBackground: Color {
         switch relationshipStatus {
         case .following, .mutualFollow:
-            return Color(.systemGray5)
+            Color(.systemGray5)
         case .blocked:
-            return Color.red.opacity(0.1)
+            Color.red.opacity(0.1)
         case .pending:
-            return Color.orange.opacity(0.2)
+            Color.orange.opacity(0.2)
         default:
-            return .blue
+            .blue
         }
     }
-    
+
     private func formatNumber(_ number: Int) -> String {
         if number >= 1000 {
             return String(format: "%.1fK", Double(number) / 1000.0)

@@ -5,13 +5,14 @@
 //  Created by paige on 2021/12/11.
 //
 
-import SwiftUI
 import HealthKit
+import SwiftUI
 
 struct SummaryView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
 
     // MARK: DISMISS ENVIRONMENT VARIABLE
+
     @Environment(\.dismiss)
     private var dismiss
     /*
@@ -21,6 +22,7 @@ struct SummaryView: View {
      */
 
     // MARK: Formatter
+
     @State private var durationFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute, .second]
@@ -54,10 +56,11 @@ struct SummaryView: View {
                         value: Measurement(
                             value: workoutManager.activeEnergy > 0 ? workoutManager.activeEnergy : {
                                 if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-                                   let energy = workoutManager.workout?.statistics(for: energyType)?.sumQuantity() {
-                                    return energy.doubleValue(for: .kilocalorie())
+                                   let energy = workoutManager.workout?.statistics(for: energyType)?.sumQuantity()
+                                {
+                                    energy.doubleValue(for: .kilocalorie())
                                 } else {
-                                    return 0
+                                    0
                                 }
                             }(), unit: UnitEnergy.kilocalories
                         ).formatted(
@@ -65,7 +68,7 @@ struct SummaryView: View {
                                 width: .abbreviated,
                                 usage: .workout,
                                 numberFormatStyle:
-                                    FloatingPointFormatStyle
+                                FloatingPointFormatStyle
                                     .number
                                     .precision(.fractionLength(0))
                             )
@@ -93,7 +96,7 @@ struct SummaryView: View {
                             .multilineTextAlignment(.center)
                             .padding(.vertical, 8)
                     }
-                    
+
                     // Achievement Progress
                     if !workoutManager.achievementManager.unlockedAchievements.isEmpty {
                         let progress = workoutManager.achievementManager.getAchievementProgress()
@@ -108,7 +111,7 @@ struct SummaryView: View {
                         .padding(.vertical, 8)
                         Divider()
                     }
-                    
+
                     // Activity Rings
                     VStack {
                         Text("Activity Rings")

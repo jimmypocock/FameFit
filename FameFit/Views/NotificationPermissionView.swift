@@ -11,14 +11,14 @@ import UserNotifications
 struct NotificationPermissionView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencyContainer) private var container
-    
+
     @State private var isRequesting = false
     @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     var onPermissionGranted: (() -> Void)?
-    
+
     var body: some View {
         VStack(spacing: 24) {
             // Header
@@ -27,20 +27,20 @@ struct NotificationPermissionView: View {
                     .font(.system(size: 60))
                     .foregroundColor(.orange)
                     .symbolRenderingMode(.hierarchical)
-                
+
                 Text("Stay Connected")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 Text("Get notified when friends kudos your workouts, follow you, or when you unlock achievements!")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
             }
             .padding(.top, 40)
-            
+
             Spacer()
-            
+
             // Benefits list
             VStack(alignment: .leading, spacing: 16) {
                 BenefitRow(
@@ -48,19 +48,19 @@ struct NotificationPermissionView: View {
                     title: "Workout Kudos",
                     description: "Know when friends cheer for your workouts"
                 )
-                
+
                 BenefitRow(
                     icon: "person.2.fill",
                     title: "New Followers",
                     description: "Get notified when someone follows you"
                 )
-                
+
                 BenefitRow(
                     icon: "trophy.fill",
                     title: "Achievements",
                     description: "Celebrate your fitness milestones"
                 )
-                
+
                 BenefitRow(
                     icon: "bell.slash",
                     title: "Full Control",
@@ -68,9 +68,9 @@ struct NotificationPermissionView: View {
                 )
             }
             .padding(.horizontal)
-            
+
             Spacer()
-            
+
             // Action buttons
             VStack(spacing: 12) {
                 Button(action: requestPermission) {
@@ -87,14 +87,14 @@ struct NotificationPermissionView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(isRequesting || permissionStatus == .authorized)
-                
+
                 if permissionStatus == .notDetermined {
                     Button("Maybe Later") {
                         dismiss()
                     }
                     .foregroundColor(.secondary)
                 }
-                
+
                 if permissionStatus == .denied {
                     Button("Open Settings") {
                         openSettings()
@@ -117,30 +117,30 @@ struct NotificationPermissionView: View {
             await checkCurrentStatus()
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func checkCurrentStatus() async {
         let status = container.apnsManager.notificationAuthorizationStatus
         await MainActor.run {
-            self.permissionStatus = status
+            permissionStatus = status
         }
     }
-    
+
     private func requestPermission() {
         isRequesting = true
-        
+
         Task {
             do {
                 let granted = try await container.apnsManager.requestNotificationPermissions()
-                
+
                 await MainActor.run {
                     isRequesting = false
-                    
+
                     if granted {
                         permissionStatus = .authorized
                         onPermissionGranted?()
-                        
+
                         // Give a moment for the UI to update
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             dismiss()
@@ -160,7 +160,7 @@ struct NotificationPermissionView: View {
             }
         }
     }
-    
+
     private func openSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
@@ -174,23 +174,23 @@ private struct BenefitRow: View {
     let icon: String
     let title: String
     let description: String
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(.orange)
                 .frame(width: 32)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .fontWeight(.semibold)
-                
+
                 Text(description)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
     }

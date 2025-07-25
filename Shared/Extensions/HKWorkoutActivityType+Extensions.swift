@@ -8,8 +8,8 @@
 import HealthKit
 
 extension HKWorkoutActivityType {
-    
     // MARK: - Display Name
+
     /// Human-readable display name for the workout type
     var displayName: String {
         switch self {
@@ -185,8 +185,9 @@ extension HKWorkoutActivityType {
             return "Unknown"
         }
     }
-    
+
     // MARK: - Storage Key
+
     /// Snake-case string key for storage/serialization
     var storageKey: String {
         switch self {
@@ -362,188 +363,188 @@ extension HKWorkoutActivityType {
             return "unknown"
         }
     }
-    
+
     // MARK: - From Storage Key
+
     /// Initialize from storage key string
     static func from(storageKey: String) -> HKWorkoutActivityType? {
         switch storageKey {
         case "american_football":
-            return .americanFootball
+            .americanFootball
         case "archery":
-            return .archery
+            .archery
         case "australian_football":
-            return .australianFootball
+            .australianFootball
         case "badminton":
-            return .badminton
+            .badminton
         case "barre":
-            return .barre
+            .barre
         case "baseball":
-            return .baseball
+            .baseball
         case "basketball":
-            return .basketball
+            .basketball
         case "bowling":
-            return .bowling
+            .bowling
         case "boxing":
-            return .boxing
+            .boxing
         case "cardio_dance":
-            return .cardioDance
+            .cardioDance
         case "climbing":
-            return .climbing
+            .climbing
         case "cooldown":
-            return .cooldown
+            .cooldown
         case "core_training":
-            return .coreTraining
+            .coreTraining
         case "cricket":
-            return .cricket
+            .cricket
         case "cross_country_skiing":
-            return .crossCountrySkiing
+            .crossCountrySkiing
         case "cross_training":
-            return .crossTraining
+            .crossTraining
         case "curling":
-            return .curling
+            .curling
         case "cycling":
-            return .cycling
+            .cycling
         case "disc_sports":
-            return .discSports
+            .discSports
         case "downhill_skiing":
-            return .downhillSkiing
+            .downhillSkiing
         case "elliptical":
-            return .elliptical
+            .elliptical
         case "equestrian_sports":
-            return .equestrianSports
+            .equestrianSports
         case "fencing":
-            return .fencing
+            .fencing
         case "fishing":
-            return .fishing
+            .fishing
         case "fitness_gaming":
-            return .fitnessGaming
+            .fitnessGaming
         case "flexibility":
-            return .flexibility
+            .flexibility
         case "functional_strength_training":
-            return .functionalStrengthTraining
+            .functionalStrengthTraining
         case "golf":
-            return .golf
+            .golf
         case "gymnastics":
-            return .gymnastics
+            .gymnastics
         case "hand_cycling":
-            return .handCycling
+            .handCycling
         case "handball":
-            return .handball
+            .handball
         case "high_intensity_interval_training":
-            return .highIntensityIntervalTraining
+            .highIntensityIntervalTraining
         case "hiking":
-            return .hiking
+            .hiking
         case "hockey":
-            return .hockey
+            .hockey
         case "hunting":
-            return .hunting
+            .hunting
         case "jump_rope":
-            return .jumpRope
+            .jumpRope
         case "kickboxing":
-            return .kickboxing
+            .kickboxing
         case "lacrosse":
-            return .lacrosse
+            .lacrosse
         case "martial_arts":
-            return .martialArts
+            .martialArts
         case "mind_and_body":
-            return .mindAndBody
+            .mindAndBody
         case "mixed_cardio":
-            return .mixedCardio
+            .mixedCardio
         case "other":
-            return .other
+            .other
         case "paddle_sports":
-            return .paddleSports
+            .paddleSports
         case "pickleball":
-            return .pickleball
+            .pickleball
         case "pilates":
-            return .pilates
+            .pilates
         case "play":
-            return .play
+            .play
         case "preparation_and_recovery":
-            return .preparationAndRecovery
+            .preparationAndRecovery
         case "racquetball":
-            return .racquetball
+            .racquetball
         case "rowing":
-            return .rowing
+            .rowing
         case "rugby":
-            return .rugby
+            .rugby
         case "running":
-            return .running
+            .running
         case "sailing":
-            return .sailing
+            .sailing
         case "skating_sports":
-            return .skatingSports
+            .skatingSports
         case "snowboarding":
-            return .snowboarding
+            .snowboarding
         case "snow_sports":
-            return .snowSports
+            .snowSports
         case "soccer":
-            return .soccer
+            .soccer
         case "social_dance":
-            return .socialDance
+            .socialDance
         case "softball":
-            return .softball
+            .softball
         case "squash":
-            return .squash
+            .squash
         case "stair_climbing":
-            return .stairClimbing
+            .stairClimbing
         case "stairs":
-            return .stairs
+            .stairs
         case "step_training":
-            return .stepTraining
+            .stepTraining
         case "surfing_sports":
-            return .surfingSports
+            .surfingSports
         case "swimming":
-            return .swimming
+            .swimming
         case "swim_bike_run":
-            return .swimBikeRun
+            .swimBikeRun
         case "table_tennis":
-            return .tableTennis
+            .tableTennis
         case "tai_chi":
-            return .taiChi
+            .taiChi
         case "tennis":
-            return .tennis
+            .tennis
         case "track_and_field":
-            return .trackAndField
+            .trackAndField
         case "traditional_strength_training":
-            return .traditionalStrengthTraining
+            .traditionalStrengthTraining
         case "transition":
-            return .transition
+            .transition
         case "underwater_diving":
-            return .underwaterDiving
+            .underwaterDiving
         case "volleyball":
-            return .volleyball
+            .volleyball
         case "walking":
-            return .walking
+            .walking
         case "water_fitness":
-            return .waterFitness
+            .waterFitness
         case "water_polo":
-            return .waterPolo
+            .waterPolo
         case "water_sports":
-            return .waterSports
+            .waterSports
         case "wheelchair_run_pace":
-            return .wheelchairRunPace
+            .wheelchairRunPace
         case "wheelchair_walk_pace":
-            return .wheelchairWalkPace
+            .wheelchairWalkPace
         case "wrestling":
-            return .wrestling
+            .wrestling
         case "yoga":
-            return .yoga
-            
+            .yoga
         // Handle deprecated cases - map to modern equivalents
         case "dance":
-            return .cardioDance
+            .cardioDance
         case "dance_inspired_training":
-            return .barre
+            .barre
         case "mixed_metabolic_cardio_training":
-            return .highIntensityIntervalTraining
-            
+            .highIntensityIntervalTraining
         default:
-            return nil
+            nil
         }
     }
-    
+
     // MARK: - Icon Name
+
     /// SF Symbol name for the workout type
     var iconName: String {
         switch self {

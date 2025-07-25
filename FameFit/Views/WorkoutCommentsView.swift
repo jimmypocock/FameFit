@@ -12,15 +12,15 @@ struct WorkoutCommentsView: View {
     let workoutOwner: UserProfile?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencyContainer) private var container
-    
+
     @State private var currentUser: UserProfile?
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Workout context header
                 workoutHeader
-                
+
                 // Comments list
                 CommentsListView(
                     workoutId: workout.id.uuidString,
@@ -37,7 +37,7 @@ struct WorkoutCommentsView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
@@ -45,7 +45,7 @@ struct WorkoutCommentsView: View {
                         }) {
                             Label("Share Workout", systemImage: "square.and.arrow.up")
                         }
-                        
+
                         Button(action: {
                             // Report inappropriate content
                         }) {
@@ -61,9 +61,9 @@ struct WorkoutCommentsView: View {
             loadCurrentUser()
         }
     }
-    
+
     // MARK: - Workout Header
-    
+
     private var workoutHeader: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
@@ -84,27 +84,27 @@ struct WorkoutCommentsView: View {
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(Circle())
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Text(owner.displayName)
                                 .font(.system(size: 16, weight: .semibold))
-                            
+
                             if owner.isVerified {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 12))
                                     .foregroundColor(.blue)
                             }
                         }
-                        
+
                         Text("@\(owner.username)")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Workout time
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(workout.startDate, style: .relative)
@@ -112,25 +112,25 @@ struct WorkoutCommentsView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             // Workout summary
             HStack {
                 HStack(spacing: 8) {
                     Image(systemName: workoutIcon(for: workout.workoutType))
                         .font(.system(size: 20))
                         .foregroundColor(.blue)
-                    
+
                     Text(workout.workoutType)
                         .font(.system(size: 18, weight: .semibold))
                 }
-                
+
                 Spacer()
-                
+
                 Text("+\(workout.effectiveXPEarned) XP")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.green)
             }
-            
+
             // Quick stats
             HStack(spacing: 16) {
                 StatPill(
@@ -138,13 +138,13 @@ struct WorkoutCommentsView: View {
                     value: workout.formattedDuration,
                     color: .orange
                 )
-                
+
                 StatPill(
                     icon: "flame",
                     value: workout.formattedCalories,
                     color: .red
                 )
-                
+
                 if let distance = workout.formattedDistance {
                     StatPill(
                         icon: "location",
@@ -163,20 +163,20 @@ struct WorkoutCommentsView: View {
             alignment: .bottom
         )
     }
-    
+
     // MARK: - Helper Views
-    
+
     private struct StatPill: View {
         let icon: String
         let value: String
         let color: Color
-        
+
         var body: some View {
             HStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
                     .foregroundColor(color)
-                
+
                 Text(value)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.primary)
@@ -189,30 +189,30 @@ struct WorkoutCommentsView: View {
             )
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func workoutIcon(for type: String) -> String {
         switch type.lowercased() {
         case "running":
-            return "figure.run"
+            "figure.run"
         case "cycling":
-            return "bicycle"
+            "bicycle"
         case "swimming":
-            return "figure.pool.swim"
+            "figure.pool.swim"
         case "walking":
-            return "figure.walk"
+            "figure.walk"
         case "hiking":
-            return "figure.hiking"
+            "figure.hiking"
         case "yoga":
-            return "figure.yoga"
+            "figure.yoga"
         case "strength training", "functional strength training", "traditional strength training":
-            return "dumbbell"
+            "dumbbell"
         default:
-            return "figure.mixed.cardio"
+            "figure.mixed.cardio"
         }
     }
-    
+
     private func loadCurrentUser() {
         Task {
             do {

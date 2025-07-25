@@ -23,7 +23,6 @@ struct ControlsView: View {
                 .accessibilityIdentifier("endWorkoutButton")
 
                 Text("Quit") //: TEXT
-
             } //: VSTACK
 
             VStack {
@@ -37,7 +36,6 @@ struct ControlsView: View {
                 .accessibilityIdentifier(workoutManager.isWorkoutRunning ? "pauseButton" : "resumeButton")
                 Text(workoutManager.isWorkoutRunning ? "Pause" : "Resume")
             } //: VSTACK
-
         } //: HSTACK
     }
 }

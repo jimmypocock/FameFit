@@ -9,9 +9,9 @@ import Foundation
 import HealthKit
 
 /// Backwards compatibility wrapper for the new MessageProviding system
-struct FameFitMessages {
+enum FameFitMessages {
     private static let provider = FameFitMessageProvider()
-    
+
     /// Message categories for backwards compatibility
     enum MessageCategory {
         case workoutStart
@@ -28,57 +28,55 @@ struct FameFitMessages {
         case humbleBrags
         case catchphrases
     }
-    
+
     /// Legacy method for getting messages by category
     static func getMessage(for category: MessageCategory) -> String {
         // Convert legacy enum to new enum
-        let newCategory: FameFit_Watch_App.MessageCategory
-        switch category {
-        case .workoutStart: newCategory = .workoutStart
-        case .workoutMilestone: newCategory = .workoutMilestone
-        case .workoutEnd: newCategory = .workoutEnd
-        case .missedWorkout: newCategory = .missedWorkout
-        case .achievement: newCategory = .achievement
-        case .encouragement: newCategory = .encouragement
-        case .roast: newCategory = .roast
-        case .morningMotivation: newCategory = .morningMotivation
-        case .socialMediaReferences: newCategory = .socialMediaReferences
-        case .supplementTalk: newCategory = .supplementTalk
-        case .philosophicalNonsense: newCategory = .philosophicalNonsense
-        case .humbleBrags: newCategory = .humbleBrags
-        case .catchphrases: newCategory = .catchphrases
+        let newCategory: FameFit_Watch_App.MessageCategory = switch category {
+        case .workoutStart: .workoutStart
+        case .workoutMilestone: .workoutMilestone
+        case .workoutEnd: .workoutEnd
+        case .missedWorkout: .missedWorkout
+        case .achievement: .achievement
+        case .encouragement: .encouragement
+        case .roast: .roast
+        case .morningMotivation: .morningMotivation
+        case .socialMediaReferences: .socialMediaReferences
+        case .supplementTalk: .supplementTalk
+        case .philosophicalNonsense: .philosophicalNonsense
+        case .humbleBrags: .humbleBrags
+        case .catchphrases: .catchphrases
         }
-        
+
         return provider.getRandomMessage(from: newCategory)
     }
-    
+
     /// Legacy method for time-aware messages
     static func getTimeAwareMessage() -> String {
-        return provider.getTimeAwareMessage()
+        provider.getTimeAwareMessage()
     }
-    
+
     /// Legacy method for workout-specific messages
     static func getWorkoutSpecificMessage(workoutType: String, duration: TimeInterval) -> String {
         // Convert string to HKWorkoutActivityType (simplified)
-        let activityType: HKWorkoutActivityType
-        switch workoutType.lowercased() {
+        let activityType: HKWorkoutActivityType = switch workoutType.lowercased() {
         case "running", "run":
-            activityType = .running
+            .running
         case "cycling", "cycle":
-            activityType = .cycling
+            .cycling
         case "walking", "walk":
-            activityType = .walking
+            .walking
         case "strength", "weights":
-            activityType = .traditionalStrengthTraining
+            .traditionalStrengthTraining
         default:
-            activityType = .other
+            .other
         }
-        
+
         let context = MessageContext.workoutEnd(
             workoutType: activityType,
             duration: duration
         )
-        
+
         return provider.getMessage(for: context)
     }
 }

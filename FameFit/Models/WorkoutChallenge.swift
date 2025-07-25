@@ -5,50 +5,50 @@
 //  Model for workout challenges between users
 //
 
-import Foundation
 import CloudKit
+import Foundation
 import HealthKit
 
 // MARK: - Challenge Type
 
 enum ChallengeType: String, CaseIterable, Codable {
-    case distance = "distance"
-    case duration = "duration"
-    case calories = "calories"
+    case distance
+    case duration
+    case calories
     case workoutCount = "workout_count"
     case totalXP = "total_xp"
     case specificWorkout = "specific_workout"
-    
+
     var displayName: String {
         switch self {
-        case .distance: return "Distance Challenge"
-        case .duration: return "Duration Challenge"
-        case .calories: return "Calorie Burn Challenge"
-        case .workoutCount: return "Workout Count Challenge"
-        case .totalXP: return "XP Challenge"
-        case .specificWorkout: return "Workout Type Challenge"
+        case .distance: "Distance Challenge"
+        case .duration: "Duration Challenge"
+        case .calories: "Calorie Burn Challenge"
+        case .workoutCount: "Workout Count Challenge"
+        case .totalXP: "XP Challenge"
+        case .specificWorkout: "Workout Type Challenge"
         }
     }
-    
+
     var icon: String {
         switch self {
-        case .distance: return "📏"
-        case .duration: return "⏱️"
-        case .calories: return "🔥"
-        case .workoutCount: return "🏃"
-        case .totalXP: return "⭐"
-        case .specificWorkout: return "💪"
+        case .distance: "📏"
+        case .duration: "⏱️"
+        case .calories: "🔥"
+        case .workoutCount: "🏃"
+        case .totalXP: "⭐"
+        case .specificWorkout: "💪"
         }
     }
-    
+
     var unit: String {
         switch self {
-        case .distance: return "km"
-        case .duration: return "minutes"
-        case .calories: return "cal"
-        case .workoutCount: return "workouts"
-        case .totalXP: return "XP"
-        case .specificWorkout: return "workouts"
+        case .distance: "km"
+        case .duration: "minutes"
+        case .calories: "cal"
+        case .workoutCount: "workouts"
+        case .totalXP: "XP"
+        case .specificWorkout: "workouts"
         }
     }
 }
@@ -56,22 +56,22 @@ enum ChallengeType: String, CaseIterable, Codable {
 // MARK: - Challenge Status
 
 enum ChallengeStatus: String, Codable {
-    case pending = "pending"
-    case accepted = "accepted"
-    case declined = "declined"
-    case active = "active"
-    case completed = "completed"
-    case cancelled = "cancelled"
-    case expired = "expired"
-    
+    case pending
+    case accepted
+    case declined
+    case active
+    case completed
+    case cancelled
+    case expired
+
     var canBeAccepted: Bool {
         self == .pending
     }
-    
+
     var isActive: Bool {
         self == .active
     }
-    
+
     var isFinished: Bool {
         [.completed, .cancelled, .expired].contains(self)
     }
@@ -84,8 +84,8 @@ struct ChallengeParticipant: Codable, Identifiable {
     let displayName: String
     let profileImageURL: String?
     var progress: Double = 0
-    var lastUpdated: Date = Date()
-    
+    var lastUpdated: Date = .init()
+
     var isWinning: Bool = false
 }
 
@@ -105,40 +105,59 @@ struct WorkoutChallenge: Identifiable, Codable {
     let createdAt: Date
     var status: ChallengeStatus
     var winnerId: String?
-    
+
     // Betting/Stakes (optional)
     var xpStake: Int = 0 // XP each participant puts up
     var winnerTakesAll: Bool = false
-    
+
     // Privacy
     var isPublic: Bool = true // Whether challenge shows in public feeds
-    
+
     // Computed properties
     var isExpired: Bool {
         status == .active && Date() > endDate
     }
-    
+
     var daysRemaining: Int {
         let calendar = Calendar.current
-        let components = calendar.dateComponents([.day], from: Date(), to: endDate)
-        return max(0, components.day ?? 0)
+        let now = Date()
+
+        // If challenge has already ended, return 0
+        if endDate < now {
+            return 0
+        }
+
+        // Get start of today and start of end date
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfEndDate = calendar.startOfDay(for: endDate)
+
+        // Calculate days between start of days
+        let components = calendar.dateComponents([.day], from: startOfToday, to: startOfEndDate)
+        let days = components.day ?? 0
+
+        // If end date is today but hasn't passed yet, return 1
+        if days == 0, endDate > now {
+            return 1
+        }
+
+        return max(0, days + 1) // Add 1 to include the end date
     }
-    
+
     var progressPercentage: Double {
         guard targetValue > 0 else { return 0 }
         let totalProgress = participants.reduce(0) { $0 + $1.progress }
         let avgProgress = totalProgress / Double(participants.count)
         return min(100, (avgProgress / targetValue) * 100)
     }
-    
+
     var leadingParticipant: ChallengeParticipant? {
         participants.max(by: { $0.progress < $1.progress })
     }
-    
+
     // Validation
     static func isValidChallenge(type: ChallengeType, targetValue: Double, duration: TimeInterval) -> Bool {
         guard targetValue > 0, duration > 0 else { return false }
-        
+
         // Reasonable limits per type
         switch type {
         case .distance:
@@ -173,60 +192,63 @@ extension WorkoutChallenge {
               let endDate = record["endDate"] as? Date,
               let createdAt = record["createdAt"] as? Date,
               let statusString = record["status"] as? String,
-              let status = ChallengeStatus(rawValue: statusString) else {
+              let status = ChallengeStatus(rawValue: statusString)
+        else {
             return nil
         }
-        
-        self.id = record.recordID.recordName
+
+        id = record.recordID.recordName
         self.creatorId = creatorId
         self.participants = participants
         self.type = type
         self.targetValue = targetValue
-        self.workoutType = record["workoutType"] as? String
+        workoutType = record["workoutType"] as? String
         self.name = name
         self.description = description
         self.startDate = startDate
         self.endDate = endDate
         self.createdAt = createdAt
         self.status = status
-        self.winnerId = record["winnerId"] as? String
-        self.xpStake = Int(record["xpStake"] as? Int64 ?? 0)
-        self.winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
-        self.isPublic = (record["isPublic"] as? Int64) == 1
+        winnerId = record["winnerId"] as? String
+        xpStake = Int(record["xpStake"] as? Int64 ?? 0)
+        winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
+        isPublic = (record["isPublic"] as? Int64) == 1
     }
-    
+
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
         let record: CKRecord
-        if let recordID = recordID {
+        if let recordID {
             record = CKRecord(recordType: "WorkoutChallenges", recordID: recordID)
         } else {
-            record = CKRecord(recordType: "WorkoutChallenges")
+            // Use the challenge's ID as the record name
+            let challengeRecordID = CKRecord.ID(recordName: id)
+            record = CKRecord(recordType: "WorkoutChallenges", recordID: challengeRecordID)
         }
-        
+
         record["creatorId"] = creatorId
         record["participants"] = try? JSONEncoder().encode(participants)
         record["type"] = type.rawValue
         record["targetValue"] = targetValue
-        
-        if let workoutType = workoutType {
+
+        if let workoutType {
             record["workoutType"] = workoutType
         }
-        
+
         record["name"] = name
         record["description"] = description
         record["startDate"] = startDate
         record["endDate"] = endDate
         record["createdAt"] = createdAt
         record["status"] = status.rawValue
-        
-        if let winnerId = winnerId {
+
+        if let winnerId {
             record["winnerId"] = winnerId
         }
-        
+
         record["xpStake"] = Int64(xpStake)
         record["winnerTakesAll"] = winnerTakesAll ? Int64(1) : Int64(0)
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
-        
+
         return record
     }
 }

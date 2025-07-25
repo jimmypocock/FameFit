@@ -10,31 +10,31 @@ import UserNotifications
 
 protocol APNSManaging: AnyObject {
     // MARK: - Properties
-    
+
     var isRegistered: Bool { get }
     var currentDeviceToken: String? { get }
     var notificationAuthorizationStatus: UNAuthorizationStatus { get }
-    
+
     // MARK: - Methods
-    
+
     /// Request notification permissions from the user
     func requestNotificationPermissions() async throws -> Bool
-    
+
     /// Register for remote notifications with APNS
     func registerForRemoteNotifications()
-    
+
     /// Handle device token received from APNS
     func handleDeviceToken(_ deviceToken: Data) async throws
-    
+
     /// Handle registration error
     func handleRegistrationError(_ error: Error)
-    
+
     /// Handle notification response when user taps notification
     func handleNotificationResponse(_ response: UNNotificationResponse) async
-    
+
     /// Update app badge count
     func updateBadgeCount(_ count: Int) async
-    
+
     /// Unregister device from push notifications
     func unregisterDevice() async throws
 }
@@ -53,7 +53,7 @@ struct PushNotificationRequest {
     let metadata: [String: String]?
     let category: String?
     let threadId: String?
-    
+
     init(
         userID: String,
         type: NotificationType,
