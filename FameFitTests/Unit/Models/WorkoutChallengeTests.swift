@@ -72,7 +72,7 @@ final class WorkoutChallengeTests: XCTestCase {
         // Given - Challenge that ended yesterday
         let challenge = createChallenge(
             status: .active,
-            endDate: Date().addingTimeInterval(-24 * 3600)
+            endDate: Date().addingTimeInterval(-24 * 3_600)
         )
 
         // Then
@@ -83,7 +83,7 @@ final class WorkoutChallengeTests: XCTestCase {
         // Given - Ended challenge but not active
         let challenge = createChallenge(
             status: .pending,
-            endDate: Date().addingTimeInterval(-24 * 3600)
+            endDate: Date().addingTimeInterval(-24 * 3_600)
         )
 
         // Then
@@ -117,7 +117,7 @@ final class WorkoutChallengeTests: XCTestCase {
         var challenge = createChallenge(targetValue: 100)
         challenge.participants = [
             ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 30),
-            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 50),
+            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 50)
         ]
 
         // Then - Average progress is 40%
@@ -129,7 +129,7 @@ final class WorkoutChallengeTests: XCTestCase {
         var challenge = createChallenge(targetValue: 50)
         challenge.participants = [
             ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 60),
-            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 80),
+            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 80)
         ]
 
         // Then - Should be capped at 100%
@@ -142,7 +142,7 @@ final class WorkoutChallengeTests: XCTestCase {
         challenge.participants = [
             ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 30),
             ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 50),
-            ChallengeParticipant(id: "3", displayName: "User 3", profileImageURL: nil, progress: 45),
+            ChallengeParticipant(id: "3", displayName: "User 3", profileImageURL: nil, progress: 45)
         ]
 
         // Then
@@ -155,38 +155,38 @@ final class WorkoutChallengeTests: XCTestCase {
 
     func testWorkoutChallenge_ValidChallenge() {
         // Valid challenges
-        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 50, duration: 7 * 24 * 3600))
-        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .duration, targetValue: 1000, duration: 24 * 3600))
-        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .calories, targetValue: 5000, duration: 3 * 24 * 3600))
-        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .workoutCount, targetValue: 20, duration: 14 * 24 * 3600))
-        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .totalXP, targetValue: 500, duration: 7 * 24 * 3600))
+        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 50, duration: 7 * 24 * 3_600))
+        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .duration, targetValue: 1_000, duration: 24 * 3_600))
+        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .calories, targetValue: 5_000, duration: 3 * 24 * 3_600))
+        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .workoutCount, targetValue: 20, duration: 14 * 24 * 3_600))
+        XCTAssertTrue(WorkoutChallenge.isValidChallenge(type: .totalXP, targetValue: 500, duration: 7 * 24 * 3_600))
         XCTAssertTrue(WorkoutChallenge.isValidChallenge(
             type: .specificWorkout,
             targetValue: 10,
-            duration: 7 * 24 * 3600
+            duration: 7 * 24 * 3_600
         ))
     }
 
     func testWorkoutChallenge_InvalidChallenge_NegativeValues() {
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: -10, duration: 7 * 24 * 3600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: -10, duration: 7 * 24 * 3_600))
         XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 50, duration: -100))
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 0, duration: 7 * 24 * 3600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 0, duration: 7 * 24 * 3_600))
     }
 
     func testWorkoutChallenge_InvalidChallenge_ExceedsLimits() {
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 1001, duration: 7 * 24 * 3600))
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .duration, targetValue: 10001, duration: 7 * 24 * 3600))
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .calories, targetValue: 50001, duration: 7 * 24 * 3600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .distance, targetValue: 1_001, duration: 7 * 24 * 3_600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .duration, targetValue: 10_001, duration: 7 * 24 * 3_600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .calories, targetValue: 50_001, duration: 7 * 24 * 3_600))
         XCTAssertFalse(WorkoutChallenge.isValidChallenge(
             type: .workoutCount,
             targetValue: 101,
-            duration: 7 * 24 * 3600
+            duration: 7 * 24 * 3_600
         ))
-        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .totalXP, targetValue: 10001, duration: 7 * 24 * 3600))
+        XCTAssertFalse(WorkoutChallenge.isValidChallenge(type: .totalXP, targetValue: 10_001, duration: 7 * 24 * 3_600))
         XCTAssertFalse(WorkoutChallenge.isValidChallenge(
             type: .specificWorkout,
             targetValue: 51,
-            duration: 7 * 24 * 3600
+            duration: 7 * 24 * 3_600
         ))
     }
 
@@ -230,7 +230,7 @@ final class WorkoutChallengeTests: XCTestCase {
         targetValue: Double = 50.0,
         status: ChallengeStatus = .pending,
         startDate: Date = Date(),
-        endDate: Date = Date().addingTimeInterval(7 * 24 * 3600),
+        endDate: Date = Date().addingTimeInterval(7 * 24 * 3_600),
         xpStake: Int = 0,
         winnerTakesAll: Bool = false,
         isPublic: Bool = true
@@ -240,7 +240,7 @@ final class WorkoutChallengeTests: XCTestCase {
             creatorId: creatorId,
             participants: [
                 ChallengeParticipant(id: creatorId, displayName: "Creator", profileImageURL: nil),
-                ChallengeParticipant(id: "participant-2", displayName: "Participant 2", profileImageURL: nil),
+                ChallengeParticipant(id: "participant-2", displayName: "Participant 2", profileImageURL: nil)
             ],
             type: type,
             targetValue: targetValue,

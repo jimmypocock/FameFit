@@ -244,7 +244,7 @@ final class SocialFeedViewModelTests: XCTestCase {
         viewModel.updateFilters(newFilters)
 
         // Then
-        let weekAgo = Date().addingTimeInterval(-7 * 24 * 3600)
+        let weekAgo = Date().addingTimeInterval(-7 * 24 * 3_600)
         let weekItems = viewModel.filteredFeedItems.filter { $0.timestamp > weekAgo }
         XCTAssertEqual(viewModel.filteredFeedItems.count, weekItems.count)
     }
@@ -259,7 +259,7 @@ final class SocialFeedViewModelTests: XCTestCase {
         viewModel.updateFilters(newFilters)
 
         // Then
-        let monthAgo = Date().addingTimeInterval(-30 * 24 * 3600)
+        let monthAgo = Date().addingTimeInterval(-30 * 24 * 3_600)
         let monthItems = viewModel.filteredFeedItems.filter { $0.timestamp > monthAgo }
         XCTAssertEqual(viewModel.filteredFeedItems.count, monthItems.count)
     }

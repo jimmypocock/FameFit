@@ -105,7 +105,10 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
 
         // Then
         await fulfillment(of: [expectation], timeout: 1)
-        XCTAssertTrue(mockUserProfileService.clearedCacheUserIds.contains(userId), "Expected clearedCacheUserIds to contain \(userId), but got: \(mockUserProfileService.clearedCacheUserIds)")
+        XCTAssertTrue(
+            mockUserProfileService.clearedCacheUserIds.contains(userId),
+            "Expected clearedCacheUserIds to contain \(userId), but got: \(mockUserProfileService.clearedCacheUserIds)"
+        )
     }
 
     @MainActor
@@ -201,7 +204,7 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
             changeType: "recordCreated",
             userInfo: [
                 "followerID": followerID,
-                "followingID": followingID,
+                "followingID": followingID
             ]
         )
 

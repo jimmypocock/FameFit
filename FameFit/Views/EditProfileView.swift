@@ -66,8 +66,7 @@ struct EditProfileView: View {
                         .onChange(of: selectedImage) { _, newItem in
                             Task {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self),
-                                   let image = UIImage(data: data)
-                                {
+                                   let image = UIImage(data: data) {
                                     profileImage = image
                                     hasChanges = true
                                 }

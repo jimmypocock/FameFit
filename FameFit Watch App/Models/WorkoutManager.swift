@@ -104,14 +104,14 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
 
     func requestAuthorization() {
         let typesToShare: Set = [
-            HKQuantityType.workoutType(),
+            HKQuantityType.workoutType()
         ]
 
         let typesToRead: Set = [
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
             HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!
         ]
 
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
@@ -269,11 +269,11 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.tenMinutes.roastMessage)"
             achievementUnlocked = true
             lastMilestoneTime = 600
-        } else if currentTime >= 1800, !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
+        } else if currentTime >= 1_800, !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
             achievementManager.unlockedAchievements.insert(.thirtyMinutes)
             currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.thirtyMinutes.roastMessage)"
             achievementUnlocked = true
-            lastMilestoneTime = 1800
+            lastMilestoneTime = 1_800
         }
 
         // If no achievement, show regular milestone or random message
@@ -284,12 +284,12 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             } else if currentTime >= 600, lastMilestoneTime < 600 {
                 currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
                 lastMilestoneTime = 600
-            } else if currentTime >= 1200, lastMilestoneTime < 1200 {
+            } else if currentTime >= 1_200, lastMilestoneTime < 1_200 {
                 currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1200
-            } else if currentTime >= 1800, lastMilestoneTime < 1800 {
+                lastMilestoneTime = 1_200
+            } else if currentTime >= 1_800, lastMilestoneTime < 1_800 {
                 currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1800
+                lastMilestoneTime = 1_800
             } else {
                 // Random encouragement or roast between milestones
                 if Bool.random() {

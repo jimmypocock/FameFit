@@ -98,7 +98,7 @@ struct WelcomeView: View {
                 "And by universe, I mean the algorithm.",
             Color.green
         ),
-        ("Chad", "💪", "Let's get you started by making sure we can see your gains.", Color.red),
+        ("Chad", "💪", "Let's get you started by making sure we can see your gains.", Color.red)
     ]
 
     var body: some View {
@@ -225,9 +225,6 @@ struct HealthKitPermissionView: View {
                 workoutObserver.requestHealthKitAuthorization { success, _ in
                     if success {
                         healthKitAuthorized = true
-                        onboardingStep = 3
-                    } else if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-                        // In UI tests, HealthKit auth might fail, so allow proceeding anyway
                         onboardingStep = 3
                     }
                 }
@@ -362,7 +359,7 @@ struct GameMechanicsView: View {
             "💪",
             "No matter what workout you do, the right coach will be there. The gains have waited long enough!",
             Color.red
-        ),
+        )
     ]
 
     var body: some View {

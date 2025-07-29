@@ -11,20 +11,10 @@ final class RealHealthKitService: HealthKitService {
     }
 
     var isHealthDataAvailable: Bool {
-        // In UI tests, pretend health data is available
-        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-            return true
-        }
-        return HKHealthStore.isHealthDataAvailable()
+        HKHealthStore.isHealthDataAvailable()
     }
 
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
-        // In UI tests, pretend authorization succeeded
-        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-            completion(true, nil)
-            return
-        }
-
         // Security: Only request the permissions we actually need
         healthStore.requestAuthorization(
             toShare: Self.shareTypes,
@@ -39,11 +29,7 @@ final class RealHealthKitService: HealthKitService {
     }
 
     func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus {
-        // In UI tests, pretend everything is authorized
-        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-            return .sharingAuthorized
-        }
-        return healthStore.authorizationStatus(for: type)
+        healthStore.authorizationStatus(for: type)
     }
 
     func startObservingWorkouts(

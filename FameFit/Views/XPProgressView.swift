@@ -180,7 +180,7 @@ struct XPProgressView_Previews: PreviewProvider {
         VStack(spacing: 20) {
             XPProgressView(currentXP: 0)
             XPProgressView(currentXP: 250)
-            XPProgressView(currentXP: 1234)
+            XPProgressView(currentXP: 1_234)
             XPProgressView(currentXP: 999_999)
         }
         .padding()

@@ -145,7 +145,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Update the workout
         var updatedWorkout = workout
-        updatedWorkout.updatedAt = Date()
+        updatedWorkout.modifiedTimestamp = Date()
 
         // Save to CloudKit
         let recordID = CKRecord.ID(recordName: workout.id)
@@ -183,7 +183,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Update status
         workout.status = .cancelled
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Save update
         _ = try await updateGroupWorkout(workout)
@@ -206,7 +206,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Update status
         workout.status = .active
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Update participant status
         if let index = workout.participants.firstIndex(where: { $0.userId == userId }) {
@@ -262,7 +262,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             workout.status = .completed
         }
 
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Save update
         let updatedWorkout = try await updateGroupWorkout(workout)
@@ -319,7 +319,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         )
 
         workout.participants.append(participant)
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Save update
         let updatedWorkout = try await updateGroupWorkout(workout)
@@ -381,7 +381,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Update status
         workout.participants[index].status = .dropped
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Save update
         _ = try await updateGroupWorkout(workout)
@@ -411,7 +411,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Update data
         workout.participants[index].workoutData = data
-        workout.updatedAt = Date()
+        workout.modifiedTimestamp = Date()
 
         // Save update (with rate limiting for frequent updates)
         if shouldUpdateCloudKit(for: workoutId) {
@@ -435,7 +435,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "status == %@", GroupWorkoutStatus.scheduled.rawValue),
             NSPredicate(format: "scheduledStart > %@", Date() as NSDate),
-            NSPredicate(format: "isPublic == %@", NSNumber(value: true)),
+            NSPredicate(format: "isPublic == %@", NSNumber(value: true))
         ])
 
         return try await fetchWorkouts(with: predicate, limit: limit)
@@ -481,7 +481,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     func searchWorkouts(query: String, workoutType: HKWorkoutActivityType? = nil) async throws -> [GroupWorkout] {
         var predicates: [NSPredicate] = [
             NSPredicate(format: "isPublic == %@", NSNumber(value: true)),
-            NSPredicate(format: "status == %@", GroupWorkoutStatus.scheduled.rawValue),
+            NSPredicate(format: "status == %@", GroupWorkoutStatus.scheduled.rawValue)
         ]
 
         // Add search predicate
@@ -489,7 +489,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             let searchPredicates = [
                 NSPredicate(format: "name CONTAINS[cd] %@", query),
                 NSPredicate(format: "description CONTAINS[cd] %@", query),
-                NSPredicate(format: "ANY tags CONTAINS[cd] %@", query),
+                NSPredicate(format: "ANY tags CONTAINS[cd] %@", query)
             ]
             predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: searchPredicates))
         }
@@ -530,7 +530,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             throw GroupWorkoutError.invalidWorkout("Workout must be at least 5 minutes")
         }
 
-        guard workout.duration <= 14400 else { // Maximum 4 hours
+        guard workout.duration <= 14_400 else { // Maximum 4 hours
             throw GroupWorkoutError.invalidWorkout("Workout cannot exceed 4 hours")
         }
 

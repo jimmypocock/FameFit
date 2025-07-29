@@ -56,7 +56,7 @@ class WorkoutSyncQueueTests: XCTestCase {
     func testEnqueueWorkoutAddsToPendingList() {
         // Given
         let workout = TestWorkoutBuilder.createRunWorkout(
-            duration: 1800,
+            duration: 1_800,
             calories: 250
         )
 
@@ -73,7 +73,7 @@ class WorkoutSyncQueueTests: XCTestCase {
         // Then
         XCTAssertEqual(syncQueue.pendingWorkouts.count, 1)
         XCTAssertEqual(syncQueue.pendingWorkouts.first?.workoutType, "Running")
-        XCTAssertEqual(syncQueue.pendingWorkouts.first?.duration, 1800)
+        XCTAssertEqual(syncQueue.pendingWorkouts.first?.duration, 1_800)
         XCTAssertEqual(syncQueue.pendingWorkouts.first?.calories, 250)
     }
 
@@ -258,7 +258,7 @@ class WorkoutSyncQueueTests: XCTestCase {
     func testIsWorkoutInQueueReturnsTrueForExistingWorkout() {
         // Given
         let workout = TestWorkoutBuilder.createRunWorkout(
-            startDate: Date().addingTimeInterval(-1800)
+            startDate: Date().addingTimeInterval(-1_800)
         )
         syncQueue.enqueueWorkout(workout)
 
@@ -394,7 +394,7 @@ class WorkoutSyncQueueTests: XCTestCase {
     func testFullWorkflowFromEnqueueToSuccess() {
         // Given
         let workout = TestWorkoutBuilder.createRunWorkout(
-            duration: 3600,
+            duration: 3_600,
             calories: 500
         )
 

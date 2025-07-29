@@ -20,11 +20,12 @@ struct WorkoutTypeItem: Identifiable {
 struct WatchStartView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @State private var navigationPath = NavigationPath()
+    @StateObject private var watchConnectivity = WatchConnectivityManager.shared
 
     private let workoutTypes: [WorkoutTypeItem] = [
         WorkoutTypeItem(type: .cycling),
         WorkoutTypeItem(type: .running),
-        WorkoutTypeItem(type: .walking),
+        WorkoutTypeItem(type: .walking)
     ]
 
     var body: some View {
@@ -58,6 +59,22 @@ struct WatchStartView: View {
                 if !isShowing, !navigationPath.isEmpty {
                     // Clear navigation when summary is dismissed
                     navigationPath.removeLast(navigationPath.count)
+                }
+            }
+            .onChange(of: watchConnectivity.shouldStartWorkout) { _, shouldStart in
+                if shouldStart, let workoutTypeRawValue = watchConnectivity.receivedWorkoutType {
+                    // Convert raw value to HKWorkoutActivityType
+                    if let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRawValue)) {
+                        // Start the workout
+                        workoutManager.selectedWorkout = workoutType
+                        navigationPath.append(workoutType)
+                        
+                        // Reset the flag
+                        DispatchQueue.main.async {
+                            watchConnectivity.shouldStartWorkout = false
+                            watchConnectivity.receivedWorkoutType = nil
+                        }
+                    }
                 }
             }
         }

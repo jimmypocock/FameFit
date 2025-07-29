@@ -239,7 +239,7 @@ class WorkoutSyncManager: ObservableObject {
 
             // Validate workout data
             guard workout.duration > 0,
-                  workout.duration < 86400, // Less than 24 hours
+                  workout.duration < 86_400, // Less than 24 hours
                   workout.endDate > workout.startDate
             else {
                 FameFitLogger.notice("Invalid workout data detected, skipping", category: FameFitLogger.workout)
@@ -391,8 +391,7 @@ class WorkoutSyncManager: ObservableObject {
             // Try active energy burned statistics one more time with a different approach
             if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
                let statistics = workout.statistics(for: energyBurnedType),
-               let sumQuantity = statistics.sumQuantity()
-            {
+               let sumQuantity = statistics.sumQuantity() {
                 calories = Int(sumQuantity.doubleValue(for: .kilocalorie()))
             }
         }
@@ -432,7 +431,7 @@ class WorkoutSyncManager: ObservableObject {
             "character": character.rawValue,
             "duration": duration,
             "calories": calories,
-            "newFollowers": 5,
+            "newFollowers": 5
         ]
 
         // Use workout-specific identifier to prevent duplicates
@@ -455,7 +454,7 @@ class WorkoutSyncManager: ObservableObject {
                 UNUserNotificationCenter.current().requestAuthorization(options: [
                     .alert,
                     .sound,
-                    .badge,
+                    .badge
                 ]) { granted, error in
                     if let error {
                         FameFitLogger.error(

@@ -39,7 +39,7 @@ class AchievementManagerProtocolTests: XCTestCase {
             for: nil,
             duration: 600,
             calories: 150,
-            distance: 1000,
+            distance: 1_000,
             averageHeartRate: 140
         )
 
@@ -115,7 +115,7 @@ class AchievementManagerProtocolTests: XCTestCase {
             for: workout,
             duration: 600,
             calories: 150,
-            distance: 1500,
+            distance: 1_500,
             averageHeartRate: 145
         )
 
@@ -127,7 +127,7 @@ class AchievementManagerProtocolTests: XCTestCase {
         XCTAssertEqual(mockManager.lastWorkout, workout)
         XCTAssertEqual(mockManager.lastDuration, 600)
         XCTAssertEqual(mockManager.lastCalories, 150)
-        XCTAssertEqual(mockManager.lastDistance, 1500)
+        XCTAssertEqual(mockManager.lastDistance, 1_500)
         XCTAssertEqual(mockManager.lastAverageHeartRate, 145)
         XCTAssertEqual(progress.total, AchievementManager.Achievement.allCases.count)
     }
@@ -203,11 +203,11 @@ class AchievementManagerProtocolTests: XCTestCase {
         XCTAssertTrue(realManager.unlockedAchievements.contains(.tenMinutes))
 
         // Test 30 minutes
-        realManager.checkAchievements(for: nil, duration: 1800, calories: 0, distance: 0, averageHeartRate: 0)
+        realManager.checkAchievements(for: nil, duration: 1_800, calories: 0, distance: 0, averageHeartRate: 0)
         XCTAssertTrue(realManager.unlockedAchievements.contains(.thirtyMinutes))
 
         // Test 1 hour
-        realManager.checkAchievements(for: nil, duration: 3600, calories: 0, distance: 0, averageHeartRate: 0)
+        realManager.checkAchievements(for: nil, duration: 3_600, calories: 0, distance: 0, averageHeartRate: 0)
         XCTAssertTrue(realManager.unlockedAchievements.contains(.oneHour))
     }
 
@@ -234,14 +234,14 @@ class AchievementManagerProtocolTests: XCTestCase {
             for: nil,
             duration: 300, // 5 minutes
             calories: 0,
-            distance: 1000, // 1km in 5 minutes = 5 min/km pace
+            distance: 1_000, // 1km in 5 minutes = 5 min/km pace
             averageHeartRate: 0
         )
 
         // Then
         XCTAssertTrue(mockManager.unlockedAchievements.contains(.fastPace))
         XCTAssertEqual(mockManager.lastDuration, 300)
-        XCTAssertEqual(mockManager.lastDistance, 1000)
+        XCTAssertEqual(mockManager.lastDistance, 1_000)
 
         // Reset and test slow pace
         mockManager.reset()
@@ -251,12 +251,12 @@ class AchievementManagerProtocolTests: XCTestCase {
             for: nil,
             duration: 780, // 13 minutes
             calories: 0,
-            distance: 1000, // 1km in 13 minutes = 13 min/km pace
+            distance: 1_000, // 1km in 13 minutes = 13 min/km pace
             averageHeartRate: 0
         )
 
         XCTAssertTrue(mockManager.unlockedAchievements.contains(.slowPace))
         XCTAssertEqual(mockManager.lastDuration, 780)
-        XCTAssertEqual(mockManager.lastDistance, 1000)
+        XCTAssertEqual(mockManager.lastDistance, 1_000)
     }
 }

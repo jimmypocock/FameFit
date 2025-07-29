@@ -86,8 +86,8 @@ class WorkoutStateTests: XCTestCase {
         // Test measurement conversions used in fitness apps
 
         // Distance conversions
-        let meters = 1000.0
-        let kilometers = meters / 1000.0
+        let meters = 1_000.0
+        let kilometers = meters / 1_000.0
         XCTAssertEqual(kilometers, 1.0)
 
         let miles = meters * 0.000621371
@@ -99,9 +99,9 @@ class WorkoutStateTests: XCTestCase {
         XCTAssertEqual(kilojoules, 627.6, accuracy: 0.1)
 
         // Time conversions
-        let seconds = 3661.0
+        let seconds = 3_661.0
         let minutes = seconds / 60.0
-        let hours = seconds / 3600.0
+        let hours = seconds / 3_600.0
         XCTAssertEqual(minutes, 61.0167, accuracy: 0.001)
         XCTAssertEqual(hours, 1.0169, accuracy: 0.001)
     }

@@ -57,7 +57,7 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
             .workoutComments,
             .workoutChallenges,
             .groupWorkouts,
-            .activityFeed,
+            .activityFeed
         ]
 
         // When
@@ -82,29 +82,6 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(SubscriptionType.userProfile.subscriptionID, "user-profile-subscription")
     }
 
-    // MARK: - Setup Tests (Integration-style)
-
-    func testSetupSubscriptions_DoesNotCrash() async {
-        // Given/When/Then - Should not crash even if CloudKit is not available
-        do {
-            try await sut.setupSubscriptions()
-            // If successful, that's good
-        } catch {
-            // If it fails due to no CloudKit account, that's expected in test environment
-            print("Setup subscriptions failed as expected in test environment: \(error)")
-        }
-    }
-
-    func testRemoveAllSubscriptions_DoesNotCrash() async {
-        // Given/When/Then - Should not crash even if no subscriptions exist
-        do {
-            try await sut.removeAllSubscriptions()
-            // If successful, that's good
-        } catch {
-            // If it fails due to no CloudKit account, that's expected in test environment
-            print("Remove subscriptions failed as expected in test environment: \(error)")
-        }
-    }
 
     // MARK: - Notification Handling Tests
 
@@ -151,63 +128,4 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(notificationInfo.userInfo["key"] as? String, "value")
     }
 
-    // MARK: - Error Handling Tests
-
-    func testSubscriptionManager_HandlesNoAccount() async {
-        // Given - Real CloudKit environment might not have account
-
-        // When/Then - Should handle gracefully
-        do {
-            try await sut.setupSubscriptions()
-        } catch {
-            // Expected in test environment without CloudKit account
-            XCTAssertTrue(error is CKError || error.localizedDescription.contains("account"))
-        }
-    }
-
-    // MARK: - Integration with Real CloudKit Tests
-
-    func testSubscriptionManager_WithRealCloudKit() async {
-        // This test uses the real CloudKit container but expects it to fail gracefully
-        // in a test environment without proper setup
-
-        // Given
-        let manager = CloudKitSubscriptionManager()
-
-        // When
-        do {
-            try await manager.setupSubscriptions()
-            // If this succeeds, CloudKit is properly configured
-            XCTAssertTrue(true, "CloudKit setup succeeded")
-        } catch let error as CKError {
-            // Expected CloudKit errors in test environment
-            switch error.code {
-            case .notAuthenticated, .networkUnavailable, .networkFailure:
-                XCTAssertTrue(true, "Expected CloudKit error: \(error)")
-            default:
-                XCTFail("Unexpected CloudKit error: \(error)")
-            }
-        } catch {
-            // Other errors might be expected too
-            print("Non-CloudKit error (may be expected): \(error)")
-        }
-    }
-
-    // MARK: - Performance Tests
-
-    func testSubscriptionSetup_Performance() {
-        // Given
-        let manager = CloudKitSubscriptionManager()
-
-        // When/Then
-        measure {
-            Task {
-                do {
-                    try await manager.setupSubscriptions()
-                } catch {
-                    // Errors are expected in test environment
-                }
-            }
-        }
-    }
 }

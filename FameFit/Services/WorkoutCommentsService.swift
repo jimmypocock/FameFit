@@ -60,7 +60,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
         // Query comments for the workout
         let predicate = NSPredicate(format: "workoutId == %@", workoutId)
         let query = CKQuery(recordType: "WorkoutComments", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
 
         do {
             let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
@@ -135,8 +135,8 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
             userId: userId,
             workoutOwnerId: workoutOwnerId,
             content: content,
-            createdAt: Date(),
-            updatedAt: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             parentCommentId: parentCommentId,
             isEdited: false,
             likeCount: 0
@@ -196,7 +196,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
 
             // Update content
             record["content"] = newContent
-            record["updatedAt"] = Date()
+            record["modifiedTimestamp"] = Date()
             record["isEdited"] = Int64(1)
 
             let savedRecord = try await publicDatabase.save(record)
@@ -254,7 +254,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
 
         do {
             // Use a smaller result limit for counting
-            let results = try await publicDatabase.records(matching: query, resultsLimit: 1000)
+            let results = try await publicDatabase.records(matching: query, resultsLimit: 1_000)
             return results.matchResults.count
         } catch {
             throw CommentError.fetchFailed
@@ -280,7 +280,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
             // Add replies right after parent
             if let parentReplies = replyGroups[parent.comment.id] {
                 organizedComments.append(contentsOf: parentReplies.sorted {
-                    $0.comment.createdAt < $1.comment.createdAt
+                    $0.comment.createdTimestamp < $1.comment.createdTimestamp
                 })
             }
         }

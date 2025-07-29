@@ -56,8 +56,7 @@ struct SummaryView: View {
                         value: Measurement(
                             value: workoutManager.activeEnergy > 0 ? workoutManager.activeEnergy : {
                                 if let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-                                   let energy = workoutManager.workout?.statistics(for: energyType)?.sumQuantity()
-                                {
+                                   let energy = workoutManager.workout?.statistics(for: energyType)?.sumQuantity() {
                                     energy.doubleValue(for: .kilocalorie())
                                 } else {
                                     0

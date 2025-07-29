@@ -272,7 +272,7 @@ final class RateLimitingServiceTests: XCTestCase {
         } catch let error as SocialServiceError {
             if case let .rateLimitExceeded(_, resetTime) = error {
                 XCTAssertGreaterThan(resetTime, Date())
-                XCTAssertLessThan(resetTime.timeIntervalSince(Date()), 3600) // Less than 1 hour
+                XCTAssertLessThan(resetTime.timeIntervalSince(Date()), 3_600) // Less than 1 hour
             } else {
                 XCTFail("Unexpected error: \(error)")
             }
@@ -324,7 +324,7 @@ final class RateLimitingServiceTests: XCTestCase {
 
     func testVeryLongUserId() async throws {
         // Given
-        let longUserId = String(repeating: "a", count: 1000)
+        let longUserId = String(repeating: "a", count: 1_000)
 
         // When/Then - Should handle long user ID
         let allowed = try await rateLimitingService.checkLimit(for: .follow, userId: longUserId)
@@ -351,7 +351,7 @@ final class RateLimitingServiceTests: XCTestCase {
 
     func testMemoryUsage_ManyUsers() async {
         // Given - Many different users to test memory management
-        let userCount = 1000
+        let userCount = 1_000
 
         // When - Create rate limit entries for many users
         for index in 0 ..< userCount {
@@ -404,6 +404,6 @@ final class RateLimitingServiceTests: XCTestCase {
         XCTAssertEqual(followLimits.minutely, 5)
         XCTAssertEqual(followLimits.hourly, 60)
         XCTAssertEqual(followLimits.daily, 500)
-        XCTAssertEqual(followLimits.weekly, 1000)
+        XCTAssertEqual(followLimits.weekly, 1_000)
     }
 }

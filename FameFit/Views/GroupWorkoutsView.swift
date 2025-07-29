@@ -14,58 +14,51 @@ struct GroupWorkoutsView: View {
 
     @State private var showingCreateWorkout = false
     @State private var selectedTab: WorkoutTab = .upcoming
-    @State private var searchText = ""
     @State private var showingJoinCodeInput = false
     @State private var joinCode = ""
 
     enum WorkoutTab: String, CaseIterable {
         case upcoming = "Upcoming"
-        case myWorkouts = "My Workouts"
         case active = "Live"
 
         var icon: String {
             switch self {
             case .upcoming: "calendar"
-            case .myWorkouts: "person.circle"
             case .active: "dot.radiowaves.left.and.right"
             }
         }
     }
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Tab bar
-                tabBar
+        VStack(spacing: 0) {
+            // Tab bar
+            tabBar
 
-                // Content
-                TabView(selection: $selectedTab) {
-                    ForEach(WorkoutTab.allCases, id: \.self) { tab in
-                        workoutList(for: tab)
-                            .tag(tab)
-                    }
+            // Content
+            TabView(selection: $selectedTab) {
+                ForEach(WorkoutTab.allCases, id: \.self) { tab in
+                    workoutList(for: tab)
+                        .tag(tab)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
             }
-            .navigationTitle("Group Workouts")
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Search workouts...")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { showingJoinCodeInput = true }) {
-                        Image(systemName: "qrcode")
-                    }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .navigationTitle("Group")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { showingJoinCodeInput = true }) {
+                    Image(systemName: "qrcode")
                 }
+            }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingCreateWorkout = true }) {
-                        Image(systemName: "plus")
-                    }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingCreateWorkout = true }) {
+                    Image(systemName: "plus")
                 }
             }
-            .refreshable {
-                await viewModel.refreshWorkouts()
-            }
+        }
+        .refreshable {
+            await viewModel.refreshWorkouts()
         }
         .onAppear {
             viewModel.setup(
@@ -144,7 +137,7 @@ struct GroupWorkoutsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(filteredWorkouts(for: tab), id: \.id) { workout in
+                        ForEach(workouts(for: tab), id: \.id) { workout in
                             GroupWorkoutCard(
                                 groupWorkout: workout,
                                 currentUserId: viewModel.currentUserId,
@@ -238,31 +231,14 @@ struct GroupWorkoutsView: View {
         switch tab {
         case .upcoming:
             viewModel.upcomingWorkouts
-        case .myWorkouts:
-            viewModel.myWorkouts
         case .active:
             viewModel.activeWorkouts
-        }
-    }
-
-    private func filteredWorkouts(for tab: WorkoutTab) -> [GroupWorkout] {
-        let workouts = workouts(for: tab)
-
-        if searchText.isEmpty {
-            return workouts
-        } else {
-            return workouts.filter { workout in
-                workout.name.localizedCaseInsensitiveContains(searchText) ||
-                    workout.description.localizedCaseInsensitiveContains(searchText) ||
-                    workout.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            }
         }
     }
 
     private func emptyStateIcon(for tab: WorkoutTab) -> String {
         switch tab {
         case .upcoming: "calendar.badge.plus"
-        case .myWorkouts: "person.circle.fill"
         case .active: "dot.radiowaves.left.and.right"
         }
     }
@@ -270,7 +246,6 @@ struct GroupWorkoutsView: View {
     private func emptyStateTitle(for tab: WorkoutTab) -> String {
         switch tab {
         case .upcoming: "No Upcoming Workouts"
-        case .myWorkouts: "No Workouts Created"
         case .active: "No Live Workouts"
         }
     }
@@ -278,7 +253,6 @@ struct GroupWorkoutsView: View {
     private func emptyStateMessage(for tab: WorkoutTab) -> String {
         switch tab {
         case .upcoming: "Join existing workouts or create your own to get started with group fitness!"
-        case .myWorkouts: "Create your first group workout and invite others to join your fitness journey."
         case .active: "No workouts are currently in progress. Check back later or start one yourself!"
         }
     }
@@ -299,12 +273,6 @@ struct GroupWorkoutsView: View {
                 .buttonStyle(.bordered)
             }
 
-        case .myWorkouts:
-            Button("Create Your First Workout") {
-                showingCreateWorkout = true
-            }
-            .buttonStyle(.borderedProminent)
-
         case .active:
             EmptyView()
         }
@@ -316,7 +284,6 @@ struct GroupWorkoutsView: View {
 @MainActor
 class GroupWorkoutsViewModel: ObservableObject {
     @Published var upcomingWorkouts: [GroupWorkout] = []
-    @Published var myWorkouts: [GroupWorkout] = []
     @Published var activeWorkouts: [GroupWorkout] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -325,7 +292,6 @@ class GroupWorkoutsViewModel: ObservableObject {
     var currentUserId: String?
 
     private var hasMoreUpcoming = true
-    private var hasMoreMy = true
     private var hasMoreActive = true
 
     func setup(groupWorkoutService: GroupWorkoutServicing, currentUserId: String?) {
@@ -351,12 +317,6 @@ class GroupWorkoutsViewModel: ObservableObject {
                 upcomingWorkouts = newWorkouts
                 hasMoreUpcoming = newWorkouts.count == 20
 
-            case .myWorkouts:
-                guard let userId = currentUserId else { return }
-                newWorkouts = try await service.fetchMyWorkouts(userId: userId)
-                myWorkouts = newWorkouts
-                hasMoreMy = newWorkouts.count == 20
-
             case .active:
                 newWorkouts = try await service.fetchActiveWorkouts()
                 activeWorkouts = newWorkouts
@@ -381,12 +341,6 @@ class GroupWorkoutsViewModel: ObservableObject {
                 upcomingWorkouts.append(contentsOf: newWorkouts)
                 hasMoreUpcoming = newWorkouts.count == 20
 
-            case .myWorkouts:
-                guard let userId = currentUserId else { return }
-                newWorkouts = try await service.fetchMyWorkouts(userId: userId)
-                myWorkouts.append(contentsOf: newWorkouts)
-                hasMoreMy = newWorkouts.count == 20
-
             case .active:
                 newWorkouts = try await service.fetchActiveWorkouts()
                 activeWorkouts.append(contentsOf: newWorkouts)
@@ -402,13 +356,11 @@ class GroupWorkoutsViewModel: ObservableObject {
 
         // Clear existing data
         upcomingWorkouts = []
-        myWorkouts = []
         activeWorkouts = []
 
         // Reload all tabs
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadWorkouts(for: .upcoming) }
-            group.addTask { await self.loadWorkouts(for: .myWorkouts) }
             group.addTask { await self.loadWorkouts(for: .active) }
         }
     }
@@ -434,7 +386,6 @@ class GroupWorkoutsViewModel: ObservableObject {
 
             // Remove from local lists
             upcomingWorkouts.removeAll { $0.id == workoutId }
-            myWorkouts.removeAll { $0.id == workoutId }
             activeWorkouts.removeAll { $0.id == workoutId }
         } catch {
             errorMessage = error.localizedDescription
@@ -476,7 +427,6 @@ class GroupWorkoutsViewModel: ObservableObject {
     func hasMore(for tab: GroupWorkoutsView.WorkoutTab) -> Bool {
         switch tab {
         case .upcoming: hasMoreUpcoming
-        case .myWorkouts: hasMoreMy
         case .active: hasMoreActive
         }
     }
@@ -484,7 +434,6 @@ class GroupWorkoutsViewModel: ObservableObject {
     private func getWorkouts(for tab: GroupWorkoutsView.WorkoutTab) -> [GroupWorkout] {
         switch tab {
         case .upcoming: upcomingWorkouts
-        case .myWorkouts: myWorkouts
         case .active: activeWorkouts
         }
     }

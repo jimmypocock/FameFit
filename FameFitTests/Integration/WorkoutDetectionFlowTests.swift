@@ -54,8 +54,8 @@ class WorkoutDetectionFlowTests: XCTestCase {
 
         // Create a workout that just finished
         let workout = TestWorkoutBuilder.createRunWorkout(
-            duration: 1800, // 30 minutes
-            startDate: Date().addingTimeInterval(-1800)
+            duration: 1_800, // 30 minutes
+            startDate: Date().addingTimeInterval(-1_800)
         )
 
         // When - Start observing first (with no workouts)
@@ -109,7 +109,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
 
     func testWorkoutBeforeAppInstallIgnored() {
         // Given - Set app install date to 1 hour ago
-        let installDate = Date().addingTimeInterval(-3600) // 1 hour ago
+        let installDate = Date().addingTimeInterval(-3_600) // 1 hour ago
         UserDefaults.standard.set(installDate, forKey: UserDefaultsKeys.appInstallDate)
 
         let expectation = XCTestExpectation(description: "Old workout ignored")
@@ -117,12 +117,12 @@ class WorkoutDetectionFlowTests: XCTestCase {
 
         // Create a workout from before install (2 hours ago)
         let oldWorkout = TestWorkoutBuilder.createRunWorkout(
-            startDate: Date().addingTimeInterval(-7200) // 2 hours ago
+            startDate: Date().addingTimeInterval(-7_200) // 2 hours ago
         )
 
         // Create a workout from after install (30 minutes ago)
         let newWorkout = TestWorkoutBuilder.createRunWorkout(
-            startDate: Date().addingTimeInterval(-1800) // 30 minutes ago
+            startDate: Date().addingTimeInterval(-1_800) // 30 minutes ago
         )
 
         // When - Start observing first

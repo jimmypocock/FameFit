@@ -43,7 +43,7 @@ class FameFitErrorTests: XCTestCase {
             .cloudKitNotAvailable,
             .cloudKitUserNotFound,
             .cloudKitSyncFailed(NSError(domain: "technical", code: 500)),
-            .unknownError(NSError(domain: "technical", code: -1)),
+            .unknownError(NSError(domain: "technical", code: -1))
         ]
 
         for error in errors {

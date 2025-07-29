@@ -14,10 +14,15 @@ struct TabMainView: View {
     @State private var showingNotifications = false
     @State private var showingWorkoutHistory = false
     @State private var showingEditProfile = false
-    @State private var showingUserSearch = false
     @State private var showingWorkoutSharingPrompt = false
     @State private var showingNotificationDebug = false
+    @State private var showingFilters = false
+    @State private var showingProfile = false
     @State private var workoutToShare: WorkoutHistoryItem?
+    
+    #if DEBUG
+    @State private var showingDeveloperMenu = false
+    #endif
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -30,37 +35,56 @@ struct TabMainView: View {
         TabView(selection: $selectedTab) {
             // Activity Feed - Primary home screen
             NavigationView {
-                SocialFeedView()
-                    .navigationTitle("Activity")
+                SocialFeedView(
+                    showingFilters: $showingFilters,
+                    onDiscoverTap: {
+                        selectedTab = 1 // Switch to Discover tab
+                    }
+                )
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            notificationButton
+                        ToolbarItem(placement: .principal) {
+                            Image("AppIconTitle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 30)
                         }
-
+                        
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            profileButton
+                        }
+                        
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            discoverButton
+                            filterButton
                         }
                     }
             }
             .tabItem {
-                Image(systemName: "newspaper")
-                Text("Feed")
+                Image(systemName: "house.fill")
             }
             .tag(0)
 
-            // Workout History
+            // Discover Users
             NavigationView {
-                WorkoutHistoryView()
+                UserSearchView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Image(systemName: "magnifyingglass")
+            }
+            .tag(1)
+
+            // Workouts
+            NavigationView {
+                WorkoutsContainerView()
                     .navigationTitle("Workouts")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
                 Image(systemName: "figure.run")
-                Text("Workouts")
             }
-            .tag(1)
-
+            .tag(2)
+            
             // Group Workouts
             NavigationView {
                 GroupWorkoutsView()
@@ -68,9 +92,8 @@ struct TabMainView: View {
             }
             .tabItem {
                 Image(systemName: "person.3")
-                Text("Groups")
             }
-            .tag(2)
+            .tag(3)
 
             // Challenges
             NavigationView {
@@ -79,17 +102,19 @@ struct TabMainView: View {
             }
             .tabItem {
                 Image(systemName: "trophy")
-                Text("Challenges")
             }
-            .tag(3)
-
-            // Profile
+            .tag(4)
+        }
+        .sheet(isPresented: $showingProfile) {
             NavigationView {
                 if let currentUserId = container.cloudKitManager.currentUserID {
                     ProfileView(userId: currentUserId)
                         .navigationTitle("Profile")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                notificationButton
+                            }
                             ToolbarItem(placement: .navigationBarTrailing) {
                                 profileMenu
                             }
@@ -100,11 +125,6 @@ struct TabMainView: View {
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }
-            .tabItem {
-                Image(systemName: "person.circle")
-                Text("Profile")
-            }
-            .tag(4)
         }
         .sheet(isPresented: $showingNotifications) {
             NotificationCenterView()
@@ -118,9 +138,6 @@ struct TabMainView: View {
                     viewModel.userProfile = updatedProfile
                 }
             }
-        }
-        .sheet(isPresented: $showingUserSearch) {
-            UserSearchView()
         }
         .sheet(isPresented: $showingWorkoutSharingPrompt) {
             if let workout = workoutToShare {
@@ -138,16 +155,15 @@ struct TabMainView: View {
             viewModel.loadUserProfile()
             viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
-
-            #if DEBUG
-                // Add test notifications for manual verification of notification pipeline
-                if container.notificationStore.notifications.isEmpty {
-                    container.addTestNotifications()
-                    // Test notification settings integration
-                    container.testNotificationSettingsIntegration()
-                }
-            #endif
         }
+        #if DEBUG
+        .sheet(isPresented: $showingDeveloperMenu) {
+            DeveloperMenu()
+        }
+        .onShake {
+            showingDeveloperMenu = true
+        }
+        #endif
     }
 
     // MARK: - Toolbar Components
@@ -185,12 +201,20 @@ struct TabMainView: View {
             }
         }
     }
-
-    private var discoverButton: some View {
+    
+    private var profileButton: some View {
         Button(action: {
-            showingUserSearch = true
+            showingProfile = true
         }) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: "person.circle")
+        }
+    }
+    
+    private var filterButton: some View {
+        Button(action: {
+            showingFilters = true
+        }) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
         }
     }
 
@@ -211,6 +235,12 @@ struct TabMainView: View {
                     showingNotificationDebug = true
                 }) {
                     Label("Debug Notifications", systemImage: "bell.badge.waveform")
+                }
+                
+                Button(action: {
+                    showingDeveloperMenu = true
+                }) {
+                    Label("Developer Menu", systemImage: "hammer")
                 }
 
                 Divider()

@@ -17,83 +17,44 @@ struct FameFitApp: App {
         let container = DependencyContainer()
         _dependencyContainer = StateObject(wrappedValue: container)
 
-        // Check for UI testing mode
-        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-            if ProcessInfo.processInfo.arguments.contains("--reset-state") {
-                // Clear all user data for fresh onboarding test
-                UserDefaults.standard.removeObject(forKey: "FameFitUserID")
-                UserDefaults.standard.removeObject(forKey: "FameFitUserName")
-                UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
-                UserDefaults.standard.synchronize()
-
-                // Also reset the authentication state in the container
-                container.authenticationManager.isAuthenticated = false
-                container.authenticationManager.hasCompletedOnboarding = false
-                container.authenticationManager.userID = nil
-                container.authenticationManager.userName = nil
-            } else if ProcessInfo.processInfo.arguments.contains("--mock-auth-for-onboarding") {
-                // Set up mock authenticated state for onboarding UI testing
-                // This simulates a user who has signed in but not completed onboarding
-                UserDefaults.standard.set("test-user", forKey: "FameFitUserID")
-                UserDefaults.standard.set("Test User", forKey: "FameFitUserName")
-
-                container.authenticationManager.userID = "test-user"
-                container.authenticationManager.userName = "Test User"
-                container.authenticationManager.isAuthenticated = true
-                container.authenticationManager.hasCompletedOnboarding = false
-
-                // Set up CloudKit mock data
-                container.cloudKitManager.isSignedIn = true
-                container.cloudKitManager.userName = "Test User"
-            } else if ProcessInfo.processInfo.arguments.contains("--skip-onboarding") {
-                // Set up mock authenticated state for UI testing
-                // Use UserDefaults to persist the state so sign out can work
-                UserDefaults.standard.set("test-user", forKey: "FameFitUserID")
-                UserDefaults.standard.set("Test User", forKey: "FameFitUserName")
-                // UserDefaults automatically synchronizes
-
-                // Set authentication immediately (synchronously)
-                // Set onboarding complete in UserDefaults too
-                UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
-
-                container.authenticationManager.userID = "test-user"
-                container.authenticationManager.userName = "Test User"
-                container.authenticationManager.isAuthenticated = true
-                container.authenticationManager.hasCompletedOnboarding = true
-
-                // Set up CloudKit mock data
-                container.cloudKitManager.isSignedIn = true
-                container.cloudKitManager.userName = "Test User"
-                container.cloudKitManager.totalXP = 100
-                container.cloudKitManager.totalWorkouts = 20
-                container.cloudKitManager.currentStreak = 5
-
-                // Create a mock user profile for UI testing
-                let mockProfile = UserProfile(
-                    id: "test-user",
-                    userID: "test-user",
-                    username: "testuser",
-                    displayName: "Test User",
-                    bio: "Test bio for UI testing",
-                    workoutCount: 20,
-                    totalXP: 100,
-                    joinedDate: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 7 days ago
-                    lastUpdated: Date(),
-                    isVerified: false,
-                    privacyLevel: .publicProfile,
-                    profileImageURL: nil
-                )
-
-                if let profileService = container.userProfileService as? MockUserProfileService {
-                    profileService.profiles["test-user"] = mockProfile
-                    profileService.setCurrentProfile(mockProfile)
-                }
-            }
-        }
-
         // Share it with AppDelegate
         // Note: We'll handle this in onAppear since init is too early
+        
+        #if DEBUG
+        // Handle UI test launch arguments
+        handleUITestLaunchArguments(container: container)
+        #endif
     }
+    
+    #if DEBUG
+    private func handleUITestLaunchArguments(container: DependencyContainer) {
+        let arguments = ProcessInfo.processInfo.arguments
+        
+        if arguments.contains("UI-Testing") {
+            if arguments.contains("--reset-state") {
+                // Reset all user data for clean onboarding test
+                container.authenticationManager.signOut()
+                UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+                UserDefaults.standard.removeObject(forKey: "isAuthenticated")
+                UserDefaults.standard.synchronize()
+            } else if arguments.contains("--skip-onboarding") {
+                // Set up authenticated state with mock data
+                container.authenticationManager.setUITestingState(
+                    isAuthenticated: true,
+                    hasCompletedOnboarding: true,
+                    userID: "ui-test-user"
+                )
+            } else if arguments.contains("--mock-auth-for-onboarding") {
+                // Set authenticated but not completed onboarding
+                container.authenticationManager.setUITestingState(
+                    isAuthenticated: true,
+                    hasCompletedOnboarding: false,
+                    userID: "ui-test-user"
+                )
+            }
+        }
+    }
+    #endif
 
     var body: some Scene {
         WindowGroup {

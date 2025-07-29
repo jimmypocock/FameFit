@@ -47,7 +47,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         mockHealthKitService.isHealthDataAvailableValue = true
 
         // Set app install date to allow workouts to be processed
-        UserDefaults.standard.set(Date().addingTimeInterval(-86400), forKey: "AppInstallDate")
+        UserDefaults.standard.set(Date().addingTimeInterval(-86_400), forKey: "AppInstallDate")
     }
 
     override func tearDown() {
@@ -334,7 +334,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         type: HKWorkoutActivityType,
         duration: TimeInterval,
         calories: Double,
-        startDate: Date = Date().addingTimeInterval(-1800),
+        startDate: Date = Date().addingTimeInterval(-1_800),
         endDate: Date = Date()
     ) -> HKWorkout {
         let energyBurned = HKQuantity(unit: .kilocalorie(), doubleValue: calories)
@@ -344,7 +344,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // This is the only way to create HKWorkout objects for testing
         @available(iOS, deprecated: 17.0)
         #if compiler(>=5.9)
-        @available(iOS, deprecated: 17.0)
+            @available(iOS, deprecated: 17.0)
         #endif
         let workout = HKWorkout(
             activityType: type,
@@ -354,7 +354,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
             totalEnergyBurned: energyBurned,
             totalDistance: nil,
             metadata: [
-                HKMetadataKeyWorkoutBrandName: "FameFit Test",
+                HKMetadataKeyWorkoutBrandName: "FameFit Test"
             ]
         )
 
@@ -390,7 +390,7 @@ private extension MockNotificationStore {
                 duration: 30,
                 calories: 250,
                 xpEarned: 15,
-                distance: 5000,
+                distance: 5_000,
                 averageHeartRate: 145
             ))
         )

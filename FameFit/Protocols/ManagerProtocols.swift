@@ -56,7 +56,9 @@ protocol CloudKitManaging: ObservableObject {
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }
 
     func checkAccountStatus()
+    func setupUserRecord(userID: String, displayName: String)
     func fetchUserRecord()
+    func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getXPTitle() -> String
     func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)

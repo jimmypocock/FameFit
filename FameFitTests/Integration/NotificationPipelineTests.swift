@@ -130,7 +130,7 @@ final class NotificationPipelineTests: XCTestCase {
                 duration: 30,
                 calories: 200,
                 xpEarned: 15,
-                distance: 3000,
+                distance: 3_000,
                 averageHeartRate: 145
             ))
         )

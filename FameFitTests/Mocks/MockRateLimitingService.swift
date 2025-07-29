@@ -2,74 +2,71 @@
 //  MockRateLimitingService.swift
 //  FameFitTests
 //
-//  Shared mock implementation of RateLimitingServicing for testing
+//  Mock implementation of RateLimitingServicing for testing
 //
 
 @testable import FameFit
 import Foundation
 
-class MockRateLimitingService: RateLimitingServicing {
-    var shouldAllowAction = true
-    var shouldAllow = true // Alias for consistency
+final class MockRateLimitingService: RateLimitingServicing {
+    var shouldAllow = true
+    var shouldThrowRateLimitError = false
+    var shouldThrowError = false
+    var errorToThrow: Error?
+    var recordedActions: [(action: RateLimitAction, userId: String, date: Date)] = []
+    var remainingActions: [RateLimitAction: Int] = [:]
+    var resetTimes: [RateLimitAction: Date] = [:]
     var checkLimitCalled = false
     var recordActionCalled = false
-    var recordActionCallCount = 0 // Add this property
-    var shouldThrowRateLimitError = false
-    var shouldThrowError = false // Add alias for consistency
-    var errorToThrow: Error = NSError(
-        domain: "RateLimitError",
-        code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Rate limit exceeded"]
-    ) // Add this property
-    var mockRemainingActions = 10
-    var mockResetTime: Date?
-    var lastCheckedAction: RateLimitAction?
-    var lastCheckedUserId: String?
+    var recordActionCallCount = 0
 
     func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool {
         checkLimitCalled = true
-        lastCheckedAction = action
-        lastCheckedUserId = userId
+        recordedActions.append((action: action, userId: userId, date: Date()))
 
-        if shouldThrowRateLimitError || shouldThrowError {
-            throw errorToThrow
+        if shouldThrowError, let error = errorToThrow {
+            throw error
         }
-        return shouldAllowAction && shouldAllow
+
+        if shouldThrowRateLimitError || !shouldAllow {
+            throw SocialServiceError.rateLimitExceeded(
+                action: action.rawValue,
+                resetTime: resetTimes[action] ?? Date().addingTimeInterval(3_600)
+            )
+        }
+
+        return true
     }
 
-    func recordAction(_: RateLimitAction, userId _: String) async {
+    func recordAction(_ action: RateLimitAction, userId: String) async {
         recordActionCalled = true
         recordActionCallCount += 1
+        recordedActions.append((action: action, userId: userId, date: Date()))
     }
 
-    func resetLimits(for _: String) async {
-        // Reset for testing
+    func resetLimits(for userId: String) async {
+        recordedActions.removeAll { $0.userId == userId }
     }
 
-    func getRemainingActions(for _: RateLimitAction, userId _: String) async -> Int {
-        mockRemainingActions
+    func getRemainingActions(for action: RateLimitAction, userId _: String) async -> Int {
+        remainingActions[action] ?? 10
     }
 
-    func getResetTime(for _: RateLimitAction, userId _: String) async -> Date? {
-        mockResetTime
+    func getResetTime(for action: RateLimitAction, userId _: String) async -> Date? {
+        resetTimes[action]
     }
 
-    // Additional helper methods for testing
+    // Test helpers
     func reset() {
+        shouldAllow = true
+        shouldThrowRateLimitError = false
+        shouldThrowError = false
+        errorToThrow = nil
+        recordedActions.removeAll()
+        remainingActions.removeAll()
+        resetTimes.removeAll()
         checkLimitCalled = false
         recordActionCalled = false
-        shouldThrowRateLimitError = false
-        shouldAllowAction = true
-        shouldAllow = true
-        lastCheckedAction = nil
-        lastCheckedUserId = nil
-    }
-
-    func isLimited(for _: RateLimitAction, userId _: String) -> Bool {
-        shouldThrowRateLimitError
-    }
-
-    func timeUntilReset(for _: RateLimitAction, userId _: String) -> TimeInterval? {
-        shouldThrowRateLimitError ? 300 : nil
+        recordActionCallCount = 0
     }
 }

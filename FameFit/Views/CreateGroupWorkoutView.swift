@@ -16,7 +16,7 @@ struct CreateGroupWorkoutView: View {
     @State private var workoutDescription = ""
     @State private var selectedWorkoutType: HKWorkoutActivityType = .running
     @State private var selectedDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
-    @State private var duration: TimeInterval = 3600 // 1 hour default
+    @State private var duration: TimeInterval = 3_600 // 1 hour default
     @State private var maxParticipants = 8
     @State private var isPublic = true
     @State private var tags: [String] = []
@@ -29,16 +29,16 @@ struct CreateGroupWorkoutView: View {
     private let workoutTypes: [HKWorkoutActivityType] = [
         .running, .walking, .hiking, .cycling, .swimming,
         .functionalStrengthTraining, .traditionalStrengthTraining,
-        .yoga, .pilates, .boxing, .kickboxing,
+        .yoga, .pilates, .boxing, .kickboxing
     ]
 
     private let durationOptions: [(String, TimeInterval)] = [
-        ("30 min", 1800),
-        ("45 min", 2700),
-        ("1 hour", 3600),
-        ("1.5 hours", 5400),
-        ("2 hours", 7200),
-        ("3 hours", 10800),
+        ("30 min", 1_800),
+        ("45 min", 2_700),
+        ("1 hour", 3_600),
+        ("1.5 hours", 5_400),
+        ("2 hours", 7_200),
+        ("3 hours", 10_800)
     ]
 
     var body: some View {

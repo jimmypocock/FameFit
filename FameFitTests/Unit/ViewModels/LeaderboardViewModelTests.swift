@@ -71,8 +71,8 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Current User",
             bio: "",
             workoutCount: 50,
-            totalXP: 5000,
-            joinedDate: Date().addingTimeInterval(-30 * 24 * 3600),
+            totalXP: 5_000,
+            joinedDate: Date().addingTimeInterval(-30 * 24 * 3_600),
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
@@ -100,7 +100,7 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Friend 1",
             bio: "",
             workoutCount: 30,
-            totalXP: 1500,
+            totalXP: 1_500,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -114,7 +114,7 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Friend 2",
             bio: "",
             workoutCount: 45,
-            totalXP: 2250,
+            totalXP: 2_250,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -159,8 +159,8 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Today User",
             bio: "",
             workoutCount: 10,
-            totalXP: 1000,
-            joinedDate: Date().addingTimeInterval(-7 * 24 * 3600),
+            totalXP: 1_000,
+            joinedDate: Date().addingTimeInterval(-7 * 24 * 3_600),
             lastUpdated: Date(), // Today
             isVerified: false,
             privacyLevel: .publicProfile,
@@ -174,9 +174,9 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Yesterday User",
             bio: "",
             workoutCount: 20,
-            totalXP: 2000,
-            joinedDate: Date().addingTimeInterval(-14 * 24 * 3600),
-            lastUpdated: Date().addingTimeInterval(-24 * 3600), // Yesterday
+            totalXP: 2_000,
+            joinedDate: Date().addingTimeInterval(-14 * 24 * 3_600),
+            lastUpdated: Date().addingTimeInterval(-24 * 3_600), // Yesterday
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -221,8 +221,8 @@ final class LeaderboardViewModelTests: XCTestCase {
         // Given - Clear existing profiles and create profiles with same XP
         mockUserProfileService.profiles.removeAll()
 
-        let profile1 = createProfile(id: "user1", xp: 1000)
-        let profile2 = createProfile(id: "user2", xp: 1000)
+        let profile1 = createProfile(id: "user1", xp: 1_000)
+        let profile2 = createProfile(id: "user2", xp: 1_000)
         let profile3 = createProfile(id: "user3", xp: 800)
 
         mockUserProfileService.profiles["user1"] = profile1
@@ -270,7 +270,7 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Friend 1",
             bio: "",
             workoutCount: 25,
-            totalXP: 1250,
+            totalXP: 1_250,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -304,8 +304,8 @@ final class LeaderboardViewModelTests: XCTestCase {
             displayName: "Workout User",
             bio: "",
             workoutCount: 100,
-            totalXP: 5000,
-            joinedDate: Date().addingTimeInterval(-30 * 24 * 3600),
+            totalXP: 5_000,
+            joinedDate: Date().addingTimeInterval(-30 * 24 * 3_600),
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
@@ -334,7 +334,7 @@ final class LeaderboardViewModelTests: XCTestCase {
             bio: "",
             workoutCount: xp / 100,
             totalXP: xp,
-            joinedDate: Date().addingTimeInterval(-30 * 24 * 3600),
+            joinedDate: Date().addingTimeInterval(-30 * 24 * 3_600),
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,

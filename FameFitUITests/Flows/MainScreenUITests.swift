@@ -6,17 +6,17 @@ class MainScreenUITests: BaseUITestCase {
         // Launch app skipping onboarding to go straight to main screen
         launchAppSkippingOnboarding()
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func waitForMainScreen() -> Bool {
         // Try multiple ways to detect if we're on the main screen
-        return waitForElement(app.staticTexts["Total XP"], timeout: 10) ||
-               waitForElement(app.otherElements["Total XP"], timeout: 2) ||
-               waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
-               app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'XP'")).count > 0 ||
-               app.otherElements.matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0 ||
-               app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0
+        waitForElement(app.staticTexts["Total XP"], timeout: 10) ||
+            waitForElement(app.otherElements["Total XP"], timeout: 2) ||
+            waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'XP'")).count > 0 ||
+            app.otherElements.matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0 ||
+            app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0
     }
 
     // MARK: - Main Screen Layout Tests
@@ -25,86 +25,94 @@ class MainScreenUITests: BaseUITestCase {
         // Debug: Print all available static texts
         wait(for: 2.0) // Give UI time to render
         print("DEBUG: Available static texts:")
-        for i in 0..<app.staticTexts.count {
+        for i in 0 ..< app.staticTexts.count {
             let text = app.staticTexts.element(boundBy: i)
             if text.exists {
                 print("  - '\(text.label)'")
             }
         }
-        
+
         print("DEBUG: Available other elements:")
-        for i in 0..<min(10, app.otherElements.count) {
+        for i in 0 ..< min(10, app.otherElements.count) {
             let element = app.otherElements.element(boundBy: i)
             if element.exists {
                 print("  - '\(element.identifier)' (label: '\(element.label)')")
             }
         }
-        
+
         // Debug: Also check buttons
         print("DEBUG: Available buttons:")
-        for i in 0..<min(10, app.buttons.count) {
+        for i in 0 ..< min(10, app.buttons.count) {
             let button = app.buttons.element(boundBy: i)
             if button.exists {
                 print("  - '\(button.identifier)' (label: '\(button.label)')")
             }
         }
-        
+
         // Verify main screen elements are present
         // Look for Total XP in multiple ways
         let totalXPFound = waitForElement(app.staticTexts["Total XP"], timeout: 10) ||
-                          waitForElement(app.otherElements["Total XP"], timeout: 2) ||
-                          waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
-                          app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'XP'")).count > 0 ||
-                          app.otherElements.matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0 ||
-                          app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0
-        
+            waitForElement(app.otherElements["Total XP"], timeout: 2) ||
+            waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'XP'")).count > 0 ||
+            app.otherElements.matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0 ||
+            app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Total XP'")).count > 0
+
         // If still not found, let's be more lenient and just check if we're on a screen with stats
-        let hasAnyStats = totalXPFound || 
-                         app.staticTexts.matching(NSPredicate(format: "label MATCHES '\\\\d+'")).count > 0 ||
-                         app.descendants(matching: .any).matching(NSPredicate(format: "identifier CONTAINS 'xp' OR label CONTAINS 'XP'")).count > 0
-        
+        let hasAnyStats = totalXPFound ||
+            app.staticTexts.matching(NSPredicate(format: "label MATCHES '\\\\d+'")).count > 0 ||
+            app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier CONTAINS 'xp' OR label CONTAINS 'XP'")).count > 0
+
         XCTAssertTrue(hasAnyStats, "Should show Total XP element on main screen")
 
         // Check if we can find other common elements
         let hasWorkouts = waitForElement(app.staticTexts["Workouts"], timeout: 5) ||
-                         waitForElement(app.otherElements["Workouts"], timeout: 2) ||
-                         waitForElement(app.buttons["workouts-button"], timeout: 2) ||
-                         app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0
+            waitForElement(app.otherElements["Workouts"], timeout: 2) ||
+            waitForElement(app.buttons["workouts-button"], timeout: 2) ||
+            app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0
         let hasStreak = waitForElement(app.staticTexts["Streak"], timeout: 5) ||
-                       waitForElement(app.otherElements["Streak"], timeout: 2) ||
-                       waitForElement(app.otherElements["streak-card"], timeout: 2) ||
-                       waitForElement(app.otherElements["streak-stat"], timeout: 2) ||
-                       app.otherElements.matching(NSPredicate(format: "label CONTAINS[c] 'streak'")).count > 0 ||
-                       app.staticTexts.matching(NSPredicate(format: "identifier CONTAINS[c] 'streak'")).count > 0 ||
-                       app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier == 'streak-stat'")).count > 0
+            waitForElement(app.otherElements["Streak"], timeout: 2) ||
+            waitForElement(app.otherElements["streak-card"], timeout: 2) ||
+            waitForElement(app.otherElements["streak-stat"], timeout: 2) ||
+            app.otherElements.matching(NSPredicate(format: "label CONTAINS[c] 'streak'")).count > 0 ||
+            app.staticTexts.matching(NSPredicate(format: "identifier CONTAINS[c] 'streak'")).count > 0 ||
+            app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier == 'streak-stat'")).count > 0
 
         // Debug streak specifically if not found
         if !hasStreak {
             print("DEBUG: Streak not found. Looking for any element with 'streak' (case insensitive):")
-            let streakElements = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier CONTAINS[c] 'streak'"))
+            let streakElements = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier CONTAINS[c] 'streak'"))
             print("  Found \(streakElements.count) elements")
-            for i in 0..<min(5, streakElements.count) {
+            for i in 0 ..< min(5, streakElements.count) {
                 let element = streakElements.element(boundBy: i)
                 if element.exists {
                     print("  - Type: \(element.elementType), ID: '\(element.identifier)', Label: '\(element.label)'")
                 }
             }
-            
+
             // Also look for elements with "flame" icon or numeric values near other stats
             print("DEBUG: Looking for elements with flame or near other stats:")
-            let flameElements = app.descendants(matching: .any).matching(NSPredicate(format: "identifier CONTAINS[c] 'flame'"))
+            let flameElements = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier CONTAINS[c] 'flame'"))
             print("  Found \(flameElements.count) flame elements")
         }
-        
+
         // If we can't find Streak specifically, at least verify we're on a stats screen
-        let isOnStatsScreen = hasWorkouts || 
-                             app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Followers' OR label CONTAINS 'Following' OR label CONTAINS 'XP'")).count > 0
-        
+        let isOnStatsScreen = hasWorkouts ||
+            app.staticTexts
+            .matching(
+                NSPredicate(format: "label CONTAINS 'Followers' OR label CONTAINS 'Following' OR label CONTAINS 'XP'")
+            )
+            .count > 0
+
         // Both of these should exist
         XCTAssertTrue(hasWorkouts, "Should show Workouts stat")
-        
+
         // For Streak, be more lenient if we're clearly on the stats screen
-        if isOnStatsScreen && !hasStreak {
+        if isOnStatsScreen, !hasStreak {
             print("WARNING: On stats screen but can't find Streak element. This might be a rendering issue.")
             // Don't fail the test if we're clearly on the right screen
             XCTAssertTrue(isOnStatsScreen, "Should be on stats screen even if Streak element not found")
@@ -129,30 +137,34 @@ class MainScreenUITests: BaseUITestCase {
     func testStatusDisplay() {
         // Wait for main screen to load
         XCTAssertTrue(waitForMainScreen(), "Should be on main screen")
-        
+
         // Give extra time for all stats to render
         wait(for: 1.0)
 
         // Check for stats display with more flexible matching
-        let hasWorkouts = app.staticTexts["Workouts"].exists || 
-                         app.otherElements["Workouts"].exists ||
-                         app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0 ||
-                         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Workouts' OR identifier CONTAINS 'workouts'")).count > 0
-                         
+        let hasWorkouts = app.staticTexts["Workouts"].exists ||
+            app.otherElements["Workouts"].exists ||
+            app.buttons.matching(NSPredicate(format: "label CONTAINS 'Workouts'")).count > 0 ||
+            app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS 'Workouts' OR identifier CONTAINS 'workouts'")).count > 0
+
         // Try multiple ways to find Streak
-        let hasStreak = app.staticTexts["Streak"].exists || 
-                       app.otherElements["Streak"].exists ||
-                       app.otherElements["streak-stat"].exists ||
-                       app.otherElements.matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
-                       app.staticTexts.matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
-                       app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
-                       app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier CONTAINS[c] 'streak'")).count > 0 ||
-                       app.otherElements.matching(NSPredicate(format: "label MATCHES '.*[Ss]treak.*' OR identifier == 'streak-stat'")).count > 0
-        
+        let hasStreak = app.staticTexts["Streak"].exists ||
+            app.otherElements["Streak"].exists ||
+            app.otherElements["streak-stat"].exists ||
+            app.otherElements.matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
+            app.staticTexts.matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
+            app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == 'Streak: 5' OR label == 'Streak: 0'")).count > 0 ||
+            app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] 'streak' OR identifier CONTAINS[c] 'streak'")).count > 0 ||
+            app.otherElements
+            .matching(NSPredicate(format: "label MATCHES '.*[Ss]treak.*' OR identifier == 'streak-stat'")).count > 0
+
         XCTAssertTrue(hasWorkouts, "Should show Workouts label")
-        
+
         // For Streak, be more lenient - if we found Workouts, we're on the right screen
-        if !hasStreak && hasWorkouts {
+        if !hasStreak, hasWorkouts {
             print("WARNING: Streak element not found in testStatusDisplay, but Workouts was found")
             print("This is likely a UI rendering or accessibility issue with the Streak stat card")
             // Don't fail the test if we're clearly on the stats screen

@@ -31,7 +31,7 @@ final class SocialFeedViewModel: ObservableObject {
     // Content filtering
     private let inappropriateWords = Set([
         // This would be a comprehensive list in production
-        "spam", "inappropriate", "offensive",
+        "spam", "inappropriate", "offensive"
     ])
 
     var filteredFeedItems: [FeedItem] {
@@ -55,9 +55,9 @@ final class SocialFeedViewModel: ObservableObject {
             case .today:
                 return Calendar.current.isDateInToday(item.timestamp)
             case .week:
-                return item.timestamp > Date().addingTimeInterval(-7 * 24 * 3600)
+                return item.timestamp > Date().addingTimeInterval(-7 * 24 * 3_600)
             case .month:
-                return item.timestamp > Date().addingTimeInterval(-30 * 24 * 3600)
+                return item.timestamp > Date().addingTimeInterval(-30 * 24 * 3_600)
             case .all:
                 return true
             }
@@ -94,7 +94,7 @@ final class SocialFeedViewModel: ObservableObject {
         do {
             // First, get the list of users we're following
             guard let socialService else { return }
-            let following = try await socialService.getFollowing(for: currentUserId, limit: 1000)
+            let following = try await socialService.getFollowing(for: currentUserId, limit: 1_000)
             followingUsers = Set(following.map(\.id))
 
             // Add self to see own activities
@@ -208,8 +208,7 @@ final class SocialFeedViewModel: ObservableObject {
             // Update the new items with kudos data
             for (index, item) in feedItems.enumerated() {
                 if items.contains(where: { $0.id == item.id }),
-                   let summary = kudosSummaries[item.id]
-                {
+                   let summary = kudosSummaries[item.id] {
                     feedItems[index].kudosSummary = summary
                 }
             }
@@ -299,7 +298,7 @@ final class SocialFeedViewModel: ObservableObject {
                 userID: activityItem.userID,
                 userProfile: userProfile,
                 type: feedItemType,
-                timestamp: activityItem.createdAt,
+                timestamp: activityItem.createdTimestamp,
                 content: content
             )
 
@@ -338,7 +337,7 @@ final class SocialFeedViewModel: ObservableObject {
                 userID: profile.id,
                 userProfile: profile,
                 type: .workout,
-                timestamp: Date().addingTimeInterval(-3600),
+                timestamp: Date().addingTimeInterval(-3_600),
                 content: FeedContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Crushed another workout! 💪",
@@ -346,7 +345,7 @@ final class SocialFeedViewModel: ObservableObject {
                         "workoutType": "High Intensity Interval Training",
                         "duration": "1800",
                         "calories": "450",
-                        "xpEarned": "45",
+                        "xpEarned": "45"
                     ]
                 )
             ))
@@ -356,13 +355,13 @@ final class SocialFeedViewModel: ObservableObject {
                 userID: profile.id,
                 userProfile: profile,
                 type: .achievement,
-                timestamp: Date().addingTimeInterval(-7200),
+                timestamp: Date().addingTimeInterval(-7_200),
                 content: FeedContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
                         "achievementName": "Workout Warrior",
-                        "achievementIcon": "medal.fill",
+                        "achievementIcon": "medal.fill"
                     ]
                 )
             ))
@@ -375,13 +374,13 @@ final class SocialFeedViewModel: ObservableObject {
                 userID: profile2.id,
                 userProfile: profile2,
                 type: .levelUp,
-                timestamp: Date().addingTimeInterval(-10800),
+                timestamp: Date().addingTimeInterval(-10_800),
                 content: FeedContent(
                     title: "Reached Level 5!",
                     subtitle: nil,
                     details: [
                         "newLevel": "5",
-                        "newTitle": "Fitness Enthusiast",
+                        "newTitle": "Fitness Enthusiast"
                     ]
                 )
             ))

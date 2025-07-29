@@ -316,31 +316,33 @@ final class UserProfileService: UserProfileServicing {
     // MARK: - Search and Discovery
 
     func searchProfiles(query: String, limit: Int) async throws -> [UserProfile] {
-        // CloudKit doesn't support case-insensitive CONTAINS well, so use lowercase for username search
-        let lowercaseQuery = query.lowercased()
-        let predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
-            NSPredicate(format: "username CONTAINS %@", lowercaseQuery),
-            NSPredicate(format: "displayName CONTAINS %@", query), // Display names can have mixed case
-        ])
-
-        let publicPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            predicate,
-            NSPredicate(format: "privacyLevel == %@", ProfilePrivacyLevel.publicProfile.rawValue),
-        ])
-
-        let ckQuery = CKQuery(recordType: "UserProfiles", predicate: publicPredicate)
+        // CloudKit doesn't support CONTAINS operator well
+        // For now, fetch all public profiles and filter locally
+        // In production, you'd want to implement CloudKit full-text search
+        
+        let predicate = NSPredicate(format: "privacyLevel == %@", ProfilePrivacyLevel.publicProfile.rawValue)
+        let ckQuery = CKQuery(recordType: "UserProfiles", predicate: predicate)
         ckQuery.sortDescriptors = [NSSortDescriptor(key: "totalXP", ascending: false)]
-
+        
         do {
-            let results = try await publicDatabase.records(matching: ckQuery, resultsLimit: limit)
+            // Fetch more records to filter from
+            let results = try await publicDatabase.records(matching: ckQuery, resultsLimit: 100)
             let profiles = results.matchResults.compactMap { _, result in
                 try? result.get()
             }.compactMap { UserProfile(from: $0) }
-
+            
+            // Filter locally by username or display name
+            let lowercaseQuery = query.lowercased()
+            let filteredProfiles = profiles.filter { profile in
+                profile.username.lowercased().contains(lowercaseQuery) ||
+                profile.displayName.lowercased().contains(lowercaseQuery)
+            }
+            
             // Cache results
-            profiles.forEach { cacheProfile($0) }
-
-            return profiles
+            filteredProfiles.forEach { cacheProfile($0) }
+            
+            // Return limited results
+            return Array(filteredProfiles.prefix(limit))
         } catch {
             throw ProfileServiceError.networkError(error)
         }
@@ -408,7 +410,7 @@ final class UserProfileService: UserProfileServicing {
         let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "privacyLevel == %@", ProfilePrivacyLevel.publicProfile.rawValue),
-            NSPredicate(format: "lastUpdated >= %@", sevenDaysAgo as NSDate),
+            NSPredicate(format: "lastUpdated >= %@", sevenDaysAgo as NSDate)
         ])
 
         let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
@@ -492,7 +494,7 @@ final class UserProfileService: UserProfileServicing {
         let contentToCheck = [
             profile.username.lowercased(),
             profile.displayName.lowercased(),
-            profile.bio.lowercased(),
+            profile.bio.lowercased()
         ]
 
         for content in contentToCheck {
@@ -556,8 +558,7 @@ extension UserProfileService {
 
             // Get the asset URL from the saved record
             if let savedAsset = savedRecord[isHeader ? "headerImageAsset" : "profileImageAsset"] as? CKAsset,
-               let url = savedAsset.fileURL?.absoluteString
-            {
+               let url = savedAsset.fileURL?.absoluteString {
                 // Update the profile cache with the new URL
                 if let profile = UserProfile(from: savedRecord) {
                     cacheProfile(profile)
@@ -614,7 +615,7 @@ extension UserProfileService {
     // MARK: - Private Photo Methods
 
     private func processImage(_ image: UIImage, isHeader: Bool) throws -> UIImage {
-        let maxSize: CGFloat = isHeader ? 1200 : 400 // Header images can be larger
+        let maxSize: CGFloat = isHeader ? 1_200 : 400 // Header images can be larger
         let targetSize = CGSize(width: maxSize, height: maxSize)
 
         // Calculate aspect ratio
@@ -648,11 +649,11 @@ extension UserProfileService {
 
         // Check file size (max 5MB for CloudKit)
         guard let data = processedImage.jpegData(compressionQuality: 0.8),
-              data.count < 5 * 1024 * 1024
+              data.count < 5 * 1_024 * 1_024
         else {
             // Try with lower quality
             guard let lowQualityData = processedImage.jpegData(compressionQuality: 0.5),
-                  lowQualityData.count < 5 * 1024 * 1024
+                  lowQualityData.count < 5 * 1_024 * 1_024
             else {
                 throw ProfileServiceError.imageTooLarge
             }
@@ -667,14 +668,14 @@ extension UserProfileService {
 
 extension ProfileServiceError {
     static let imageProcessingFailed = ProfileServiceError.networkError(
-        NSError(domain: "UserProfileService", code: 1001, userInfo: [
-            NSLocalizedDescriptionKey: "Failed to process image",
+        NSError(domain: "UserProfileService", code: 1_001, userInfo: [
+            NSLocalizedDescriptionKey: "Failed to process image"
         ])
     )
 
     static let imageTooLarge = ProfileServiceError.networkError(
-        NSError(domain: "UserProfileService", code: 1002, userInfo: [
-            NSLocalizedDescriptionKey: "Image file size is too large. Please choose a smaller image.",
+        NSError(domain: "UserProfileService", code: 1_002, userInfo: [
+            NSLocalizedDescriptionKey: "Image file size is too large. Please choose a smaller image."
         ])
     )
 }

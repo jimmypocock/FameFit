@@ -81,9 +81,9 @@ final class LeaderboardViewTests: XCTestCase {
             id: profile.id,
             rank: 1,
             profile: profile,
-            xpEarned: 1500,
+            xpEarned: 1_500,
             workoutCount: 10,
-            totalDuration: 3600,
+            totalDuration: 3_600,
             isCurrentUser: true,
             rankChange: .up(2)
         )
@@ -91,9 +91,9 @@ final class LeaderboardViewTests: XCTestCase {
         // Then
         XCTAssertEqual(entry.id, profile.id)
         XCTAssertEqual(entry.rank, 1)
-        XCTAssertEqual(entry.xpEarned, 1500)
+        XCTAssertEqual(entry.xpEarned, 1_500)
         XCTAssertEqual(entry.workoutCount, 10)
-        XCTAssertEqual(entry.totalDuration, 3600)
+        XCTAssertEqual(entry.totalDuration, 3_600)
         XCTAssertTrue(entry.isCurrentUser)
 
         if case let .up(positions) = entry.rankChange {
@@ -132,9 +132,9 @@ final class LeaderboardViewTests: XCTestCase {
             id: "1",
             rank: 1,
             profile: profile,
-            xpEarned: 1000,
+            xpEarned: 1_000,
             workoutCount: 10,
-            totalDuration: 3600,
+            totalDuration: 3_600,
             isCurrentUser: false,
             rankChange: nil
         )
@@ -149,7 +149,7 @@ final class LeaderboardViewTests: XCTestCase {
             profile: profile,
             xpEarned: 900,
             workoutCount: 9,
-            totalDuration: 3200,
+            totalDuration: 3_200,
             isCurrentUser: false,
             rankChange: nil
         )
@@ -164,7 +164,7 @@ final class LeaderboardViewTests: XCTestCase {
             profile: profile,
             xpEarned: 500,
             workoutCount: 5,
-            totalDuration: 1800,
+            totalDuration: 1_800,
             isCurrentUser: false,
             rankChange: nil
         )
@@ -241,7 +241,7 @@ final class LeaderboardViewTests: XCTestCase {
             createMockEntry(rank: 1, userId: "user1"),
             createMockEntry(rank: 2, userId: "user2"),
             createMockEntry(rank: 3, userId: "user3"),
-            createMockEntry(rank: 15, userId: "current-user", isCurrentUser: true),
+            createMockEntry(rank: 15, userId: "current-user", isCurrentUser: true)
         ]
 
         // When view appears, it should scroll to current user
@@ -259,9 +259,9 @@ final class LeaderboardViewTests: XCTestCase {
             id: userId,
             rank: rank,
             profile: UserProfile.mockProfile,
-            xpEarned: 1000 - (rank * 50),
+            xpEarned: 1_000 - (rank * 50),
             workoutCount: 20 - rank,
-            totalDuration: TimeInterval(3600 - (rank * 100)),
+            totalDuration: TimeInterval(3_600 - (rank * 100)),
             isCurrentUser: isCurrentUser,
             rankChange: nil
         )

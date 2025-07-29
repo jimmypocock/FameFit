@@ -55,7 +55,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         // Given
         let participants = [
             ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil),
+            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil)
         ]
 
         let challenge = WorkoutChallenge(
@@ -68,7 +68,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
             name: "50km Distance Challenge",
             description: "Run 50km this week",
             startDate: Date(),
-            endDate: Date().addingTimeInterval(7 * 24 * 3600),
+            endDate: Date().addingTimeInterval(7 * 24 * 3_600),
             createdAt: Date(),
             status: .pending,
             winnerId: nil
@@ -126,7 +126,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let challenge = MockWorkoutChallengesService.createMockChallenge()
 
         print("DEBUG: Mock rate limiter shouldThrowError: \(mockRateLimiter.shouldThrowError)")
-        print("DEBUG: Mock rate limiter errorToThrow: \(mockRateLimiter.errorToThrow)")
+        print("DEBUG: Mock rate limiter errorToThrow: \(String(describing: mockRateLimiter.errorToThrow))")
 
         // When/Then
         do {
@@ -216,7 +216,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let challengeId = "test-challenge"
         let participants = [
             ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 0),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 0),
+            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 0)
         ]
 
         sut.setMockRecord(
@@ -242,7 +242,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let targetValue = 50.0
         let participants = [
             ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 45),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 30),
+            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 30)
         ]
 
         sut.setMockRecord(
@@ -296,7 +296,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let challengeId = "test-challenge"
         let participants = [
             ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 55),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 45),
+            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 45)
         ]
 
         sut.setMockRecord(
@@ -325,7 +325,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         // Given
         sut.setMockQueryResults([
             createMockChallengeRecord(id: "active-1", status: .active, participants: ["test-user", "user-2"]),
-            createMockChallengeRecord(id: "active-2", status: .active, participants: ["test-user", "user-3"]),
+            createMockChallengeRecord(id: "active-2", status: .active, participants: ["test-user", "user-3"])
         ])
 
         // When
@@ -339,7 +339,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
     func testFetchPendingChallenge_Success() async throws {
         // Given
         sut.setMockQueryResults([
-            createMockChallengeRecord(id: "pending-1", status: .pending, participants: ["test-user", "user-2"]),
+            createMockChallengeRecord(id: "pending-1", status: .pending, participants: ["test-user", "user-2"])
         ])
 
         // When
@@ -364,7 +364,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
                 status: .pending,
                 participants: ["user-3", "user-4"],
                 isPublic: true
-            ),
+            )
         ])
 
         // When
@@ -399,7 +399,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         record["name"] = "Test Challenge"
         record["description"] = "Test Description"
         record["startDate"] = Date()
-        record["endDate"] = Date().addingTimeInterval(7 * 24 * 3600)
+        record["endDate"] = Date().addingTimeInterval(7 * 24 * 3_600)
         record["createdAt"] = Date()
         record["status"] = status.rawValue
         record["xpStake"] = Int64(xpStake)

@@ -30,6 +30,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Schedule background sync if needed
         scheduleBackgroundSync()
+        
+        // Initialize WatchConnectivity
+        _ = WatchConnectivityManager.shared
 
         return true
     }
@@ -81,7 +84,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         request.requiresExternalPower = false
 
         // Try to run at least once per day
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 3600) // 1 hour from now
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 3_600) // 1 hour from now
 
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -159,8 +162,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             // Check if this is a silent notification for background updates
             if let aps = userInfo["aps"] as? [String: Any],
                let contentAvailable = aps["content-available"] as? Int,
-               contentAvailable == 1
-            {
+               contentAvailable == 1 {
                 // Handle background update
                 FameFitLogger.info("Processing silent notification", category: FameFitLogger.app)
 

@@ -378,7 +378,7 @@ struct NotificationRowView: View {
                     duration: 30,
                     calories: 250,
                     xpEarned: 45,
-                    distance: 5000,
+                    distance: 5_000,
                     averageHeartRate: 150
                 ))
             ),
@@ -419,7 +419,7 @@ struct NotificationRowView: View {
                     achievementId: "warrior",
                     achievementName: "Workout Warrior",
                     achievementDescription: "Complete 50 workouts",
-                    xpRequired: 1000,
+                    xpRequired: 1_000,
                     category: "fitness",
                     iconEmoji: "🏆"
                 )),

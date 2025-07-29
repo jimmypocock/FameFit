@@ -177,7 +177,7 @@ struct CommentRowView: View {
     private var timeAgoString: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: commentWithUser.comment.createdAt, relativeTo: Date())
+        return formatter.localizedString(for: commentWithUser.comment.createdTimestamp, relativeTo: Date())
     }
 }
 
@@ -195,8 +195,8 @@ struct CommentRowView: View {
                         userId: "user1",
                         workoutOwnerId: "owner1",
                         content: "Great workout! Your form looked amazing throughout the entire session. Keep it up! 💪",
-                        createdAt: Date().addingTimeInterval(-3600),
-                        updatedAt: Date().addingTimeInterval(-3600),
+                        createdTimestamp: Date().addingTimeInterval(-3_600),
+                        modifiedTimestamp: Date().addingTimeInterval(-3_600),
                         parentCommentId: nil,
                         isEdited: false,
                         likeCount: 3
@@ -208,8 +208,8 @@ struct CommentRowView: View {
                         displayName: "Fitness Coach Sarah",
                         bio: "Certified trainer",
                         workoutCount: 127,
-                        totalXP: 5000,
-                        joinedDate: Date().addingTimeInterval(-86400 * 365),
+                        totalXP: 5_000,
+                        joinedDate: Date().addingTimeInterval(-86_400 * 365),
                         lastUpdated: Date(),
                         isVerified: true,
                         privacyLevel: .publicProfile,
@@ -235,8 +235,8 @@ struct CommentRowView: View {
                         userId: "user2",
                         workoutOwnerId: "owner1",
                         content: "Thanks for the motivation! 🙏",
-                        createdAt: Date().addingTimeInterval(-1800),
-                        updatedAt: Date().addingTimeInterval(-1800),
+                        createdTimestamp: Date().addingTimeInterval(-1_800),
+                        modifiedTimestamp: Date().addingTimeInterval(-1_800),
                         parentCommentId: "1",
                         isEdited: false,
                         likeCount: 1
@@ -248,8 +248,8 @@ struct CommentRowView: View {
                         displayName: "Mike Johnson",
                         bio: "Weekend warrior",
                         workoutCount: 45,
-                        totalXP: 1200,
-                        joinedDate: Date().addingTimeInterval(-86400 * 180),
+                        totalXP: 1_200,
+                        joinedDate: Date().addingTimeInterval(-86_400 * 180),
                         lastUpdated: Date(),
                         isVerified: false,
                         privacyLevel: .publicProfile,

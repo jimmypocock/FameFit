@@ -74,13 +74,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         schemaManager = CloudKitSchemaManager(container: container)
         super.init()
 
-        // Skip CloudKit initialization in UI tests to prevent crashes
-        if ProcessInfo.processInfo.arguments.contains("UI-Testing") {
-            isSignedIn = true
-            userName = "Test User"
-        } else {
-            checkAccountStatus()
-        }
+        checkAccountStatus()
     }
 
     func checkAccountStatus() {
@@ -278,11 +272,11 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         switch totalXP {
         case 0 ..< 100:
             "Fitness Newbie"
-        case 100 ..< 1000:
+        case 100 ..< 1_000:
             "Micro-Influencer"
-        case 1000 ..< 10000:
+        case 1_000 ..< 10_000:
             "Rising Star"
-        case 10000 ..< 100_000:
+        case 10_000 ..< 100_000:
             "Verified Influencer"
         default:
             "FameFit Elite"
@@ -390,8 +384,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
 
                 // If we get any query error, just return empty for now
                 if error.localizedDescription.contains("marked queryable")
-                    || error.localizedDescription.contains("Did not find record type")
-                {
+                    || error.localizedDescription.contains("Did not find record type") {
                     FameFitLogger.info(
                         "Query not supported or record type missing - returning empty",
                         category: FameFitLogger.cloudKit

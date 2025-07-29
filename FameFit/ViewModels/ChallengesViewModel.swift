@@ -132,8 +132,7 @@ final class ChallengesViewModel: ObservableObject {
             // Check for completed challenges
             for challenge in activeChallenges {
                 if let updated = updatedChallenges.first(where: { $0.id == challenge.id }),
-                   updated.status == .completed, challenge.status != .completed
-                {
+                   updated.status == .completed, challenge.status != .completed {
                     // Move to completed
                     activeChallenges.removeAll { $0.id == challenge.id }
                     completedChallenges.insert(updated, at: 0)

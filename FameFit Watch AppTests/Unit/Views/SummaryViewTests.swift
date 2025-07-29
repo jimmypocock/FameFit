@@ -27,10 +27,10 @@ class SummaryViewTests: XCTestCase {
         // Given - Complete a workout
         mockWorkoutManager.simulateWorkoutInProgress(
             type: .running,
-            duration: 2700, // 45 minutes
+            duration: 2_700, // 45 minutes
             heartRate: 155,
             calories: 400,
-            distance: 7500 // 7.5km
+            distance: 7_500 // 7.5km
         )
 
         // When
@@ -38,9 +38,9 @@ class SummaryViewTests: XCTestCase {
 
         // Then
         XCTAssertTrue(mockWorkoutManager.showingSummaryView)
-        XCTAssertEqual(mockWorkoutManager.elapsedTimeForSummary, 2700)
+        XCTAssertEqual(mockWorkoutManager.elapsedTimeForSummary, 2_700)
         XCTAssertEqual(mockWorkoutManager.totalCaloriesForSummary, 400)
-        XCTAssertEqual(mockWorkoutManager.totalDistanceForSummary, 7500)
+        XCTAssertEqual(mockWorkoutManager.totalDistanceForSummary, 7_500)
         XCTAssertEqual(mockWorkoutManager.averageHeartRateForSummary, 150) // 155 - 5
     }
 
@@ -62,11 +62,11 @@ class SummaryViewTests: XCTestCase {
 
     func testSummaryForDifferentWorkoutTypes() {
         let workoutConfigs: [(type: HKWorkoutActivityType, duration: TimeInterval, calories: Double)] = [
-            (.walking, 3600, 200), // 1 hour walk
-            (.cycling, 5400, 600), // 1.5 hour bike ride
-            (.swimming, 1800, 350), // 30 min swim
-            (.yoga, 2700, 150), // 45 min yoga
-            (.hiking, 7200, 500), // 2 hour hike
+            (.walking, 3_600, 200), // 1 hour walk
+            (.cycling, 5_400, 600), // 1.5 hour bike ride
+            (.swimming, 1_800, 350), // 30 min swim
+            (.yoga, 2_700, 150), // 45 min yoga
+            (.hiking, 7_200, 500) // 2 hour hike
         ]
 
         for config in workoutConfigs {

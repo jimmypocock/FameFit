@@ -75,7 +75,7 @@ struct DeviceTokenRecord {
     let appVersion: String
     let osVersion: String
     let environment: String // "development" or "production"
-    let createdAt: Date
+    let createdTimestamp: Date
     let lastUpdated: Date
     let isActive: Bool
 }
@@ -374,7 +374,7 @@ extension APNSManager {
                     identifier: "KUDOS_BACK",
                     title: "Kudos Back",
                     options: .authenticationRequired
-                ),
+                )
             ],
             intentIdentifiers: [],
             options: .customDismissAction
@@ -392,7 +392,7 @@ extension APNSManager {
                     identifier: "DECLINE_FOLLOW",
                     title: "Decline",
                     options: .destructive
-                ),
+                )
             ],
             intentIdentifiers: [],
             options: .customDismissAction
@@ -410,7 +410,7 @@ extension APNSManager {
                     identifier: "SHARE_WORKOUT",
                     title: "Share",
                     options: .foreground
-                ),
+                )
             ],
             intentIdentifiers: [],
             options: .customDismissAction

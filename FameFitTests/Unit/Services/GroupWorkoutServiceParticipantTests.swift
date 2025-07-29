@@ -60,11 +60,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "host-456",
                     displayName: "Host User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 5,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         sut.mockWorkouts.append(existingWorkout)
@@ -99,11 +99,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "test-user-123", // Already joined
                     displayName: "Test User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 5,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         sut.mockWorkouts.append(existingWorkout)
@@ -126,11 +126,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             hostId: "host-456",
             participants: [
                 GroupWorkoutParticipant(userId: "user-1", displayName: "User 1", profileImageURL: nil),
-                GroupWorkoutParticipant(userId: "user-2", displayName: "User 2", profileImageURL: nil),
+                GroupWorkoutParticipant(userId: "user-2", displayName: "User 2", profileImageURL: nil)
             ],
             maxParticipants: 2, // Already at capacity
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         sut.mockWorkouts.append(fullWorkout)
@@ -155,8 +155,8 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             workoutType: .running,
             hostId: "host-456",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .cancelled
         )
         sut.mockWorkouts.append(cancelledWorkout)
@@ -187,11 +187,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "host-456",
                     displayName: "Host User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled,
             isPublic: false,
             joinCode: "ABC123"
@@ -239,11 +239,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "participant-456",
                     displayName: "Other User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(300), // 5 minutes from now
-            scheduledEnd: Date().addingTimeInterval(3900),
+            scheduledEnd: Date().addingTimeInterval(3_900),
             status: .scheduled
         )
         sut.mockWorkouts.append(workout)
@@ -278,11 +278,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "test-user-123", // Current user is participant
                     displayName: "Test User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(300),
-            scheduledEnd: Date().addingTimeInterval(3900),
+            scheduledEnd: Date().addingTimeInterval(3_900),
             status: .scheduled
         )
         sut.mockWorkouts.append(workout)
@@ -308,11 +308,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "other-host",
                     displayName: "Other User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(300),
-            scheduledEnd: Date().addingTimeInterval(3900),
+            scheduledEnd: Date().addingTimeInterval(3_900),
             status: .scheduled
         )
         sut.mockWorkouts.append(workout)
@@ -345,16 +345,16 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     profileImageURL: nil,
                     status: .active,
                     workoutData: GroupWorkoutData(
-                        startTime: Date().addingTimeInterval(-1800),
+                        startTime: Date().addingTimeInterval(-1_800),
                         totalEnergyBurned: 250,
-                        totalDistance: 5000,
+                        totalDistance: 5_000,
                         lastUpdated: Date()
                     )
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(-1800),
-            scheduledEnd: Date().addingTimeInterval(1800),
+            scheduledStart: Date().addingTimeInterval(-1_800),
+            scheduledEnd: Date().addingTimeInterval(1_800),
             status: .active
         )
         sut.mockWorkouts.append(activeWorkout)
@@ -389,11 +389,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "test-user-123",
                     displayName: "Test User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         sut.mockWorkouts.append(workout)
@@ -420,11 +420,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     userId: "test-user-123",
                     displayName: "Test User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         sut.mockWorkouts.append(workout)
@@ -456,11 +456,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
                     displayName: "Test User",
                     profileImageURL: nil,
                     status: .active
-                ),
+                )
             ],
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(-600),
-            scheduledEnd: Date().addingTimeInterval(3000),
+            scheduledEnd: Date().addingTimeInterval(3_000),
             status: .active
         )
         sut.mockWorkouts.append(workout)
@@ -468,7 +468,7 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
         let workoutData = GroupWorkoutData(
             startTime: Date().addingTimeInterval(-600),
             totalEnergyBurned: 150,
-            totalDistance: 2500,
+            totalDistance: 2_500,
             averageHeartRate: 145,
             currentHeartRate: 150,
             lastUpdated: Date()

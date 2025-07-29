@@ -112,7 +112,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Given
         mockHealthKitService.isHealthDataAvailable = true
         // Set app install date to 1 day ago so test workouts aren't filtered out
-        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
+        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3_600), forKey: UserDefaultsKeys.appInstallDate)
         let workouts = TestWorkoutBuilder.createMultipleWorkouts(count: 3)
 
         // When - Simulate incremental update
@@ -122,7 +122,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Wait for async processing - use a more reliable approach
         let maxRetries = 10
         var retries = 0
-        while mockCloudKitManager.addXPCalls.count < 3 && retries < maxRetries {
+        while mockCloudKitManager.addXPCalls.count < 3, retries < maxRetries {
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             retries += 1
         }
@@ -137,7 +137,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Given
         mockHealthKitService.isHealthDataAvailable = true
         // Set app install date to 1 day ago so test workouts aren't filtered out
-        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
+        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3_600), forKey: UserDefaultsKeys.appInstallDate)
         let workouts = TestWorkoutBuilder.createMultipleWorkouts(count: 2)
 
         // When - Simulate incremental update
@@ -167,13 +167,13 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Create workouts - one before install, one after
         let oldWorkout = TestWorkoutBuilder.createWorkout(
             type: .running,
-            startDate: Date().addingTimeInterval(-86400), // 1 day ago
-            endDate: Date().addingTimeInterval(-85000)
+            startDate: Date().addingTimeInterval(-86_400), // 1 day ago
+            endDate: Date().addingTimeInterval(-85_000)
         )
         let newWorkout = TestWorkoutBuilder.createWorkout(
             type: .running,
             startDate: Date().addingTimeInterval(100),
-            endDate: Date().addingTimeInterval(1000)
+            endDate: Date().addingTimeInterval(1_000)
         )
 
         // When
@@ -196,7 +196,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Given
         mockHealthKitService.isHealthDataAvailable = true
         // Set app install date to 1 day ago so test workouts aren't filtered out
-        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
+        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3_600), forKey: UserDefaultsKeys.appInstallDate)
 
         // Create invalid workout (duration = 0)
         let now = Date()
@@ -248,7 +248,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Given
         mockHealthKitService.isHealthDataAvailable = true
         // Set app install date to 1 day ago so test workouts aren't filtered out
-        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
+        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3_600), forKey: UserDefaultsKeys.appInstallDate)
         let workouts = TestWorkoutBuilder.createMultipleWorkouts(count: 2)
 
         // When - Simulate incremental update
@@ -271,9 +271,9 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Given
         mockHealthKitService.isHealthDataAvailable = true
         // Set app install date to 1 day ago so test workouts aren't filtered out
-        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3600), forKey: UserDefaultsKeys.appInstallDate)
+        UserDefaults.standard.set(Date().addingTimeInterval(-24 * 3_600), forKey: UserDefaultsKeys.appInstallDate)
         let workout = TestWorkoutBuilder.createRunWorkout(
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             calories: 250
         )
 

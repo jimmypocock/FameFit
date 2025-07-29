@@ -71,7 +71,7 @@ struct FollowRequest: Codable, Identifiable {
     let requesterProfile: UserProfile?
     let targetId: String
     let status: String // "pending", "accepted", "rejected", "expired"
-    let createdAt: Date
+    let createdTimestamp: Date
     let expiresAt: Date
     let message: String?
 
@@ -166,15 +166,15 @@ enum RateLimitAction: String, CaseIterable {
     var limits: RateLimits {
         switch self {
         case .follow:
-            RateLimits(minutely: 5, hourly: 60, daily: 500, weekly: 1000)
+            RateLimits(minutely: 5, hourly: 60, daily: 500, weekly: 1_000)
         case .unfollow:
             RateLimits(minutely: 3, hourly: 30, daily: 100, weekly: 500)
         case .search:
-            RateLimits(minutely: 20, hourly: 200, daily: 1000, weekly: nil)
+            RateLimits(minutely: 20, hourly: 200, daily: 1_000, weekly: nil)
         case .feedRefresh:
-            RateLimits(minutely: 10, hourly: 100, daily: 1000, weekly: nil)
+            RateLimits(minutely: 10, hourly: 100, daily: 1_000, weekly: nil)
         case .profileView:
-            RateLimits(minutely: 30, hourly: 500, daily: 5000, weekly: nil)
+            RateLimits(minutely: 30, hourly: 500, daily: 5_000, weekly: nil)
         case .workoutPost:
             RateLimits(minutely: 1, hourly: 10, daily: 50, weekly: nil)
         case .followRequest:
@@ -182,7 +182,7 @@ enum RateLimitAction: String, CaseIterable {
         case .report:
             RateLimits(minutely: 1, hourly: 5, daily: 20, weekly: nil)
         case .like:
-            RateLimits(minutely: 60, hourly: 600, daily: 2000, weekly: nil)
+            RateLimits(minutely: 60, hourly: 600, daily: 2_000, weekly: nil)
         case .comment:
             RateLimits(minutely: 10, hourly: 100, daily: 500, weekly: nil)
         }

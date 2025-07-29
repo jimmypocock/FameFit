@@ -112,8 +112,8 @@ class MainViewTests: XCTestCase {
 
     func testViewDisplaysDateInformation() {
         // Given
-        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3600)
-        let twoHoursAgo = Date().addingTimeInterval(-2 * 3600)
+        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3_600)
+        let twoHoursAgo = Date().addingTimeInterval(-2 * 3_600)
 
         mockCloudKitManager.joinTimestamp = thirtyDaysAgo
         mockCloudKitManager.lastWorkoutTimestamp = twoHoursAgo

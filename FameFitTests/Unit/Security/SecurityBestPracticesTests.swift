@@ -103,7 +103,7 @@ class SecurityBestPracticesTests: XCTestCase {
             .cloudKitNotAvailable,
             .healthKitNotAvailable,
             .healthKitAuthorizationDenied,
-            .authenticationCancelled,
+            .authenticationCancelled
         ]
 
         for error in errors {

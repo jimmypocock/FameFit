@@ -71,7 +71,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "Welcome to the ELITE",
             "Let's GO babe",
             "This workout is sponsored",
-            "Bro, I woke up",
+            "Bro, I woke up"
         ]
         let containsStartMessage = workoutStartMessages.contains { message.contains($0) }
         XCTAssertTrue(containsStartMessage, "Message should be a workout start message, but got: \(message)")
@@ -79,7 +79,7 @@ class FameFitMessageProviderTests: XCTestCase {
 
     func testWorkoutEndMessage() {
         // Given
-        let context = MessageContext.workoutEnd(workoutType: .running, duration: 1800) // 30 minutes
+        let context = MessageContext.workoutEnd(workoutType: .running, duration: 1_800) // 30 minutes
 
         // When
         let message = messageProvider.getMessage(for: context)
@@ -113,8 +113,7 @@ class FameFitMessageProviderTests: XCTestCase {
             let message = messageProvider.getMessage(for: context)
             if message.contains("shorter") || message.contains("commercial") ||
                 message.contains("blinked") || message.contains("attention span") ||
-                message.contains("skincare routine")
-            {
+                message.contains("skincare routine") {
                 foundRoast = true
                 break
             }
@@ -153,7 +152,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "nailing",
             "progress",
             "moment",
-            "Embrace",
+            "Embrace"
         ]
         let containsEncouragement = encouragementKeywords.contains { keyword in
             roastMessage.contains(keyword)
@@ -227,7 +226,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "sunrise",
             "Morning",
             "wake",
-            "sun",
+            "sun"
         ]
         let containsMorningMessage = morningKeywords.contains { keyword in
             message.lowercased().contains(keyword.lowercased())
@@ -272,7 +271,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "nailing",
             "progress",
             "determination",
-            "moment",
+            "moment"
         ]
         let containsEncouragement = encouragementKeywords.contains { keyword in
             message.contains(keyword)
@@ -313,7 +312,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "meditating",
             "standing",
             "weak",
-            "pretend",
+            "pretend"
         ]
         let containsRunningRoast = runningKeywords.contains { keyword in
             roastMessage.lowercased().contains(keyword.lowercased())
@@ -351,7 +350,7 @@ class FameFitMessageProviderTests: XCTestCase {
             "weak",
             "pretend",
             "happen",
-            "dignity",
+            "dignity"
         ]
         let containsStrengthRoast = strengthKeywords.contains { keyword in
             roastMessage.lowercased().contains(keyword.lowercased())
@@ -410,7 +409,7 @@ class FameFitMessageProviderTests: XCTestCase {
         // When & Then
         XCTAssertFalse(FameFitMessages.getMessage(for: .workoutStart).isEmpty)
         XCTAssertFalse(FameFitMessages.getTimeAwareMessage().isEmpty)
-        XCTAssertFalse(FameFitMessages.getWorkoutSpecificMessage(workoutType: "running", duration: 1800).isEmpty)
+        XCTAssertFalse(FameFitMessages.getWorkoutSpecificMessage(workoutType: "running", duration: 1_800).isEmpty)
     }
 
     // MARK: - Edge Cases Tests
@@ -436,7 +435,7 @@ class FameFitMessageProviderTests: XCTestCase {
 
     func testVeryLongWorkout() {
         // Given
-        let context = MessageContext.workoutEnd(workoutType: .running, duration: 7200) // 2 hours
+        let context = MessageContext.workoutEnd(workoutType: .running, duration: 7_200) // 2 hours
 
         // When
         let message = messageProvider.getMessage(for: context)

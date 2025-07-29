@@ -102,7 +102,7 @@ struct WorkoutChallenge: Identifiable, Codable {
     let description: String
     let startDate: Date
     let endDate: Date
-    let createdAt: Date
+    let createdTimestamp: Date
     var status: ChallengeStatus
     var winnerId: String?
 
@@ -161,15 +161,15 @@ struct WorkoutChallenge: Identifiable, Codable {
         // Reasonable limits per type
         switch type {
         case .distance:
-            return targetValue <= 1000 // Max 1000 km
+            return targetValue <= 1_000 // Max 1000 km
         case .duration:
-            return targetValue <= 10000 // Max 10000 minutes
+            return targetValue <= 10_000 // Max 10000 minutes
         case .calories:
-            return targetValue <= 50000 // Max 50000 calories
+            return targetValue <= 50_000 // Max 50000 calories
         case .workoutCount:
             return targetValue <= 100 // Max 100 workouts
         case .totalXP:
-            return targetValue <= 10000 // Max 10000 XP
+            return targetValue <= 10_000 // Max 10000 XP
         case .specificWorkout:
             return targetValue <= 50 // Max 50 specific workouts
         }
@@ -190,7 +190,7 @@ extension WorkoutChallenge {
               let description = record["description"] as? String,
               let startDate = record["startDate"] as? Date,
               let endDate = record["endDate"] as? Date,
-              let createdAt = record["createdAt"] as? Date,
+              let createdTimestamp = record["createdTimestamp"] as? Date,
               let statusString = record["status"] as? String,
               let status = ChallengeStatus(rawValue: statusString)
         else {
@@ -207,7 +207,7 @@ extension WorkoutChallenge {
         self.description = description
         self.startDate = startDate
         self.endDate = endDate
-        self.createdAt = createdAt
+        self.createdTimestamp = createdTimestamp
         self.status = status
         winnerId = record["winnerId"] as? String
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
@@ -238,7 +238,7 @@ extension WorkoutChallenge {
         record["description"] = description
         record["startDate"] = startDate
         record["endDate"] = endDate
-        record["createdAt"] = createdAt
+        record["createdTimestamp"] = createdTimestamp
         record["status"] = status.rawValue
 
         if let winnerId {

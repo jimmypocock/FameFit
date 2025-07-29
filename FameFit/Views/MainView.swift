@@ -178,7 +178,7 @@ struct MainView: View {
             UserSearchView()
         }
         .sheet(isPresented: $showingSocialFeed) {
-            SocialFeedView()
+            SocialFeedView(showingFilters: .constant(false), onDiscoverTap: nil)
         }
         .sheet(isPresented: $showingWorkoutSharingPrompt) {
             if let workout = workoutToShare {
@@ -201,15 +201,6 @@ struct MainView: View {
             viewModel.loadUserProfile()
             viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
-
-            #if DEBUG
-                // Add test notifications for manual verification of notification pipeline
-                if container.notificationStore.notifications.isEmpty {
-                    container.addTestNotifications()
-                    // Test notification settings integration
-                    container.testNotificationSettingsIntegration()
-                }
-            #endif
         }
     }
 

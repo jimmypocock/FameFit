@@ -62,7 +62,7 @@ class MockWorkoutManager: ObservableObject, WorkoutManaging {
             heartRate = 120
             averageHeartRate = 115
             activeEnergy = 50
-            distance = 1000 // 1km
+            distance = 1_000 // 1km
         }
     }
 
@@ -161,7 +161,7 @@ class MockWorkoutManager: ObservableObject, WorkoutManaging {
         duration: TimeInterval = 600,
         heartRate: Double = 130,
         calories: Double = 75,
-        distance: Double = 1500
+        distance: Double = 1_500
     ) {
         selectedWorkout = type
         isWorkoutRunning = true

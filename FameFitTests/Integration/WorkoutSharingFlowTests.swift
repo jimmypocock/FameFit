@@ -63,9 +63,9 @@ final class WorkoutSharingFlowTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.2,
             averageHeartRate: 140,
@@ -275,7 +275,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     private func createTestWorkout(
         workoutType: String = "running",
-        duration: TimeInterval = 1800,
+        duration: TimeInterval = 1_800,
         followersEarned: Int = 25
     ) -> WorkoutHistoryItem {
         WorkoutHistoryItem(

@@ -44,7 +44,7 @@ final class CloudKitPushNotificationService {
 
         // Add custom data
         var customData: [String: String] = [
-            "notificationType": request.type.rawValue,
+            "notificationType": request.type.rawValue
         ]
 
         if let metadata = request.metadata {
@@ -95,7 +95,7 @@ final class CloudKitPushNotificationService {
     private func fetchActiveDeviceTokens(for userID: String) async throws -> [DeviceTokenRecord] {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "userID == %@", userID),
-            NSPredicate(format: "isActive == 1"),
+            NSPredicate(format: "isActive == 1")
         ])
 
         let query = CKQuery(recordType: "DeviceTokens", predicate: predicate)
@@ -140,7 +140,7 @@ final class CloudKitPushNotificationService {
             appVersion: appVersion,
             osVersion: osVersion,
             environment: environment,
-            createdAt: record.creationDate ?? Date(),
+            createdTimestamp: record.creationDate ?? Date(),
             lastUpdated: lastUpdated,
             isActive: isActive == 1
         )
@@ -166,14 +166,13 @@ final class CloudKitPushNotificationService {
         record["category"] = request.category
         record["threadId"] = request.threadId
         record["deviceTokens"] = deviceTokens.map(\.deviceToken)
-        record["createdAt"] = Date()
+        record["createdTimestamp"] = Date()
         record["status"] = "pending"
 
         // Add metadata as JSON string
         if let metadata = request.metadata,
            let jsonData = try? JSONSerialization.data(withJSONObject: metadata),
-           let jsonString = String(data: jsonData, encoding: .utf8)
-        {
+           let jsonString = String(data: jsonData, encoding: .utf8) {
             record["metadata"] = jsonString
         }
 
@@ -188,7 +187,7 @@ final class CloudKitPushNotificationService {
 
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "isActive == 0"),
-            NSPredicate(format: "lastUpdated < %@", cutoffDate as NSDate),
+            NSPredicate(format: "lastUpdated < %@", cutoffDate as NSDate)
         ])
 
         let query = CKQuery(recordType: "DeviceTokens", predicate: predicate)
@@ -233,8 +232,7 @@ final class CloudKitPushNotificationService {
 extension CloudKitPushNotificationService {
     /// Creates a push notification request for a new follower
     static func newFollowerNotification(from user: UserProfile, to userID: String)
-        -> PushNotificationRequest
-    {
+        -> PushNotificationRequest {
         PushNotificationRequest(
             userID: userID,
             type: .newFollower,
@@ -242,7 +240,7 @@ extension CloudKitPushNotificationService {
             body: "\(user.displayName) is now following your fitness journey",
             metadata: [
                 "followerUserId": user.userID,
-                "followerUsername": user.username,
+                "followerUsername": user.username
             ]
         )
     }
@@ -261,7 +259,7 @@ extension CloudKitPushNotificationService {
             metadata: [
                 "kudosUserId": user.userID,
                 "kudosUsername": user.username,
-                "workoutId": workoutId,
+                "workoutId": workoutId
             ],
             category: "WORKOUT_KUDOS"
         )
@@ -269,8 +267,7 @@ extension CloudKitPushNotificationService {
 
     /// Creates a push notification request for a follow request
     static func followRequestNotification(from user: UserProfile, to userID: String)
-        -> PushNotificationRequest
-    {
+        -> PushNotificationRequest {
         PushNotificationRequest(
             userID: userID,
             type: .followRequest,
@@ -278,7 +275,7 @@ extension CloudKitPushNotificationService {
             body: "\(user.displayName) wants to follow you",
             metadata: [
                 "requesterUserId": user.userID,
-                "requesterUsername": user.username,
+                "requesterUsername": user.username
             ],
             category: "FOLLOW_REQUEST"
         )

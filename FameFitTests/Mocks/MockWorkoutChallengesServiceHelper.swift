@@ -15,7 +15,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
     let userProfileService: any UserProfileServicing
     let notificationManager: any NotificationManaging
     let rateLimiter: any RateLimitingServicing
-    
+
     init(
         cloudKitManager: any CloudKitManaging,
         userProfileService: any UserProfileServicing,
@@ -27,6 +27,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         self.notificationManager = notificationManager
         self.rateLimiter = rateLimiter
     }
+
     private var mockRecords: [String: CKRecord] = [:]
     private var mockQueryResults: [CKRecord] = []
 
@@ -189,62 +190,62 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
     }
 
     // MARK: - Missing Protocol Methods
-    
+
     func declineChallenge(challengeId: String) async throws {
         guard let userId = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
-        
+
         var challenge = try await fetchChallenge(challengeId: challengeId)
-        
+
         guard challenge.participants.contains(where: { $0.id == userId }) else {
             throw ChallengeError.notParticipant
         }
-        
+
         challenge.status = .declined
-        
+
         // Update record
         let record = challenge.toCKRecord(recordID: CKRecord.ID(recordName: challengeId))
         mockRecords[challengeId] = record
     }
-    
+
     func cancelChallenge(challengeId: String) async throws {
         guard let userId = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
-        
+
         var challenge = try await fetchChallenge(challengeId: challengeId)
-        
+
         guard challenge.creatorId == userId else {
             throw ChallengeError.notAuthorized
         }
-        
+
         challenge.status = .cancelled
-        
+
         // Update record
         let record = challenge.toCKRecord(recordID: CKRecord.ID(recordName: challengeId))
         mockRecords[challengeId] = record
     }
-    
+
     func fetchPendingChallenge(for userId: String) async throws -> [WorkoutChallenge] {
         mockQueryResults
             .compactMap { WorkoutChallenge(from: $0) }
             .filter { $0.status == .pending && $0.participants.contains(where: { $0.id == userId }) }
     }
-    
+
     func fetchCompletedChallenge(for userId: String) async throws -> [WorkoutChallenge] {
         mockQueryResults
             .compactMap { WorkoutChallenge(from: $0) }
             .filter { $0.status == .completed && $0.participants.contains(where: { $0.id == userId }) }
     }
-    
+
     func inviteToChallenge(challengeId: String, userIds: [String]) async throws {
         guard cloudKitManager.currentUserID != nil else {
             throw ChallengeError.notAuthenticated
         }
-        
+
         var challenge = try await fetchChallenge(challengeId: challengeId)
-        
+
         // Add new participants
         for userId in userIds {
             if !challenge.participants.contains(where: { $0.id == userId }) {
@@ -259,11 +260,11 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
                 challenge.participants.append(participant)
             }
         }
-        
+
         // Update record
         let record = challenge.toCKRecord(recordID: CKRecord.ID(recordName: challengeId))
         mockRecords[challengeId] = record
-        
+
         // Send notifications
         for _ in userIds {
             // Track notification for testing
@@ -272,15 +273,15 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
             }
         }
     }
-    
+
     func getChallengeSuggestions(for userId: String) async throws -> [WorkoutChallenge] {
         // Return mock suggestions that are public, pending, and don't include the user
-        return mockQueryResults
+        mockQueryResults
             .compactMap { WorkoutChallenge(from: $0) }
             .filter { challenge in
                 challenge.isPublic &&
-                challenge.status == .pending &&
-                !challenge.participants.contains(where: { $0.id == userId })
+                    challenge.status == .pending &&
+                    !challenge.participants.contains(where: { $0.id == userId })
             }
     }
 

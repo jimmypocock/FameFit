@@ -97,8 +97,7 @@ class CloudKitSchemaManager {
         } catch {
             // Record type doesn't exist, create a dummy record
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "Users")
                 dummyRecord["displayName"] = "Schema Init"
                 dummyRecord["totalXP"] = Int64(0)
@@ -131,8 +130,7 @@ class CloudKitSchemaManager {
         } catch {
             // Record type doesn't exist, create a dummy record
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "WorkoutHistory")
                 dummyRecord["workoutId"] = UUID().uuidString
                 dummyRecord["workoutType"] = "Running"
@@ -167,8 +165,7 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "UserSettings")
                 dummyRecord["userID"] = "dummy"
                 dummyRecord["emailNotifications"] = Int64(1)
@@ -202,8 +199,7 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "DeviceTokens")
                 dummyRecord["userID"] = "dummy"
                 dummyRecord["deviceToken"] = "dummy-token"
@@ -234,8 +230,7 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "UserProfiles")
                 dummyRecord["userID"] = "dummy"
                 dummyRecord["username"] = "schemaInit"
@@ -267,8 +262,7 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "UserRelationships")
                 dummyRecord["followerID"] = "dummy1"
                 dummyRecord["followingID"] = "dummy2"
@@ -295,15 +289,14 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "ActivityFeedItems")
                 dummyRecord["userID"] = "dummy"
                 dummyRecord["activityType"] = "workout"
                 dummyRecord["content"] = "Schema Init"
                 dummyRecord["visibility"] = "private"
-                dummyRecord["createdAt"] = Date()
-                dummyRecord["expiresAt"] = Date().addingTimeInterval(86400 * 30) // 30 days
+                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["expiresAt"] = Date().addingTimeInterval(86_400 * 30) // 30 days
 
                 do {
                     let savedRecord = try await publicDatabase.save(dummyRecord)
@@ -325,13 +318,12 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "WorkoutKudos")
                 dummyRecord["workoutId"] = "dummy-workout"
                 dummyRecord["userID"] = "dummy-user"
                 dummyRecord["workoutOwnerId"] = "dummy-owner"
-                dummyRecord["createdAt"] = Date()
+                dummyRecord["createdTimestamp"] = Date()
 
                 do {
                     let savedRecord = try await publicDatabase.save(dummyRecord)
@@ -353,15 +345,14 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "WorkoutComments")
                 dummyRecord["workoutId"] = "dummy-workout"
                 dummyRecord["userId"] = "dummy-user"
                 dummyRecord["workoutOwnerId"] = "dummy-owner"
                 dummyRecord["content"] = "Great workout!"
-                dummyRecord["createdAt"] = Date()
-                dummyRecord["updatedAt"] = Date()
+                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["modifiedTimestamp"] = Date()
                 dummyRecord["isEdited"] = Int64(0)
                 dummyRecord["likeCount"] = Int64(0)
 
@@ -385,8 +376,7 @@ class CloudKitSchemaManager {
             return
         } catch {
             if error.localizedDescription.contains("Record type")
-                || error.localizedDescription.contains("Did not find record type")
-            {
+                || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "GroupWorkouts")
 
                 // Create minimal group workout
@@ -395,7 +385,7 @@ class CloudKitSchemaManager {
                         userId: "dummy1",
                         displayName: "Dummy User",
                         profileImageURL: nil
-                    ),
+                    )
                 ]
 
                 dummyRecord["name"] = "Schema Init Workout"
@@ -404,11 +394,11 @@ class CloudKitSchemaManager {
                 dummyRecord["hostId"] = "dummy-host"
                 dummyRecord["participants"] = try? JSONEncoder().encode(dummyParticipants)
                 dummyRecord["maxParticipants"] = Int64(10)
-                dummyRecord["scheduledStart"] = Date().addingTimeInterval(3600) // 1 hour from now
-                dummyRecord["scheduledEnd"] = Date().addingTimeInterval(7200) // 2 hours from now
+                dummyRecord["scheduledStart"] = Date().addingTimeInterval(3_600) // 1 hour from now
+                dummyRecord["scheduledEnd"] = Date().addingTimeInterval(7_200) // 2 hours from now
                 dummyRecord["status"] = "scheduled"
-                dummyRecord["createdAt"] = Date()
-                dummyRecord["updatedAt"] = Date()
+                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["modifiedTimestamp"] = Date()
                 dummyRecord["isPublic"] = Int64(1)
                 dummyRecord["tags"] = [String]()
 

@@ -14,8 +14,8 @@ struct WorkoutComment: Identifiable, Codable, Equatable {
     let userId: String // User who posted the comment
     let workoutOwnerId: String // Owner of the workout (for notifications)
     var content: String
-    let createdAt: Date
-    var updatedAt: Date
+    let createdTimestamp: Date
+    var modifiedTimestamp: Date
 
     // Optional fields
     var parentCommentId: String? // For threaded replies
@@ -37,8 +37,8 @@ extension WorkoutComment {
               let userId = record["userId"] as? String,
               let workoutOwnerId = record["workoutOwnerId"] as? String,
               let content = record["content"] as? String,
-              let createdAt = record["createdAt"] as? Date,
-              let updatedAt = record["updatedAt"] as? Date
+              let createdTimestamp = record["createdTimestamp"] as? Date,
+              let modifiedTimestamp = record["modifiedTimestamp"] as? Date
         else {
             return nil
         }
@@ -48,8 +48,8 @@ extension WorkoutComment {
         self.userId = userId
         self.workoutOwnerId = workoutOwnerId
         self.content = content
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
+        self.createdTimestamp = createdTimestamp
+        self.modifiedTimestamp = modifiedTimestamp
         parentCommentId = record["parentCommentId"] as? String
         isEdited = (record["isEdited"] as? Int64) == 1
         likeCount = Int(record["likeCount"] as? Int64 ?? 0)
@@ -66,8 +66,8 @@ extension WorkoutComment {
         record["userId"] = userId
         record["workoutOwnerId"] = workoutOwnerId
         record["content"] = content
-        record["createdAt"] = createdAt
-        record["updatedAt"] = updatedAt
+        record["createdTimestamp"] = createdTimestamp
+        record["modifiedTimestamp"] = modifiedTimestamp
 
         if let parentCommentId {
             record["parentCommentId"] = parentCommentId

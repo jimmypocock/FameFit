@@ -168,7 +168,7 @@ struct NotificationDebugView: View {
                         "Check notification permissions in Settings",
                         "Ensure Do Not Disturb is disabled",
                         "Restart the app",
-                        "Re-register for push notifications",
+                        "Re-register for push notifications"
                     ]
                 )
 
@@ -177,7 +177,7 @@ struct NotificationDebugView: View {
                     steps: [
                         "Check notification settings allow badges",
                         "Try clearing and setting badge manually",
-                        "Restart device if needed",
+                        "Restart device if needed"
                     ]
                 )
 
@@ -186,7 +186,7 @@ struct NotificationDebugView: View {
                     steps: [
                         "Check internet connection",
                         "Verify device token registration",
-                        "Test with local notifications first",
+                        "Test with local notifications first"
                     ]
                 )
             }
@@ -350,11 +350,11 @@ struct NotificationDebugView: View {
         let testWorkout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Running",
-            startDate: Date().addingTimeInterval(-1800), // 30 minutes ago
+            startDate: Date().addingTimeInterval(-1_800), // 30 minutes ago
             endDate: Date(),
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             totalEnergyBurned: 300,
-            totalDistance: 5000, // 5km
+            totalDistance: 5_000, // 5km
             averageHeartRate: 145,
             followersEarned: 25,
             xpEarned: 25,
@@ -375,8 +375,8 @@ struct NotificationDebugView: View {
             displayName: "Debug User",
             bio: "Test user for debugging",
             workoutCount: 50,
-            totalXP: 1500,
-            joinedDate: Date().addingTimeInterval(-86400 * 30), // 30 days ago
+            totalXP: 1_500,
+            joinedDate: Date().addingTimeInterval(-86_400 * 30), // 30 days ago
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
@@ -390,7 +390,7 @@ struct NotificationDebugView: View {
 
     private func sendTestAchievementNotification() {
         Task {
-            await dependencies.notificationManager.notifyXPMilestone(previousXP: 950, currentXP: 1050)
+            await dependencies.notificationManager.notifyXPMilestone(previousXP: 950, currentXP: 1_050)
             await refreshStatus()
         }
     }

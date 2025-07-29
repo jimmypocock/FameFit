@@ -84,8 +84,8 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
             displayName: "Current User",
             bio: "Mock user",
             workoutCount: 35,
-            totalXP: 1000,
-            joinedDate: Date().addingTimeInterval(-86400 * 120),
+            totalXP: 1_000,
+            joinedDate: Date().addingTimeInterval(-86_400 * 120),
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
@@ -104,8 +104,8 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
                 displayName: "Current User",
                 bio: "Mock user",
                 workoutCount: 35,
-                totalXP: 1000,
-                joinedDate: Date().addingTimeInterval(-86400 * 120),
+                totalXP: 1_000,
+                joinedDate: Date().addingTimeInterval(-86_400 * 120),
                 lastUpdated: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
@@ -214,8 +214,8 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
                 displayName: "Sarah Wilson",
                 bio: "Certified trainer",
                 workoutCount: 245,
-                totalXP: 8500,
-                joinedDate: Date().addingTimeInterval(-86400 * 365),
+                totalXP: 8_500,
+                joinedDate: Date().addingTimeInterval(-86_400 * 365),
                 lastUpdated: Date(),
                 isVerified: true,
                 privacyLevel: .publicProfile,
@@ -228,8 +228,8 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
                 displayName: "Mike Johnson",
                 bio: "Marathon runner",
                 workoutCount: 89,
-                totalXP: 3200,
-                joinedDate: Date().addingTimeInterval(-86400 * 180),
+                totalXP: 3_200,
+                joinedDate: Date().addingTimeInterval(-86_400 * 180),
                 lastUpdated: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
@@ -242,13 +242,13 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
                 displayName: "Emma Chen",
                 bio: "Yoga instructor",
                 workoutCount: 156,
-                totalXP: 6700,
-                joinedDate: Date().addingTimeInterval(-86400 * 300),
+                totalXP: 6_700,
+                joinedDate: Date().addingTimeInterval(-86_400 * 300),
                 lastUpdated: Date(),
                 isVerified: true,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
-            ),
+            )
         ]
 
         let mockCommentsData = [
@@ -256,7 +256,7 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
             ("Thanks for the inspiration! Going to try this routine tomorrow.", 1, 1, false),
             ("That heart rate zone work is paying off! Your endurance has improved so much.", 2, 2, false),
             ("Awesome job! How long have you been training at this intensity?", 0, 0, false),
-            ("Thanks Sarah! I've been following your program for about 3 months now.", 1, 1, true), // Reply to previous
+            ("Thanks Sarah! I've been following your program for about 3 months now.", 1, 1, true) // Reply to previous
         ]
 
         // Track parent comment for replies
@@ -274,8 +274,8 @@ final class MockWorkoutCommentsService: WorkoutCommentsServicing {
                 userId: user.id,
                 workoutOwnerId: "owner123",
                 content: content,
-                createdAt: Date().addingTimeInterval(-Double(3600 * (5 - index))), // Spread over 5 hours
-                updatedAt: Date().addingTimeInterval(-Double(3600 * (5 - index))),
+                createdAt: Date().addingTimeInterval(-Double(3_600 * (5 - index))), // Spread over 5 hours
+                updatedAt: Date().addingTimeInterval(-Double(3_600 * (5 - index))),
                 parentCommentId: parentId,
                 isEdited: index == 2, // Make one comment edited
                 likeCount: likes

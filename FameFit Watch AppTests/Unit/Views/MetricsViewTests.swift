@@ -30,14 +30,14 @@ class MetricsViewTests: XCTestCase {
             duration: 600, // 10 minutes
             heartRate: 150,
             calories: 100,
-            distance: 2000 // 2km
+            distance: 2_000 // 2km
         )
 
         // Then - Verify all metrics are available
         XCTAssertEqual(mockWorkoutManager.displayElapsedTime, 600)
         XCTAssertEqual(mockWorkoutManager.heartRate, 150)
         XCTAssertEqual(mockWorkoutManager.activeEnergy, 100)
-        XCTAssertEqual(mockWorkoutManager.distance, 2000)
+        XCTAssertEqual(mockWorkoutManager.distance, 2_000)
         XCTAssertEqual(mockWorkoutManager.averageHeartRate, 145) // heartRate - 5
     }
 
@@ -45,38 +45,38 @@ class MetricsViewTests: XCTestCase {
         // Given
         mockWorkoutManager.simulateWorkoutInProgress(
             type: .cycling,
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             heartRate: 135,
             calories: 250,
-            distance: 10000 // 10km
+            distance: 10_000 // 10km
         )
 
         // Then
         XCTAssertEqual(mockWorkoutManager.selectedWorkout, .cycling)
-        XCTAssertEqual(mockWorkoutManager.distance, 10000)
+        XCTAssertEqual(mockWorkoutManager.distance, 10_000)
     }
 
     func testMetricsDisplay_Swimming() {
         // Given
         mockWorkoutManager.simulateWorkoutInProgress(
             type: .swimming,
-            duration: 1200, // 20 minutes
+            duration: 1_200, // 20 minutes
             heartRate: 140,
             calories: 200,
-            distance: 1000 // 1km
+            distance: 1_000 // 1km
         )
 
         // Then
         XCTAssertEqual(mockWorkoutManager.selectedWorkout, .swimming)
         // Swimming shows distance differently
-        XCTAssertEqual(mockWorkoutManager.distance, 1000)
+        XCTAssertEqual(mockWorkoutManager.distance, 1_000)
     }
 
     func testMetricsDisplay_NonDistanceWorkout() {
         // Given - Yoga doesn't track distance
         mockWorkoutManager.simulateWorkoutInProgress(
             type: .yoga,
-            duration: 2400, // 40 minutes
+            duration: 2_400, // 40 minutes
             heartRate: 90,
             calories: 120,
             distance: 0
@@ -128,12 +128,12 @@ class MetricsViewTests: XCTestCase {
         mockWorkoutManager.displayElapsedTime = 900 // 15 minutes
         mockWorkoutManager.heartRate = 160
         mockWorkoutManager.activeEnergy = 150
-        mockWorkoutManager.distance = 3000
+        mockWorkoutManager.distance = 3_000
 
         // Then - All values should be updated
         XCTAssertEqual(mockWorkoutManager.displayElapsedTime, 900)
         XCTAssertEqual(mockWorkoutManager.heartRate, 160)
         XCTAssertEqual(mockWorkoutManager.activeEnergy, 150)
-        XCTAssertEqual(mockWorkoutManager.distance, 3000)
+        XCTAssertEqual(mockWorkoutManager.distance, 3_000)
     }
 }

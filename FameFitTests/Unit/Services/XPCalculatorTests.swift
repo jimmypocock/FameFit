@@ -12,7 +12,7 @@ final class XPCalculatorTests: XCTestCase {
     // MARK: - Test Data
 
     private func createWorkout(
-        duration: TimeInterval = 3600, // 1 hour
+        duration: TimeInterval = 3_600, // 1 hour
         workoutType: String = "Running",
         startDate: Date? = nil,
         averageHeartRate: Double? = 140
@@ -24,7 +24,7 @@ final class XPCalculatorTests: XCTestCase {
         } else {
             let calendar = Calendar.current
             var components = DateComponents()
-            components.year = 2024
+            components.year = 2_024
             components.month = 1
             components.day = 2 // Tuesday
             components.hour = 14 // 2pm
@@ -38,7 +38,7 @@ final class XPCalculatorTests: XCTestCase {
             endDate: fixedDate.addingTimeInterval(duration),
             duration: duration,
             totalEnergyBurned: 500,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: averageHeartRate,
             followersEarned: 0,
             xpEarned: 0,
@@ -52,7 +52,7 @@ final class XPCalculatorTests: XCTestCase {
         // Create a specific date during normal hours (2pm on a Tuesday)
         let calendar = Calendar.current
         var components = DateComponents()
-        components.year = 2024
+        components.year = 2_024
         components.month = 1
         components.day = 2 // Tuesday
         components.hour = 14 // 2pm
@@ -60,7 +60,7 @@ final class XPCalculatorTests: XCTestCase {
 
         // 60 minute running workout with NO heart rate data
         let workout = createWorkout(
-            duration: 3600,
+            duration: 3_600,
             workoutType: "Running",
             startDate: specificDate,
             averageHeartRate: nil
@@ -94,12 +94,12 @@ final class XPCalculatorTests: XCTestCase {
             ("Cycling", 1.0),
             ("Yoga", 0.8),
             ("Walking", 0.7),
-            ("Unknown Workout", 1.0), // Default
+            ("Unknown Workout", 1.0) // Default
         ]
 
         for testCase in testCases {
             let workout = createWorkout(
-                duration: 3600,
+                duration: 3_600,
                 workoutType: testCase.type,
                 averageHeartRate: nil // Remove HR to isolate workout type
             )
@@ -120,12 +120,12 @@ final class XPCalculatorTests: XCTestCase {
             (100, "Easy", 0.8), // 55% of max
             (115, "Moderate", 1.0), // 64% of max
             (140, "Hard", 1.3), // 78% of max
-            (160, "Maximum", 1.5), // 89% of max
+            (160, "Maximum", 1.5) // 89% of max
         ]
 
         for testCase in testCases {
             let workout = createWorkout(
-                duration: 3600,
+                duration: 3_600,
                 workoutType: "Cycling", // 1.0x multiplier
                 averageHeartRate: testCase.hr
             )
@@ -141,7 +141,7 @@ final class XPCalculatorTests: XCTestCase {
 
     func testStreakMultipliers() {
         let workout = createWorkout(
-            duration: 3600,
+            duration: 3_600,
             workoutType: "Cycling",
             averageHeartRate: nil
         )
@@ -153,7 +153,7 @@ final class XPCalculatorTests: XCTestCase {
             (10, 1.5),
             (15, 1.75),
             (20, 2.0),
-            (30, 2.0), // Capped at 2.0
+            (30, 2.0) // Capped at 2.0
         ]
 
         for testCase in testCases {
@@ -174,7 +174,7 @@ final class XPCalculatorTests: XCTestCase {
         let calendar = Calendar.current
         // Use a fixed weekday (Tuesday) to avoid weekend bonus
         var components = DateComponents()
-        components.year = 2024
+        components.year = 2_024
         components.month = 1
         components.day = 2 // Tuesday
 
@@ -182,7 +182,7 @@ final class XPCalculatorTests: XCTestCase {
             (6, 1.2), // Early bird
             (14, 1.0), // Normal hours
             (23, 1.1), // Night owl
-            (2, 0.8), // Late night
+            (2, 0.8) // Late night
         ]
 
         for testCase in testCases {
@@ -191,7 +191,7 @@ final class XPCalculatorTests: XCTestCase {
 
             let startDate = calendar.date(from: components)!
             let workout = createWorkout(
-                duration: 3600,
+                duration: 3_600,
                 workoutType: "Cycling",
                 startDate: startDate,
                 averageHeartRate: nil
@@ -211,7 +211,7 @@ final class XPCalculatorTests: XCTestCase {
 
         // Create Tuesday at 2pm
         var tuesdayComponents = DateComponents()
-        tuesdayComponents.year = 2024
+        tuesdayComponents.year = 2_024
         tuesdayComponents.month = 1
         tuesdayComponents.day = 2 // Tuesday
         tuesdayComponents.hour = 14 // 2pm
@@ -219,21 +219,21 @@ final class XPCalculatorTests: XCTestCase {
 
         // Create Saturday at 2pm
         var saturdayComponents = DateComponents()
-        saturdayComponents.year = 2024
+        saturdayComponents.year = 2_024
         saturdayComponents.month = 1
         saturdayComponents.day = 6 // Saturday
         saturdayComponents.hour = 14 // 2pm
         let saturday = calendar.date(from: saturdayComponents)!
 
         let weekdayWorkout = createWorkout(
-            duration: 3600,
+            duration: 3_600,
             workoutType: "Cycling",
             startDate: tuesday,
             averageHeartRate: nil
         )
 
         let weekendWorkout = createWorkout(
-            duration: 3600,
+            duration: 3_600,
             workoutType: "Cycling",
             startDate: saturday,
             averageHeartRate: nil
@@ -258,7 +258,7 @@ final class XPCalculatorTests: XCTestCase {
         let workoutDate = calendar.date(from: components)!
 
         let workout = createWorkout(
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             workoutType: "High Intensity Interval Training",
             startDate: workoutDate,
             averageHeartRate: 155 // High intensity
@@ -288,7 +288,7 @@ final class XPCalculatorTests: XCTestCase {
         XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 10, isPersonalRecord: false), 100)
         XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 50, isPersonalRecord: false), 250)
         XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 100, isPersonalRecord: false), 500)
-        XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 365, isPersonalRecord: false), 1000)
+        XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 365, isPersonalRecord: false), 1_000)
 
         // Personal record bonus
         XCTAssertEqual(XPCalculator.calculateSpecialBonus(workoutNumber: 5, isPersonalRecord: true), 25)
@@ -315,10 +315,10 @@ final class XPCalculatorTests: XCTestCase {
             (100, 2, "Fitness Newbie"),
             (499, 2, "Fitness Newbie"),
             (500, 3, "Gym Regular"),
-            (1000, 4, "Fitness Enthusiast"),
-            (5000, 6, "Micro-Influencer"),
+            (1_000, 4, "Fitness Enthusiast"),
+            (5_000, 6, "Micro-Influencer"),
             (100_000, 10, "FameFit Elite"),
-            (1_000_000, 13, "FameFit God"),
+            (1_000_000, 13, "FameFit God")
         ]
 
         for testCase in testCases {
@@ -341,9 +341,9 @@ final class XPCalculatorTests: XCTestCase {
         let testCases: [(xp: Int, expectedNext: Int)] = [
             (0, 100),
             (100, 500),
-            (500, 1000),
-            (999, 1000),
-            (1000, 2500),
+            (500, 1_000),
+            (999, 1_000),
+            (1_000, 2_500)
         ]
 
         for testCase in testCases {
@@ -381,7 +381,7 @@ final class XPCalculatorTests: XCTestCase {
         XCTAssertTrue(unlocks100.contains { $0.name == "Bronze Badge" })
         XCTAssertTrue(unlocks100.contains { $0.name == "Custom Messages" })
 
-        let unlocks5000 = XPCalculator.getAvailableUnlocks(for: 5000)
+        let unlocks5000 = XPCalculator.getAvailableUnlocks(for: 5_000)
         XCTAssertTrue(unlocks5000.contains { $0.name == "Character Personality" })
 
         let unlocksMillion = XPCalculator.getAvailableUnlocks(for: 1_000_000)
@@ -418,7 +418,7 @@ final class XPCalculatorTests: XCTestCase {
     }
 
     func testVeryHighStreak() {
-        let workout = createWorkout(duration: 3600, workoutType: "Cycling", averageHeartRate: nil)
+        let workout = createWorkout(duration: 3_600, workoutType: "Cycling", averageHeartRate: nil)
         let xp = XPCalculator.calculateXP(for: workout, currentStreak: 100)
 
         // Should cap at 2.0x

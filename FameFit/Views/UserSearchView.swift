@@ -77,15 +77,8 @@ struct UserSearchView: View {
                     LeaderboardView()
                 }
             }
-            .navigationTitle(selectedTab == 0 ? "Discover Users" : "Leaderboard")
+            .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
             .alert("Search Error", isPresented: .constant(error != nil)) {
                 Button("OK") {
                     error = nil

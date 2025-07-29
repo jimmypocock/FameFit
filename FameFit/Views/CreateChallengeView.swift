@@ -27,14 +27,14 @@ struct CreateChallengeView: View {
 
     private let workoutTypes = [
         "Running", "Walking", "Cycling", "Swimming", "Strength Training",
-        "Yoga", "HIIT", "Dance", "Rowing", "Elliptical",
+        "Yoga", "HIIT", "Dance", "Rowing", "Elliptical"
     ]
 
     private let durationOptions = [
         (3, "3 days"),
         (7, "1 week"),
         (14, "2 weeks"),
-        (30, "1 month"),
+        (30, "1 month")
     ]
 
     private var isValid: Bool {
@@ -257,8 +257,8 @@ struct CreateChallengeView: View {
                         .isEmpty ? "Reach \(Int(targetValueDouble)) \(challengeType.unit) in \(duration) days" :
                         challengeDescription,
                     startDate: Date(),
-                    endDate: Date().addingTimeInterval(Double(duration) * 24 * 3600),
-                    createdAt: Date(),
+                    endDate: Date().addingTimeInterval(Double(duration) * 24 * 3_600),
+                    createdTimestamp: Date(),
                     status: .pending,
                     winnerId: nil,
                     xpStake: Int(xpStake) ?? 0,

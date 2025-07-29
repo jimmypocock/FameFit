@@ -187,7 +187,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private func processCompletedWorkout(_ workout: HKWorkout) {
         // Validate workout data
         guard workout.duration > 0,
-              workout.duration < 86400, // Less than 24 hours
+              workout.duration < 86_400, // Less than 24 hours
               workout.endDate > workout.startDate
         else {
             FameFitLogger.notice("Invalid workout data detected, skipping", category: FameFitLogger.workout)
@@ -249,7 +249,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
 
         // Publish workout completion for sharing prompt (only for recent workouts)
         let workoutAge = Date().timeIntervalSince(workout.endDate)
-        if workoutAge < 3600 { // Only prompt for workouts completed within the last hour
+        if workoutAge < 3_600 { // Only prompt for workouts completed within the last hour
             workoutCompletedSubject.send(finalHistoryItem)
         }
 
@@ -265,7 +265,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         UNUserNotificationCenter.current().requestAuthorization(options: [
             .alert,
             .sound,
-            .badge,
+            .badge
         ]) { [weak self] granted, error in
             if let error {
                 DispatchQueue.main.async {
@@ -279,8 +279,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private func sendWorkoutNotification(character: FameFitCharacter, duration: Int, calories: Int, xpEarned: Int) {
         // Throttle notifications to prevent spam
         if let lastDate = lastNotificationDate,
-           Date().timeIntervalSince(lastDate) < notificationThrottleInterval
-        {
+           Date().timeIntervalSince(lastDate) < notificationThrottleInterval {
             FameFitLogger.debug(
                 "Skipping notification - too soon since last notification",
                 category: FameFitLogger.workout
@@ -322,7 +321,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             "character": character.rawValue,
             "duration": duration,
             "calories": calories,
-            "newFollowers": xpEarned,
+            "newFollowers": xpEarned
         ]
 
         // Use workout-specific identifier to prevent duplicates
@@ -389,7 +388,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                 "character": character.rawValue,
                 "duration": "\(duration)",
                 "calories": "\(calories)",
-                "xpEarned": "\(xpEarned)",
+                "xpEarned": "\(xpEarned)"
             ]
         )
 

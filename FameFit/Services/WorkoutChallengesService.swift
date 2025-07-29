@@ -324,7 +324,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
     func fetchActiveChallenge(for userId: String) async throws -> [WorkoutChallenge] {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "ANY participants.id == %@", userId),
-            NSPredicate(format: "status == %@", ChallengeStatus.active.rawValue),
+            NSPredicate(format: "status == %@", ChallengeStatus.active.rawValue)
         ])
 
         return try await fetchChallenges(with: predicate)
@@ -333,7 +333,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
     func fetchPendingChallenge(for userId: String) async throws -> [WorkoutChallenge] {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "ANY participants.id == %@", userId),
-            NSPredicate(format: "status == %@", ChallengeStatus.pending.rawValue),
+            NSPredicate(format: "status == %@", ChallengeStatus.pending.rawValue)
         ])
 
         return try await fetchChallenges(with: predicate)
@@ -342,7 +342,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
     func fetchCompletedChallenge(for userId: String) async throws -> [WorkoutChallenge] {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "ANY participants.id == %@", userId),
-            NSPredicate(format: "status == %@", ChallengeStatus.completed.rawValue),
+            NSPredicate(format: "status == %@", ChallengeStatus.completed.rawValue)
         ])
 
         return try await fetchChallenges(with: predicate, limit: 20)
@@ -372,7 +372,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "isPublic == %@", NSNumber(value: true)),
             NSPredicate(format: "status == %@", ChallengeStatus.pending.rawValue),
-            NSPredicate(format: "NOT (ANY participants.id == %@)", userId),
+            NSPredicate(format: "NOT (ANY participants.id == %@)", userId)
         ])
 
         return try await fetchChallenges(with: predicate, limit: 10)
@@ -382,7 +382,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
     private func fetchChallenges(with predicate: NSPredicate, limit: Int = 50) async throws -> [WorkoutChallenge] {
         let query = CKQuery(recordType: "WorkoutChallenges", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
 
         do {
             let results = try await publicDatabase.records(matching: query, resultsLimit: limit)

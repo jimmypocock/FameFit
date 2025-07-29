@@ -193,7 +193,7 @@ class NotificationPreferencesTests: XCTestCase {
         original.maxNotificationsPerHour = 7
         original.quietHoursEnabled = true
         original.quietHoursStart = Date()
-        original.quietHoursEnd = Date().addingTimeInterval(3600)
+        original.quietHoursEnd = Date().addingTimeInterval(3_600)
         original.groupSimilarNotifications = false
         original.showPreviewsWhenLocked = false
         original.enabledTypes[.workoutCompleted] = false

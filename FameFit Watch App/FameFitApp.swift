@@ -11,6 +11,11 @@ import SwiftUI
 struct FameFitApp: App {
     @StateObject private var workoutManager = WorkoutManager()
 
+    init() {
+        // Initialize WatchConnectivity early to be ready for messages
+        _ = WatchConnectivityManager.shared
+    }
+
     var body: some Scene {
         WindowGroup {
             WatchStartView()

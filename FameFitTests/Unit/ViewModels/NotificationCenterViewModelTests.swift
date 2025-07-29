@@ -126,7 +126,7 @@ class NotificationCenterViewModelTests: XCTestCase {
         let notifications = [
             createTestNotification(.workoutCompleted),
             createTestNotification(.newFollower),
-            createTestNotification(.unlockAchieved),
+            createTestNotification(.unlockAchieved)
         ]
         sut.notifications = notifications
 

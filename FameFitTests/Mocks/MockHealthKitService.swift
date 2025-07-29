@@ -224,8 +224,7 @@ final class MockHealthKitService: HealthKitService {
     /// Manually trigger the workout observer for testing
     func triggerWorkoutObserver() {
         if let handler = workoutUpdateHandler,
-           let query = activeQueries.first as? HKObserverQuery
-        {
+           let query = activeQueries.first as? HKObserverQuery {
             DispatchQueue.main.async {
                 handler(query, {}, nil)
             }
@@ -237,8 +236,7 @@ final class MockHealthKitService: HealthKitService {
 
         // Trigger any active observer queries
         if let handler = workoutUpdateHandler,
-           let query = activeQueries.first(where: { $0 is HKObserverQuery }) as? HKObserverQuery
-        {
+           let query = activeQueries.first(where: { $0 is HKObserverQuery }) as? HKObserverQuery {
             DispatchQueue.main.async {
                 handler(query, {}, nil)
             }

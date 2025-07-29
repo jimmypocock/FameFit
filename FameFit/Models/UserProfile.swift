@@ -173,7 +173,7 @@ extension UserProfile {
         displayName: "Fitness Fanatic",
         bio: "Just a fitness enthusiast on a journey to get stronger every day! 💪",
         workoutCount: 42,
-        totalXP: 12500,
+        totalXP: 12_500,
         joinedDate: Date().addingTimeInterval(-30 * 24 * 60 * 60), // 30 days ago
         lastUpdated: Date(),
         isVerified: false,
@@ -189,7 +189,7 @@ extension UserProfile {
         displayName: "Private Person",
         bio: "Keeping my fitness journey personal",
         workoutCount: 15,
-        totalXP: 3200,
+        totalXP: 3_200,
         joinedDate: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 7 days ago
         lastUpdated: Date(),
         isVerified: false,
@@ -207,7 +207,7 @@ extension UserProfile {
             displayName: "Marathon Master",
             bio: "🏃‍♂️ Running my way to fitness! 26.2 miles at a time.",
             workoutCount: 127,
-            totalXP: 45000,
+            totalXP: 45_000,
             joinedDate: Date().addingTimeInterval(-90 * 24 * 60 * 60),
             lastUpdated: Date().addingTimeInterval(-2 * 60 * 60), // 2 hours ago
             isVerified: true,
@@ -222,7 +222,7 @@ extension UserProfile {
             displayName: "Zen Yoga Flow",
             bio: "🧘‍♀️ Finding balance through movement. Namaste fit!",
             workoutCount: 89,
-            totalXP: 28500,
+            totalXP: 28_500,
             joinedDate: Date().addingTimeInterval(-45 * 24 * 60 * 60),
             lastUpdated: Date().addingTimeInterval(-30 * 60), // 30 min ago
             isVerified: false,
@@ -237,7 +237,7 @@ extension UserProfile {
             displayName: "Iron Lifter",
             bio: "💪 Lifting heavy, dreaming bigger. No pain, no gain!",
             workoutCount: 203,
-            totalXP: 67800,
+            totalXP: 67_800,
             joinedDate: Date().addingTimeInterval(-120 * 24 * 60 * 60),
             lastUpdated: Date().addingTimeInterval(-4 * 60 * 60), // 4 hours ago
             isVerified: true,
@@ -252,7 +252,7 @@ extension UserProfile {
             displayName: "Bike Explorer",
             bio: "🚴‍♀️ Exploring the world one pedal at a time!",
             workoutCount: 156,
-            totalXP: 52300,
+            totalXP: 52_300,
             joinedDate: Date().addingTimeInterval(-60 * 24 * 60 * 60),
             lastUpdated: Date().addingTimeInterval(-24 * 60 * 60), // Yesterday
             isVerified: false,
@@ -274,6 +274,6 @@ extension UserProfile {
             privacyLevel: .friendsOnly,
             profileImageURL: nil,
             headerImageURL: nil
-        ),
+        )
     ]
 }

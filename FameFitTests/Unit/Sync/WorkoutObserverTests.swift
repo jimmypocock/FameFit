@@ -171,7 +171,7 @@ class WorkoutObserverTests: XCTestCase {
         // Given
         let todaysWorkouts = TestWorkoutBuilder.createTodaysWorkouts()
         let yesterdayWorkout = TestWorkoutBuilder.createRunWorkout(
-            startDate: Date().addingTimeInterval(-86400) // 24 hours ago
+            startDate: Date().addingTimeInterval(-86_400) // 24 hours ago
         )
 
         mockHealthKitService.mockWorkouts = todaysWorkouts + [yesterdayWorkout]

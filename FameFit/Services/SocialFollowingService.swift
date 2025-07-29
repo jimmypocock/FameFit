@@ -2,59 +2,36 @@
 //  SocialFollowingService.swift
 //  FameFit
 //
-//  Service for managing social following relationships with security
+//  Social following service for managing user relationships
 //
 
 import CloudKit
 import Combine
 import Foundation
 
-// MARK: - Social Following Service Implementation
+// MARK: - Social Following Service
 
-final class SocialFollowingService: SocialFollowingServicing {
+final class SocialFollowingService: SocialFollowingServicing, @unchecked Sendable {
     // Dependencies
-    private let cloudKitManager: any CloudKitManaging
-    private let rateLimiter: any RateLimitingServicing
-    private let profileService: any UserProfileServicing
-    private let container: CKContainer
+    private let cloudKitManager: CloudKitManager
+    private let rateLimiter: RateLimitingServicing
+    private let profileService: UserProfileServicing
+    private let publicDatabase: CKDatabase
 
-    // Publishers
+    // Published state
     @Published private var followersCounts: [String: Int] = [:]
     @Published private var followingCounts: [String: Int] = [:]
     private let relationshipUpdatesSubject = PassthroughSubject<UserRelationship, Never>()
 
-    // Caching
-    private let relationshipCache = NSCache<NSString, CachedRelationship>()
-    private let cacheQueue = DispatchQueue(label: "com.famefit.socialcache", attributes: .concurrent)
-
-    private class CachedRelationship {
-        let relationship: UserRelationship?
-        let timestamp: Date
-
-        init(relationship: UserRelationship?, timestamp: Date) {
-            self.relationship = relationship
-            self.timestamp = timestamp
-        }
-
-        var isExpired: Bool {
-            Date().timeIntervalSince(timestamp) > 300 // 5 minutes
-        }
-    }
-
-    // MARK: - Initialization
-
     init(
-        cloudKitManager: any CloudKitManaging,
-        rateLimiter: any RateLimitingServicing,
-        profileService: any UserProfileServicing,
-        container: CKContainer = .default()
+        cloudKitManager: CloudKitManager,
+        rateLimiter: RateLimitingServicing,
+        profileService: UserProfileServicing
     ) {
         self.cloudKitManager = cloudKitManager
         self.rateLimiter = rateLimiter
         self.profileService = profileService
-        self.container = container
-
-        setupCache()
+        publicDatabase = CKContainer.default().publicCloudDatabase
     }
 
     // MARK: - Publishers
@@ -71,232 +48,339 @@ final class SocialFollowingService: SocialFollowingServicing {
         relationshipUpdatesSubject.eraseToAnyPublisher()
     }
 
-    // MARK: - Follow Operations
+    // MARK: - Follow/Unfollow Operations
 
-    func follow(userId: String) async throws {
-        // Security checks
-        guard let currentUserId = cloudKitManager.currentUserID else {
-            throw SocialServiceError.unauthorized
-        }
-
-        guard currentUserId != userId else {
-            throw SocialServiceError.selfFollowAttempt
-        }
-
-        // Rate limiting
-        _ = try await rateLimiter.checkLimit(for: .follow, userId: currentUserId)
+    func follow(userId targetUserId: String) async throws {
+        // Rate limiting check
+        _ = try await rateLimiter.checkLimit(for: .follow, userId: getCurrentUserId())
 
         // Check if already following
-        let existingStatus = try await checkRelationship(between: currentUserId, and: userId)
-        guard existingStatus == .notFollowing else {
-            if existingStatus == .blocked {
-                throw SocialServiceError.userBlocked
-            }
-            throw SocialServiceError.duplicateRelationship
+        let isAlreadyFollowing = try await isFollowing(userId: targetUserId)
+        guard !isAlreadyFollowing else {
+            throw SocialServiceError.invalidRequest
         }
 
-        // Check target user's privacy settings
-        let targetProfile = try await profileService.fetchProfile(userId: userId)
-
-        if targetProfile.privacyLevel == .privateProfile {
-            // Create follow request instead
-            try await createFollowRequest(to: userId, message: nil)
-            return
-        }
-
-        // Create relationship
+        // Create relationship record
         let relationship = UserRelationship(
-            id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
-            followerID: currentUserId,
-            followingID: userId,
+            id: UUID().uuidString,
+            followerID: getCurrentUserId(),
+            followingID: targetUserId,
             status: "active",
             notificationsEnabled: true
         )
 
         // Save to CloudKit
-        try await saveRelationship(relationship)
+        let record = CKRecord(recordType: "UserRelationships")
+        record["id"] = relationship.id
+        record["followerID"] = relationship.followerID
+        record["followingID"] = relationship.followingID
+        record["status"] = relationship.status
+        record["notificationsEnabled"] = relationship.notificationsEnabled ? 1 : 0
+
+        _ = try await publicDatabase.save(record)
+
+        // Record action for rate limiting
+        await rateLimiter.recordAction(.follow, userId: getCurrentUserId())
+
+        // Update cached counts
+        await updateFollowingCount(for: getCurrentUserId(), increment: true)
+        await updateFollowerCount(for: targetUserId, increment: true)
+
+        // Notify subscribers
+        relationshipUpdatesSubject.send(relationship)
+    }
+
+    func unfollow(userId targetUserId: String) async throws {
+        // Rate limiting check
+        _ = try await rateLimiter.checkLimit(for: .unfollow, userId: getCurrentUserId())
+
+        // Find existing relationship
+        let currentUserId = getCurrentUserId()
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND followingID == %@ AND status == %@",
+            currentUserId,
+            targetUserId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
+
+        guard let (_, result) = results.matchResults.first,
+              let record = try? result.get()
+        else {
+            throw SocialServiceError.invalidRequest
+        }
+
+        // Delete relationship
+        _ = try await publicDatabase.deleteRecord(withID: record.recordID)
+
+        // Record action for rate limiting
+        await rateLimiter.recordAction(.unfollow, userId: currentUserId)
+
+        // Update cached counts
+        await updateFollowingCount(for: currentUserId, increment: false)
+        await updateFollowerCount(for: targetUserId, increment: false)
+    }
+
+    // MARK: - Query Operations
+
+    func isFollowing(userId targetUserId: String) async throws -> Bool {
+        let currentUserId = getCurrentUserId()
+
+        // Query CloudKit
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND followingID == %@ AND status == %@",
+            currentUserId,
+            targetUserId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
+
+        return !results.matchResults.isEmpty
+    }
+
+    func getFollowers(for userId: String, limit: Int) async throws -> [UserProfile] {
+        let predicate = NSPredicate(
+            format: "followingID == %@ AND status == %@",
+            userId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        // Note: Sorting disabled until CloudKit indexes are updated to mark creationDate as SORTABLE
+        // query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+
+        let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
+        return try await processFollowerResults(results)
+    }
+    
+    private func processFollowerResults(_ results: (matchResults: [(CKRecord.ID, Result<CKRecord, Error>)], queryCursor: CKQueryOperation.Cursor?)) async throws -> [UserProfile] {
+        // Extract follower IDs
+        let followerIds = results.matchResults.compactMap { _, result in
+            try? result.get()["followerID"] as? String
+        }
+
+        // Fetch profiles in batch
+        await profileService.preloadProfiles(followerIds)
+
+        // Fetch individual profiles
+        var profiles: [UserProfile] = []
+        for followerId in followerIds {
+            if let profile = try? await profileService.fetchProfile(userId: followerId) {
+                profiles.append(profile)
+            }
+        }
+        
+        return profiles
+    }
+
+    func getFollowing(for userId: String, limit: Int) async throws -> [UserProfile] {
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND status == %@",
+            userId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        // Note: Sorting disabled until CloudKit indexes are updated to mark creationDate as SORTABLE
+        // query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+
+        let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
+
+        // Extract following IDs
+        let followingIds = results.matchResults.compactMap { _, result in
+            try? result.get()["followingID"] as? String
+        }
+
+        // Fetch profiles in batch
+        await profileService.preloadProfiles(followingIds)
+
+        // Fetch individual profiles
+        var profiles: [UserProfile] = []
+        for followingId in followingIds {
+            if let profile = try? await profileService.fetchProfile(userId: followingId) {
+                profiles.append(profile)
+            }
+        }
+        
+        return profiles
+    }
+
+    // MARK: - Blocking Operations
+
+    func removeFollower(userId: String) async throws {
+        // Rate limiting check
+        _ = try await rateLimiter.checkLimit(for: .follow, userId: getCurrentUserId())
+
+        let currentUserId = getCurrentUserId()
+
+        // Find the relationship where this user follows us
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND followingID == %@ AND status == %@",
+            userId,
+            currentUserId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
+
+        guard let (_, result) = results.matchResults.first,
+              let record = try? result.get()
+        else {
+            throw SocialServiceError.userNotFound
+        }
+
+        // Delete the relationship
+        _ = try await publicDatabase.deleteRecord(withID: record.recordID)
 
         // Record action for rate limiting
         await rateLimiter.recordAction(.follow, userId: currentUserId)
 
-        // Update counts
-        await updateCounts(for: [currentUserId, userId])
-
-        // Notify subscribers
-        relationshipUpdatesSubject.send(relationship)
-
-        // Clear cache
-        clearRelationshipCache(for: currentUserId, and: userId)
+        // Update cached counts
+        await updateFollowerCount(for: currentUserId, increment: false)
+        await updateFollowingCount(for: userId, increment: false)
     }
 
-    func unfollow(userId: String) async throws {
-        guard let currentUserId = cloudKitManager.currentUserID else {
-            throw SocialServiceError.unauthorized
+    func blockUser(_ userId: String) async throws {
+        // Rate limiting check
+        _ = try await rateLimiter.checkLimit(for: .follow, userId: getCurrentUserId())
+
+        let currentUserId = getCurrentUserId()
+
+        // Create block record
+        let blockRecord = CKRecord(recordType: "BlockedUsers")
+        blockRecord["blockerID"] = currentUserId
+        blockRecord["blockedID"] = userId
+        blockRecord["createdTimestamp"] = Date()
+
+        // Save to CloudKit
+        _ = try await publicDatabase.save(blockRecord)
+
+        // Remove any existing relationships
+        // 1. Unfollow them if we're following
+        if try await isFollowing(userId: userId) {
+            try await unfollow(userId: userId)
         }
 
-        // Rate limiting
-        _ = try await rateLimiter.checkLimit(for: .unfollow, userId: currentUserId)
+        // 2. Remove them as follower if they're following us
+        let followerPredicate = NSPredicate(
+            format: "followerID == %@ AND followingID == %@ AND status == %@",
+            userId,
+            currentUserId,
+            "active"
+        )
 
-        // Find and delete relationship
-        let relationshipId = UserRelationship.makeId(followerID: currentUserId, followingID: userId)
+        let query = CKQuery(recordType: "UserRelationships", predicate: followerPredicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
 
-        let database = container.publicCloudDatabase
-        let recordID = CKRecord.ID(recordName: relationshipId)
-
-        do {
-            try await database.deleteRecord(withID: recordID)
-        } catch {
-            if let ckError = error as? CKError, ckError.code == .unknownItem {
-                // Relationship doesn't exist, that's ok
-                return
-            }
-            throw SocialServiceError.networkError(error)
+        if let (_, result) = results.matchResults.first,
+           let record = try? result.get() {
+            _ = try await publicDatabase.deleteRecord(withID: record.recordID)
+            await updateFollowerCount(for: currentUserId, increment: false)
+            await updateFollowingCount(for: userId, increment: false)
         }
 
-        // Record action
-        await rateLimiter.recordAction(.unfollow, userId: currentUserId)
-
-        // Update counts
-        await updateCounts(for: [currentUserId, userId])
-
-        // Clear cache
-        clearRelationshipCache(for: currentUserId, and: userId)
+        // Record action for rate limiting
+        await rateLimiter.recordAction(.follow, userId: currentUserId)
     }
 
-    func requestFollow(userId: String, message: String?) async throws {
-        guard let currentUserId = cloudKitManager.currentUserID else {
-            throw SocialServiceError.unauthorized
+    // MARK: - Count Operations
+
+    func getFollowerCount(for userId: String) async throws -> Int {
+        // Return cached value if available
+        if let count = followersCounts[userId] {
+            return count
         }
 
-        guard currentUserId != userId else {
-            throw SocialServiceError.selfFollowAttempt
-        }
+        // Query CloudKit for count
+        let predicate = NSPredicate(
+            format: "followingID == %@ AND status == %@",
+            userId,
+            "active"
+        )
 
-        // Rate limiting
-        _ = try await rateLimiter.checkLimit(for: .followRequest, userId: currentUserId)
-
-        // Create follow request
-        try await createFollowRequest(to: userId, message: message)
-
-        // Record action
-        await rateLimiter.recordAction(.followRequest, userId: currentUserId)
-    }
-
-    // MARK: - Relationship Queries
-
-    func getFollowers(for userId: String, limit: Int) async throws -> [UserProfile] {
-        let database = container.publicCloudDatabase
-
-        // Query for relationships where this user is being followed
-        let predicate = NSPredicate(format: "followingID == %@ AND status == %@", userId, "active")
         let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1_000)
+        let count = results.matchResults.count
 
-        do {
-            let results = try await database.records(matching: query, resultsLimit: limit)
+        // Update cache
+        followersCounts[userId] = count
 
-            // Extract follower IDs
-            let followerIds = results.matchResults.compactMap { _, result in
-                try? result.get()["followerID"] as? String
-            }
-
-            // Fetch profiles
-            var profiles: [UserProfile] = []
-            for followerId in followerIds {
-                if let profile = try? await profileService.fetchProfile(userId: followerId) {
-                    profiles.append(profile)
-                }
-            }
-
-            return profiles
-        } catch {
-            throw SocialServiceError.networkError(error)
-        }
+        return count
     }
 
-    func getFollowing(for userId: String, limit: Int) async throws -> [UserProfile] {
-        let database = container.publicCloudDatabase
-
-        // Query for relationships where this user is following others
-        let predicate = NSPredicate(format: "followerID == %@ AND status == %@", userId, "active")
-        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
-
-        do {
-            let results = try await database.records(matching: query, resultsLimit: limit)
-
-            // Extract following IDs
-            let followingIds = results.matchResults.compactMap { _, result in
-                try? result.get()["followingID"] as? String
-            }
-
-            // Fetch profiles
-            var profiles: [UserProfile] = []
-            for followingId in followingIds {
-                if let profile = try? await profileService.fetchProfile(userId: followingId) {
-                    profiles.append(profile)
-                }
-            }
-
-            return profiles
-        } catch {
-            throw SocialServiceError.networkError(error)
+    func getFollowingCount(for userId: String) async throws -> Int {
+        // Return cached value if available
+        if let count = followingCounts[userId] {
+            return count
         }
+
+        // Query CloudKit for count
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND status == %@",
+            userId,
+            "active"
+        )
+
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1_000)
+        let count = results.matchResults.count
+
+        // Update cache
+        followingCounts[userId] = count
+
+        return count
+    }
+
+    // MARK: - Private Helpers
+
+    private func getCurrentUserId() -> String {
+        cloudKitManager.currentUserID ?? "unknown"
+    }
+
+    private func updateFollowerCount(for userId: String, increment: Bool) async {
+        let currentCount = followersCounts[userId] ?? 0
+        followersCounts[userId] = increment ? currentCount + 1 : max(0, currentCount - 1)
+    }
+
+    private func updateFollowingCount(for userId: String, increment: Bool) async {
+        let currentCount = followingCounts[userId] ?? 0
+        followingCounts[userId] = increment ? currentCount + 1 : max(0, currentCount - 1)
+    }
+
+    // MARK: - Additional Protocol Methods
+
+    func requestFollow(userId: String, message _: String?) async throws {
+        // For now, just call follow directly
+        // In future, this could create a follow request record for private accounts
+        try await follow(userId: userId)
+    }
+
+    func respondToFollowRequest(requestId _: String, accept _: Bool) async throws {
+        // TODO: Implement when follow requests are supported
+        throw SocialServiceError.invalidRequest
     }
 
     func checkRelationship(between userId: String, and targetId: String) async throws -> RelationshipStatus {
-        // Check cache first
-        let cacheKey = "\(userId)_\(targetId)"
-        if let cached = getCachedRelationship(for: cacheKey), !cached.isExpired {
-            if let relationship = cached.relationship {
-                switch relationship.status {
-                case "active":
-                    // Check if mutual
-                    let reverseKey = "\(targetId)_\(userId)"
-                    if let reverseCached = getCachedRelationship(for: reverseKey),
-                       !reverseCached.isExpired,
-                       reverseCached.relationship?.status == "active"
-                    {
-                        return .mutualFollow
-                    }
-                    return .following
-                case "blocked":
-                    return .blocked
-                case "muted":
-                    return .muted
-                default:
-                    return .notFollowing
-                }
-            } else {
-                return .notFollowing
-            }
-        }
+        // Check if userId follows targetId
+        let predicate = NSPredicate(
+            format: "followerID == %@ AND followingID == %@",
+            userId,
+            targetId
+        )
 
-        // Query CloudKit
-        let relationshipId = UserRelationship.makeId(followerID: userId, followingID: targetId)
-        let database = container.publicCloudDatabase
-        let recordID = CKRecord.ID(recordName: relationshipId)
+        let query = CKQuery(recordType: "UserRelationships", predicate: predicate)
+        let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
 
-        do {
-            let record = try await database.record(for: recordID)
-            let status = record["status"] as? String ?? "active"
-
-            // Cache the result
-            let relationship = UserRelationship(
-                id: relationshipId,
-                followerID: userId,
-                followingID: targetId,
-                status: status,
-                notificationsEnabled: record["notificationsEnabled"] as? Int64 == 1
-            )
-            cacheRelationship(relationship, for: cacheKey)
-
-            // Determine status
+        if let (_, result) = results.matchResults.first,
+           let record = try? result.get(),
+           let status = record["status"] as? String {
             switch status {
             case "active":
-                // Check for mutual follow
-                let reverseStatus = try? await checkRelationship(between: targetId, and: userId)
-                if reverseStatus == .following {
-                    return .mutualFollow
-                }
                 return .following
             case "blocked":
                 return .blocked
@@ -305,173 +389,21 @@ final class SocialFollowingService: SocialFollowingServicing {
             default:
                 return .notFollowing
             }
-        } catch {
-            if let ckError = error as? CKError, ckError.code == .unknownItem {
-                // No relationship exists
-                cacheRelationship(nil, for: cacheKey)
-                return .notFollowing
-            }
-            throw SocialServiceError.networkError(error)
-        }
-    }
-
-    // MARK: - Block/Mute Operations
-
-    func blockUser(_ userId: String) async throws {
-        guard let currentUserId = cloudKitManager.currentUserID else {
-            throw SocialServiceError.unauthorized
         }
 
-        // First unfollow if following
-        _ = try? await unfollow(userId: userId)
-
-        // Create or update relationship with blocked status
-        let relationship = UserRelationship(
-            id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
-            followerID: currentUserId,
-            followingID: userId,
-            status: "blocked",
-            notificationsEnabled: false
-        )
-
-        try await saveRelationship(relationship)
-
-        // Also remove them as follower
-        let reverseId = UserRelationship.makeId(followerID: userId, followingID: currentUserId)
-        let database = container.publicCloudDatabase
-        let reverseRecordID = CKRecord.ID(recordName: reverseId)
-
-        _ = try? await database.deleteRecord(withID: reverseRecordID)
-
-        // Update user settings with blocked list
-        var settings = try await profileService.fetchSettings(userId: currentUserId)
-        if !settings.blockedUsers.contains(userId) {
-            settings.blockedUsers.insert(userId)
-            _ = try await profileService.updateSettings(settings)
-        }
-
-        // Clear cache
-        clearRelationshipCache(for: currentUserId, and: userId)
-        clearRelationshipCache(for: userId, and: currentUserId)
-    }
-
-    // MARK: - Private Helper Methods
-
-    private func saveRelationship(_ relationship: UserRelationship) async throws {
-        let database = container.publicCloudDatabase
-        let record = CKRecord(recordType: "UserRelationships", recordID: CKRecord.ID(recordName: relationship.id))
-
-        record["followerID"] = relationship.followerID
-        record["followingID"] = relationship.followingID
-        record["status"] = relationship.status
-        record["notificationsEnabled"] = relationship.notificationsEnabled ? 1 : 0
-
-        do {
-            _ = try await database.save(record)
-        } catch {
-            throw SocialServiceError.networkError(error)
-        }
-    }
-
-    private func createFollowRequest(to userId: String, message: String?) async throws {
-        guard let currentUserId = cloudKitManager.currentUserID else { return }
-
-        let request = FollowRequest(
-            id: UUID().uuidString,
-            requesterId: currentUserId,
-            requesterProfile: nil,
-            targetId: userId,
-            status: "pending",
-            createdAt: Date(),
-            expiresAt: Date().addingTimeInterval(604_800), // 7 days
-            message: message
-        )
-
-        let database = container.privateCloudDatabase
-        let record = CKRecord(recordType: "FollowRequests", recordID: CKRecord.ID(recordName: request.id))
-
-        record["requesterId"] = request.requesterId
-        record["targetId"] = request.targetId
-        record["status"] = request.status
-        record["createdAt"] = request.createdAt
-        record["expiresAt"] = request.expiresAt
-        if let message = request.message {
-            record["message"] = message
-        }
-
-        _ = try await database.save(record)
-    }
-
-    private func updateCounts(for userIds: [String]) async {
-        for userId in userIds {
-            Task {
-                if let followerCount = try? await getFollowerCount(for: userId) {
-                    followersCounts[userId] = followerCount
-                }
-                if let followingCount = try? await getFollowingCount(for: userId) {
-                    followingCounts[userId] = followingCount
-                }
-            }
-        }
-    }
-
-    // MARK: - Caching
-
-    private func setupCache() {
-        relationshipCache.countLimit = 1000
-        relationshipCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
-    }
-
-    private func getCachedRelationship(for key: String) -> CachedRelationship? {
-        cacheQueue.sync {
-            relationshipCache.object(forKey: key as NSString)
-        }
-    }
-
-    private func cacheRelationship(_ relationship: UserRelationship?, for key: String) {
-        cacheQueue.async(flags: .barrier) {
-            let cached = CachedRelationship(relationship: relationship, timestamp: Date())
-            self.relationshipCache.setObject(cached, forKey: key as NSString)
-        }
-    }
-
-    private func clearRelationshipCache(for userId: String, and targetId: String) {
-        cacheQueue.async(flags: .barrier) {
-            let key1 = "\(userId)_\(targetId)"
-            let key2 = "\(targetId)_\(userId)"
-            self.relationshipCache.removeObject(forKey: key1 as NSString)
-            self.relationshipCache.removeObject(forKey: key2 as NSString)
-        }
+        return .notFollowing
     }
 
     func clearRelationshipCache() {
-        cacheQueue.async(flags: .barrier) {
-            self.relationshipCache.removeAllObjects()
-        }
+        followersCounts.removeAll()
+        followingCounts.removeAll()
     }
 
-    // MARK: - Unimplemented Methods (TODO)
-
-    func respondToFollowRequest(requestId _: String, accept _: Bool) async throws {
-        // TODO: Implement
-        throw SocialServiceError.invalidRequest
-    }
+    // MARK: - Unimplemented Protocol Methods
 
     func getMutualFollowers(with _: String, limit _: Int) async throws -> [UserProfile] {
         // TODO: Implement
         []
-    }
-
-    func getFollowerCount(for userId: String) async throws -> Int {
-        // TODO: Implement proper count query
-        let followers = try await getFollowers(for: userId, limit: 1000)
-        return followers.count
-    }
-
-    func getFollowingCount(for userId: String) async throws -> Int {
-        // TODO: Implement proper count query
-        let following = try await getFollowing(for: userId, limit: 1000)
-        return following.count
     }
 
     func unblockUser(_: String) async throws {
@@ -507,6 +439,16 @@ final class SocialFollowingService: SocialFollowingServicing {
     func getSentFollowRequests() async throws -> [FollowRequest] {
         // TODO: Implement
         []
+    }
+
+    func acceptFollowRequest(_: String) async throws {
+        // TODO: Implement
+        throw SocialServiceError.invalidRequest
+    }
+
+    func rejectFollowRequest(_: String) async throws {
+        // TODO: Implement
+        throw SocialServiceError.invalidRequest
     }
 
     func cancelFollowRequest(requestId _: String) async throws {

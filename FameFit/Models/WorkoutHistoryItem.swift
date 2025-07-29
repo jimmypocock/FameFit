@@ -73,7 +73,7 @@ struct WorkoutHistoryItem: Identifiable, Codable {
 
     var formattedDistance: String? {
         guard let distance = totalDistance, distance > 0 else { return nil }
-        let km = distance / 1000
+        let km = distance / 1_000
         return String(format: "%.2f km", km)
     }
 
@@ -92,16 +92,14 @@ extension WorkoutHistoryItem {
         self.xpEarned = xpEarned ?? followersEarned // Use provided XP or fallback to followers
         // Use the new iOS 18 API for getting statistics
         if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-           let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity()
-        {
+           let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity() {
             totalEnergyBurned = energyBurned.doubleValue(for: .kilocalorie())
         } else {
             totalEnergyBurned = 0
         }
 
         if let distanceType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning),
-           let distance = workout.statistics(for: distanceType)?.sumQuantity()
-        {
+           let distance = workout.statistics(for: distanceType)?.sumQuantity() {
             totalDistance = distance.doubleValue(for: .meter())
         } else {
             totalDistance = nil

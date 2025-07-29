@@ -30,8 +30,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     private var cancellables = Set<AnyCancellable>()
 
     init<Store: NotificationStoring>(_ store: Store)
-        where Store.ObjectWillChangePublisher == ObservableObjectPublisher
-    {
+        where Store.ObjectWillChangePublisher == ObservableObjectPublisher {
         // Initialize closures first
         _addNotification = { [weak store] item in
             store?.addNotification(item)

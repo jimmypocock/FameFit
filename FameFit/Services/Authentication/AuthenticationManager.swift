@@ -44,8 +44,7 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
 
     func checkAuthenticationStatus() {
         if let savedUserID = UserDefaults.standard.string(forKey: userIDKey),
-           let savedUserName = UserDefaults.standard.string(forKey: userNameKey)
-        {
+           let savedUserName = UserDefaults.standard.string(forKey: userNameKey) {
             userID = savedUserID
             userName = savedUserName
             isAuthenticated = true
@@ -120,8 +119,7 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
         }
 
         class Coordinator: NSObject, ASAuthorizationControllerDelegate,
-            ASAuthorizationControllerPresentationContextProviding
-        {
+            ASAuthorizationControllerPresentationContextProviding {
             let authManager: AuthenticationManager
 
             init(authManager: AuthenticationManager) {
@@ -171,4 +169,20 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
             }
         }
     }
+#endif
+
+#if DEBUG
+extension AuthenticationManager {
+    /// Set UI testing state - only available in DEBUG builds
+    func setUITestingState(isAuthenticated: Bool, hasCompletedOnboarding: Bool, userID: String) {
+        self.userID = userID
+        self.isAuthenticated = isAuthenticated
+        self.hasCompletedOnboarding = hasCompletedOnboarding
+        
+        UserDefaults.standard.set(isAuthenticated, forKey: "isAuthenticated")
+        UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.set(userID, forKey: "userID")
+        UserDefaults.standard.synchronize()
+    }
+}
 #endif

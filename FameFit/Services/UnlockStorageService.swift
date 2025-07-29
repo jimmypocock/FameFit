@@ -94,34 +94,3 @@ extension UnlockStorageService {
         getUnlockedItems().filter { $0.category == .achievement }
     }
 }
-
-// MARK: - Mock Implementation
-
-final class MockUnlockStorageService: UnlockStorageServiceProtocol {
-    private var unlockedItems: Set<Int> = []
-    private var timestamps: [Int: Date] = [:]
-
-    func getUnlockedItems() -> [XPUnlock] {
-        XPCalculator.unlockables.filter { unlock in
-            unlockedItems.contains(unlock.xpRequired)
-        }
-    }
-
-    func hasUnlocked(_ unlock: XPUnlock) -> Bool {
-        unlockedItems.contains(unlock.xpRequired)
-    }
-
-    func recordUnlock(_ unlock: XPUnlock) {
-        unlockedItems.insert(unlock.xpRequired)
-        timestamps[unlock.xpRequired] = Date()
-    }
-
-    func getUnlockTimestamp(for unlock: XPUnlock) -> Date? {
-        timestamps[unlock.xpRequired]
-    }
-
-    func resetAllUnlocks() {
-        unlockedItems.removeAll()
-        timestamps.removeAll()
-    }
-}

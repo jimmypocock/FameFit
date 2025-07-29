@@ -525,8 +525,8 @@ struct GroupWorkoutCard: View {
     // MARK: - Helper Methods
 
     private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / 3_600
+        let minutes = (Int(duration) % 3_600) / 60
 
         if hours > 0 {
             return "\(hours)h \(minutes)m"
@@ -563,11 +563,11 @@ struct GroupWorkoutCard: View {
                             userId: "user3",
                             displayName: "Emma Chen",
                             profileImageURL: nil
-                        ),
+                        )
                     ],
                     maxParticipants: 8,
-                    scheduledStart: Date().addingTimeInterval(3600),
-                    scheduledEnd: Date().addingTimeInterval(7200),
+                    scheduledStart: Date().addingTimeInterval(3_600),
+                    scheduledEnd: Date().addingTimeInterval(7_200),
                     isPublic: true,
                     tags: ["Beginner", "Outdoor"]
                 ),
@@ -597,11 +597,11 @@ struct GroupWorkoutCard: View {
                             displayName: "Current User",
                             profileImageURL: nil,
                             status: .active
-                        ),
+                        )
                     ],
                     maxParticipants: 10,
-                    scheduledStart: Date().addingTimeInterval(-1800),
-                    scheduledEnd: Date().addingTimeInterval(1800),
+                    scheduledStart: Date().addingTimeInterval(-1_800),
+                    scheduledEnd: Date().addingTimeInterval(1_800),
                     status: .active,
                     isPublic: false,
                     tags: ["Advanced", "Indoor"]

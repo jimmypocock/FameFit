@@ -3,7 +3,6 @@ import SwiftUI
 
 struct WorkoutHistoryView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
-    @Environment(\.dismiss) var dismiss
     @State private var workoutHistory: [WorkoutHistoryItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -13,33 +12,22 @@ struct WorkoutHistoryView: View {
     }
 
     var body: some View {
-        NavigationView {
-            Group {
-                if isLoading {
-                    ProgressView("Loading workout history...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if workoutHistory.isEmpty {
-                    emptyStateView
-                } else {
-                    workoutListView
-                }
+        Group {
+            if isLoading {
+                ProgressView("Loading workout history...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if workoutHistory.isEmpty {
+                emptyStateView
+            } else {
+                workoutListView
             }
-            .navigationTitle("Workout History")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
+        }
+        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            Button("OK") {
+                errorMessage = nil
             }
-            .alert("Error", isPresented: .constant(errorMessage != nil)) {
-                Button("OK") {
-                    errorMessage = nil
-                }
-            } message: {
-                Text(errorMessage ?? "")
-            }
+        } message: {
+            Text(errorMessage ?? "")
         }
         .onAppear {
             loadWorkoutHistory()

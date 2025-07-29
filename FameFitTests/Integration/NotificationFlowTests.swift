@@ -57,11 +57,11 @@ class NotificationFlowTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: 145,
             followersEarned: 10,
             xpEarned: 200,
@@ -70,7 +70,7 @@ class NotificationFlowTests: XCTestCase {
 
         // When
         await notificationManager.notifyWorkoutCompleted(workout)
-        await notificationManager.notifyXPMilestone(previousXP: 900, currentXP: 1100)
+        await notificationManager.notifyXPMilestone(previousXP: 900, currentXP: 1_100)
 
         // Then
         XCTAssertEqual(mockScheduler.scheduledRequests.count, 1) // Only workout notification
@@ -89,7 +89,7 @@ class NotificationFlowTests: XCTestCase {
         let users = [
             createTestUser(id: "1", username: "user1", displayName: "User One"),
             createTestUser(id: "2", username: "user2", displayName: "User Two"),
-            createTestUser(id: "3", username: "user3", displayName: "User Three"),
+            createTestUser(id: "3", username: "user3", displayName: "User Three")
         ]
 
         // When - Multiple users give kudos to same workout
@@ -244,11 +244,11 @@ class NotificationFlowTests: XCTestCase {
         WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: 145,
             followersEarned: 5,
             xpEarned: 100,
@@ -287,8 +287,7 @@ class IntegrationTestScheduler: MockNotificationScheduler {
         // Simulate preference filtering
         if respectPreferences {
             if let prefs = currentPreferences,
-               !prefs.isNotificationTypeEnabled(request.type)
-            {
+               !prefs.isNotificationTypeEnabled(request.type) {
                 return // Don't schedule
             }
         }

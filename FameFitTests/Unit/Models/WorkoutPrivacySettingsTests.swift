@@ -140,7 +140,7 @@ final class WorkoutPrivacySettingsTests: XCTestCase {
         settings.defaultPrivacy = .friendsOnly
         settings.workoutTypeSettings = [
             HKWorkoutActivityType.running.storageKey: .public,
-            HKWorkoutActivityType.yoga.storageKey: .private,
+            HKWorkoutActivityType.yoga.storageKey: .private
         ]
         settings.allowDataSharing = true
         settings.shareAchievements = false

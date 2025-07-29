@@ -6,11 +6,11 @@ final class WorkoutHistoryItemTests: XCTestCase {
     func testWorkoutHistoryItemInitialization() {
         let id = UUID()
         let workoutType = "Running"
-        let startDate = Date().addingTimeInterval(-3600) // 1 hour ago
+        let startDate = Date().addingTimeInterval(-3_600) // 1 hour ago
         let endDate = Date()
-        let duration: TimeInterval = 3600
+        let duration: TimeInterval = 3_600
         let totalEnergyBurned = 350.0
-        let totalDistance = 5000.0
+        let totalDistance = 5_000.0
         let averageHeartRate = 145.0
         let followersEarned = 5
         let source = "Apple Watch"
@@ -47,7 +47,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600, // 1 hour
+            duration: 3_600, // 1 hour
             totalEnergyBurned: 350.0,
             totalDistance: nil,
             averageHeartRate: nil,
@@ -65,7 +65,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 350.5,
             totalDistance: nil,
             averageHeartRate: nil,
@@ -83,9 +83,9 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 350.0,
-            totalDistance: 5243.0, // 5.243 km
+            totalDistance: 5_243.0, // 5.243 km
             averageHeartRate: nil,
             followersEarned: 5,
             xpEarned: 5,
@@ -101,7 +101,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "Yoga",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 150.0,
             totalDistance: nil,
             averageHeartRate: nil,
@@ -119,7 +119,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "running",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 350.0,
             totalDistance: nil,
             averageHeartRate: nil,
@@ -137,9 +137,9 @@ final class WorkoutHistoryItemTests: XCTestCase {
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 350.0,
-            totalDistance: 5000.0,
+            totalDistance: 5_000.0,
             averageHeartRate: 145.0,
             followersEarned: 5,
             xpEarned: 5,

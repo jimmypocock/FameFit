@@ -77,7 +77,7 @@ final class NotificationScheduler: NotificationScheduling {
         preferences = NotificationPreferences.load()
 
         // Clean up old notifications periodically
-        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { _ in
+        Timer.scheduledTimer(withTimeInterval: 3_600, repeats: true) { _ in
             Task {
                 await self.cleanupOldNotifications()
             }
@@ -167,14 +167,14 @@ final class NotificationScheduler: NotificationScheduling {
         let now = Date()
 
         guard let endTime = preferences.quietHoursEnd else {
-            return now.addingTimeInterval(3600) // Default to 1 hour later
+            return now.addingTimeInterval(3_600) // Default to 1 hour later
         }
 
         let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
         guard let endHour = endComponents.hour,
               let endMinute = endComponents.minute
         else {
-            return now.addingTimeInterval(3600)
+            return now.addingTimeInterval(3_600)
         }
 
         var components = calendar.dateComponents([.year, .month, .day], from: now)
@@ -182,12 +182,12 @@ final class NotificationScheduler: NotificationScheduling {
         components.minute = endMinute
 
         guard let quietEndTime = calendar.date(from: components) else {
-            return now.addingTimeInterval(3600)
+            return now.addingTimeInterval(3_600)
         }
 
         // If quiet end time is in the past (for today), move to tomorrow
         if quietEndTime <= now {
-            return calendar.date(byAdding: .day, value: 1, to: quietEndTime) ?? now.addingTimeInterval(86400)
+            return calendar.date(byAdding: .day, value: 1, to: quietEndTime) ?? now.addingTimeInterval(86_400)
         }
 
         return quietEndTime
@@ -198,7 +198,7 @@ final class NotificationScheduler: NotificationScheduling {
         defer { recentNotificationsLock.unlock() }
 
         let now = Date()
-        let oneHourAgo = now.addingTimeInterval(-3600)
+        let oneHourAgo = now.addingTimeInterval(-3_600)
 
         // Remove old entries
         recentNotifications.removeAll { $0 < oneHourAgo }
@@ -372,7 +372,7 @@ final class NotificationScheduler: NotificationScheduling {
         await withCheckedContinuation { continuation in
             recentNotificationsLock.lock()
             defer { recentNotificationsLock.unlock() }
-            let oneHourAgo = Date().addingTimeInterval(-3600)
+            let oneHourAgo = Date().addingTimeInterval(-3_600)
             recentNotifications.removeAll { $0 < oneHourAgo }
             continuation.resume()
         }

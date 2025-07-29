@@ -128,8 +128,7 @@ extension UserSettings {
 
         // Privacy settings
         if let privacyString = record["workoutPrivacy"] as? String,
-           let privacy = ProfilePrivacyLevel(rawValue: privacyString)
-        {
+           let privacy = ProfilePrivacyLevel(rawValue: privacyString) {
             workoutPrivacy = privacy
         } else {
             workoutPrivacy = .friendsOnly
@@ -137,8 +136,7 @@ extension UserSettings {
 
         // Message settings
         if let messageString = record["allowMessages"] as? String,
-           let messages = NotificationPreference(rawValue: messageString)
-        {
+           let messages = NotificationPreference(rawValue: messageString) {
             allowMessages = messages
         } else {
             allowMessages = .friendsOnly
@@ -150,8 +148,7 @@ extension UserSettings {
 
         // Content filter
         if let filterString = record["contentFilter"] as? String,
-           let filter = ContentFilterLevel(rawValue: filterString)
-        {
+           let filter = ContentFilterLevel(rawValue: filterString) {
             contentFilter = filter
         } else {
             contentFilter = .moderate

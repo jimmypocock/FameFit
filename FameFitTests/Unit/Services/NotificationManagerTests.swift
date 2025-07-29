@@ -75,11 +75,11 @@ class NotificationManagerTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: 145,
             followersEarned: 15, // Legacy parameter
             xpEarned: 100,
@@ -137,12 +137,12 @@ class NotificationManagerTests: XCTestCase {
 
     func testNotifyXPMilestone_DelegatesToUnlockService() async {
         // When
-        await sut.notifyXPMilestone(previousXP: 900, currentXP: 1100)
+        await sut.notifyXPMilestone(previousXP: 900, currentXP: 1_100)
 
         // Then
         XCTAssertTrue(mockUnlockService.checkForNewUnlocksCalled)
         XCTAssertEqual(mockUnlockService.lastPreviousXP, 900)
-        XCTAssertEqual(mockUnlockService.lastCurrentXP, 1100)
+        XCTAssertEqual(mockUnlockService.lastCurrentXP, 1_100)
     }
 
     func testNotifyStreakUpdate_AtRisk_SchedulesHighPriorityNotification() async {
@@ -248,7 +248,7 @@ class NotificationManagerTests: XCTestCase {
             displayName: "Supportive Friend",
             bio: "",
             workoutCount: 25,
-            totalXP: 1200,
+            totalXP: 1_200,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,

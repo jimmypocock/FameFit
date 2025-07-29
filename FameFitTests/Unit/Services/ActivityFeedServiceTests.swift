@@ -41,9 +41,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.2,
             averageHeartRate: 140,
@@ -73,9 +73,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "yoga",
-            startDate: Date().addingTimeInterval(-3600),
+            startDate: Date().addingTimeInterval(-3_600),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 150,
             totalDistance: nil,
             averageHeartRate: 90,
@@ -100,9 +100,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "cycling",
-            startDate: Date().addingTimeInterval(-2400),
+            startDate: Date().addingTimeInterval(-2_400),
             endDate: Date(),
-            duration: 2400,
+            duration: 2_400,
             totalEnergyBurned: 350,
             totalDistance: 15.5,
             averageHeartRate: 145,
@@ -124,8 +124,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // Parse content to verify no details
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data)
-        {
+           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
             XCTAssertNil(content.details["duration"])
             XCTAssertNil(content.details["calories"])
             XCTAssertNil(content.details["distance"])
@@ -145,9 +144,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "swimming",
-            startDate: Date().addingTimeInterval(-1200),
+            startDate: Date().addingTimeInterval(-1_200),
             endDate: Date(),
-            duration: 1200,
+            duration: 1_200,
             totalEnergyBurned: 200,
             totalDistance: 1.0,
             averageHeartRate: 130,
@@ -222,8 +221,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         XCTAssertEqual(activity.visibility, "friends_only")
 
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data)
-        {
+           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
             XCTAssertEqual(content.title, "Reached Level 5!")
             XCTAssertEqual(content.subtitle, "Fitness Enthusiast")
         }
@@ -253,7 +251,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             workoutType: "running",
             startDate: Date(),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.0,
             averageHeartRate: 140,
@@ -310,7 +308,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             workoutType: "running",
             startDate: Date(),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.0,
             averageHeartRate: 140,
@@ -345,9 +343,9 @@ final class ActivityFeedServiceTests: XCTestCase {
         _ = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "high_intensity_interval_training",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 450,
             totalDistance: 2.5,
             averageHeartRate: 155,
@@ -366,12 +364,12 @@ final class ActivityFeedServiceTests: XCTestCase {
                 "duration": "1800",
                 "calories": "450",
                 "distance": "2.5",
-                "xpEarned": "45",
+                "xpEarned": "45"
             ]
         )
 
         // Then
-        XCTAssertEqual(content.duration, 1800)
+        XCTAssertEqual(content.duration, 1_800)
         XCTAssertEqual(content.calories, 450)
         XCTAssertEqual(content.xpEarned, 45)
     }

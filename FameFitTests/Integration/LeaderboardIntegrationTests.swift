@@ -48,7 +48,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
                 displayName: "User \(index)",
                 bio: "Bio \(index)",
                 workoutCount: index * 5,
-                totalXP: index * 1000,
+                totalXP: index * 1_000,
                 joinedDate: Date(),
                 lastUpdated: Date(),
                 isVerified: index % 2 == 0,
@@ -129,7 +129,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
             displayName: "Updated User",
             bio: "",
             workoutCount: 100,
-            totalXP: 99999, // Make them #1
+            totalXP: 99_999, // Make them #1
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -143,7 +143,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
 
         // Then - Leaderboard should reflect the change
         XCTAssertEqual(viewModel.entries.first?.profile.id, updatedProfile.id)
-        XCTAssertEqual(viewModel.entries.first?.profile.totalXP, 99999)
+        XCTAssertEqual(viewModel.entries.first?.profile.totalXP, 99_999)
     }
 
     // MARK: - Friends Leaderboard Integration
@@ -159,7 +159,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
             displayName: "Friend 1",
             bio: "",
             workoutCount: 50,
-            totalXP: 2500,
+            totalXP: 2_500,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -173,7 +173,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
             displayName: "Friend 2",
             bio: "",
             workoutCount: 30,
-            totalXP: 1500,
+            totalXP: 1_500,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
@@ -186,7 +186,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
         let mockProfileService = container.userProfileService as? MockUserProfileService
         mockProfileService?.profiles[friend1.id] = friend1
         mockProfileService?.profiles[friend2.id] = friend2
-        
+
         // Ensure current user profile exists
         let currentUserProfile = UserProfile(
             id: "test-user",
@@ -195,8 +195,8 @@ final class LeaderboardIntegrationTests: XCTestCase {
             displayName: "Test User",
             bio: "",
             workoutCount: 20,
-            totalXP: 1000,
-            joinedDate: Date().addingTimeInterval(-30 * 24 * 3600), // 30 days ago
+            totalXP: 1_000,
+            joinedDate: Date().addingTimeInterval(-30 * 24 * 3_600), // 30 days ago
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
@@ -213,7 +213,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
 
         await viewModel.loadLeaderboard(timeFilter: .allTime, scope: .friends)
         let initialFriendCount = viewModel.entries.count
-        print("DEBUG: Initial entries: \(viewModel.entries.map { $0.profile.id })")
+        print("DEBUG: Initial entries: \(viewModel.entries.map(\.profile.id))")
         print("DEBUG: Mock relationships: \(mockSocialService?.relationships["test-user"] ?? [])")
         XCTAssertEqual(initialFriendCount, 3, "Should have 3 entries initially (2 friends + current user)")
 
@@ -225,28 +225,28 @@ final class LeaderboardIntegrationTests: XCTestCase {
             displayName: "Friend 3",
             bio: "",
             workoutCount: 80,
-            totalXP: 4000,
+            totalXP: 4_000,
             joinedDate: Date(),
             lastUpdated: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
         )
-        mockSocialService?.relationships["test-user"]?.append(newFriend.id)
-        
+        mockSocialService?.relationships["test-user"]?.insert(newFriend.id)
+
         // Add the new friend to the profile service
         mockProfileService?.profiles[newFriend.id] = newFriend
 
         // Force refresh of friends cache since it's cached for 5 minutes
         viewModel.forceRefreshFriends()
-        
+
         // Reload friends leaderboard
         await viewModel.loadLeaderboard(timeFilter: .allTime, scope: .friends)
 
         // Debug logging after adding new friend
-        print("DEBUG: After adding friend3, entries: \(viewModel.entries.map { $0.profile.id })")
+        print("DEBUG: After adding friend3, entries: \(viewModel.entries.map(\.profile.id))")
         print("DEBUG: Mock relationships after adding: \(mockSocialService?.relationships["test-user"] ?? [])")
-        
+
         // Then - New friend should appear
         XCTAssertEqual(viewModel.entries.count, 4, "Should have 4 entries after adding new friend")
         XCTAssertTrue(viewModel.entries.contains { $0.id == newFriend.id })
@@ -268,8 +268,8 @@ final class LeaderboardIntegrationTests: XCTestCase {
                 displayName: "User \(index)",
                 bio: "",
                 workoutCount: index,
-                totalXP: Int.random(in: 100 ... 10000),
-                joinedDate: Date().addingTimeInterval(-Double(index) * 24 * 3600),
+                totalXP: Int.random(in: 100 ... 10_000),
+                joinedDate: Date().addingTimeInterval(-Double(index) * 24 * 3_600),
                 lastUpdated: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
@@ -315,35 +315,35 @@ final class LeaderboardIntegrationTests: XCTestCase {
         let todayUser = createProfileWithDate(
             id: "today-user",
             lastUpdated: Date(),
-            xp: 1000
+            xp: 1_000
         )
 
         // This week's active user
         let weekUser = createProfileWithDate(
             id: "week-user",
-            lastUpdated: Date().addingTimeInterval(-3 * 24 * 3600),
-            xp: 2000
+            lastUpdated: Date().addingTimeInterval(-3 * 24 * 3_600),
+            xp: 2_000
         )
 
         // Last month's active user
         let monthUser = createProfileWithDate(
             id: "month-user",
-            lastUpdated: Date().addingTimeInterval(-15 * 24 * 3600),
-            xp: 3000
+            lastUpdated: Date().addingTimeInterval(-15 * 24 * 3_600),
+            xp: 3_000
         )
 
         // Old user
         let oldUser = createProfileWithDate(
             id: "old-user",
-            lastUpdated: Date().addingTimeInterval(-60 * 24 * 3600),
-            xp: 4000
+            lastUpdated: Date().addingTimeInterval(-60 * 24 * 3_600),
+            xp: 4_000
         )
 
         mockService?.profiles = [
             todayUser.id: todayUser,
             weekUser.id: weekUser,
             monthUser.id: monthUser,
-            oldUser.id: oldUser,
+            oldUser.id: oldUser
         ]
 
         let viewModel = LeaderboardViewModel()
@@ -418,7 +418,7 @@ final class LeaderboardIntegrationTests: XCTestCase {
             bio: "",
             workoutCount: xp / 100,
             totalXP: xp,
-            joinedDate: Date().addingTimeInterval(-365 * 24 * 3600),
+            joinedDate: Date().addingTimeInterval(-365 * 24 * 3_600),
             lastUpdated: lastUpdated,
             isVerified: false,
             privacyLevel: .publicProfile,

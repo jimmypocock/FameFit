@@ -27,7 +27,7 @@ public class FameFitMessageProvider: MessageProviding {
             "Welcome to the ELITE workout experience. This is what separates US from THEM.",
             "Let's GO babe! Time to build that EMPIRE! Starting with your biceps!",
             "This workout is sponsored by YOUR POTENTIAL. And my coaching. Mostly my coaching.",
-            "Bro, I woke up at 3:47am for this. Don't waste my time. LET'S WORK!",
+            "Bro, I woke up at 3:47am for this. Don't waste my time. LET'S WORK!"
         ],
 
         .workoutMilestone: [
@@ -40,7 +40,7 @@ public class FameFitMessageProvider: MessageProviding {
             "OH WE'RE COOKING NOW! This is that premium content right here!",
             "That's what we call BUILT DIFFERENT! Hashtag blessed, hashtag grind!",
             "I'm getting goosebumps! Or maybe that's just my pre-workout. Either way, FIRE!",
-            "This moment right here? This is why I do what I do. For moments like this. And the ad revenue.",
+            "This moment right here? This is why I do what I do. For moments like this. And the ad revenue."
         ],
 
         .workoutEnd: [
@@ -53,7 +53,7 @@ public class FameFitMessageProvider: MessageProviding {
             "I'm getting emotional! This is what transformation looks like! Screenshot worthy!",
             "That energy! That dedication! That's what separates the LEGENDS from the wannabes!",
             "You just made my day! No wait, my YEAR! That was absolutely LEGENDARY!",
-            "I can already see the before and after post! This is going VIRAL!",
+            "I can already see the before and after post! This is going VIRAL!"
         ],
 
         .encouragement: [
@@ -66,7 +66,7 @@ public class FameFitMessageProvider: MessageProviding {
             "You're absolutely crushing it right now!",
             "That's what I call determination! Love to see it!",
             "You're inspiring me to work harder! Let's go!",
-            "This is your moment! Embrace the burn!",
+            "This is your moment! Embrace the burn!"
         ],
 
         .roast: [
@@ -79,7 +79,7 @@ public class FameFitMessageProvider: MessageProviding {
             "I've seen more sweat at a book club meeting!",
             "Are you trying to exercise or are you just standing there looking pretty?",
             "I thought we were here to work out, not to practice standing still!",
-            "That was so weak, I'm going to pretend it didn't happen for your dignity!",
+            "That was so weak, I'm going to pretend it didn't happen for your dignity!"
         ],
 
         .morningMotivation: [
@@ -92,7 +92,7 @@ public class FameFitMessageProvider: MessageProviding {
             "The sun is up, which means it's time to shine!",
             "Early bird special: Maximum gains, minimum excuses!",
             "Morning energy is the best energy! Let's harness it!",
-            "Dawn patrol! Time to show the world what dedication looks like!",
+            "Dawn patrol! Time to show the world what dedication looks like!"
         ],
 
         .socialMediaReferences: [
@@ -105,7 +105,7 @@ public class FameFitMessageProvider: MessageProviding {
             "That's what we call 'content creation' in real time!",
             "This is legendary performance! You're earning serious XP right now!",
             "This is peak Instagram material right here!",
-            "Hashtag blessed, hashtag grind, hashtag coached by me!",
+            "Hashtag blessed, hashtag grind, hashtag coached by me!"
         ],
 
         .supplementTalk: [
@@ -118,7 +118,7 @@ public class FameFitMessageProvider: MessageProviding {
             "Beta-alanine tingles mean it's working! Just like my coaching!",
             "My BCAA blend is literally changing lives! Including yours right now!",
             "I formulated this pre-workout specifically for moments like this!",
-            "Supplements don't make you strong. But they make me rich! And that's beautiful!",
+            "Supplements don't make you strong. But they make me rich! And that's beautiful!"
         ],
 
         .philosophicalNonsense: [
@@ -131,7 +131,7 @@ public class FameFitMessageProvider: MessageProviding {
             "Every workout is a journey of self-discovery! Discover how great I am at coaching!",
             "We're not just lifting weights, we're lifting our consciousness! And my engagement rates!",
             "The mind-muscle connection is real! Just like my connection to your credit card!",
-            "This is about more than fitness! It's about building an empire! My empire!",
+            "This is about more than fitness! It's about building an empire! My empire!"
         ],
 
         .humbleBrags: [
@@ -144,7 +144,7 @@ public class FameFitMessageProvider: MessageProviding {
             "I broke a personal record without even warming up. Whoops!",
             "My protein powder company wants to name a flavor after me. I'm too modest!",
             "I accidentally inspired someone to start their fitness journey. Again. It's a gift!",
-            "I'm trending on fitness TikTok. I don't even know how that happened!",
+            "I'm trending on fitness TikTok. I don't even know how that happened!"
         ],
 
         .catchphrases: [
@@ -157,8 +157,8 @@ public class FameFitMessageProvider: MessageProviding {
             "FIRE EMOJI! FIRE EMOJI! FIRE EMOJI!",
             "BUILT DIFFERENT!",
             "HASHTAG BLESSED!",
-            "COACH OF THE YEAR!",
-        ],
+            "COACH OF THE YEAR!"
+        ]
     ]
 
     // MARK: - Specialized Roast Messages
@@ -168,7 +168,7 @@ public class FameFitMessageProvider: MessageProviding {
         "I've seen turtles with more hustle!",
         "Are you running or just bouncing in place?",
         "My phone battery moves faster than you!",
-        "That pace is perfect... for a leisurely stroll!",
+        "That pace is perfect... for a leisurely stroll!"
     ]
 
     private let strengthRoasts = [
@@ -176,7 +176,7 @@ public class FameFitMessageProvider: MessageProviding {
         "I've seen more strength in a wet paper towel!",
         "That's not lifting, that's just gravity assistance!",
         "My coffee cup is getting a better workout than you!",
-        "Are those weights or decorative paperweights?",
+        "Are those weights or decorative paperweights?"
     ]
 
     private let formRoasts = [
@@ -184,7 +184,7 @@ public class FameFitMessageProvider: MessageProviding {
         "I've never seen someone break physics quite like that!",
         "Are you exercising or practicing interpretive dance?",
         "That technique is... unique. Let's call it unique.",
-        "I'm going to pretend I didn't see that for your sake!",
+        "I'm going to pretend I didn't see that for your sake!"
     ]
 
     private let durationRoasts = [
@@ -192,7 +192,7 @@ public class FameFitMessageProvider: MessageProviding {
         "I've seen commercial breaks longer than that!",
         "Did you even break a sweat or just think about it?",
         "That was quicker than my morning skincare routine!",
-        "I blinked and missed your entire workout!",
+        "I blinked and missed your entire workout!"
     ]
 
     // MARK: - Initialization

@@ -122,10 +122,11 @@ struct FeedContent: Codable {
 struct SocialFeedView: View {
     @Environment(\.dependencyContainer) var container
     @StateObject private var viewModel = SocialFeedViewModel()
+    @Binding var showingFilters: Bool
+    var onDiscoverTap: (() -> Void)?
 
     @State private var selectedUserId: String?
     @State private var showingProfile = false
-    @State private var showingFilters = false
     @State private var selectedWorkoutForComments: FeedItem?
     @State private var showingComments = false
 
@@ -142,17 +143,6 @@ struct SocialFeedView: View {
                     emptyView
                 } else {
                     feedContent
-                }
-            }
-            .navigationTitle("Activity Feed")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingFilters = true
-                    }) {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
                 }
             }
             .refreshable {
@@ -209,7 +199,7 @@ struct SocialFeedView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.filteredFeedItems) { item in
-                    FeedItemView(
+                    EnhancedFeedItemView(
                         item: item,
                         onProfileTap: {
                             selectedUserId = item.userID
@@ -276,7 +266,7 @@ struct SocialFeedView: View {
                 .padding(.horizontal)
 
             Button("Discover Users") {
-                // TODO: Navigate to user search
+                onDiscoverTap?()
             }
             .buttonStyle(.borderedProminent)
         }
@@ -597,6 +587,6 @@ struct FeedFiltersView: View {
 // MARK: - Preview
 
 #Preview {
-    SocialFeedView()
+    SocialFeedView(showingFilters: .constant(false), onDiscoverTap: nil)
         .environment(\.dependencyContainer, DependencyContainer())
 }

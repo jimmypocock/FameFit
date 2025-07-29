@@ -185,7 +185,7 @@ final class UnlockNotificationServiceTests: XCTestCase {
             (5, .sierra),
             (7, .sierra),
             (10, .chad),
-            (13, .chad),
+            (13, .chad)
         ]
 
         for testCase in testCases {

@@ -80,7 +80,7 @@ extension HealthKitService {
             heartRateType,
             activeEnergyType,
             distanceType,
-            HKObjectType.activitySummaryType(),
+            HKObjectType.activitySummaryType()
         ]
     }
 
@@ -89,7 +89,7 @@ extension HealthKitService {
             HKObjectType.workoutType(),
             heartRateType,
             activeEnergyType,
-            distanceType,
+            distanceType
         ]
     }
 }

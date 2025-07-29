@@ -76,8 +76,7 @@ struct PendingWorkout: Codable, Equatable {
         duration = workout.duration
         // Get calories from workout statistics
         if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-           let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity()
-        {
+           let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity() {
             calories = energyBurned.doubleValue(for: .kilocalorie())
         } else {
             calories = 0

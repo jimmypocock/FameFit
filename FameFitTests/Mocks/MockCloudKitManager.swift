@@ -1,4 +1,5 @@
 import CloudKit
+import Combine
 @testable import FameFit
 import Foundation
 import HealthKit
@@ -32,6 +33,60 @@ class MockCloudKitManager: CloudKitManager {
     var mockIsAvailable = true
     var mockCurrentUserID: String? = "mock-user-id"
 
+    // Override parent properties to set initial values
+    override init() {
+        // Initialize mock databases first
+        mockPublicDatabase = MockCKDatabase()
+        mockPrivateDatabase = MockCKDatabase()
+
+        super.init()
+
+        // Set initial test values
+        isSignedIn = true
+        totalXP = 100
+        userName = "Test User"
+        currentStreak = 5
+        totalWorkouts = 20
+        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
+    }
+
+    // Note: We can't expose publicDatabase/privateDatabase as CKDatabase
+    // because MockCKDatabase can't inherit from CKDatabase (no public init)
+
+    // Publishers
+    override var isAvailablePublisher: AnyPublisher<Bool, Never> {
+        Just(isAvailable).eraseToAnyPublisher()
+    }
+
+    override var totalXPPublisher: AnyPublisher<Int, Never> {
+        $totalXP.eraseToAnyPublisher()
+    }
+
+    override var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
+        $totalWorkouts.eraseToAnyPublisher()
+    }
+
+    override var currentStreakPublisher: AnyPublisher<Int, Never> {
+        $currentStreak.eraseToAnyPublisher()
+    }
+
+    override var userNamePublisher: AnyPublisher<String, Never> {
+        $userName.eraseToAnyPublisher()
+    }
+
+    override var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
+        $lastWorkoutTimestamp.eraseToAnyPublisher()
+    }
+
+    override var joinTimestampPublisher: AnyPublisher<Date?, Never> {
+        $joinTimestamp.eraseToAnyPublisher()
+    }
+
+    override var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
+        $lastError.eraseToAnyPublisher()
+    }
+
     // Override CloudKit availability
     override var isAvailable: Bool {
         mockIsAvailable
@@ -42,20 +97,25 @@ class MockCloudKitManager: CloudKitManager {
         set { mockCurrentUserID = newValue }
     }
 
-    override init() {
-        super.init()
-        // Set initial test values
+    override func checkAccountStatus() {
+        // Mock is always signed in and ready
         isSignedIn = true
-        totalXP = 100
-        userName = "Test User"
-        currentStreak = 5
-        totalWorkouts = 20
-        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
-        lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60) // 1 day ago
+    }
 
-        // Initialize mock databases
-        mockPublicDatabase = MockCKDatabase()
-        mockPrivateDatabase = MockCKDatabase()
+    func checkAvailability() async {
+        // Mock is always available
+        isSignedIn = true
+    }
+
+    // Mock CloudKit database access
+    func save(_ record: CKRecord) async throws -> CKRecord {
+        saveCallCount += 1
+        mockRecords[record.recordID.recordName] = record
+        return record
+    }
+
+    func query(_: CKQuery, in _: CKDatabase? = nil) async throws -> [CKRecord] {
+        mockQueryResults
     }
 
     override func addFollowers(_ count: Int) {
@@ -86,6 +146,12 @@ class MockCloudKitManager: CloudKitManager {
         } else {
             lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
         }
+    }
+
+    override func setupUserRecord(userID: String, displayName: String) {
+        // Mock implementation - just update the properties
+        mockCurrentUserID = userID
+        userName = displayName
     }
 
     override func fetchUserRecord() {
@@ -158,11 +224,11 @@ class MockCloudKitManager: CloudKitManager {
         switch totalXP {
         case 0 ..< 100:
             "Fitness Newbie"
-        case 100 ..< 1000:
+        case 100 ..< 1_000:
             "Micro-Influencer"
-        case 1000 ..< 10000:
+        case 1_000 ..< 10_000:
             "Rising Star"
-        case 10000 ..< 100_000:
+        case 10_000 ..< 100_000:
             "Verified Influencer"
         default:
             "FameFit Elite"

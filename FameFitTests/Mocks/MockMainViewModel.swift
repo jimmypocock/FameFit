@@ -18,8 +18,8 @@ class MockMainViewModel: MainViewModeling {
     @Published var xpTitle: String = "Rising Star"
     @Published var totalWorkouts: Int = 15
     @Published var currentStreak: Int = 3
-    @Published var joinDate: Date? = Date().addingTimeInterval(-30 * 24 * 3600) // 30 days ago
-    @Published var lastWorkoutDate: Date? = Date().addingTimeInterval(-2 * 3600) // 2 hours ago
+    @Published var joinDate: Date? = Date().addingTimeInterval(-30 * 24 * 3_600) // 30 days ago
+    @Published var lastWorkoutDate: Date? = Date().addingTimeInterval(-2 * 3_600) // 2 hours ago
     @Published var hasUnreadNotifications: Bool = true
     @Published var unreadNotificationCount: Int = 2
     @Published var userProfile: UserProfile? = UserProfile.mockProfile
@@ -127,8 +127,8 @@ class MockMainViewModel: MainViewModeling {
         xpTitle = "Rising Star"
         totalWorkouts = 15
         currentStreak = 3
-        joinDate = Date().addingTimeInterval(-30 * 24 * 3600)
-        lastWorkoutDate = Date().addingTimeInterval(-2 * 3600)
+        joinDate = Date().addingTimeInterval(-30 * 24 * 3_600)
+        lastWorkoutDate = Date().addingTimeInterval(-2 * 3_600)
         hasUnreadNotifications = true
         unreadNotificationCount = 2
     }

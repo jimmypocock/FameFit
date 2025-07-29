@@ -23,6 +23,7 @@ struct ProfileView: View {
     @State private var followingCount = 0
     @State private var showingFollowersList = false
     @State private var selectedFollowTab: FollowListTab = .followers
+    @State private var showUnfollowConfirmation = false
 
     let userId: String
 
@@ -39,54 +40,33 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                if isLoading {
-                    ProgressView("Loading profile...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error {
-                    VStack(spacing: 20) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))
-                            .foregroundColor(.red)
+        ZStack {
+            if isLoading {
+                ProgressView("Loading profile...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error {
+                VStack(spacing: 20) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 50))
+                        .foregroundColor(.red)
 
-                        Text("Error Loading Profile")
-                            .font(.headline)
+                    Text("Error Loading Profile")
+                        .font(.headline)
 
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
 
-                        Button("Try Again") {
-                            loadProfile()
-                        }
-                        .buttonStyle(.borderedProminent)
+                    Button("Try Again") {
+                        loadProfile()
                     }
-                    .padding()
-                } else if let profile {
-                    profileContent(profile)
+                    .buttonStyle(.borderedProminent)
                 }
-            }
-            .navigationTitle(isOwnProfile ? "My Profile" : "Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if !isOwnProfile {
-                        Button("Done") {
-                            dismiss()
-                        }
-                    }
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if isOwnProfile, profile != nil {
-                        Button("Edit") {
-                            showEditProfile = true
-                        }
-                    }
-                }
+                .padding()
+            } else if let profile {
+                profileContent(profile)
             }
         }
         .task {
@@ -200,8 +180,14 @@ struct ProfileView: View {
 
     private var followButton: some View {
         Button(action: {
-            Task {
-                await handleFollowAction()
+            if relationshipStatus == .following || relationshipStatus == .mutualFollow {
+                // Show confirmation for unfollow
+                showUnfollowConfirmation = true
+            } else {
+                // Direct follow action
+                Task {
+                    await handleFollowAction()
+                }
             }
         }) {
             HStack {
@@ -223,6 +209,20 @@ struct ProfileView: View {
             .cornerRadius(20)
         }
         .disabled(isFollowActionInProgress || relationshipStatus == .blocked)
+        .confirmationDialog(
+            "Unfollow @\(profile?.username ?? "")?",
+            isPresented: $showUnfollowConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Unfollow", role: .destructive) {
+                Task {
+                    await handleFollowAction()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You will no longer see their workouts in your feed.")
+        }
     }
 
     private var followButtonIcon: String {

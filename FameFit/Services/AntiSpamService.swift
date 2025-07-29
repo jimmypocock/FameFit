@@ -12,7 +12,7 @@ import Foundation
 final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
     private let profanityWords: Set<String> = [
         // This would be a comprehensive list in production
-        "spam", "bot", "fake",
+        "spam", "bot", "fake"
     ]
 
     private var userSpamScores: [String: Double] = [:]
@@ -146,34 +146,5 @@ final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
                 continuation.resume()
             }
         }
-    }
-}
-
-// MARK: - Mock Anti-Spam Service
-
-final class MockAntiSpamService: AntiSpamServicing {
-    var shouldDetectSpam = false
-    var mockSpamResult = SpamCheckResult(
-        isSpam: false,
-        confidence: 0.1,
-        reason: nil,
-        suggestedAction: nil
-    )
-
-    func checkForSpam(userId _: String, action _: SpamCheckAction) async -> SpamCheckResult {
-        shouldDetectSpam ? mockSpamResult : SpamCheckResult(
-            isSpam: false,
-            confidence: 0.0,
-            reason: nil,
-            suggestedAction: nil
-        )
-    }
-
-    func reportSpam(userId _: String, targetId _: String, reason _: SpamReason) async throws {
-        // No-op for mock
-    }
-
-    func getSpamScore(for _: String) async -> Double {
-        0.0
     }
 }

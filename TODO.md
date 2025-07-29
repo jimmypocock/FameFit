@@ -2,132 +2,36 @@
 
 This document tracks planned architecture improvements to enhance testability, reduce coupling, and follow modern iOS/Swift best practices.
 
-## 🚨 **IMMEDIATE PRIORITY - TEST SUITE FIXES** 
+## ✅ **TEST SUITE FIXES - COMPLETE!** 
 
-**Status**: Critical blocking issue - Phase 4 completed but test failures need fixing  
-**Priority**: URGENT - Must be resolved before continuing  
-**Target**: All tests green by end of day
+**Status**: Completed (2025-07-25) ✨  
+**Impact**: Critical - All tests are now green across the board
 
-### Current Issues (as of 2025-07-24)
+### Resolution Summary
 
-**1. SwiftLint Failures Blocking Test Execution**
-```
-- Multiple trailing newline violations across Watch App files
-- Vertical parameter alignment issues in AchievementManaging protocol  
-- Number separator violations (need underscores for large numbers)
-- Identifier name violations (variable 'i' too short)
-- Test case accessibility violations (public properties in tests)
-- Unused closure parameter violations
-```
+All test suite issues have been successfully resolved:
 
-**2. Test Runtime Failures** 
-Tests fail to run due to SwiftLint errors. Key issues found during investigation:
+**SwiftLint Violations**: ✅ All fixed
+- Fixed trailing newline violations across Watch App files
+- Corrected vertical parameter alignment issues in AchievementManaging protocol  
+- Added underscores for large numbers (100_000 format)
+- Renamed short variable names (i → index)
+- Fixed test case accessibility violations
+- Resolved unused closure parameter violations
 
-**LeaderboardViewModel Error Handling Test**:
-- ✅ FIXED: `MockUserProfileService.fetchLeaderboard()` now respects `shouldFail` flag
-- Issue was method ignored error flag and returned profiles instead of throwing
+**Test Runtime Issues**: ✅ All resolved
+- Fixed MockUserProfileService.fetchLeaderboard() to respect shouldFail flag
+- Completed CloudKit database mocking for WorkoutChallengesService tests
+- Fixed CloudKit subscription ID format mismatches
+- Fixed NotificationStore async threading issues
+- Fixed WorkoutChallenge.toCKRecord() to preserve challenge IDs
+- Cleared pre-populated mock data in LeaderboardViewModel tests
 
-**WorkoutChallengesService Tests**:
-- ❌ NEEDS FIX: Service creates real CloudKit databases instead of using mocks
-- Solution: Either add database dependency injection or mock database methods
-- Started implementation with `MockCKDatabase` class but needs completion
-
-**CloudKit Subscription Tests**:
-- ❌ NEEDS FIX: Subscription ID format mismatches between implementation and tests
-- ✅ PARTIALLY FIXED: Updated subscription IDs to use kebab-case format
-
-**NotificationStore Async Issues**:
-- ✅ FIXED: Added proper main thread dispatch for unread count updates
-
-### Implementation Status
-
-**Completed Fixes**:
-1. ✅ Fixed `MockUserProfileService.fetchLeaderboard()` to throw on `shouldFail = true`
-2. ✅ Updated CloudKit subscription IDs to match test expectations (kebab-case format)
-3. ✅ Fixed `NotificationStore` async unread count updates with proper threading
-4. ✅ Fixed `WorkoutChallenge.toCKRecord()` to preserve challenge ID in record name
-5. ✅ Cleared pre-populated mock data in LeaderboardViewModel rank tests
-
-**In Progress**:
-1. 🔄 Created `MockCKDatabase` class with `save()`, `record()`, and `records()` methods
-2. 🔄 Added database dependency injection to `WorkoutChallengesService` initializer
-3. 🔄 Need to complete CloudKit database mocking integration
-
-**Remaining Work**:
-1. ❌ Fix all SwiftLint violations (estimated 2-3 hours)
-2. ❌ Complete CloudKit database mocking for WorkoutChallengesService tests
-3. ❌ Fix any remaining test runtime failures after lint issues resolved
-4. ❌ Verify all 500+ tests pass consistently
-
-### Technical Details for Tomorrow's Session
-
-**SwiftLint Fixes Needed**:
-```bash
-# Files with trailing newline issues:
-- FameFit Watch App/Services/UserDefaultsAchievementPersister.swift:27
-- FameFit Watch App/Protocols/AnyWorkoutManager.swift:101
-- FameFit Watch App/Protocols/AchievementManaging.swift:48
-- FameFit Watch App/Services/FameFitMessageProvider.swift:334
-- FameFit Watch App/Models/FameFitMessages.swift:84
-- Multiple test files
-
-# Vertical parameter alignment issues:
-- FameFit Watch App/Protocols/AchievementManaging.swift:29-32
-
-# Number separator violations:
-- Replace numbers like 100000 with 100_000 across test files
-
-# Identifier name violations:
-- FameFitTests/Integration/WorkoutSharingFlowTests.swift:256 (variable 'i')
-```
-
-**CloudKit Database Mocking**:
-The `WorkoutChallengesService` creates real CloudKit databases:
-```swift
-// Current problematic code:
-self.publicDatabase = CKContainer.default().publicCloudDatabase
-self.privateDatabase = CKContainer.default().privateCloudDatabase
-
-// Solution started:
-init(..., publicDatabase: CKDatabase? = nil, privateDatabase: CKDatabase? = nil) {
-    self.publicDatabase = publicDatabase ?? CKContainer.default().publicCloudDatabase
-    // etc...
-}
-```
-
-**MockCKDatabase Implementation**:
-Created mock with methods: `save()`, `record()`, `records()` but needs:
-- Proper error simulation
-- Query result filtering
-- Integration with test setup
-
-### Action Plan for Tomorrow
-
-**Phase 1: SwiftLint Fixes (1-2 hours)**
-1. Add trailing newlines to all flagged files
-2. Fix parameter alignment in AchievementManaging.swift
-3. Add underscores to large numbers in test files
-4. Rename short variable names (i → index)
-5. Make test properties private where appropriate
-6. Fix unused closure parameters
-
-**Phase 2: CloudKit Database Mocking (2-3 hours)**
-1. Complete `MockCKDatabase` implementation with proper query support
-2. Update `WorkoutChallengesService` tests to inject mock databases
-3. Verify all CloudKit operations use mocks in tests
-4. Test database error simulation
-
-**Phase 3: Test Verification (1 hour)**
-1. Run full test suite and verify all pass
-2. Fix any remaining runtime failures
-3. Document any test limitations
-4. Update test count in README
-
-**Success Criteria**:
-- All SwiftLint checks pass
-- All 500+ tests run and pass consistently  
-- No CloudKit dependencies in test execution
-- Ready to proceed with Phase 5 development
+**Final Status**:
+- ✅ All SwiftLint checks pass
+- ✅ All 500+ tests run and pass consistently  
+- ✅ No CloudKit dependencies in test execution
+- ✅ Ready to proceed with Phase 5 development
 
 ## ✅ **PHASES 1-4 COMPLETE!**
 
@@ -151,99 +55,608 @@ Transform workouts into shareable content that drives growth both within the app
 
 **Key Features to Implement:**
 
-1. **Internal Sharing Enhancement**
-   - [ ] Enhanced workout cards with rich visual design
-   - [ ] Achievement celebration cards for major milestones
-   - [ ] Character-based workout summaries with personality
-   - [ ] XP progression visuals (level up animations, streaks)
-   - [ ] Social proof elements (kudos count, follower reactions)
-
-2. **External Social Platform Integration**
-   - [ ] **TikTok Integration**
-     - [ ] Workout video creation with overlay stats
-     - [ ] Character commentary integration
-     - [ ] Trending workout challenges hashtag support
-   - [ ] **Instagram Stories/Posts**
-     - [ ] Workout summary cards with app branding
-     - [ ] Achievement unlock announcements
-     - [ ] Progress milestone celebrations
-   - [ ] **Facebook Sharing**
-     - [ ] Weekly/monthly progress summaries
-     - [ ] Challenge completion announcements
-     - [ ] Friend invitation mechanisms
-   - [ ] **X (Twitter) Integration**
-     - [ ] Quick workout completion tweets
-     - [ ] Achievement unlock announcements
-     - [ ] Challenge and leaderboard updates
-
-3. **Trust & Verification System**
-   - [ ] **Share Intent Tracking**
-     - [ ] Immediate reward for share attempt (10-25 XP)
-     - [ ] Track share completion via platform APIs
-     - [ ] User confirmation prompts for share verification
+1. **Internal Sharing Enhancement** 🎨
    
-   - [ ] **Post Verification Pipeline**
-     - [ ] Social media monitoring for app-related hashtags
-     - [ ] Image recognition for app screenshots/content
-     - [ ] User-submitted proof system (link/screenshot sharing)
-     - [ ] Manual verification queue for disputed posts
+   **Rich Visual Workout Cards**
+   - [ ] Dynamic hero backgrounds based on workout type
+     - [ ] Running: Track/road imagery with motion blur
+     - [ ] Cycling: Scenic route backgrounds
+     - [ ] Swimming: Underwater/pool aesthetics
+     - [ ] Strength: Gym/weight room themes
+   - [ ] Animated progress rings showing goal completion
+   - [ ] Heart rate zone visualization (color-coded time spent)
+   - [ ] Route maps for outdoor workouts (using MapKit)
+   - [ ] Weather context badges (temperature, conditions)
+   - [ ] Personal record indicators with previous best comparison
    
-   - [ ] **Reward Structure**
-     - [ ] **Intent Bonus**: 10-25 XP for initiating share
-     - [ ] **Completion Bonus**: Additional 25-100 XP for verified posts
-     - [ ] **Engagement Bonus**: Extra rewards based on post performance
-     - [ ] **Platform-Specific Bonuses**: Different multipliers per platform
-     - [ ] **Streak Bonuses**: Consecutive days sharing increases rewards
-
-4. **Content Creation Tools**
-   - [ ] **Workout Summary Generator**
-     - [ ] Customizable workout cards with stats
-     - [ ] Character-based motivational quotes
-     - [ ] Progress comparison (before/after, weekly trends)
-     - [ ] Achievement highlight reels
+   **Character Integration**
+   - [ ] Character reactions based on workout performance
+     - [ ] Dynamic messages based on PR achievements
+     - [ ] Personality-based commentary (encouraging to ruthless)
+     - [ ] Character mood animations
+   - [ ] Character-awarded special badges
+   - [ ] Roast/praise level indicators
+   - [ ] Future: Character voice reactions
    
-   - [ ] **Story Templates**
-     - [ ] Pre-designed templates for different platforms
-     - [ ] Animated progress bars and XP gains
-     - [ ] Character animations and celebrations
-     - [ ] Branded backgrounds and themes
+   **Real-time Social Engagement**
+   - [ ] Animated kudos reactions (hearts, flames, claps)
+     - [ ] Floating animation on tap
+     - [ ] Reaction counter with user avatars
+     - [ ] Long-press for super kudos (2x XP)
+   - [ ] Workout streak flame visualizations
+   - [ ] Live workout indicators ("🟢 Currently crushing it")
+   - [ ] Group achievement notifications
+   - [ ] Quick reaction buttons (preset reactions)
    
-   - [ ] **Video Creation (Future)**
-     - [ ] Workout highlight reels with music
-     - [ ] Time-lapse workout sessions
-     - [ ] Character-narrated achievement celebrations
-
-5. **Viral Growth Mechanics**
-   - [ ] **Referral Tracking via Shares**
-     - [ ] Track app installs from shared content
-     - [ ] Reward original poster for successful referrals
-     - [ ] Bonus XP/FameCoins for bringing new users
+   **Milestone Celebrations**
+   - [ ] Confetti particle animations for achievements
+   - [ ] Full-screen level up ceremonies
+     - [ ] New title reveal animation
+     - [ ] Unlocked rewards showcase
+     - [ ] Progress timeline visualization
+   - [ ] Achievement gallery carousels
+   - [ ] Before/after progress comparisons
+   - [ ] Shareable milestone cards (internal)
    
-   - [ ] **Challenge Invitations**
-     - [ ] Share workout challenges to external platforms
-     - [ ] Cross-platform challenge participation
-     - [ ] Group challenge creation via social sharing
+   **Feed Enhancement Features**
+   - [ ] Smart content mixing algorithm
+     - [ ] Relevance scoring (similar workouts, fitness levels)
+     - [ ] Time decay weighting
+     - [ ] Engagement signal boosting
+     - [ ] Friend content prioritization
+   - [ ] Auto-generated workout highlights
+   - [ ] Weekly/monthly recap cards
+   - [ ] Community challenge invitations
+   - [ ] Character fitness tips between posts
+
+2. **External Social Platform Integration** 📱
    
-   - [ ] **Hashtag Campaigns**
-     - [ ] App-specific hashtag integration (#FameFitChallenge)
-     - [ ] Trending challenge participation tracking
-     - [ ] Community-driven challenge creation
-
-6. **Privacy & Control**
-   - [ ] **Granular Sharing Controls**
-     - [ ] Per-platform sharing preferences
-     - [ ] Content filtering (hide personal stats)
-     - [ ] Workout type sharing restrictions
+   **Platform-Specific Strategies**
    
-   - [ ] **Content Approval**
-     - [ ] Preview before sharing to external platforms
-     - [ ] Edit/customize shared content
-     - [ ] Platform-specific content adaptation
+   - [ ] **TikTok Integration** 🎵
+     - [ ] **Workout Montages** (15-30 second auto-generated videos)
+       - [ ] Heart rate graph animations synced to music
+       - [ ] Calorie burn counter racing up animation
+       - [ ] Distance/pace visualization with motion graphics
+       - [ ] Auto-sync to trending sounds
+     - [ ] **Character Voiceovers**
+       - [ ] Text-to-speech for character reactions
+       - [ ] Character personality matched to trending sounds
+       - [ ] "Coach Alex here - this beast just crushed a 5K PR!"
+     - [ ] **Trend Integration**
+       - [ ] #WorkoutCheck trend participation
+       - [ ] Before/after transformation templates
+       - [ ] Duet-ready formats for workout buddies
+       - [ ] Future: AR effects with floating stats
+   
+   - [ ] **Instagram Stories/Posts** 📸
+     - [ ] **Story Templates**
+       - [ ] Gradient backgrounds matching workout intensity
+       - [ ] Clean stat layout with custom icons
+       - [ ] Subtle FameFit branding
+       - [ ] Story stickers (polls, countdowns, location)
+     - [ ] **Achievement Unlocks**
+       - [ ] 3D badge animations for stories
+       - [ ] Gallery-ready square posts for grid
+       - [ ] Swipeable carousel for progress timelines
+     - [ ] **Engagement Features**
+       - [ ] Hashtag suggestions (#FameFitFamily)
+       - [ ] Location tags for outdoor workouts
+       - [ ] Mood/feeling integration
+       - [ ] Week/month comparison carousels
+   
+   - [ ] **Facebook Sharing** 👥
+     - [ ] **Detailed Workout Summaries**
+       - [ ] Full workout breakdown with context
+       - [ ] How you felt (mood integration)
+       - [ ] What's next (goals)
+       - [ ] Rich preview cards
+     - [ ] **Challenge Integration**
+       - [ ] Create Facebook events for group challenges
+       - [ ] Share to fitness groups
+       - [ ] Tag workout buddies
+       - [ ] Friend invitation mechanisms
+     - [ ] **Monthly Recaps**
+       - [ ] Shareable infographics
+       - [ ] Total stats for the month
+       - [ ] Achievement gallery
+       - [ ] Progress photos (optional)
+   
+   - [ ] **X (Twitter) Integration** 🐦
+     - [ ] **Tweet Templates**
+       - [ ] Quick stats: "Just crushed a 45-min run! 🏃‍♂️ 5.2 miles • 425 cal • New PR! @FameFitApp"
+       - [ ] Achievement announcements: "LEVEL UP! 🎉 Just hit Level 15 'Fitness Warrior' on FameFit! 💪"
+       - [ ] Challenge updates: "Day 7/30 of the #FameFitChallenge ✅"
+       - [ ] Leaderboard brags: "Just moved up to #3 on this week's leaderboard! Who's coming for me? 😤"
+     - [ ] **Thread Support**
+       - [ ] Weekly recap threads
+       - [ ] Progress journey threads
+       - [ ] Tips and learnings threads
+
+3. **Trust & Verification System** 🔐
+   
+   **Three-Tier Verification Process**
+   
+   - [ ] **Intent Rewards** (Immediate)
+     - [ ] User taps share button: +10 XP
+     - [ ] Opens share sheet: +5 XP bonus
+     - [ ] Platform selected: +10 XP
+     - [ ] Content generated: +5 XP
+   
+   - [ ] **Platform Verification** (1-24 hours)
+     - [ ] iOS Share Extensions to detect completion
+     - [ ] Deep link tracking for app opens
+     - [ ] Platform APIs where available
+     - [ ] Hashtag monitoring via social listening
+     - [ ] User confirmation dialogs post-share
+   
+   - [ ] **Engagement Bonuses** (24-72 hours)
+     - [ ] Track likes/views via platform APIs
+     - [ ] Bonus XP for viral posts (>100 engagements)
+     - [ ] Weekly "Top Share" featured in app
+     - [ ] Community voting on best shares
+   
+   **Anti-Gaming Measures**
+   - [ ] Daily share limits (3 verified shares max)
+   - [ ] Platform diversity requirements
+   - [ ] Account age/activity requirements
+   - [ ] Manual review for suspicious patterns
+   - [ ] Diminishing returns for repeated platforms
+   
+   **Reward Schedule**
+   - [ ] **Immediate**: 10-25 XP for share initiation
+   - [ ] **24-hour verification**: 25-100 XP for confirmed post
+   - [ ] **Weekly bonus**: Extra rewards for 5+ verified shares
+   - [ ] **Platform diversity**: Bonus for sharing across multiple platforms
+   - [ ] **Engagement multiplier**: 1.5x rewards for posts with high engagement
+
+4. **Content Creation Tools** 🎨
+   
+   **Share Flow Architecture**
+   - [ ] User completes workout → "Share Your Success?" prompt
+   - [ ] Platform selection UI with preview
+   - [ ] Platform-specific content generation
+   - [ ] Native share sheet integration
+   - [ ] Share tracking initiation
+   - [ ] Verification pipeline activation
+   - [ ] Staged reward distribution
+   
+   **Content Generation Engine**
+   - [ ] **Template System**
+     - [ ] Platform-specific variants
+     - [ ] Dynamic data injection
+     - [ ] Localization support
+     - [ ] A/B testing framework
+   - [ ] **Image Generation**
+     - [ ] SwiftUI to image rendering
+     - [ ] Background processing queue
+     - [ ] Cache for quick reshares
+     - [ ] Watermark/branding options
+   - [ ] **Video Compilation**
+     - [ ] AVFoundation integration
+     - [ ] Motion data visualization
+     - [ ] Audio track selection
+     - [ ] Export optimization per platform
+   
+   **Privacy Considerations**
+   - [ ] Opt-in for each platform
+   - [ ] Granular data controls (hide weight, location, etc.)
+   - [ ] Preview before sharing mandatory
+   - [ ] Delete shared content tracking
+   - [ ] GDPR-compliant data handling
+
+5. **Viral Growth Mechanics** 🚀
+   
+   **Referral System**
+   - [ ] **Deep Link Attribution**
+     - [ ] Branch.io or similar integration
+     - [ ] Unique referral codes per user
+     - [ ] Track install → first workout conversion
+     - [ ] Multi-touch attribution model
+   - [ ] **Referral Rewards**
+     - [ ] Sharer: 100 XP + 50 FameCoins per successful referral
+     - [ ] New user: 50 XP welcome bonus
+     - [ ] Milestone bonuses (5, 10, 25 referrals)
+     - [ ] Leaderboard for top referrers
+   
+   **Social Challenge Mechanics**
+   - [ ] **Cross-Platform Challenges**
+     - [ ] QR codes for easy joining
+     - [ ] Web landing pages for non-users
+     - [ ] Progress visible without app (teaser)
+     - [ ] Social proof counters
+   - [ ] **Viral Challenge Features**
+     - [ ] Challenge templates for quick creation
+     - [ ] Auto-invite based on workout history
+     - [ ] Public challenge discovery feed
+     - [ ] Celebrity/influencer challenges
+   
+   **Community Campaigns**
+   - [ ] **Hashtag Integration**
+     - [ ] #FameFitChallenge tracking
+     - [ ] User-generated campaign creation
+     - [ ] Trending detection algorithm
+     - [ ] Featured campaign slots
+   - [ ] **Seasonal Campaigns**
+     - [ ] New Year transformation challenges
+     - [ ] Summer body countdowns
+     - [ ] Holiday workout streaks
+     - [ ] Charity partnership campaigns
+
+6. **Privacy & Control** 🔒
+   
+   **User Control Features**
+   - [ ] **Sharing Preferences**
+     - [ ] Global on/off toggle
+     - [ ] Per-platform permissions
+     - [ ] Data field visibility (weight, heart rate, location)
+     - [ ] Time-based restrictions (no late night shares)
+   
+   - [ ] **Content Management**
+     - [ ] Edit generated content before sharing
+     - [ ] Save drafts for later
+     - [ ] Bulk delete shared content history
+     - [ ] Report inappropriate reshares
+   
+   **Technical Implementation**
+   - [ ] **Security Measures**
+     - [ ] Encrypted storage of share history
+     - [ ] API key rotation for platforms
+     - [ ] Rate limiting per user
+     - [ ] Audit logs for all shares
+   - [ ] **Compliance**
+     - [ ] COPPA: No sharing for under-13
+     - [ ] GDPR: Right to be forgotten
+     - [ ] Platform-specific age gates
+     - [ ] Clear privacy policy updates
+   
+   **Monetization Opportunities**
+   - [ ] Premium share templates (FameCoin purchase)
+   - [ ] Sponsored challenge partnerships
+   - [ ] White-label sharing for gyms/brands
+   - [ ] Analytics dashboard for power users
+   
+   **Success Metrics**
+   - [ ] Share-to-install conversion rate (target: 2-5%)
+   - [ ] Viral coefficient (target: 0.5+)
+   - [ ] Platform engagement rates
+   - [ ] User retention post-share (target: +20%)
+   - [ ] Revenue per shared post
+
+7. **Technical Architecture & Infrastructure** 🏗️
+
+   **CloudKit Schema for Sharing**
+   ```
+   ShareHistory (Private Database)
+   - shareId: String (CKRecord.ID) - UUID
+   - userId: String (Reference) - QUERYABLE
+   - workoutId: String (Reference)
+   - platform: String - QUERYABLE ("tiktok", "instagram", "facebook", "twitter")
+   - shareType: String - QUERYABLE ("workout", "achievement", "milestone", "challenge")
+   - status: String - QUERYABLE ("initiated", "generated", "shared", "verified", "failed")
+   - contentHash: String - SHA256 of generated content
+   - shareTimestamp: Date - QUERYABLE
+   - verificationTimestamp: Date
+   - engagementCount: Int64
+   - referralCount: Int64
+   - xpAwarded: Int64
+   - fameCoinsAwarded: Int64
+   - metadata: String - JSON with platform-specific data
+   
+   ShareVerification (Public Database)
+   - verificationId: String (CKRecord.ID)
+   - shareId: String (Reference)
+   - verificationType: String ("auto", "manual", "api", "hashtag")
+   - verificationData: String - JSON proof data
+   - verifierUserId: String (optional, for manual)
+   - timestamp: Date
+   
+   ShareTemplate (Public Database)
+   - templateId: String (CKRecord.ID)
+   - platform: String - QUERYABLE
+   - templateType: String - QUERYABLE
+   - version: Int64 - QUERYABLE
+   - isActive: Int64 - QUERYABLE
+   - templateData: String - JSON template definition
+   - lastModified: Date - QUERYABLE
+   ```
+
+   **Content Generation & Storage**
+   - [ ] **Image Generation Pipeline**
+     - [ ] SwiftUI View → UIImage rendering (offscreen)
+     - [ ] Multiple resolution exports (1x, 2x, 3x)
+     - [ ] WebP compression for storage efficiency
+     - [ ] CDN integration for template assets
+     - [ ] Lazy loading for template previews
+   
+   - [ ] **Video Generation Pipeline**
+     - [ ] AVFoundation for video composition
+     - [ ] Hardware acceleration using VideoToolbox
+     - [ ] Background processing with progress tracking
+     - [ ] Chunked upload for large videos
+     - [ ] Fallback to lower quality on older devices
+   
+   - [ ] **Storage Strategy**
+     - [ ] Local cache: 100MB limit, LRU eviction
+     - [ ] CloudKit assets for user-generated content
+     - [ ] S3/CloudFront for template assets
+     - [ ] Temporary files cleaned after 24 hours
+     - [ ] Bandwidth optimization for cellular
+
+8. **Security & Safety Considerations** 🛡️
+
+   **Content Security**
+   - [ ] **Input Sanitization**
+     - [ ] Strip HTML/script tags from user bios
+     - [ ] Validate all numeric inputs (prevent overflow)
+     - [ ] Character limit enforcement (prevent DoS)
+     - [ ] Unicode normalization for usernames
+   
+   - [ ] **Output Validation**
+     - [ ] Image size limits (max 10MB)
+     - [ ] Video duration limits (max 60 seconds)
+     - [ ] Watermark tamper detection
+     - [ ] Content hash verification
+   
+   **Privacy Protection**
+   - [ ] **Data Minimization**
+     - [ ] Strip EXIF data from images
+     - [ ] Remove location data unless explicitly allowed
+     - [ ] Anonymize heart rate zones option
+     - [ ] Blur faces in route maps (future)
+   
+   - [ ] **Access Control**
+     - [ ] Share history viewable only by owner
+     - [ ] Admin-only access to verification data
+     - [ ] Encrypted storage of platform tokens
+     - [ ] Session-based share permissions
+   
+   **Anti-Abuse Measures**
+   - [ ] **Rate Limiting**
+     ```swift
+     ShareRateLimits {
+       generation: 10 per hour
+       sharing: 5 per hour per platform
+       verification: 20 attempts per day
+       template downloads: 50 per day
+     }
+     ```
+   
+   - [ ] **Fraud Detection**
+     - [ ] Velocity checks (too many shares too fast)
+     - [ ] Device fingerprinting for multi-account abuse
+     - [ ] ML model for fake engagement detection
+     - [ ] Honeypot templates to catch bots
+
+9. **Edge Cases & Error Handling** ⚠️
+
+   **Share Generation Failures**
+   - [ ] **Network Issues**
+     - [ ] Offline mode: Queue shares for later
+     - [ ] Partial uploads: Resume capability
+     - [ ] Template sync failures: Use cached version
+     - [ ] CDN failures: Fallback to CloudKit
+   
+   - [ ] **Resource Constraints**
+     - [ ] Memory warnings: Reduce image quality
+     - [ ] Storage full: Clear old cache
+     - [ ] CPU throttling: Show progress indicator
+     - [ ] Battery low: Warn before video generation
+   
+   **Platform Integration Failures**
+   - [ ] **API Errors**
+     - [ ] Rate limit: Exponential backoff
+     - [ ] Auth expiry: Refresh token flow
+     - [ ] Platform down: Queue and retry
+     - [ ] Version mismatch: Force app update
+   
+   - [ ] **User Errors**
+     - [ ] Cancelled share: Save draft option
+     - [ ] Wrong platform: Easy platform switch
+     - [ ] Accidental share: Quick delete option
+     - [ ] Privacy mistake: Retroactive privacy change
+
+10. **Content Creation Pipeline** 🎬
+
+    **Template System Architecture**
+    - [ ] **Template Definition Format**
+      ```json
+      {
+        "templateId": "workout-summary-v1",
+        "platform": "instagram",
+        "dimensions": {"width": 1080, "height": 1920},
+        "layers": [
+          {
+            "type": "background",
+            "gradient": ["dynamic:workout_color_1", "dynamic:workout_color_2"]
+          },
+          {
+            "type": "text",
+            "content": "{{workout_type}} CRUSHED!",
+            "font": "system.black",
+            "size": "dynamic:title_size"
+          },
+          {
+            "type": "stats",
+            "metrics": ["duration", "calories", "distance"],
+            "style": "circular_progress"
+          }
+        ]
+      }
+      ```
+    
+    - [ ] **Dynamic Content Injection**
+      - [ ] Variable substitution engine
+      - [ ] Conditional layer rendering
+      - [ ] Localized text replacement
+      - [ ] Smart text truncation
+      - [ ] Responsive layout system
+    
+    **Asset Management**
+    - [ ] **Template Assets**
+      - [ ] Vector graphics for scalability
+      - [ ] Lottie animations for celebrations
+      - [ ] Font subsetting for size optimization
+      - [ ] Progressive image loading
+    
+    - [ ] **User Assets**
+      - [ ] Profile photo caching
+      - [ ] Workout route rendering
+      - [ ] Achievement badge library
+      - [ ] Custom background uploads (premium)
+
+11. **Analytics & Measurement** 📊
+
+    **Share Funnel Tracking**
+    ```
+    Events to track:
+    - share_button_tapped
+    - share_platform_selected
+    - share_content_generated
+    - share_sheet_opened
+    - share_completed
+    - share_cancelled
+    - share_verified
+    - share_engagement_received
+    ```
+    
+    - [ ] **Performance Metrics**
+      - [ ] Template render time (target: <500ms)
+      - [ ] Video generation time (target: <5s for 30s video)
+      - [ ] Share sheet launch time (target: <100ms)
+      - [ ] Verification latency (target: <24hr for 90%)
+    
+    - [ ] **A/B Testing Framework**
+      - [ ] Template variant testing
+      - [ ] Copy variation testing
+      - [ ] Reward amount testing
+      - [ ] Platform priority testing
+
+12. **Integration Points** 🔗
+
+    **Existing Feature Integration**
+    - [ ] **Workout Challenges**
+      - [ ] Share challenge invitations
+      - [ ] Progress update shares
+      - [ ] Challenge completion celebrations
+      - [ ] Team challenge summaries
+    
+    - [ ] **Achievement System**
+      - [ ] Milestone share triggers
+      - [ ] Badge unlock animations
+      - [ ] Level up ceremonies
+      - [ ] Streak celebration shares
+    
+    - [ ] **Social Feed**
+      - [ ] "Shared to [Platform]" indicators
+      - [ ] Share engagement counts
+      - [ ] Reshare functionality
+      - [ ] Share-based kudos
+
+13. **Backend Services** 🖥️
+
+    **Verification Service Architecture**
+    - [ ] **Social Listening Service**
+      ```swift
+      class SocialListeningService {
+        // Monitors hashtags across platforms
+        // Uses webhooks where available
+        // Falls back to polling for others
+        // Queues verification tasks
+      }
+      ```
+    
+    - [ ] **Platform API Integrations**
+      - [ ] Instagram Basic Display API
+      - [ ] Facebook Graph API
+      - [ ] Twitter API v2
+      - [ ] TikTok Display API
+      - [ ] Webhook receivers for each
+    
+    - [ ] **Manual Review System**
+      - [ ] Admin dashboard for verification
+      - [ ] Bulk verification tools
+      - [ ] Dispute resolution flow
+      - [ ] Audit trail for decisions
+
+14. **Accessibility & Localization** 🌍
+
+    **Accessibility Features**
+    - [ ] **VoiceOver Support**
+      - [ ] Descriptive labels for all templates
+      - [ ] Share progress announcements
+      - [ ] Platform selection guidance
+      - [ ] Success/failure notifications
+    
+    - [ ] **Visual Accessibility**
+      - [ ] High contrast template options
+      - [ ] Colorblind-friendly palettes
+      - [ ] Large text variants
+      - [ ] Reduced motion options
+    
+    **Localization Strategy**
+    - [ ] **Multi-language Templates**
+      - [ ] RTL language support
+      - [ ] Dynamic text sizing
+      - [ ] Cultural color preferences
+      - [ ] Regional platform preferences
+    
+    - [ ] **Content Adaptation**
+      - [ ] Metric system conversion
+      - [ ] Date/time formatting
+      - [ ] Currency localization
+      - [ ] Cultural sensitivity filters
+
+15. **Testing Strategy** 🧪
+
+    **Unit Tests**
+    - [ ] Template rendering engine
+    - [ ] Content generation pipeline
+    - [ ] Verification logic
+    - [ ] Rate limiting system
+    - [ ] Security validators
+    
+    **Integration Tests**
+    - [ ] Platform API mocking
+    - [ ] Share flow end-to-end
+    - [ ] CloudKit sync reliability
+    - [ ] Image/video generation
+    - [ ] Analytics event flow
+    
+    **Performance Tests**
+    - [ ] Template render benchmarks
+    - [ ] Memory usage profiling
+    - [ ] Battery impact testing
+    - [ ] Network bandwidth optimization
+    - [ ] Stress testing (1000+ shares)
 
 
 
 
 
+
+16. **Implementation Priorities & Decision Points** 🎯
+
+    **MVP Features (Week 1-2)**
+    - [ ] Basic Instagram story sharing (static images only)
+    - [ ] Simple workout summary template
+    - [ ] Manual share verification (user confirms)
+    - [ ] Basic XP rewards (intent-based only)
+    - [ ] Share history tracking
+    
+    **Enhanced Features (Week 3-4)**
+    - [ ] Multi-platform support (add Twitter, Facebook)
+    - [ ] Achievement & milestone templates
+    - [ ] Automated verification via deep links
+    - [ ] Template customization options
+    - [ ] A/B testing framework
+    
+    **Advanced Features (Future)**
+    - [ ] TikTok video generation
+    - [ ] AI-powered content suggestions
+    - [ ] Social listening verification
+    - [ ] Premium template marketplace
+    - [ ] White-label solutions
 
 ### 🎮 Influencer XP & Social Networking System
 
@@ -1284,24 +1697,43 @@ Fixed compilation errors in test suite and documented Apple API limitations.
 
 ## 📋 **Low Priority - Future Work**
 
-### 8. Abstract HealthKit Session Management
+### 8. Create Protocol-Based Factory for Dependency Injection
+
+**Impact**: Medium - Better architecture but not critical for current functionality  
+**Status**: Not Started  
+**Priority**: Low - Post-TestFlight Enhancement
+
+**Current State**: The existing `DependencyContainer` is well-structured with factory methods and protocol-based services. While functional, it could benefit from a more formal factory pattern.
+
+**Proposed Implementation**:
+- Create `DependencyFactory` protocol with factory methods for each service type
+- Implement `ProductionDependencyFactory` and `TestDependencyFactory` 
+- Abstract service creation logic into configurable factories
+- Enable easier swapping between production and test implementations
+- Improve dependency graph visualization and management
+
+**Rationale for Low Priority**:
+- Current DI system works well and is already protocol-based
+- High risk/low reward for pre-TestFlight implementation  
+- Would require extensive testing across entire app surface area
+- Better suited for post-launch architectural improvements
+- No current pain points with existing dependency injection
+
+**Timing**: Implement after TestFlight success and user feedback, ideally during next major feature development cycle when significant architectural changes are already planned.
+
+### 9. Abstract HealthKit Session Management
 
 **Impact**: Medium - Direct HealthKit usage in WorkoutManager  
 **Status**: Not Started
 
-### 9. Add Logging Protocol  
+### 10. Add Logging Protocol  
 
 **Impact**: Low - Current implementation is adequate  
 **Status**: Not Started
 
-### 10. Abstract Complication Data Provider
+### 11. Abstract Complication Data Provider
 
 **Impact**: Low - Watch-specific, limited testing needs  
-**Status**: Not Started
-
-### 11. Protocol for Dependency Container
-
-**Impact**: Low - Current implementation works well  
 **Status**: Not Started
 
 ---
@@ -1468,4 +1900,4 @@ The app architecture has been **dramatically improved**:
 
 ---
 
-Last Updated: 2025-07-24 - Phases 1-4 Complete! 🎉
+Last Updated: 2025-07-25 - Test Suite Fixed! Ready for Phase 5! 🚀

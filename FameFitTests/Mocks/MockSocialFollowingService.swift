@@ -2,7 +2,7 @@
 //  MockSocialFollowingService.swift
 //  FameFitTests
 //
-//  Mock implementation of social following service for testing
+//  Mock implementation of SocialFollowingServicing for testing
 //
 
 import Combine
@@ -10,56 +10,45 @@ import Combine
 import Foundation
 
 final class MockSocialFollowingService: SocialFollowingServicing {
-    // Mock state
-    var relationships: [String: [String]] = [:] // userId -> Array of following IDs
-    var blockedUsers: [String: Set<String>] = [:] // userId -> Set of blocked
+    // Mock data storage
+    var relationships: [String: Set<String>] = [:] // userId -> Set of followingIds
+    var blockedUsers: [String: Set<String>] = [:] // userId -> Set of blockedIds
     var followRequests: [FollowRequest] = []
+    var shouldFail = false
     var shouldFailNextAction = false
-    var mockError: SocialServiceError?
-
-    // Test helpers
+    var mockError: SocialServiceError = .networkError(NSError(domain: "MockError", code: 0))
     var getFollowingCallCount = 0
 
     // Publishers
-    @Published private var followersCounts: [String: Int] = [:]
-    @Published private var followingCounts: [String: Int] = [:]
+    private let followersCountSubject = CurrentValueSubject<[String: Int], Never>([:])
+    private let followingCountSubject = CurrentValueSubject<[String: Int], Never>([:])
     private let relationshipUpdatesSubject = PassthroughSubject<UserRelationship, Never>()
 
-    // Publisher conformance
     var followersCountPublisher: AnyPublisher<[String: Int], Never> {
-        $followersCounts.eraseToAnyPublisher()
+        followersCountSubject.eraseToAnyPublisher()
     }
 
     var followingCountPublisher: AnyPublisher<[String: Int], Never> {
-        $followingCounts.eraseToAnyPublisher()
+        followingCountSubject.eraseToAnyPublisher()
     }
 
     var relationshipUpdatesPublisher: AnyPublisher<UserRelationship, Never> {
         relationshipUpdatesSubject.eraseToAnyPublisher()
     }
 
-    // MARK: - Follow Operations
-
+    // Follow operations
     func follow(userId: String) async throws {
-        if shouldFailNextAction {
+        if shouldFail || shouldFailNextAction {
             shouldFailNextAction = false
-            throw mockError ?? SocialServiceError.networkError(NSError(domain: "MockError", code: 1))
+            throw mockError
         }
 
         let currentUserId = "mock-current-user"
+        var following = relationships[currentUserId] ?? []
+        following.insert(userId)
+        relationships[currentUserId] = following
 
-        // Add to relationships
-        if relationships[currentUserId] == nil {
-            relationships[currentUserId] = []
-        }
-        if !relationships[currentUserId]!.contains(userId) {
-            relationships[currentUserId]?.append(userId)
-        }
-
-        // Update counts
-        await updateCounts()
-
-        // Send update
+        // Emit relationship update
         let relationship = UserRelationship(
             id: UserRelationship.makeId(followerID: currentUserId, followingID: userId),
             followerID: currentUserId,
@@ -68,26 +57,22 @@ final class MockSocialFollowingService: SocialFollowingServicing {
             notificationsEnabled: true
         )
         relationshipUpdatesSubject.send(relationship)
+
+        updateCounts()
     }
 
     func unfollow(userId: String) async throws {
-        if shouldFailNextAction {
-            shouldFailNextAction = false
-            throw mockError ?? SocialServiceError.networkError(NSError(domain: "MockError", code: 1))
-        }
+        if shouldFail { throw mockError }
 
         let currentUserId = "mock-current-user"
-        relationships[currentUserId]?.removeAll { $0 == userId }
+        relationships[currentUserId]?.remove(userId)
 
-        await updateCounts()
+        updateCounts()
     }
 
     func requestFollow(userId: String, message: String?) async throws {
-        if shouldFailNextAction {
-            shouldFailNextAction = false
-            throw mockError ?? SocialServiceError.networkError(NSError(domain: "MockError", code: 1))
-        }
-
+        if shouldFail { throw mockError }
+        
         let request = FollowRequest(
             id: UUID().uuidString,
             requesterId: "mock-current-user",
@@ -101,93 +86,99 @@ final class MockSocialFollowingService: SocialFollowingServicing {
         followRequests.append(request)
     }
 
-    func respondToFollowRequest(requestId: String, accept: Bool) async throws {
-        if let index = followRequests.firstIndex(where: { $0.id == requestId }) {
-            followRequests[index] = FollowRequest(
-                id: followRequests[index].id,
-                requesterId: followRequests[index].requesterId,
-                requesterProfile: followRequests[index].requesterProfile,
-                targetId: followRequests[index].targetId,
-                status: accept ? "accepted" : "rejected",
-                createdAt: followRequests[index].createdAt,
-                expiresAt: followRequests[index].expiresAt,
-                message: followRequests[index].message
-            )
-
-            if accept {
-                // Add to relationships
-                let requesterId = followRequests[index].requesterId
-                let targetId = followRequests[index].targetId
-                if relationships[requesterId] == nil {
-                    relationships[requesterId] = []
-                }
-                if !relationships[requesterId]!.contains(targetId) {
-                    relationships[requesterId]?.append(targetId)
-                }
-            }
-        }
+    func respondToFollowRequest(requestId _: String, accept _: Bool) async throws {
+        if shouldFail { throw mockError }
+        // Mock implementation - no-op
     }
 
-    // MARK: - Relationship Queries
-
+    // Relationship queries
     func getFollowers(for userId: String, limit: Int) async throws -> [UserProfile] {
-        // Find all users who follow this user
-        var followers: [UserProfile] = []
+        if shouldFail { throw mockError }
 
-        for (followerId, following) in relationships {
-            if following.contains(userId) {
-                followers.append(UserProfile.mockProfile.with(id: followerId))
+        // Find all users who follow the given userId
+        var followers: [String] = []
+        for (followerId, followingSet) in relationships {
+            if followingSet.contains(userId) {
+                followers.append(followerId)
             }
         }
 
-        return Array(followers.prefix(limit))
+        return followers.prefix(limit).map { id in
+            UserProfile(
+                id: id,
+                userID: id,
+                username: "user\(id)",
+                displayName: "Mock User \(id)",
+                bio: "Mock bio",
+                workoutCount: 10,
+                totalXP: 100,
+                joinedDate: Date(),
+                lastUpdated: Date(),
+                isVerified: false,
+                privacyLevel: .publicProfile,
+                profileImageURL: nil
+            )
+        }
     }
 
     func getFollowing(for userId: String, limit: Int) async throws -> [UserProfile] {
         getFollowingCallCount += 1
 
-        if shouldFailNextAction {
+        if shouldFail || shouldFailNextAction {
             shouldFailNextAction = false
-            throw mockError ?? SocialServiceError.networkError(NSError(domain: "MockError", code: 1))
+            throw mockError
         }
 
-        let followingIds = relationships[userId] ?? []
-        let profiles = followingIds.map { UserProfile.mockProfile.with(id: $0) }
-        return Array(profiles.prefix(limit))
+        let following = relationships[userId] ?? []
+        return Array(following).prefix(limit).map { id in
+            UserProfile(
+                id: id,
+                userID: id,
+                username: "user\(id)",
+                displayName: "Mock User \(id)",
+                bio: "Mock bio",
+                workoutCount: 10,
+                totalXP: 100,
+                joinedDate: Date(),
+                lastUpdated: Date(),
+                isVerified: false,
+                privacyLevel: .publicProfile,
+                profileImageURL: nil
+            )
+        }
     }
 
     func checkRelationship(between userId: String, and targetId: String) async throws -> RelationshipStatus {
+        if shouldFail { throw mockError }
+
         if blockedUsers[userId]?.contains(targetId) == true {
             return .blocked
         }
 
-        let isFollowing = relationships[userId]?.contains(targetId) == true
-        let isFollowedBy = relationships[targetId]?.contains(userId) == true
+        let userFollowsTarget = relationships[userId]?.contains(targetId) == true
+        let targetFollowsUser = relationships[targetId]?.contains(userId) == true
 
-        if isFollowing, isFollowedBy {
+        if userFollowsTarget && targetFollowsUser {
             return .mutualFollow
-        } else if isFollowing {
+        } else if userFollowsTarget {
             return .following
-        } else if followRequests
-            .contains(where: { $0.requesterId == userId && $0.targetId == targetId && $0.status == "pending" })
-        {
-            return .pending
-        } else {
-            return .notFollowing
         }
+
+        return .notFollowing
     }
 
     func getMutualFollowers(with _: String, limit _: Int) async throws -> [UserProfile] {
-        // Mock implementation
-        []
+        if shouldFail { throw mockError }
+        return []
     }
 
-    // MARK: - Counts
-
+    // Counts
     func getFollowerCount(for userId: String) async throws -> Int {
+        if shouldFail { throw mockError }
+
         var count = 0
-        for (_, following) in relationships {
-            if following.contains(userId) {
+        for (_, followingSet) in relationships {
+            if followingSet.contains(userId) {
                 count += 1
             }
         }
@@ -195,104 +186,100 @@ final class MockSocialFollowingService: SocialFollowingServicing {
     }
 
     func getFollowingCount(for userId: String) async throws -> Int {
-        relationships[userId]?.count ?? 0
+        if shouldFail { throw mockError }
+        return relationships[userId]?.count ?? 0
     }
 
-    // MARK: - Block/Mute Operations
-
+    // Block/Mute operations
     func blockUser(_ userId: String) async throws {
+        if shouldFail { throw mockError }
+
         let currentUserId = "mock-current-user"
+        var blocked = blockedUsers[currentUserId] ?? []
+        blocked.insert(userId)
+        blockedUsers[currentUserId] = blocked
 
-        // Remove from following
-        relationships[currentUserId]?.removeAll { $0 == userId }
-        relationships[userId]?.removeAll { $0 == currentUserId }
-
-        // Add to blocked
-        if blockedUsers[currentUserId] == nil {
-            blockedUsers[currentUserId] = []
-        }
-        blockedUsers[currentUserId]?.insert(userId)
+        // Also unfollow if following
+        relationships[currentUserId]?.remove(userId)
+        relationships[userId]?.remove(currentUserId)
     }
 
     func unblockUser(_ userId: String) async throws {
+        if shouldFail { throw mockError }
+
         let currentUserId = "mock-current-user"
         blockedUsers[currentUserId]?.remove(userId)
     }
 
     func muteUser(_: String) async throws {
-        // Mock implementation
+        if shouldFail { throw mockError }
+        // Mock implementation - no-op
     }
 
     func unmuteUser(_: String) async throws {
-        // Mock implementation
+        if shouldFail { throw mockError }
+        // Mock implementation - no-op
     }
 
     func getBlockedUsers() async throws -> [String] {
-        Array(blockedUsers["mock-current-user"] ?? [])
+        if shouldFail { throw mockError }
+        return Array(blockedUsers["mock-current-user"] ?? [])
     }
 
     func getMutedUsers() async throws -> [String] {
-        []
+        if shouldFail { throw mockError }
+        return []
     }
 
-    // MARK: - Follow Requests
-
+    // Follow requests
     func getPendingFollowRequests() async throws -> [FollowRequest] {
-        followRequests.filter { $0.targetId == "mock-current-user" && $0.status == "pending" }
+        if shouldFail { throw mockError }
+        return []
     }
 
     func getSentFollowRequests() async throws -> [FollowRequest] {
-        followRequests.filter { $0.requesterId == "mock-current-user" && $0.status == "pending" }
+        if shouldFail { throw mockError }
+        return followRequests.filter { $0.requesterId == "mock-current-user" }
     }
 
-    func cancelFollowRequest(requestId: String) async throws {
-        followRequests.removeAll { $0.id == requestId }
+    func cancelFollowRequest(requestId _: String) async throws {
+        if shouldFail { throw mockError }
+        // Mock implementation - no-op
     }
 
-    // MARK: - Caching
-
+    // Caching
     func clearRelationshipCache() {
-        // No-op for mock
+        // Mock implementation - no-op
     }
 
     func preloadRelationships(for _: [String]) async {
-        // No-op for mock
+        // Mock implementation - no-op
     }
 
-    // MARK: - Helper Methods
+    // Test helpers
+    func reset() {
+        relationships.removeAll()
+        blockedUsers.removeAll()
+        followRequests.removeAll()
+        shouldFail = false
+        shouldFailNextAction = false
+        getFollowingCallCount = 0
+        updateCounts()
+    }
 
-    private func updateCounts() async {
-        // Update follower counts for all users
-        var newFollowersCounts: [String: Int] = [:]
-        var newFollowingCounts: [String: Int] = [:]
+    private func updateCounts() {
+        var followerCounts: [String: Int] = [:]
+        var followingCounts: [String: Int] = [:]
 
-        for (userId, _) in relationships {
-            newFollowingCounts[userId] = try? await getFollowingCount(for: userId)
-            newFollowersCounts[userId] = try? await getFollowerCount(for: userId)
+        for (userId, following) in relationships {
+            followingCounts[userId] = following.count
+
+            for followedId in following {
+                followerCounts[followedId] = (followerCounts[followedId] ?? 0) + 1
+            }
         }
 
-        followersCounts = newFollowersCounts
-        followingCounts = newFollowingCounts
-    }
-}
-
-// Helper extension for testing
-extension UserProfile {
-    func with(id: String) -> UserProfile {
-        UserProfile(
-            id: id,
-            userID: "user-\(id)",
-            username: "user_\(id)",
-            displayName: "User \(id)",
-            bio: bio,
-            workoutCount: workoutCount,
-            totalXP: totalXP,
-            joinedDate: joinedDate,
-            lastUpdated: lastUpdated,
-            isVerified: isVerified,
-            privacyLevel: privacyLevel,
-            profileImageURL: profileImageURL,
-            headerImageURL: headerImageURL
-        )
+        followersCountSubject.send(followerCounts)
+        followingCountSubject.send(followingCounts)
     }
 }

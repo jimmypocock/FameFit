@@ -106,7 +106,7 @@ class MainViewModelTests: XCTestCase {
 
     func testJoinDateBindsToCloudKitManager() {
         // Given
-        let expectedDate = Date().addingTimeInterval(-30 * 24 * 3600) // 30 days ago
+        let expectedDate = Date().addingTimeInterval(-30 * 24 * 3_600) // 30 days ago
 
         // When
         mockCloudKitManager.joinTimestamp = expectedDate
@@ -117,7 +117,7 @@ class MainViewModelTests: XCTestCase {
 
     func testLastWorkoutDateBindsToCloudKitManager() {
         // Given
-        let expectedDate = Date().addingTimeInterval(-2 * 3600) // 2 hours ago
+        let expectedDate = Date().addingTimeInterval(-2 * 3_600) // 2 hours ago
 
         // When
         mockCloudKitManager.lastWorkoutTimestamp = expectedDate
@@ -158,7 +158,7 @@ class MainViewModelTests: XCTestCase {
         let initialTitle = sut.xpTitle
 
         // When
-        mockCloudKitManager.totalXP = 1000
+        mockCloudKitManager.totalXP = 1_000
         sut.refreshData() // Sync new state
         let newTitle = sut.xpTitle
 
@@ -170,7 +170,7 @@ class MainViewModelTests: XCTestCase {
 
     func testDaysAsMemberCalculationWithValidJoinDate() {
         // Given
-        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3600)
+        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3_600)
 
         // When
         mockCloudKitManager.joinTimestamp = thirtyDaysAgo

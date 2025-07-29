@@ -73,7 +73,7 @@ final class LeaderboardViewModel: ObservableObject {
     }
 
     // MARK: - Testing Support
-    
+
     /// Force refresh of friends cache (for testing)
     func forceRefreshFriends() {
         lastFriendsFetch = .distantPast
@@ -91,7 +91,7 @@ final class LeaderboardViewModel: ObservableObject {
         guard let socialService = socialFollowingService else { return }
 
         do {
-            let following = try await socialService.getFollowing(for: currentUserId, limit: 1000)
+            let following = try await socialService.getFollowing(for: currentUserId, limit: 1_000)
             friendIds = Set(following.map(\.id))
             friendIds.insert(currentUserId) // Include self in friends view
             lastFriendsFetch = Date()
@@ -124,10 +124,6 @@ final class LeaderboardViewModel: ObservableObject {
                 }
             }
             return profiles
-
-        case .nearby:
-            // Not implemented yet
-            return []
         }
     }
 
@@ -174,18 +170,18 @@ final class LeaderboardViewModel: ObservableObject {
         // For now, estimate based on total XP and account age
         // In a real implementation, we'd query workout history
 
-        if dateRange.duration > 365 * 24 * 3600 {
+        if dateRange.duration > 365 * 24 * 3_600 {
             // All time - return total XP
             return profile.totalXP
         }
 
         // Estimate daily XP rate
         let accountAge = Date().timeIntervalSince(profile.joinedDate)
-        let daysActive = max(1, accountAge / (24 * 3600))
+        let daysActive = max(1, accountAge / (24 * 3_600))
         let dailyXPRate = Double(profile.totalXP) / daysActive
 
         // Calculate XP for period
-        let periodDays = dateRange.duration / (24 * 3600)
+        let periodDays = dateRange.duration / (24 * 3_600)
         return Int(dailyXPRate * periodDays)
     }
 

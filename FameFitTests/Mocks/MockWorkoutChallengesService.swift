@@ -33,7 +33,7 @@ final class MockWorkoutChallengesService: WorkoutChallengesServicing {
         targetValue: Double = 10.0,
         status: ChallengeStatus = .pending,
         startDate: Date = Date(),
-        endDate: Date = Date().addingTimeInterval(7 * 24 * 3600)
+        endDate: Date = Date().addingTimeInterval(7 * 24 * 3_600)
     ) -> WorkoutChallenge {
         let defaultParticipants = participants ?? [
             ChallengeParticipant(
@@ -47,7 +47,7 @@ final class MockWorkoutChallengesService: WorkoutChallengesServicing {
                 displayName: "Participant",
                 profileImageURL: nil,
                 progress: 0
-            ),
+            )
         ]
 
         return WorkoutChallenge(
@@ -265,7 +265,7 @@ final class MockWorkoutChallengesService: WorkoutChallengesServicing {
         challenges.append(MockWorkoutChallengesService.createMockChallenge(
             id: "pending-1",
             type: .calories,
-            targetValue: 2000,
+            targetValue: 2_000,
             status: .pending
         ))
 

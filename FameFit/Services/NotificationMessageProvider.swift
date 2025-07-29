@@ -25,7 +25,7 @@ final class FameFitMessageProvider: MessageProviding {
             "Crushed it! \(xpEarned) XP added to your total. Keep pushing! 🔥",
             "\(workoutType) complete! You're \(xpEarned) XP closer to your next level!",
             "Another one in the books! \(duration) minutes of pure dedication earned you \(xpEarned) XP!",
-            "Workout warrior! \(calories) calories torched and \(xpEarned) XP collected! 🏆",
+            "Workout warrior! \(calories) calories torched and \(xpEarned) XP collected! 🏆"
         ]
         return messages.randomElement()!
     }
@@ -36,7 +36,7 @@ final class FameFitMessageProvider: MessageProviding {
                 "Your \(streak)-day streak needs you! Don't let it slip away!",
                 "\(streak) days of consistency on the line. You've got this!",
                 "Quick workout to save your \(streak)-day streak? Future you will thank you!",
-                "Streak alert! Keep your \(streak)-day run alive with a workout today!",
+                "Streak alert! Keep your \(streak)-day run alive with a workout today!"
             ]
             return messages.randomElement()!
         } else {
@@ -44,7 +44,7 @@ final class FameFitMessageProvider: MessageProviding {
                 "\(streak) days strong! You're unstoppable! 🔥",
                 "Streak game on point! \(streak) days and counting!",
                 "\(streak)-day streak achieved! Consistency is your superpower!",
-                "Day \(streak) complete! You're building something special here!",
+                "Day \(streak) complete! You're building something special here!"
             ]
             return messages.randomElement()!
         }
@@ -55,7 +55,7 @@ final class FameFitMessageProvider: MessageProviding {
             "Level \(level) unlocked! You're now a \(title)! 🎉",
             "Congrats, \(title)! Level \(level) looks good on you!",
             "Achievement unlocked: \(title) (Level \(level))! Keep climbing!",
-            "Welcome to Level \(level), \(title)! The journey continues!",
+            "Welcome to Level \(level), \(title)! The journey continues!"
         ]
         return messages.randomElement()!
     }

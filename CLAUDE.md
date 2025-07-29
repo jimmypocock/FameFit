@@ -211,6 +211,8 @@ To test social features (profiles, search, leaderboards) with one device:
 2. Add: `USE_MOCK_SOCIAL` = `1`
 3. Run the app - you'll now see 7 diverse mock profiles in search and leaderboards
 
+**Important:** When using `USE_MOCK_SOCIAL=1`, the app uses mock implementations of CloudKit, social following, activity feed, and comments services to avoid CloudKit permission errors and allow full testing without real CloudKit access
+
 **Mock Profiles Include:**
 - Marathon Master (45,000 XP, verified, 127 workouts)
 - Zen Yoga Flow (28,500 XP, 89 workouts)

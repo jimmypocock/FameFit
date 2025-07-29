@@ -56,8 +56,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3600),
-                scheduledEnd: Date().addingTimeInterval(7200),
+                scheduledStart: Date().addingTimeInterval(3_600),
+                scheduledEnd: Date().addingTimeInterval(7_200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -68,8 +68,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7200),
-                scheduledEnd: Date().addingTimeInterval(10800),
+                scheduledStart: Date().addingTimeInterval(7_200),
+                scheduledEnd: Date().addingTimeInterval(10_800),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -80,11 +80,11 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "host-3",
                 maxParticipants: 5,
-                scheduledStart: Date().addingTimeInterval(5400),
-                scheduledEnd: Date().addingTimeInterval(9000),
+                scheduledStart: Date().addingTimeInterval(5_400),
+                scheduledEnd: Date().addingTimeInterval(9_000),
                 status: .scheduled,
                 isPublic: false // Should not be included
-            ),
+            )
         ]
 
         sut.mockWorkouts = upcomingWorkouts
@@ -110,8 +110,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "test-user-123", // Current user is host
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3600),
-                scheduledEnd: Date().addingTimeInterval(7200)
+                scheduledStart: Date().addingTimeInterval(3_600),
+                scheduledEnd: Date().addingTimeInterval(7_200)
             ),
             GroupWorkout(
                 id: "my-joined-1",
@@ -129,11 +129,11 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                         userId: "test-user-123", // Current user is participant
                         displayName: "Me",
                         profileImageURL: nil
-                    ),
+                    )
                 ],
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(7200),
-                scheduledEnd: Date().addingTimeInterval(10800)
+                scheduledStart: Date().addingTimeInterval(7_200),
+                scheduledEnd: Date().addingTimeInterval(10_800)
             ),
             GroupWorkout(
                 id: "not-mine-1",
@@ -142,9 +142,9 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "random-host",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(5400),
-                scheduledEnd: Date().addingTimeInterval(9000)
-            ),
+                scheduledStart: Date().addingTimeInterval(5_400),
+                scheduledEnd: Date().addingTimeInterval(9_000)
+            )
         ]
 
         sut.mockWorkouts = myWorkouts
@@ -171,8 +171,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3600),
-                scheduledEnd: Date().addingTimeInterval(7200),
+                scheduledStart: Date().addingTimeInterval(3_600),
+                scheduledEnd: Date().addingTimeInterval(7_200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -183,8 +183,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7200),
-                scheduledEnd: Date().addingTimeInterval(10800),
+                scheduledStart: Date().addingTimeInterval(7_200),
+                scheduledEnd: Date().addingTimeInterval(10_800),
                 status: .scheduled,
                 isPublic: true,
                 tags: ["yoga", "relaxation"]
@@ -196,11 +196,11 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-3",
                 maxParticipants: 15,
-                scheduledStart: Date().addingTimeInterval(5400),
-                scheduledEnd: Date().addingTimeInterval(9000),
+                scheduledStart: Date().addingTimeInterval(5_400),
+                scheduledEnd: Date().addingTimeInterval(9_000),
                 status: .scheduled,
                 isPublic: true
-            ),
+            )
         ]
 
         sut.mockWorkouts = workouts
@@ -227,8 +227,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-1",
                 maxParticipants: 10,
-                scheduledStart: Date().addingTimeInterval(3600),
-                scheduledEnd: Date().addingTimeInterval(7200),
+                scheduledStart: Date().addingTimeInterval(3_600),
+                scheduledEnd: Date().addingTimeInterval(7_200),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -239,8 +239,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .running,
                 hostId: "host-2",
                 maxParticipants: 8,
-                scheduledStart: Date().addingTimeInterval(7200),
-                scheduledEnd: Date().addingTimeInterval(10800),
+                scheduledStart: Date().addingTimeInterval(7_200),
+                scheduledEnd: Date().addingTimeInterval(10_800),
                 status: .scheduled,
                 isPublic: true
             ),
@@ -251,11 +251,11 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .yoga,
                 hostId: "host-3",
                 maxParticipants: 12,
-                scheduledStart: Date().addingTimeInterval(5400),
-                scheduledEnd: Date().addingTimeInterval(9000),
+                scheduledStart: Date().addingTimeInterval(5_400),
+                scheduledEnd: Date().addingTimeInterval(9_000),
                 status: .scheduled,
                 isPublic: true
-            ),
+            )
         ]
 
         sut.mockWorkouts = workouts
@@ -281,7 +281,7 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 hostId: "host-1",
                 maxParticipants: 10,
                 scheduledStart: Date().addingTimeInterval(-600),
-                scheduledEnd: Date().addingTimeInterval(3000),
+                scheduledEnd: Date().addingTimeInterval(3_000),
                 status: .active
             ),
             GroupWorkout(
@@ -292,7 +292,7 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 hostId: "host-2",
                 maxParticipants: 8,
                 scheduledStart: Date().addingTimeInterval(-300),
-                scheduledEnd: Date().addingTimeInterval(3300),
+                scheduledEnd: Date().addingTimeInterval(3_300),
                 status: .active
             ),
             GroupWorkout(
@@ -302,10 +302,10 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
                 workoutType: .cycling,
                 hostId: "host-3",
                 maxParticipants: 12,
-                scheduledStart: Date().addingTimeInterval(3600),
-                scheduledEnd: Date().addingTimeInterval(7200),
+                scheduledStart: Date().addingTimeInterval(3_600),
+                scheduledEnd: Date().addingTimeInterval(7_200),
                 status: .scheduled
-            ),
+            )
         ]
 
         sut.mockWorkouts = workouts
@@ -329,8 +329,8 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
             workoutType: .running,
             hostId: "host-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200)
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200)
         )
 
         // First fetch to populate cache

@@ -58,7 +58,7 @@ class KudosButtonTests: XCTestCase {
             (0, false, .gray), // No kudos
             (1, true, .red), // User has given kudos
             (5, false, .gray), // Others have given kudos
-            (10, true, .red), // User and others have given kudos
+            (10, true, .red) // User and others have given kudos
         ]
 
         for scenario in scenarios {

@@ -75,10 +75,10 @@ class ControlsViewTests: XCTestCase {
         // Given
         mockWorkoutManager.simulateWorkoutInProgress(
             type: .running,
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             heartRate: 145,
             calories: 250,
-            distance: 5000 // 5km
+            distance: 5_000 // 5km
         )
 
         // When
@@ -91,9 +91,9 @@ class ControlsViewTests: XCTestCase {
         XCTAssertTrue(mockWorkoutManager.showingSummaryView)
 
         // Verify summary data was transferred
-        XCTAssertEqual(mockWorkoutManager.elapsedTimeForSummary, 1800)
+        XCTAssertEqual(mockWorkoutManager.elapsedTimeForSummary, 1_800)
         XCTAssertEqual(mockWorkoutManager.totalCaloriesForSummary, 250)
-        XCTAssertEqual(mockWorkoutManager.totalDistanceForSummary, 5000)
+        XCTAssertEqual(mockWorkoutManager.totalDistanceForSummary, 5_000)
         XCTAssertEqual(mockWorkoutManager.averageHeartRateForSummary, 140) // 145 - 5
     }
 

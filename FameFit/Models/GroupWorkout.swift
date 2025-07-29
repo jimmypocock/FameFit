@@ -22,8 +22,8 @@ struct GroupWorkout: Identifiable, Equatable {
     let scheduledStart: Date
     let scheduledEnd: Date
     var status: GroupWorkoutStatus
-    let createdAt: Date
-    var updatedAt: Date
+    let createdTimestamp: Date
+    var modifiedTimestamp: Date
     let isPublic: Bool
     let joinCode: String? // For private groups
     let tags: [String]
@@ -66,8 +66,8 @@ struct GroupWorkout: Identifiable, Equatable {
         scheduledStart: Date,
         scheduledEnd: Date,
         status: GroupWorkoutStatus = .scheduled,
-        createdAt: Date = Date(),
-        updatedAt: Date = Date(),
+        createdTimestamp: Date = Date(),
+        modifiedTimestamp: Date = Date(),
         isPublic: Bool = true,
         joinCode: String? = nil,
         tags: [String] = []
@@ -82,8 +82,8 @@ struct GroupWorkout: Identifiable, Equatable {
         self.scheduledStart = scheduledStart
         self.scheduledEnd = scheduledEnd
         self.status = status
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
+        self.createdTimestamp = createdTimestamp
+        self.modifiedTimestamp = modifiedTimestamp
         self.isPublic = isPublic
         self.joinCode = joinCode ?? (isPublic ? nil : Self.generateJoinCode())
         self.tags = tags
@@ -103,8 +103,8 @@ struct GroupWorkout: Identifiable, Equatable {
               let scheduledEnd = record["scheduledEnd"] as? Date,
               let statusRaw = record["status"] as? String,
               let status = GroupWorkoutStatus(rawValue: statusRaw),
-              let createdAt = record["createdAt"] as? Date,
-              let updatedAt = record["updatedAt"] as? Date,
+              let createdTimestamp = record["createdTimestamp"] as? Date,
+              let modifiedTimestamp = record["modifiedTimestamp"] as? Date,
               let isPublic = record["isPublic"] as? Int64
         else {
             return nil
@@ -129,8 +129,8 @@ struct GroupWorkout: Identifiable, Equatable {
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             status: status,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
+            createdTimestamp: createdTimestamp,
+            modifiedTimestamp: modifiedTimestamp,
             isPublic: isPublic != 0,
             joinCode: record["joinCode"] as? String,
             tags: tags
@@ -152,8 +152,8 @@ struct GroupWorkout: Identifiable, Equatable {
         record["scheduledStart"] = scheduledStart
         record["scheduledEnd"] = scheduledEnd
         record["status"] = status.rawValue
-        record["createdAt"] = createdAt
-        record["updatedAt"] = updatedAt
+        record["createdTimestamp"] = createdTimestamp
+        record["modifiedTimestamp"] = modifiedTimestamp
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
         record["joinCode"] = joinCode
         record["tags"] = tags
@@ -175,7 +175,7 @@ extension GroupWorkout: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, description, workoutType, hostId, participants
         case maxParticipants, scheduledStart, scheduledEnd, status
-        case createdAt, updatedAt, isPublic, joinCode, tags
+        case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
     }
 
     init(from decoder: Decoder) throws {
@@ -201,8 +201,8 @@ extension GroupWorkout: Codable {
         scheduledStart = try container.decode(Date.self, forKey: .scheduledStart)
         scheduledEnd = try container.decode(Date.self, forKey: .scheduledEnd)
         status = try container.decode(GroupWorkoutStatus.self, forKey: .status)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        createdTimestamp = try container.decode(Date.self, forKey: .createdTimestamp)
+        modifiedTimestamp = try container.decode(Date.self, forKey: .modifiedTimestamp)
         isPublic = try container.decode(Bool.self, forKey: .isPublic)
         joinCode = try container.decodeIfPresent(String.self, forKey: .joinCode)
         tags = try container.decode([String].self, forKey: .tags)
@@ -220,8 +220,8 @@ extension GroupWorkout: Codable {
         try container.encode(scheduledStart, forKey: .scheduledStart)
         try container.encode(scheduledEnd, forKey: .scheduledEnd)
         try container.encode(status, forKey: .status)
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(createdTimestamp, forKey: .createdTimestamp)
+        try container.encode(modifiedTimestamp, forKey: .modifiedTimestamp)
         try container.encode(isPublic, forKey: .isPublic)
         try container.encodeIfPresent(joinCode, forKey: .joinCode)
         try container.encode(tags, forKey: .tags)

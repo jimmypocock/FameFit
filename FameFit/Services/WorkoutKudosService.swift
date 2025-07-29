@@ -171,7 +171,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
         // Fetch all kudos for the workout
         let predicate = NSPredicate(format: "workoutId == %@", workoutId)
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
 
         let results = try await publicDatabase.records(matching: query)
         var kudosList: [WorkoutKudos] = []
@@ -213,7 +213,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
     func getUserKudos(for userId: String, limit: Int = 20) async throws -> [WorkoutKudos] {
         let predicate = NSPredicate(format: "userID == %@", userId)
         let query = CKQuery(recordType: WorkoutKudos.recordType, predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
 
         var kudosList: [WorkoutKudos] = []
         let operation = CKQueryOperation(query: query)

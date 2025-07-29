@@ -88,7 +88,7 @@ class MainViewModelReactiveTests: XCTestCase {
         XCTAssertEqual(initialTitle, "Micro-Influencer") // 100 XP (from mock init)
 
         // When
-        mockCloudKitManager.totalXP = 3000 // Should trigger "Rising Star" title
+        mockCloudKitManager.totalXP = 3_000 // Should trigger "Rising Star" title
 
         // Force a manual refresh to ensure the reactive binding picks up the change
         viewModel.refreshData()

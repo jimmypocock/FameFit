@@ -37,7 +37,7 @@ enum XPCalculator {
         "Functional Training": 1.2,
         "Traditional Strength Training": 1.3,
         "Mixed Cardio": 1.1,
-        "Other": 1.0,
+        "Other": 1.0
     ]
 
     // MARK: - Main Calculation
@@ -146,7 +146,7 @@ enum XPCalculator {
         case 100:
             bonus += 500 // 100th workout
         case 365:
-            bonus += 1000 // One year of workouts
+            bonus += 1_000 // One year of workouts
         default:
             break
         }
@@ -171,16 +171,16 @@ enum XPCalculator {
             (0, "Couch Potato"),
             (100, "Fitness Newbie"),
             (500, "Gym Regular"),
-            (1000, "Fitness Enthusiast"),
-            (2500, "Workout Warrior"),
-            (5000, "Micro-Influencer"),
-            (10000, "Rising Star"),
-            (25000, "Fitness Influencer"),
-            (50000, "Verified Athlete"),
+            (1_000, "Fitness Enthusiast"),
+            (2_500, "Workout Warrior"),
+            (5_000, "Micro-Influencer"),
+            (10_000, "Rising Star"),
+            (25_000, "Fitness Influencer"),
+            (50_000, "Verified Athlete"),
             (100_000, "FameFit Elite"),
             (250_000, "Legendary"),
             (500_000, "Mythical"),
-            (1_000_000, "FameFit God"),
+            (1_000_000, "FameFit God")
         ]
 
         for index in 0 ..< levels.count {
@@ -204,7 +204,7 @@ enum XPCalculator {
         // Find current level threshold
         var currentLevelThreshold = 0
         if levelInfo.level > 1 {
-            let levels = [0, 100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100_000, 250_000, 500_000, 1_000_000]
+            let levels = [0, 100, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000]
             if levelInfo.level - 1 < levels.count {
                 currentLevelThreshold = levels[levelInfo.level - 1]
             }
@@ -238,9 +238,9 @@ extension XPCalculator {
         // Badges
         XPUnlock(xpRequired: 100, name: "Bronze Badge", description: "Your first milestone!", category: .badge),
         XPUnlock(xpRequired: 500, name: "Silver Badge", description: "Dedicated fitness enthusiast", category: .badge),
-        XPUnlock(xpRequired: 2500, name: "Gold Badge", description: "Workout warrior status", category: .badge),
-        XPUnlock(xpRequired: 10000, name: "Platinum Badge", description: "Rising star achievement", category: .badge),
-        XPUnlock(xpRequired: 50000, name: "Diamond Badge", description: "Verified athlete status", category: .badge),
+        XPUnlock(xpRequired: 2_500, name: "Gold Badge", description: "Workout warrior status", category: .badge),
+        XPUnlock(xpRequired: 10_000, name: "Platinum Badge", description: "Rising star achievement", category: .badge),
+        XPUnlock(xpRequired: 50_000, name: "Diamond Badge", description: "Verified athlete status", category: .badge),
 
         // Features
         XPUnlock(
@@ -250,18 +250,18 @@ extension XPCalculator {
             category: .feature
         ),
         XPUnlock(
-            xpRequired: 1000,
+            xpRequired: 1_000,
             name: "Workout Stats",
             description: "Detailed analytics dashboard",
             category: .feature
         ),
         XPUnlock(
-            xpRequired: 5000,
+            xpRequired: 5_000,
             name: "Character Personality",
             description: "New coach personality options",
             category: .feature
         ),
-        XPUnlock(xpRequired: 25000, name: "Custom App Icon", description: "Exclusive app icons", category: .feature),
+        XPUnlock(xpRequired: 25_000, name: "Custom App Icon", description: "Exclusive app icons", category: .feature),
         XPUnlock(
             xpRequired: 100_000,
             name: "Exclusive Workouts",
@@ -277,13 +277,13 @@ extension XPCalculator {
             category: .customization
         ),
         XPUnlock(
-            xpRequired: 2500,
+            xpRequired: 2_500,
             name: "Workout Themes",
             description: "Custom workout UI themes",
             category: .customization
         ),
         XPUnlock(
-            xpRequired: 10000,
+            xpRequired: 10_000,
             name: "Animation Pack",
             description: "Special celebration animations",
             category: .customization
@@ -291,12 +291,12 @@ extension XPCalculator {
 
         // Achievements
         XPUnlock(
-            xpRequired: 1000,
+            xpRequired: 1_000,
             name: "Fitness Enthusiast",
             description: "Reached 1,000 XP!",
             category: .achievement
         ),
-        XPUnlock(xpRequired: 10000, name: "Rising Star", description: "Reached 10,000 XP!", category: .achievement),
+        XPUnlock(xpRequired: 10_000, name: "Rising Star", description: "Reached 10,000 XP!", category: .achievement),
         XPUnlock(
             xpRequired: 100_000,
             name: "FameFit Elite",
@@ -308,7 +308,7 @@ extension XPCalculator {
             name: "FameFit God",
             description: "Reached 1 million XP!",
             category: .achievement
-        ),
+        )
     ]
 
     static func getAvailableUnlocks(for xp: Int) -> [XPUnlock] {

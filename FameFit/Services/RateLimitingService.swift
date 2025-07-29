@@ -49,7 +49,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
     private var userHistories: [String: UserActionHistory] = [:]
 
     // Cleanup old records every hour
-    private let cleanupInterval: TimeInterval = 3600
+    private let cleanupInterval: TimeInterval = 3_600
     private let maxHistoryAge: TimeInterval = 604_800 // 7 days
 
     init() {
@@ -89,7 +89,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 }
 
                 // Check hourly limit
-                let hourAgo = now.addingTimeInterval(-3600)
+                let hourAgo = now.addingTimeInterval(-3_600)
                 let recentHourActions = history.actions.filter {
                     $0.action == action && $0.timestamp > hourAgo
                 }.count
@@ -97,7 +97,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 if recentHourActions >= limits.hourly {
                     let resetTime = history.actions
                         .filter { $0.action == action && $0.timestamp > hourAgo }
-                        .first?.timestamp.addingTimeInterval(3600) ?? now.addingTimeInterval(3600)
+                        .first?.timestamp.addingTimeInterval(3_600) ?? now.addingTimeInterval(3_600)
 
                     continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                         action: action.rawValue,
@@ -107,7 +107,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 }
 
                 // Check daily limit
-                let dayAgo = now.addingTimeInterval(-86400)
+                let dayAgo = now.addingTimeInterval(-86_400)
                 let recentDayActions = history.actions.filter {
                     $0.action == action && $0.timestamp > dayAgo
                 }.count
@@ -115,7 +115,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 if recentDayActions >= limits.daily {
                     let resetTime = history.actions
                         .filter { $0.action == action && $0.timestamp > dayAgo }
-                        .first?.timestamp.addingTimeInterval(86400) ?? now.addingTimeInterval(86400)
+                        .first?.timestamp.addingTimeInterval(86_400) ?? now.addingTimeInterval(86_400)
 
                     continuation.resume(throwing: SocialServiceError.rateLimitExceeded(
                         action: action.rawValue,
@@ -194,14 +194,14 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 }
 
                 // Check hourly limit
-                let hourAgo = now.addingTimeInterval(-3600)
+                let hourAgo = now.addingTimeInterval(-3_600)
                 let recentHourActions = history.actions.filter {
                     $0.action == action && $0.timestamp > hourAgo
                 }.count
                 remainingCounts.append(limits.hourly - recentHourActions)
 
                 // Check daily limit
-                let dayAgo = now.addingTimeInterval(-86400)
+                let dayAgo = now.addingTimeInterval(-86_400)
                 let recentDayActions = history.actions.filter {
                     $0.action == action && $0.timestamp > dayAgo
                 }.count
@@ -241,8 +241,7 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                     if recentMinuteActions >= minuteLimit {
                         if let oldestAction = history.actions
                             .filter({ $0.action == action && $0.timestamp > minuteAgo })
-                            .first
-                        {
+                            .first {
                             resetTimes.append(oldestAction.timestamp.addingTimeInterval(60))
                         }
                     }
@@ -288,40 +287,5 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 }
             }
         }
-    }
-}
-
-// MARK: - Mock Rate Limiting Service
-
-final class MockRateLimitingService: RateLimitingServicing {
-    var shouldAllowAction = true
-    var mockRemainingActions = 10
-    var mockResetTime: Date?
-
-    func checkLimit(for action: RateLimitAction, userId _: String) async throws -> Bool {
-        if !shouldAllowAction {
-            throw SocialServiceError.rateLimitExceeded(
-                action: action.rawValue,
-                resetTime: mockResetTime ?? Date().addingTimeInterval(3600)
-            )
-        }
-        return true
-    }
-
-    func recordAction(_: RateLimitAction, userId _: String) async {
-        // No-op for mock
-    }
-
-    func resetLimits(for _: String) async {
-        shouldAllowAction = true
-        mockRemainingActions = 10
-    }
-
-    func getRemainingActions(for _: RateLimitAction, userId _: String) async -> Int {
-        mockRemainingActions
-    }
-
-    func getResetTime(for _: RateLimitAction, userId _: String) async -> Date? {
-        mockResetTime
     }
 }

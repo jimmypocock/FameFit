@@ -269,7 +269,7 @@ struct ChallengeDetailView: View {
                                 }
                             }
 
-                            if participant.lastUpdated > Date().addingTimeInterval(-3600) {
+                            if participant.lastUpdated > Date().addingTimeInterval(-3_600) {
                                 Text("Updated recently")
                                     .font(.caption2)
                                     .foregroundColor(.green)
@@ -534,7 +534,7 @@ struct UpdateProgressView: View {
                     displayName: "Participant",
                     profileImageURL: nil,
                     progress: 30
-                ),
+                )
             ],
             type: .distance,
             targetValue: 50,
@@ -542,8 +542,8 @@ struct UpdateProgressView: View {
             name: "Distance Challenge",
             description: "Reach 50 km",
             startDate: Date(),
-            endDate: Date().addingTimeInterval(7 * 24 * 3600),
-            createdAt: Date(),
+            endDate: Date().addingTimeInterval(7 * 24 * 3_600),
+            createdTimestamp: Date(),
             status: .active,
             winnerId: nil,
             xpStake: 100,

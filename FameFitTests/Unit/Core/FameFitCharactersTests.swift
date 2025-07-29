@@ -48,7 +48,7 @@ class FameFitCharactersTests: XCTestCase {
         // Test that all workout types return a valid character
         let workoutTypes: [HKWorkoutActivityType] = [
             .running, .cycling, .walking, .hiking, .swimming,
-            .yoga, .functionalStrengthTraining, .socialDance, .boxing,
+            .yoga, .functionalStrengthTraining, .socialDance, .boxing
         ]
 
         for workoutType in workoutTypes {

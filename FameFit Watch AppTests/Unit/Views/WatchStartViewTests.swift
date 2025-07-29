@@ -70,7 +70,7 @@ class WatchStartViewTests: XCTestCase {
             .walking,
             .swimming,
             .yoga,
-            .hiking,
+            .hiking
         ]
 
         for workoutType in workoutTypes {

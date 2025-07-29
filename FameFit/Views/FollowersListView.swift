@@ -66,38 +66,36 @@ struct FollowersListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Tab picker
-                tabPicker
+        VStack(spacing: 0) {
+            // Tab picker
+            tabPicker
 
-                // Search bar
-                if !currentList.isEmpty {
-                    searchBar
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                }
+            // Search bar
+            if !currentList.isEmpty {
+                searchBar
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+            }
 
-                // Content
-                ZStack {
-                    if isCurrentlyLoading {
-                        loadingView
-                    } else if let error = currentError {
-                        errorView(error)
-                    } else if filteredList.isEmpty {
-                        emptyView
-                    } else {
-                        listContent
-                    }
+            // Content
+            ZStack {
+                if isCurrentlyLoading {
+                    loadingView
+                } else if let error = currentError {
+                    errorView(error)
+                } else if filteredList.isEmpty {
+                    emptyView
+                } else {
+                    listContent
                 }
             }
-            .navigationTitle(navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
+        }
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Done") {
+                    dismiss()
                 }
             }
         }
@@ -148,27 +146,22 @@ struct FollowersListView: View {
     private var tabPicker: some View {
         Picker("List Type", selection: $selectedTab) {
             ForEach(FollowListTab.allCases, id: \.self) { tab in
-                HStack {
-                    Image(systemName: tab.systemImage)
-                    Text(tab.rawValue)
-                    if tab == .followers {
-                        Text("(\(followerCount))")
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("(\(followingCount))")
-                            .foregroundColor(.secondary)
-                    }
+                if tab == .followers {
+                    Text("Followers (\(followerCount))").tag(tab)
+                } else {
+                    Text("Following (\(followingCount))").tag(tab)
                 }
-                .tag(tab)
             }
         }
         .pickerStyle(.segmented)
         .padding()
         .onChange(of: selectedTab) { _, newTab in
             searchText = ""
-            if newTab == .following, following.isEmpty, !isLoadingFollowing {
-                Task {
+            Task {
+                if newTab == .following && following.isEmpty {
                     await loadFollowing()
+                } else if newTab == .followers && followers.isEmpty {
+                    await loadFollowers()
                 }
             }
         }
@@ -304,7 +297,12 @@ struct FollowersListView: View {
     // MARK: - Data Loading
 
     private func loadInitialData() async {
-        await loadFollowers()
+        // Load the initially selected tab
+        if initialTab == .followers {
+            await loadFollowers()
+        } else {
+            await loadFollowing()
+        }
 
         // Load following statuses if viewing own profile
         if isOwnProfile {
@@ -317,15 +315,19 @@ struct FollowersListView: View {
         followersError = nil
 
         do {
-            followers = try await socialService.getFollowers(for: userId, limit: 1000)
+            print("Loading followers for userId: \(userId)")
+            followers = try await socialService.getFollowers(for: userId, limit: 1_000)
+            print("Loaded \(followers.count) followers")
             followerCount = try await socialService.getFollowerCount(for: userId)
+            print("Follower count: \(followerCount)")
 
             // Load following statuses for these users
             if currentUserId != nil {
                 await loadFollowingStatuses(for: followers)
             }
         } catch {
-            followersError = "Failed to load followers"
+            print("Error loading followers: \(error)")
+            followersError = "Failed to load followers: \(error.localizedDescription)"
         }
 
         isLoadingFollowers = false
@@ -336,15 +338,19 @@ struct FollowersListView: View {
         followingError = nil
 
         do {
-            following = try await socialService.getFollowing(for: userId, limit: 1000)
+            print("Loading following for userId: \(userId)")
+            following = try await socialService.getFollowing(for: userId, limit: 1_000)
+            print("Loaded \(following.count) following")
             followingCount = try await socialService.getFollowingCount(for: userId)
+            print("Following count: \(followingCount)")
 
             // All following relationships are active
             for profile in following {
                 followingStatuses[profile.id] = .following
             }
         } catch {
-            followingError = "Failed to load following"
+            print("Error loading following: \(error)")
+            followingError = "Failed to load following: \(error.localizedDescription)"
         }
 
         isLoadingFollowing = false
@@ -598,8 +604,8 @@ struct FollowerRow: View {
     }
 
     private func formatNumber(_ number: Int) -> String {
-        if number >= 1000 {
-            return String(format: "%.1fK", Double(number) / 1000.0)
+        if number >= 1_000 {
+            return String(format: "%.1fK", Double(number) / 1_000.0)
         }
         return "\(number)"
     }

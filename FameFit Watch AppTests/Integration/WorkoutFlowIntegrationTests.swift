@@ -109,7 +109,7 @@ class WorkoutIntegrationTests: XCTestCase {
         // Given: Workout has metrics
         workoutManager.heartRate = 150
         workoutManager.activeEnergy = 250
-        workoutManager.distance = 1000
+        workoutManager.distance = 1_000
 
         // When: Reset workout
         workoutManager.resetWorkout()

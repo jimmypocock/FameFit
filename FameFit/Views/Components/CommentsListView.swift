@@ -492,9 +492,9 @@ class CommentsViewModel: ObservableObject {
     private func sortComments() {
         switch sortOrder {
         case .newest:
-            comments.sort { $0.comment.createdAt > $1.comment.createdAt }
+            comments.sort { $0.comment.createdTimestamp > $1.comment.createdTimestamp }
         case .oldest:
-            comments.sort { $0.comment.createdAt < $1.comment.createdAt }
+            comments.sort { $0.comment.createdTimestamp < $1.comment.createdTimestamp }
         case .mostLiked:
             comments.sort { $0.comment.likeCount > $1.comment.likeCount }
         }
@@ -516,7 +516,7 @@ class CommentsViewModel: ObservableObject {
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
-                joinedDate: Date().addingTimeInterval(-86400 * 90),
+                joinedDate: Date().addingTimeInterval(-86_400 * 90),
                 lastUpdated: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
@@ -546,8 +546,8 @@ private class PreviewMockCommentsService: WorkoutCommentsServicing {
             userId: "current",
             workoutOwnerId: workoutOwnerId,
             content: content,
-            createdAt: Date(),
-            updatedAt: Date()
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date()
         )
     }
 
@@ -558,8 +558,8 @@ private class PreviewMockCommentsService: WorkoutCommentsServicing {
             userId: "current",
             workoutOwnerId: "owner",
             content: newContent,
-            createdAt: Date(),
-            updatedAt: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isEdited: true
         )
     }

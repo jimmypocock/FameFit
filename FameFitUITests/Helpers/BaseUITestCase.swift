@@ -94,14 +94,14 @@ class BaseUITestCase: XCTestCase {
         app.launch()
 
         wait(for: 1.0) // Give more time for the app to load
-        
+
         // Wait for the main screen to be fully loaded by looking for any stat card
         let mainScreenLoaded = waitForElement(app.staticTexts["Total XP"], timeout: 10) ||
-                              waitForElement(app.otherElements["Total XP"], timeout: 2) ||
-                              waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
-                              waitForElement(app.staticTexts["Workouts"], timeout: 2) ||
-                              waitForElement(app.staticTexts["Followers"], timeout: 2)
-        
+            waitForElement(app.otherElements["Total XP"], timeout: 2) ||
+            waitForElement(app.otherElements["total-xp-card"], timeout: 2) ||
+            waitForElement(app.staticTexts["Workouts"], timeout: 2) ||
+            waitForElement(app.staticTexts["Followers"], timeout: 2)
+
         if !mainScreenLoaded {
             // Debug: Print what's actually on screen after launch
             print("DEBUG: Main screen did not load properly after --skip-onboarding:")

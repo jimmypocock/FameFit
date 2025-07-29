@@ -114,11 +114,11 @@ class AchievementManager: ObservableObject, AchievementManaging {
             newAchievements.append(.tenMinutes)
         }
 
-        if duration >= 1800, !unlockedAchievements.contains(.thirtyMinutes) {
+        if duration >= 1_800, !unlockedAchievements.contains(.thirtyMinutes) {
             newAchievements.append(.thirtyMinutes)
         }
 
-        if duration >= 3600, !unlockedAchievements.contains(.oneHour) {
+        if duration >= 3_600, !unlockedAchievements.contains(.oneHour) {
             newAchievements.append(.oneHour)
         }
 
@@ -144,7 +144,7 @@ class AchievementManager: ObservableObject, AchievementManaging {
         // Pace achievements (for running/walking)
         if let workoutType = workout?.workoutActivityType {
             if workoutType == .running || workoutType == .walking {
-                let pace = duration / (distance / 1000) // minutes per km
+                let pace = duration / (distance / 1_000) // minutes per km
                 if pace < 6, !unlockedAchievements.contains(.fastPace) {
                     newAchievements.append(.fastPace)
                 }

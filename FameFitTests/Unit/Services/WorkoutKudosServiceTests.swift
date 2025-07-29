@@ -128,7 +128,7 @@ class WorkoutKudosServiceTests: XCTestCase {
                 username: "testuser",
                 displayName: "Test User",
                 profileImageURL: nil
-            ),
+            )
         ]
 
         // When

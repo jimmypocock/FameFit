@@ -116,7 +116,7 @@ class WorkoutManagerTests: XCTestCase {
         workoutManager.selectedWorkout = .running
         workoutManager.activeEnergy = 100
         workoutManager.heartRate = 150
-        workoutManager.distance = 1000
+        workoutManager.distance = 1_000
         workoutManager.averageHeartRate = 145
         workoutManager.isWorkoutRunning = true
         workoutManager.isPaused = false
@@ -178,7 +178,7 @@ class WorkoutManagerTests: XCTestCase {
 
     func testDisplayElapsedTimeCanBeSet() {
         // Given various elapsed times
-        let testTimes: [TimeInterval] = [0, 30, 90, 3665]
+        let testTimes: [TimeInterval] = [0, 30, 90, 3_665]
 
         for time in testTimes {
             workoutManager.displayElapsedTime = time

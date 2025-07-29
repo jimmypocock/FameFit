@@ -193,38 +193,8 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
 
     private func getLevelThreshold(for level: Int) -> Int {
         // Level thresholds from XPCalculator
-        let thresholds = [0, 100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100_000, 250_000, 500_000, 1_000_000]
+        let thresholds = [0, 100, 500, 1_000, 2_500, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000]
         guard level > 0, level <= thresholds.count else { return 0 }
         return thresholds[level - 1]
-    }
-}
-
-// MARK: - Mock Implementation
-
-final class MockUnlockNotificationService: UnlockNotificationServiceProtocol {
-    var checkForNewUnlocksCalled = false
-    var lastPreviousXP: Int?
-    var lastCurrentXP: Int?
-
-    var notifyLevelUpCalled = false
-    var lastNotifiedLevel: Int?
-    var lastNotifiedTitle: String?
-
-    var requestPermissionResult = true
-
-    func checkForNewUnlocks(previousXP: Int, currentXP: Int) async {
-        checkForNewUnlocksCalled = true
-        lastPreviousXP = previousXP
-        lastCurrentXP = currentXP
-    }
-
-    func notifyLevelUp(newLevel: Int, title: String) async {
-        notifyLevelUpCalled = true
-        lastNotifiedLevel = newLevel
-        lastNotifiedTitle = title
-    }
-
-    func requestNotificationPermission() async -> Bool {
-        requestPermissionResult
     }
 }

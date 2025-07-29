@@ -54,8 +54,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200)
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200)
         )
 
         // When
@@ -82,8 +82,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(3700) // Only 100 seconds
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(3_700) // Only 100 seconds
         )
 
         // Set validation error
@@ -108,7 +108,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(-3600), // 1 hour ago
+            scheduledStart: Date().addingTimeInterval(-3_600), // 1 hour ago
             scheduledEnd: Date()
         )
 
@@ -134,8 +134,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "different-user-456",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200)
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200)
         )
 
         // Set error to throw
@@ -160,8 +160,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200)
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200)
         )
 
         // Set rate limit error
@@ -187,8 +187,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "test-user-123",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         // Add workout to mock
@@ -214,8 +214,8 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             workoutType: .running,
             hostId: "different-user-456",
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200)
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200)
         )
         // Add workout to mock
         sut.mockWorkouts.append(workout)
@@ -252,11 +252,11 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
                     userId: "participant-456",
                     displayName: "Other User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         // Add workout to mock
@@ -284,11 +284,11 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
                     userId: "other-host-789",
                     displayName: "Other User",
                     profileImageURL: nil
-                ),
+                )
             ],
             maxParticipants: 10,
-            scheduledStart: Date().addingTimeInterval(3600),
-            scheduledEnd: Date().addingTimeInterval(7200),
+            scheduledStart: Date().addingTimeInterval(3_600),
+            scheduledEnd: Date().addingTimeInterval(7_200),
             status: .scheduled
         )
         // Add workout to mock

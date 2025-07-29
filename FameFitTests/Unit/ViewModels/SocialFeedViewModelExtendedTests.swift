@@ -216,9 +216,9 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.2,
             averageHeartRate: 140,
@@ -274,9 +274,9 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "cycling",
-            startDate: Date().addingTimeInterval(-3600),
+            startDate: Date().addingTimeInterval(-3_600),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 450,
             totalDistance: 25.0,
             averageHeartRate: 150,
@@ -300,12 +300,12 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
                     "duration": "3600",
                     "calories": "450",
                     "distance": "25.0",
-                    "xpEarned": "60",
+                    "xpEarned": "60"
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
             createdAt: Date(),
-            expiresAt: Date().addingTimeInterval(30 * 24 * 3600),
+            expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil
         )
@@ -326,7 +326,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
             XCTAssertEqual(workoutItem.userProfile?.displayName, "Test User")
             XCTAssertTrue(workoutItem.userProfile?.isVerified ?? false)
             XCTAssertEqual(workoutItem.content.workoutType, "cycling")
-            XCTAssertEqual(workoutItem.content.duration, 3600)
+            XCTAssertEqual(workoutItem.content.duration, 3_600)
             XCTAssertEqual(workoutItem.content.calories, 450)
             XCTAssertEqual(workoutItem.content.xpEarned, 60)
         } else {
@@ -343,9 +343,9 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         let initialWorkout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-4800),
-            endDate: Date().addingTimeInterval(-3600),
-            duration: 1200,
+            startDate: Date().addingTimeInterval(-4_800),
+            endDate: Date().addingTimeInterval(-3_600),
+            duration: 1_200,
             totalEnergyBurned: 250,
             totalDistance: 3.0,
             averageHeartRate: 140,
@@ -371,9 +371,9 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "yoga",
-            startDate: Date().addingTimeInterval(-2400),
+            startDate: Date().addingTimeInterval(-2_400),
             endDate: Date(),
-            duration: 2400,
+            duration: 2_400,
             totalEnergyBurned: 180,
             totalDistance: nil,
             averageHeartRate: 95,
@@ -501,9 +501,9 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-3600),
+            startDate: Date().addingTimeInterval(-3_600),
             endDate: Date(),
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 450,
             totalDistance: 10.0,
             averageHeartRate: 150,
@@ -524,12 +524,12 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
                     "workoutType": "running",
                     "duration": "3600",
                     "calories": "450",
-                    "xpEarned": "60",
+                    "xpEarned": "60"
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
             createdAt: Date(),
-            expiresAt: Date().addingTimeInterval(30 * 24 * 3600),
+            expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil
         )
@@ -546,7 +546,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
                     username: "user2",
                     displayName: "User 2",
                     profileImageURL: nil
-                ),
+                )
             ]
         )
 

@@ -133,16 +133,7 @@ class DependencyContainer: ObservableObject {
         )
 
         // Initialize social services
-        // Use mock services in DEBUG builds for easier testing
-        #if DEBUG
-            if ProcessInfo.processInfo.environment["USE_MOCK_SOCIAL"] == "1" {
-                userProfileService = MockUserProfileService()
-            } else {
-                userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
-            }
-        #else
-            userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
-        #endif
+        userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
 
         rateLimitingService = RateLimitingService()
 
@@ -367,109 +358,6 @@ class DependencyContainer: ObservableObject {
         self.workoutSyncManager.notificationStore = self.notificationStore
         self.workoutSyncManager.notificationManager = self.notificationManager
     }
-
-    // MARK: - Testing Support
-
-    #if DEBUG
-        /// Test notification settings integration by verifying preferences are respected
-        func testNotificationSettingsIntegration() {
-            // Create test preferences with some notifications disabled
-            var testPreferences = NotificationPreferences()
-            testPreferences.soundEnabled = false
-            testPreferences.badgeEnabled = false
-            testPreferences.enabledTypes[.workoutKudos] = false
-            testPreferences.enabledTypes[.newFollower] = true
-
-            // Update all services with test preferences
-            notificationScheduler.updatePreferences(testPreferences)
-            notificationManager.updatePreferences(testPreferences)
-            unlockNotificationService.updatePreferences(testPreferences)
-            workoutObserver.updatePreferences(testPreferences)
-
-            print("✅ Notification settings integration test completed")
-            print("   - Sound disabled: \(!testPreferences.soundEnabled)")
-            print("   - Badge disabled: \(!testPreferences.badgeEnabled)")
-            print("   - Workout kudos disabled: \(testPreferences.enabledTypes[.workoutKudos] == false)")
-            print("   - New followers enabled: \(testPreferences.enabledTypes[.newFollower] == true)")
-        }
-
-        /// Populate the notification store with test notifications for manual testing
-        func addTestNotifications() {
-            let testNotifications = [
-                NotificationItem(
-                    type: .workoutCompleted,
-                    title: "🏃 Chad",
-                    body: "Awesome! You crushed that 30-minute run and earned 15 followers!",
-                    metadata: .workout(WorkoutNotificationMetadata(
-                        workoutId: "test-workout-1",
-                        workoutType: "Running",
-                        duration: 30,
-                        calories: 250,
-                        xpEarned: 15,
-                        distance: 5000,
-                        averageHeartRate: 145
-                    ))
-                ),
-
-                NotificationItem(
-                    type: .newFollower,
-                    title: "New Follower! 👥",
-                    body: "FitnessGuru started following you",
-                    metadata: .social(SocialNotificationMetadata(
-                        userID: "user123",
-                        username: "fitnessguru",
-                        displayName: "Fitness Guru",
-                        profileImageUrl: nil,
-                        relationshipType: "follower",
-                        actionCount: nil
-                    )),
-                    actions: [.view]
-                ),
-
-                NotificationItem(
-                    type: .unlockAchieved,
-                    title: "Achievement Unlocked! 🏆",
-                    body: "You've earned the 'Workout Warrior' achievement!",
-                    metadata: .achievement(AchievementNotificationMetadata(
-                        achievementId: "warrior",
-                        achievementName: "Workout Warrior",
-                        achievementDescription: "Complete 50 workouts",
-                        xpRequired: 1000,
-                        category: "fitness",
-                        iconEmoji: "🏆"
-                    )),
-                    actions: [.view]
-                ),
-
-                NotificationItem(
-                    type: .levelUp,
-                    title: "Level Up! ⭐",
-                    body: "Congratulations! You've reached level 5!",
-                    actions: [.view]
-                ),
-
-                NotificationItem(
-                    type: .workoutKudos,
-                    title: "Workout Kudos! ❤️",
-                    body: "2 people gave kudos to your morning run",
-                    metadata: .social(SocialNotificationMetadata(
-                        userID: "kudos-user",
-                        username: "runner123",
-                        displayName: "Runner 123",
-                        profileImageUrl: nil,
-                        relationshipType: "kudos",
-                        actionCount: 2
-                    )),
-                    actions: [.view, .reply]
-                ),
-            ]
-
-            // Add test notifications
-            for notification in testNotifications {
-                notificationStore.addNotification(notification)
-            }
-        }
-    #endif
 }
 
 // MARK: - Environment Key

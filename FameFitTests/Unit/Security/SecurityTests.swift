@@ -8,8 +8,8 @@ class SecurityTests: XCTestCase {
     func testValidWorkoutValidation() {
         // Given - Valid workout
         let validWorkout = TestWorkoutBuilder.createRunWorkout(
-            duration: 1800, // 30 minutes
-            startDate: Date().addingTimeInterval(-3600) // 1 hour ago
+            duration: 1_800, // 30 minutes
+            startDate: Date().addingTimeInterval(-3_600) // 1 hour ago
         )
 
         // Then
@@ -18,7 +18,7 @@ class SecurityTests: XCTestCase {
 
     func testInvalidWorkoutValidation_NegativeDuration() {
         // Test the validator logic directly since HKWorkout throws when dates are invalid
-        let validWorkout = TestWorkoutBuilder.createRunWorkout(duration: 1800)
+        let validWorkout = TestWorkoutBuilder.createRunWorkout(duration: 1_800)
         XCTAssertTrue(DataValidator.isValidWorkout(validWorkout))
 
         // Test a workout with zero duration
@@ -29,7 +29,7 @@ class SecurityTests: XCTestCase {
     func testInvalidWorkoutValidation_FutureDate() {
         // Given - Workout in the future
         let futureWorkout = TestWorkoutBuilder.createRunWorkout(
-            startDate: Date().addingTimeInterval(3600) // 1 hour in future
+            startDate: Date().addingTimeInterval(3_600) // 1 hour in future
         )
 
         // Then
@@ -39,7 +39,7 @@ class SecurityTests: XCTestCase {
     func testInvalidWorkoutValidation_ExcessiveDuration() {
         // Given - Workout longer than 24 hours
         let longWorkout = TestWorkoutBuilder.createRunWorkout(
-            duration: 90000, // 25 hours
+            duration: 90_000, // 25 hours
             startDate: Date().addingTimeInterval(-100_000)
         )
 
@@ -52,8 +52,8 @@ class SecurityTests: XCTestCase {
     func testWorkoutDataSanitization() {
         // Given
         let workout = TestWorkoutBuilder.createRunWorkout(
-            duration: 1800,
-            distance: 5000,
+            duration: 1_800,
+            distance: 5_000,
             calories: 300
         )
 
@@ -96,7 +96,7 @@ class SecurityTests: XCTestCase {
             "John Doe",
             "test@example.com",
             "Running in the park",
-            "123 Main St",
+            "123 Main St"
         ]
 
         // Then
@@ -131,12 +131,12 @@ class SecurityTests: XCTestCase {
     func testWorkoutDurationValidation() {
         // Valid durations
         XCTAssertTrue(DataValidator.isValidWorkoutDuration(60)) // 1 minute
-        XCTAssertTrue(DataValidator.isValidWorkoutDuration(3600)) // 1 hour
-        XCTAssertTrue(DataValidator.isValidWorkoutDuration(86400)) // 24 hours
+        XCTAssertTrue(DataValidator.isValidWorkoutDuration(3_600)) // 1 hour
+        XCTAssertTrue(DataValidator.isValidWorkoutDuration(86_400)) // 24 hours
 
         // Invalid durations
         XCTAssertFalse(DataValidator.isValidWorkoutDuration(59)) // Less than 1 minute
-        XCTAssertFalse(DataValidator.isValidWorkoutDuration(86401)) // More than 24 hours
+        XCTAssertFalse(DataValidator.isValidWorkoutDuration(86_401)) // More than 24 hours
         XCTAssertFalse(DataValidator.isValidWorkoutDuration(-100)) // Negative
     }
 

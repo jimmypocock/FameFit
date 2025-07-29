@@ -54,7 +54,6 @@ enum LeaderboardTimeFilter: String, CaseIterable {
 enum LeaderboardScope: String, CaseIterable {
     case global = "Global"
     case friends = "Friends"
-    case nearby = "Nearby" // Future feature
 
     var icon: String {
         switch self {
@@ -62,8 +61,6 @@ enum LeaderboardScope: String, CaseIterable {
             "globe"
         case .friends:
             "person.2"
-        case .nearby:
-            "location"
         }
     }
 }
@@ -126,7 +123,6 @@ struct LeaderboardView: View {
     @State private var selectedUserId: String?
 
     var body: some View {
-        NavigationStack {
             VStack(spacing: 0) {
                 // Filters
                 filterSection
@@ -142,8 +138,6 @@ struct LeaderboardView: View {
                     leaderboardContent
                 }
             }
-            .navigationTitle("Leaderboard")
-            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     refreshButton
@@ -165,7 +159,6 @@ struct LeaderboardView: View {
                     scope: selectedScope
                 )
             }
-        }
     }
 
     // MARK: - Filter Section
@@ -203,7 +196,6 @@ struct LeaderboardView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-            .disabled(selectedScope == .nearby) // Nearby not implemented yet
             .onChange(of: selectedScope) {
                 Task {
                     await viewModel.loadLeaderboard(
@@ -226,8 +218,7 @@ struct LeaderboardView: View {
                 LazyVStack(spacing: 0) {
                     // Current user position (if not in top entries)
                     if let currentUserEntry = viewModel.currentUserEntry,
-                       !viewModel.entries.contains(where: { $0.id == currentUserEntry.id })
-                    {
+                       !viewModel.entries.contains(where: { $0.id == currentUserEntry.id }) {
                         VStack(spacing: 0) {
                             LeaderboardRow(entry: currentUserEntry) {
                                 // Current user - no navigation
@@ -316,7 +307,7 @@ struct LeaderboardView: View {
 
     private var emptyView: some View {
         VStack(spacing: 20) {
-            Image(systemName: selectedScope == .friends ? "person.2.slash" : "trophy.slash")
+            Image(systemName: selectedScope == .friends ? "person.2.slash" : "trophy")
                 .font(.system(size: 50))
                 .foregroundColor(.secondary)
 

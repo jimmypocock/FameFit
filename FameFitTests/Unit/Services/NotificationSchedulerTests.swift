@@ -275,7 +275,7 @@ class NotificationSchedulerTests: XCTestCase {
                 duration: 30,
                 calories: 250,
                 xpEarned: 100,
-                distance: 5000,
+                distance: 5_000,
                 averageHeartRate: 145
             )
         )

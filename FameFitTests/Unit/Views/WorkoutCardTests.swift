@@ -16,10 +16,10 @@ class WorkoutCardTests: XCTestCase {
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
-            endDate: Date().addingTimeInterval(1800),
-            duration: 1800,
+            endDate: Date().addingTimeInterval(1_800),
+            duration: 1_800,
             totalEnergyBurned: 250,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: 145,
             followersEarned: 10,
             xpEarned: 50,
@@ -68,16 +68,16 @@ class WorkoutCardTests: XCTestCase {
     func testWorkoutCardDisplaysCorrectData() {
         // Given
         let startDate = Date()
-        let endDate = startDate.addingTimeInterval(3600) // 1 hour
+        let endDate = startDate.addingTimeInterval(3_600) // 1 hour
 
         let workout = WorkoutHistoryItem(
             id: UUID(),
             workoutType: "Cycling",
             startDate: startDate,
             endDate: endDate,
-            duration: 3600,
+            duration: 3_600,
             totalEnergyBurned: 500,
-            totalDistance: 20000, // 20km
+            totalDistance: 20_000, // 20km
             averageHeartRate: 155,
             followersEarned: 15,
             xpEarned: 75,
@@ -100,7 +100,7 @@ class WorkoutCardTests: XCTestCase {
             "Swimming",
             "Strength Training",
             "Yoga",
-            "HIIT",
+            "HIIT"
         ]
 
         for workoutType in workoutTypes {
@@ -108,10 +108,10 @@ class WorkoutCardTests: XCTestCase {
                 id: UUID(),
                 workoutType: workoutType,
                 startDate: Date(),
-                endDate: Date().addingTimeInterval(1800),
-                duration: 1800,
+                endDate: Date().addingTimeInterval(1_800),
+                duration: 1_800,
                 totalEnergyBurned: 200,
-                totalDistance: workoutType == "Running" || workoutType == "Cycling" ? 5000 : nil,
+                totalDistance: workoutType == "Running" || workoutType == "Cycling" ? 5_000 : nil,
                 averageHeartRate: 130,
                 followersEarned: 5,
                 xpEarned: 25,
@@ -138,10 +138,10 @@ class WorkoutCardTests: XCTestCase {
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
-            endDate: Date().addingTimeInterval(1800),
-            duration: 1800,
+            endDate: Date().addingTimeInterval(1_800),
+            duration: 1_800,
             totalEnergyBurned: 250,
-            totalDistance: 5000,
+            totalDistance: 5_000,
             averageHeartRate: 145,
             followersEarned: 10,
             xpEarned: 50,

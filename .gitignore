@@ -108,7 +108,7 @@ Temporary Items
 
 # App-specific
 # Add any app-specific files to ignore here
-
+Certificates/
 
 # Private
 .private/

@@ -315,9 +315,9 @@ struct WorkoutSharingPromptView: View {
         workoutHistory: WorkoutHistoryItem(
             id: UUID(),
             workoutType: "running",
-            startDate: Date().addingTimeInterval(-1800),
+            startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),
-            duration: 1800,
+            duration: 1_800,
             totalEnergyBurned: 250,
             totalDistance: 3.2,
             averageHeartRate: 140,

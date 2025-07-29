@@ -73,7 +73,7 @@ final class WorkoutSharingPromptViewTests: XCTestCase {
         // Given
         let workout = createTestWorkout(
             workoutType: "running",
-            duration: 1800, // 30 minutes
+            duration: 1_800, // 30 minutes
             followersEarned: 25
         )
 
@@ -87,7 +87,7 @@ final class WorkoutSharingPromptViewTests: XCTestCase {
         // Then - Since we can't inspect SwiftUI views without ViewInspector,
         // we verify the data model and behavior instead
         XCTAssertEqual(workout.workoutType, "running")
-        XCTAssertEqual(workout.duration, 1800)
+        XCTAssertEqual(workout.duration, 1_800)
         XCTAssertEqual(workout.followersEarned, 25)
         XCTAssertEqual(workout.xpEarned, 25)
 
@@ -222,7 +222,7 @@ final class WorkoutSharingPromptViewTests: XCTestCase {
 
     private func createTestWorkout(
         workoutType: String = "running",
-        duration: TimeInterval = 1800,
+        duration: TimeInterval = 1_800,
         followersEarned: Int = 25
     ) -> WorkoutHistoryItem {
         WorkoutHistoryItem(

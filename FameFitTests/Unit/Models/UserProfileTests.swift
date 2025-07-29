@@ -18,7 +18,7 @@ final class UserProfileTests: XCTestCase {
         let displayName = "Fitness Fan"
         let bio = "Love working out!"
         let workoutCount = 42
-        let totalXP = 12500
+        let totalXP = 12_500
         let joinedDate = Date()
         let lastUpdated = Date()
         let isVerified = true

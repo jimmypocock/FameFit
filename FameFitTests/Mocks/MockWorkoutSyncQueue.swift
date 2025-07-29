@@ -166,8 +166,8 @@ class MockWorkoutSyncQueue: WorkoutSyncQueuing {
         for index in 0 ..< count {
             var workout = PendingWorkout(from: TestWorkoutBuilder.createWorkout(
                 type: .running,
-                startDate: Date().addingTimeInterval(Double(-index * 3600 - 1800)),
-                endDate: Date().addingTimeInterval(Double(-index * 3600)),
+                startDate: Date().addingTimeInterval(Double(-index * 3_600 - 1_800)),
+                endDate: Date().addingTimeInterval(Double(-index * 3_600)),
                 calories: 200
             ))
             workout.retryCount = 3 // Max retries reached
