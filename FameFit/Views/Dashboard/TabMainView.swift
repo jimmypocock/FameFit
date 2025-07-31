@@ -11,18 +11,9 @@ import SwiftUI
 struct TabMainView: View {
     @StateObject private var viewModel: MainViewModel
     @State private var selectedTab = 0
-    @State private var showingNotifications = false
-    @State private var showingWorkoutHistory = false
-    @State private var showingEditProfile = false
-    @State private var showingWorkoutSharingPrompt = false
-    @State private var showingNotificationDebug = false
     @State private var showingFilters = false
-    @State private var showingProfile = false
+    @State private var activeSheet: SheetType?
     @State private var workoutToShare: WorkoutHistoryItem?
-    
-    #if DEBUG
-    @State private var showingDeveloperMenu = false
-    #endif
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -105,50 +96,50 @@ struct TabMainView: View {
             }
             .tag(4)
         }
-        .sheet(isPresented: $showingProfile) {
-            NavigationView {
-                if let currentUserId = container.cloudKitManager.currentUserID {
-                    ProfileView(userId: currentUserId)
-                        .navigationTitle("Profile")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                notificationButton
+        .sheet(item: $activeSheet) { sheetType in
+            switch sheetType {
+            case .profile:
+                NavigationView {
+                    if let currentUserId = container.cloudKitManager.currentUserID {
+                        ProfileView(userId: currentUserId)
+                            .navigationTitle("Profile")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    notificationButton
+                                }
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    profileMenu
+                                }
                             }
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                profileMenu
-                            }
-                        }
-                } else {
-                    ProgressView("Loading profile...")
-                        .navigationTitle("Profile")
-                        .navigationBarTitleDisplayMode(.inline)
+                    } else {
+                        ProgressView("Loading profile...")
+                            .navigationTitle("Profile")
+                            .navigationBarTitleDisplayMode(.inline)
+                    }
                 }
-            }
-        }
-        .sheet(isPresented: $showingNotifications) {
-            NotificationCenterView()
-        }
-        .sheet(isPresented: $showingWorkoutHistory) {
-            WorkoutHistoryView()
-        }
-        .sheet(isPresented: $showingEditProfile) {
-            if let profile = viewModel.userProfile {
-                EditProfileView(profile: profile) { updatedProfile in
-                    viewModel.userProfile = updatedProfile
+            case .notifications:
+                NotificationCenterView()
+            case .workoutHistory:
+                WorkoutHistoryView()
+            case .editProfile:
+                if let profile = viewModel.userProfile {
+                    EditProfileView(profile: profile) { updatedProfile in
+                        viewModel.userProfile = updatedProfile
+                    }
                 }
-            }
-        }
-        .sheet(isPresented: $showingWorkoutSharingPrompt) {
-            if let workout = workoutToShare {
+            case .workoutSharing(let workout):
                 WorkoutSharingPromptView(workoutHistory: workout) { privacy, includeDetails in
                     // Handle successful sharing
                     print("Workout shared with privacy: \(privacy), details: \(includeDetails)")
                 }
+            case .notificationDebug:
+                NotificationDebugView()
+            #if DEBUG
+            case .developerMenu:
+                DeveloperMenu()
+            #endif
             }
-        }
-        .sheet(isPresented: $showingNotificationDebug) {
-            NotificationDebugView()
         }
         .onAppear {
             viewModel.refreshData()
@@ -162,11 +153,8 @@ struct TabMainView: View {
             viewModel.loadFollowerCounts()
         }
         #if DEBUG
-        .sheet(isPresented: $showingDeveloperMenu) {
-            DeveloperMenu()
-        }
         .onShake {
-            showingDeveloperMenu = true
+            activeSheet = .developerMenu
         }
         #endif
     }
@@ -175,7 +163,7 @@ struct TabMainView: View {
 
     private var notificationButton: some View {
         Button(action: {
-            showingNotifications = true
+            activeSheet = .notifications
         }) {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: "bell")
@@ -209,7 +197,7 @@ struct TabMainView: View {
     
     private var profileButton: some View {
         Button(action: {
-            showingProfile = true
+            activeSheet = .profile
         }) {
             Image(systemName: "person.circle")
         }
@@ -227,7 +215,7 @@ struct TabMainView: View {
         Menu {
             if viewModel.hasProfile {
                 Button(action: {
-                    showingEditProfile = true
+                    activeSheet = .editProfile
                 }) {
                     Label("Edit Profile", systemImage: "pencil")
                 }
@@ -237,13 +225,13 @@ struct TabMainView: View {
 
             #if DEBUG
                 Button(action: {
-                    showingNotificationDebug = true
+                    activeSheet = .notificationDebug
                 }) {
                     Label("Debug Notifications", systemImage: "bell.badge.waveform")
                 }
                 
                 Button(action: {
-                    showingDeveloperMenu = true
+                    activeSheet = .developerMenu
                 }) {
                     Label("Developer Menu", systemImage: "hammer")
                 }
@@ -278,7 +266,7 @@ struct TabMainView: View {
         guard viewModel.hasProfile else { return }
 
         workoutToShare = workout
-        showingWorkoutSharingPrompt = true
+        activeSheet = .workoutSharing(workout)
     }
 }
 

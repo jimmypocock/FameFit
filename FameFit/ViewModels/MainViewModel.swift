@@ -26,7 +26,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
-    @Published private var _joinDate: Date?
+    @Published private var _createdTimestamp: Date?
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
     @Published var userProfile: UserProfile?
@@ -62,13 +62,13 @@ class MainViewModel: ObservableObject, MainViewModeling {
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
-    var joinDate: Date? { _joinDate }
+    var joinDate: Date? { _createdTimestamp }
     var lastWorkoutDate: Date? { _lastWorkoutDate }
     var hasUnreadNotifications: Bool { _unreadCount > 0 }
     var unreadNotificationCount: Int { _unreadCount }
 
     var daysAsMember: Int {
-        guard let joinDate = _joinDate else { return 0 }
+        guard let joinDate = _createdTimestamp else { return 0 }
         return Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
     }
 
@@ -81,6 +81,15 @@ class MainViewModel: ObservableObject, MainViewModeling {
     func refreshData() {
         cloudKitManager.fetchUserRecord()
         refreshFromDependencies()
+        
+        // Check if stats recalculation is needed
+        Task {
+            do {
+                try await cloudKitManager.recalculateStatsIfNeeded()
+            } catch {
+                print("Failed to recalculate stats: \(error)")
+            }
+        }
     }
 
     func signOut() {
@@ -193,7 +202,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
             .assign(to: &$_currentStreak)
 
         cloudKitManager.joinTimestampPublisher
-            .assign(to: &$_joinDate)
+            .assign(to: &$_createdTimestamp)
 
         cloudKitManager.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
@@ -213,7 +222,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
         _totalXP = cloudKitManager.totalXP
         _totalWorkouts = cloudKitManager.totalWorkouts
         _currentStreak = cloudKitManager.currentStreak
-        _joinDate = cloudKitManager.joinTimestamp
+        _createdTimestamp = cloudKitManager.joinTimestamp
         _lastWorkoutDate = cloudKitManager.lastWorkoutTimestamp
         _xpTitle = cloudKitManager.getXPTitle()
         _unreadCount = notificationStore.unreadCount

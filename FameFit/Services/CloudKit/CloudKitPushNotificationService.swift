@@ -126,7 +126,6 @@ final class CloudKitPushNotificationService {
               let appVersion = record["appVersion"] as? String,
               let osVersion = record["osVersion"] as? String,
               let environment = record["environment"] as? String,
-              let lastUpdated = record["lastUpdated"] as? Date,
               let isActive = record["isActive"] as? Int64
         else {
             return nil
@@ -141,7 +140,7 @@ final class CloudKitPushNotificationService {
             osVersion: osVersion,
             environment: environment,
             createdTimestamp: record.creationDate ?? Date(),
-            lastUpdated: lastUpdated,
+            modifiedTimestamp: record.modificationDate ?? Date(),
             isActive: isActive == 1
         )
     }

@@ -92,7 +92,31 @@ final class UserProfileService: UserProfileServicing {
         }
 
         // Try to fetch profile by userId field (not record ID)
-        let profile = try await fetchProfileByUserID(userId)
+        var profile = try await fetchProfileByUserID(userId)
+        
+        // Fetch fresh stats from Users record
+        do {
+            let freshStats = try await fetchFreshUserStats(userId: userId)
+            // Create updated profile with fresh stats
+            profile = UserProfile(
+                id: profile.id,
+                userID: profile.userID,
+                username: profile.username,
+                bio: profile.bio,
+                workoutCount: freshStats.workoutCount,
+                totalXP: freshStats.totalXP,
+                createdTimestamp: profile.createdTimestamp,
+                modifiedTimestamp: profile.modifiedTimestamp,
+                isVerified: profile.isVerified,
+                privacyLevel: profile.privacyLevel,
+                profileImageURL: profile.profileImageURL,
+                headerImageURL: profile.headerImageURL
+            )
+        } catch {
+            // If we can't fetch fresh stats, continue with cached values
+            print("Warning: Could not fetch fresh stats: \(error)")
+        }
+        
         currentProfile = profile
         return profile
     }
@@ -112,7 +136,31 @@ final class UserProfileService: UserProfileServicing {
         }
 
         // Fetch fresh profile by userId field
-        let profile = try await fetchProfileByUserID(userId)
+        var profile = try await fetchProfileByUserID(userId)
+        
+        // Always fetch fresh stats from Users record
+        do {
+            let freshStats = try await fetchFreshUserStats(userId: userId)
+            // Create updated profile with fresh stats
+            profile = UserProfile(
+                id: profile.id,
+                userID: profile.userID,
+                username: profile.username,
+                bio: profile.bio,
+                workoutCount: freshStats.workoutCount,
+                totalXP: freshStats.totalXP,
+                createdTimestamp: profile.createdTimestamp,
+                modifiedTimestamp: profile.modifiedTimestamp,
+                isVerified: profile.isVerified,
+                privacyLevel: profile.privacyLevel,
+                profileImageURL: profile.profileImageURL,
+                headerImageURL: profile.headerImageURL
+            )
+        } catch {
+            // If we can't fetch fresh stats, continue with cached values
+            print("Warning: Could not fetch fresh stats: \(error)")
+        }
+        
         currentProfile = profile
         return profile
     }
@@ -216,7 +264,7 @@ final class UserProfileService: UserProfileServicing {
             existingRecord["bio"] = profile.bio
             existingRecord["workoutCount"] = Int64(profile.workoutCount)
             existingRecord["totalXP"] = Int64(profile.totalXP)
-            existingRecord["lastUpdated"] = Date() // Update sync timestamp
+            // modifiedTimestamp is managed by CloudKit automatically
             existingRecord["privacyLevel"] = profile.privacyLevel.rawValue
 
             if let profileImageURL = profile.profileImageURL {
@@ -414,7 +462,7 @@ final class UserProfileService: UserProfileServicing {
             // Filter profiles that were active in the time period
             let activeProfiles = profiles.filter { profile in
                 // Check if profile was updated within the time range
-                profile.lastUpdated >= startDate && profile.lastUpdated <= endDate
+                profile.modifiedTimestamp >= startDate && profile.modifiedTimestamp <= endDate
             }
 
             // Cache results
@@ -430,11 +478,11 @@ final class UserProfileService: UserProfileServicing {
         let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "privacyLevel == %@", ProfilePrivacyLevel.publicProfile.rawValue),
-            NSPredicate(format: "lastUpdated >= %@", sevenDaysAgo as NSDate)
+            NSPredicate(format: "modifiedTimestamp >= %@", sevenDaysAgo as NSDate)
         ])
 
         let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "lastUpdated", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "modifiedTimestamp", ascending: false)]
 
         do {
             let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
@@ -478,6 +526,28 @@ final class UserProfileService: UserProfileServicing {
     }
 
     // MARK: - Private Methods
+    
+    private func fetchFreshUserStats(userId: String) async throws -> (workoutCount: Int, totalXP: Int) {
+        // Fetch fresh stats directly from the Users record in private database
+        let recordID = CKRecord.ID(recordName: userId)
+        
+        do {
+            let userRecord = try await privateDatabase.record(for: recordID)
+            let workoutCount = userRecord["totalWorkouts"] as? Int ?? 0
+            let totalXP = userRecord["totalXP"] as? Int ?? userRecord["influencerXP"] as? Int ?? 0
+            
+            print("🔍 Fresh stats from Users record:")
+            print("   Record ID: \(recordID.recordName)")
+            print("   totalWorkouts: \(userRecord["totalWorkouts"] ?? "nil")")
+            print("   totalXP: \(userRecord["totalXP"] ?? "nil")")
+            print("   influencerXP: \(userRecord["influencerXP"] ?? "nil")")
+            print("   Final values: workouts=\(workoutCount), XP=\(totalXP)")
+            
+            return (workoutCount: workoutCount, totalXP: totalXP)
+        } catch {
+            throw ProfileServiceError.networkError(error)
+        }
+    }
 
     private func getCachedProfile(userId: String) -> UserProfile? {
         guard let cached = profileCache[userId] else { return nil }

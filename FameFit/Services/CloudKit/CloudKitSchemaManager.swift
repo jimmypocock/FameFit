@@ -35,9 +35,9 @@ class CloudKitSchemaManager {
                 try await initializeUserRecordType()
                 FameFitLogger.info("User record type initialized", category: FameFitLogger.cloudKit)
 
-                try await initializeWorkoutHistoryRecordType()
+                try await initializeWorkoutsRecordType()
                 FameFitLogger.info(
-                    "WorkoutHistory record type initialized", category: FameFitLogger.cloudKit
+                    "Workouts record type initialized", category: FameFitLogger.cloudKit
                 )
 
                 try await initializeUserSettingsRecordType()
@@ -119,9 +119,9 @@ class CloudKitSchemaManager {
         }
     }
 
-    private func initializeWorkoutHistoryRecordType() async throws {
-        // Check if WorkoutHistory record type exists by querying
-        let query = CKQuery(recordType: "WorkoutHistory", predicate: NSPredicate(value: true))
+    private func initializeWorkoutsRecordType() async throws {
+        // Check if Workouts record type exists by querying
+        let query = CKQuery(recordType: "Workouts", predicate: NSPredicate(value: true))
 
         do {
             _ = try await privateDatabase.records(matching: query, resultsLimit: 1)
@@ -131,7 +131,7 @@ class CloudKitSchemaManager {
             // Record type doesn't exist, create a dummy record
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
-                let dummyRecord = CKRecord(recordType: "WorkoutHistory")
+                let dummyRecord = CKRecord(recordType: "Workouts")
                 dummyRecord["workoutId"] = UUID().uuidString
                 dummyRecord["workoutType"] = "Running"
                 dummyRecord["startDate"] = Date()
@@ -207,7 +207,7 @@ class CloudKitSchemaManager {
                 dummyRecord["appVersion"] = "1.0.0"
                 dummyRecord["osVersion"] = "17.0"
                 dummyRecord["environment"] = "development"
-                dummyRecord["lastUpdated"] = Date()
+                // modifiedTimestamp is managed by CloudKit automatically
                 dummyRecord["isActive"] = Int64(1)
 
                 do {
@@ -238,8 +238,7 @@ class CloudKitSchemaManager {
                 dummyRecord["bio"] = ""
                 dummyRecord["workoutCount"] = Int64(0)
                 dummyRecord["totalXP"] = Int64(0)
-                dummyRecord["joinedDate"] = Date()
-                dummyRecord["lastUpdated"] = Date()
+                // createdTimestamp and modifiedTimestamp are managed by CloudKit automatically
                 dummyRecord["privacyLevel"] = "private"
 
                 do {

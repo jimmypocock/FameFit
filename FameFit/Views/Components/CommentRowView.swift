@@ -210,8 +210,8 @@ struct CommentRowView: View {
                         bio: "Certified trainer",
                         workoutCount: 127,
                         totalXP: 5_000,
-                        joinedDate: Date().addingTimeInterval(-86_400 * 365),
-                        lastUpdated: Date(),
+                        createdTimestamp: Date().addingTimeInterval(-86_400 * 365),
+                        modifiedTimestamp: Date(),
                         isVerified: true,
                         privacyLevel: .publicProfile,
                         profileImageURL: nil
@@ -251,8 +251,8 @@ struct CommentRowView: View {
                         bio: "Weekend warrior",
                         workoutCount: 45,
                         totalXP: 1_200,
-                        joinedDate: Date().addingTimeInterval(-86_400 * 180),
-                        lastUpdated: Date(),
+                        createdTimestamp: Date().addingTimeInterval(-86_400 * 180),
+                        modifiedTimestamp: Date(),
                         isVerified: false,
                         privacyLevel: .publicProfile,
                         profileImageURL: nil

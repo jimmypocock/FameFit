@@ -526,8 +526,8 @@ class CommentsViewModel: ObservableObject {
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
-                joinedDate: Date().addingTimeInterval(-86_400 * 90),
-                lastUpdated: Date(),
+                createdTimestamp: Date().addingTimeInterval(-86_400 * 90),
+                modifiedTimestamp: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil

@@ -273,8 +273,8 @@ final class MockUserProfileService: UserProfileServicing {
 
         let publicProfiles = profiles.values.filter { profile in
             profile.privacyLevel == .publicProfile &&
-                profile.lastUpdated >= startDate &&
-                profile.lastUpdated <= endDate
+                profile.modifiedTimestamp >= startDate &&
+                profile.modifiedTimestamp <= endDate
         }
 
         let sorted = publicProfiles.sorted { $0.totalXP > $1.totalXP }
@@ -287,7 +287,7 @@ final class MockUserProfileService: UserProfileServicing {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         let publicProfiles = profiles.values.filter { $0.privacyLevel == .publicProfile }
-        let sorted = publicProfiles.sorted { $0.lastUpdated > $1.lastUpdated }
+        let sorted = publicProfiles.sorted { $0.modifiedTimestamp > $1.modifiedTimestamp }
 
         return Array(sorted.prefix(limit))
     }

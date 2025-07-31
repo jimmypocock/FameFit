@@ -92,6 +92,7 @@ class DependencyContainer: ObservableObject {
     let realTimeSyncCoordinator: RealTimeSyncCoordinating
     let activityCommentsService: ActivityCommentsServicing
     let activitySharingSettingsService: ActivitySharingSettingsServicing
+    let xpTransactionService: XPTransactionService
 
     init() {
         // Initialize core services
@@ -191,6 +192,9 @@ class DependencyContainer: ObservableObject {
             cloudKitManager: cloudKitManager
         )
         
+        // Initialize XP transaction service
+        xpTransactionService = XPTransactionService(container: cloudKitManager.container)
+        
         // Initialize sync coordinator
         subscriptionManager = CloudKitSubscriptionManager()
 
@@ -222,6 +226,7 @@ class DependencyContainer: ObservableObject {
         // Wire up dependencies
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.unlockNotificationService = unlockNotificationService
+        cloudKitManager.xpTransactionService = xpTransactionService
 
         workoutObserver.notificationStore = notificationStore
         workoutObserver.apnsManager = apnsManager
@@ -256,7 +261,8 @@ class DependencyContainer: ObservableObject {
         subscriptionManager: CloudKitSubscriptionManaging? = nil,
         realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
         activityCommentsService: ActivityCommentsServicing? = nil,
-        activitySharingSettingsService: ActivitySharingSettingsServicing? = nil
+        activitySharingSettingsService: ActivitySharingSettingsServicing? = nil,
+        xpTransactionService: XPTransactionService? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -350,6 +356,8 @@ class DependencyContainer: ObservableObject {
         self.activitySharingSettingsService = activitySharingSettingsService ?? ActivitySharingSettingsService(
             cloudKitManager: self.cloudKitManager
         )
+        
+        self.xpTransactionService = xpTransactionService ?? XPTransactionService(container: self.cloudKitManager.container)
 
         if let realTimeSyncCoordinator {
             self.realTimeSyncCoordinator = realTimeSyncCoordinator

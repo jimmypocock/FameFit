@@ -409,6 +409,160 @@ Track these metrics:
 
 Transform workouts into shareable content that drives growth both within the app and on external social platforms.
 
+### 🔄 **XP Transaction Audit System - PRIORITY**
+
+**Status**: Planning 📋  
+**Duration**: 1 week  
+**Impact**: Critical - Data integrity and user trust
+
+Create a comprehensive audit trail for all XP calculations that maintains privacy while providing full transparency.
+
+#### CloudKit Schema Design
+
+```
+XPTransaction (Public Database)
+- transactionId: String (CKRecord.ID) - UUID
+- userId: String (Reference) - QUERYABLE, SORTABLE
+- workoutId: String (Reference to private workout)
+- timestamp: Date - QUERYABLE, SORTABLE
+- transactionType: String - QUERYABLE ("workout", "achievement", "bonus", "challenge")
+- baseXP: Int64
+- finalXP: Int64
+- multiplier: Double
+
+// Non-sensitive workout context
+- workoutType: String - QUERYABLE
+- workoutDuration: Int64 (seconds)
+- workoutSource: String ("watch", "iphone", "manual")
+- dayOfWeek: Int64 (1-7)
+- timeOfDay: String ("morning", "afternoon", "evening", "night")
+
+// Calculation factors (JSON string)
+- calculationFactors: String
+```
+
+#### Implementation Plan
+
+**Day 1-2: Core Infrastructure**
+- [ ] Create XPTransaction model with CloudKit support
+- [ ] Add XPTransaction record type to CloudKit schema
+- [ ] Create XPTransactionService with:
+  - [ ] Save transaction method
+  - [ ] Fetch transactions by user/workout
+  - [ ] Bulk fetch for analytics
+- [ ] Update XPCalculator to return detailed calculation data
+
+**Day 3: Integration with Workout Flow**
+- [ ] Modify WorkoutSyncManager to create XPTransaction after XP calculation
+- [ ] Update CloudKitManager.addXP to save transaction record
+- [ ] Add transaction creation to achievement XP awards
+- [ ] Ensure all XP sources create audit records
+
+**Day 4: Calculation Factors Structure**
+- [ ] Design CalculationFactors model:
+  ```swift
+  struct XPCalculationFactors: Codable {
+      // Time-based
+      let durationMinutes: Int
+      let durationMultiplier: Double
+      let timeOfDayBonus: Int
+      let weekendBonus: Int
+      
+      // Workout-based
+      let workoutTypeBase: Int
+      let workoutTypeMultiplier: Double
+      let intensityCategory: String // "light", "moderate", "vigorous"
+      
+      // Consistency
+      let currentStreak: Int
+      let streakBonus: Int
+      let weeklyWorkoutCount: Int
+      let consistencyBonus: Int
+      
+      // Social
+      let groupWorkoutBonus: Int
+      let challengeBonus: Int
+      
+      // Achievements
+      let firstWorkoutOfTypeBonus: Int
+      let personalRecordBonus: Int
+      let milestoneBonus: Int
+      
+      // Level-based
+      let userLevel: Int
+      let levelMultiplier: Double
+  }
+  ```
+
+**Day 5: Privacy-Safe Intensity Calculation**
+- [ ] Create intensity categorization without exposing health data:
+  ```swift
+  func categorizeIntensity(
+      workoutType: String,
+      duration: TimeInterval,
+      // Never pass HR, calories, etc.
+  ) -> String {
+      switch workoutType {
+      case "High Intensity Interval Training", "CrossFit":
+          return "vigorous"
+      case "Yoga", "Walking", "Cooldown":
+          return "light"
+      case "Running", "Cycling":
+          // Use duration as proxy for intensity
+          if duration > 3600 { // >1 hour
+              return "vigorous"
+          } else if duration > 1800 { // >30 min
+              return "moderate"
+          } else {
+              return "light"
+          }
+      default:
+          return "moderate"
+      }
+  }
+  ```
+
+**Day 6-7: UI Integration**
+- [ ] Create XPBreakdownView for displaying calculation details
+- [ ] Add "View XP Details" button to workout history items
+- [ ] Show XP breakdown in workout completion screen
+- [ ] Add XP history section to user profile
+
+#### Privacy Compliance
+
+**Data We Store:**
+- Workout type and duration ✅
+- Time of day and day of week ✅
+- Calculated intensity category ✅
+- XP calculation factors ✅
+- User level and streaks ✅
+
+**Data We DON'T Store:**
+- Heart rate data ❌
+- Calorie counts ❌
+- Distance/speed ❌
+- GPS coordinates ❌
+- Weight/BMI ❌
+- Any health metrics ❌
+
+#### Analytics Benefits
+
+With this audit system, we can:
+- Debug "Why did I get 45 XP?" questions
+- Analyze XP distribution patterns
+- Identify popular workout types
+- Track engagement by time of day
+- Monitor streak effectiveness
+- Balance the XP economy
+- Detect and prevent gaming
+
+#### Success Metrics
+- 100% of XP awards have audit records
+- <500ms to generate transaction record
+- Users can view their last 100 transactions
+- Support can debug any XP issue
+- Zero health data exposure
+
 **✅ Completed (2025-07-30): Automatic Activity Sharing Foundation**
 
 - [x] **Activity Sharing Infrastructure**

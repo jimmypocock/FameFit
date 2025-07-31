@@ -63,6 +63,11 @@ protocol CloudKitManaging: ObservableObject {
     func getXPTitle() -> String
     func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)
     func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void)
+    func recalculateStatsIfNeeded() async throws
+    func recalculateUserStats() async throws
+    func clearAllWorkoutsAndResetStats() async throws
+    func debugCloudKitEnvironment() async throws
+    func forceResetStats() async throws
 }
 
 // MARK: - WorkoutObserver Protocol

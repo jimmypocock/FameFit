@@ -250,8 +250,8 @@ struct WorkoutCommentsView: View {
             bio: "Marathon enthusiast",
             workoutCount: 312,
             totalXP: 12_500,
-            joinedDate: Date().addingTimeInterval(-86_400 * 500),
-            lastUpdated: Date(),
+            createdTimestamp: Date().addingTimeInterval(-86_400 * 500),
+            modifiedTimestamp: Date(),
             isVerified: true,
             privacyLevel: .publicProfile,
             profileImageURL: nil

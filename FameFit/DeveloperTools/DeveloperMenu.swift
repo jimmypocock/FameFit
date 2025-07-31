@@ -28,6 +28,7 @@ struct DeveloperMenu: View {
     @State private var selectedPersona: TestAccountPersona?
     @State private var existingAccounts: [TestAccountPersona] = []
     @Environment(\.dismiss) var dismiss
+    @Environment(\.dependencyContainer) var dependencyContainer
     
     private let seeder = CloudKitSeeder()
     
@@ -102,6 +103,30 @@ struct DeveloperMenu: View {
                     }
                     .buttonStyle(.plain)
                     
+                    // Debug CloudKit
+                    Button(action: debugCloudKit) {
+                        HStack {
+                            Image(systemName: "icloud.and.arrow.up.fill")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.purple)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Debug CloudKit")
+                                    .font(.headline)
+                                Text("Check CloudKit environment & data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
                     // Clear Cache
                     Button(action: clearCache) {
                         HStack {
@@ -114,6 +139,55 @@ struct DeveloperMenu: View {
                                 Text("Clear Cache")
                                     .font(.headline)
                                 Text("Clear all local cached data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Recalculate Stats
+                    Button(action: recalculateStats) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.blue)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Recalculate Stats")
+                                    .font(.headline)
+                                Text("Sync workout count & XP from records")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Force Reset Stats
+                    Button(action: forceResetStats) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.orange)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Force Reset Stats")
+                                    .font(.headline)
+                                    .foregroundColor(.orange)
+                                Text("Reset stats to 0 (bypass workout query)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -218,6 +292,112 @@ struct DeveloperMenu: View {
     
     private func createProfile() {
         sheetType = .profilePicker
+    }
+    
+    private func debugCloudKit() {
+        Task {
+            isLoading = true
+            message = "Debugging CloudKit environment..."
+            
+            do {
+                let container = dependencyContainer
+                let cloudKitManager = container.cloudKitManager
+                
+                try await cloudKitManager.debugCloudKitEnvironment()
+                
+                message = "✅ Check console for CloudKit debug info"
+            } catch {
+                message = "❌ Debug failed: \(error.localizedDescription)"
+            }
+            
+            isLoading = false
+            
+            // Clear message after delay
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            message = ""
+        }
+    }
+    
+    private func recalculateStats() {
+        Task {
+            isLoading = true
+            message = "Recalculating stats..."
+            
+            do {
+                // Use the environment dependency container
+                let container = dependencyContainer
+                let cloudKitManager = container.cloudKitManager
+                
+                try await cloudKitManager.recalculateUserStats()
+                
+                message = "✅ Stats recalculated successfully!"
+                
+                // Trigger profile refresh
+                NotificationCenter.default.post(name: Notification.Name("RefreshUserProfile"), object: nil)
+            } catch {
+                message = "❌ Failed to recalculate: \(error.localizedDescription)"
+            }
+            
+            isLoading = false
+            
+            // Clear message after delay
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            message = ""
+        }
+    }
+    
+    private func forceResetStats() {
+        Task {
+            isLoading = true
+            message = "Force resetting stats to zero..."
+            
+            do {
+                let container = dependencyContainer
+                let cloudKitManager = container.cloudKitManager
+                
+                try await cloudKitManager.forceResetStats()
+                
+                message = "✅ Stats force reset to zero!"
+                
+                // Trigger profile refresh
+                NotificationCenter.default.post(name: Notification.Name("RefreshUserProfile"), object: nil)
+            } catch {
+                message = "❌ Failed to reset: \(error.localizedDescription)"
+            }
+            
+            isLoading = false
+            
+            // Clear message after delay
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            message = ""
+        }
+    }
+    
+    private func clearAllWorkouts() {
+        Task {
+            isLoading = true
+            message = "Clearing all workouts..."
+            
+            do {
+                let container = dependencyContainer
+                let cloudKitManager = container.cloudKitManager
+                
+                try await cloudKitManager.clearAllWorkoutsAndResetStats()
+                
+                message = "✅ All workouts cleared and stats reset!"
+                
+                // Trigger profile refresh
+                NotificationCenter.default.post(name: Notification.Name("RefreshUserProfile"), object: nil)
+            } catch {
+                message = "❌ Failed to clear workouts: \(error.localizedDescription)"
+            }
+            
+            isLoading = false
+            
+            // Clear message after delay
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            message = ""
+        }
     }
     
     private func clearCache() {

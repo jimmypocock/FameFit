@@ -3,9 +3,12 @@ import SwiftUI
 
 struct WorkoutHistoryView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
+    @Environment(\.dependencyContainer) var dependencyContainer
     @State private var workoutHistory: [WorkoutHistoryItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var selectedTransaction: XPTransaction?
+    @State private var showingXPBreakdown = false
 
     var totalXP: Int {
         workoutHistory.reduce(0) { $0 + $1.effectiveXPEarned }
@@ -31,6 +34,11 @@ struct WorkoutHistoryView: View {
         }
         .onAppear {
             loadWorkoutHistory()
+        }
+        .sheet(isPresented: $showingXPBreakdown) {
+            if let transaction = selectedTransaction {
+                XPTransactionDetailView(transaction: transaction)
+            }
         }
     }
 
@@ -78,6 +86,10 @@ struct WorkoutHistoryView: View {
             Section("Workouts") {
                 ForEach(workoutHistory) { workout in
                     WorkoutHistoryRow(workout: workout)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            fetchXPTransaction(for: workout)
+                        }
                 }
             }
         }
@@ -105,6 +117,49 @@ struct WorkoutHistoryView: View {
             }
         }
     }
+    
+    private func fetchXPTransaction(for workout: WorkoutHistoryItem) {
+        Task {
+            do {
+                let transaction = try await dependencyContainer.xpTransactionService
+                    .fetchTransaction(for: workout.id.uuidString)
+                
+                if let transaction = transaction {
+                    await MainActor.run {
+                        self.selectedTransaction = transaction
+                        self.showingXPBreakdown = true
+                    }
+                } else {
+                    // No transaction found - create one on the fly for display
+                    let userStats = UserStats(
+                        totalWorkouts: cloudKitManager.totalWorkouts,
+                        currentStreak: cloudKitManager.currentStreak,
+                        recentWorkouts: [],
+                        totalXP: cloudKitManager.totalXP
+                    )
+                    
+                    let result = XPCalculator.calculateXP(for: workout, userStats: userStats)
+                    
+                    await MainActor.run {
+                        self.selectedTransaction = XPTransaction(
+                            userRecordID: cloudKitManager.currentUserID ?? "",
+                            workoutRecordID: workout.id.uuidString,
+                            baseXP: result.baseXP,
+                            finalXP: result.finalXP,
+                            factors: result.factors
+                        )
+                        self.showingXPBreakdown = true
+                    }
+                }
+            } catch {
+                FameFitLogger.error(
+                    "Failed to fetch XP transaction",
+                    error: error,
+                    category: FameFitLogger.app
+                )
+            }
+        }
+    }
 }
 
 struct WorkoutHistoryRow: View {
@@ -128,9 +183,15 @@ struct WorkoutHistoryRow: View {
 
                 Spacer()
 
-                Text("+\(workout.effectiveXPEarned) XP")
-                    .font(.headline)
-                    .foregroundColor(.green)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("+\(workout.effectiveXPEarned) XP")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                    
+                    Text("Tap for details")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
 
             HStack(spacing: 20) {

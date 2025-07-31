@@ -258,4 +258,43 @@ class MockCloudKitManager: CloudKitManager {
         currentStreak = 0
         lastWorkoutTimestamp = nil
     }
+    
+    // MARK: - New Protocol Methods
+    
+    override func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem) {
+        // Mock implementation - no-op for tests
+    }
+    
+    override func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void) {
+        completion(.success([]))
+    }
+    
+    override func recalculateStatsIfNeeded() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    override func recalculateUserStats() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    override func clearAllWorkoutsAndResetStats() async throws {
+        // Mock implementation - reset all stats
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+        workoutHistory = []
+    }
+    
+    override func debugCloudKitEnvironment() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    override func forceResetStats() async throws {
+        // Mock implementation - reset all stats
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+    }
 }
