@@ -10,40 +10,11 @@ import Combine
 import Foundation
 import HealthKit
 
-// MARK: - Activity Feed Item Model
-
-struct ActivityFeedItem: Codable, Identifiable, Equatable {
-    let id: String
-    let userID: String
-    let activityType: String
-    let workoutId: String?
-    let content: String // JSON encoded content
-    let visibility: String // "private", "friends_only", "public"
-    let createdTimestamp: Date
-    let expiresAt: Date
-    let xpEarned: Int?
-    let achievementName: String?
-
-    // Computed properties for UI display
-    var privacyLevel: WorkoutPrivacy {
-        WorkoutPrivacy(rawValue: visibility) ?? .private
-    }
-
-    var contentData: FeedContent? {
-        guard let data = content.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(FeedContent.self, from: data)
-    }
-
-    static func == (lhs: ActivityFeedItem, rhs: ActivityFeedItem) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
 // MARK: - Activity Feed Service Protocol
 
 protocol ActivityFeedServicing {
     func postWorkoutActivity(
-        workoutHistory: WorkoutHistoryItem,
+        workoutHistory: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws
@@ -95,7 +66,7 @@ final class ActivityFeedService: ActivityFeedServicing {
     // MARK: - Post Activity Methods
 
     func postWorkoutActivity(
-        workoutHistory: WorkoutHistoryItem,
+        workoutHistory: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
@@ -265,7 +236,7 @@ final class ActivityFeedService: ActivityFeedServicing {
 
     // MARK: - Private Helper Methods
 
-    private func createWorkoutContent(from workout: WorkoutHistoryItem, includeDetails: Bool) -> FeedContent {
+    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> FeedContent {
         var details: [String: String] = [
             "workoutType": workout.workoutType,
             "workoutIcon": "figure.run"

@@ -16,7 +16,7 @@ protocol NotificationManaging: AnyObject {
     func checkNotificationPermission() async -> UNAuthorizationStatus
 
     // Workout notifications
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async
+    func notifyWorkoutCompleted(_ workout: Workout) async
     func notifyXPMilestone(previousXP: Int, currentXP: Int) async
     func notifyStreakUpdate(streak: Int, isAtRisk: Bool) async
 
@@ -81,7 +81,7 @@ final class NotificationManager: NotificationManaging {
 
     // MARK: - Workout Notifications
 
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: Workout) async {
         // Get character message
         let message = messageProvider.getWorkoutEndMessage(
             workoutType: workout.workoutType,
@@ -111,7 +111,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule workout notification: \(error)")
         }
@@ -144,7 +144,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule streak notification: \(error)")
         }
@@ -173,7 +173,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule new follower notification: \(error)")
         }
@@ -201,7 +201,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule follow request notification: \(error)")
         }
@@ -228,7 +228,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule follow accepted notification: \(error)")
         }
@@ -256,7 +256,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule kudos notification: \(error)")
         }
@@ -287,7 +287,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule comment notification: \(error)")
         }
@@ -315,7 +315,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule mention notification: \(error)")
         }
@@ -342,7 +342,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule security alert: \(error)")
         }
@@ -367,7 +367,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule feature announcement: \(error)")
         }
@@ -445,7 +445,7 @@ final class MockNotificationManager: NotificationManaging {
         currentAuthStatus
     }
 
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: Workout) async {
         sentNotifications.append("workout_completed_\(workout.id)")
     }
 

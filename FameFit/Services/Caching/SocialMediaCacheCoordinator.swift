@@ -402,7 +402,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         // Listen for background refresh notifications
         NotificationCenter.default.publisher(for: .backgroundRefreshAvailable)
             .sink { [weak self] notification in
-                self?.handleBackgroundRefreshNotification(notification)
+                self?.handleBackgroundRefreshFameFitNotification(notification)
             }
             .store(in: &cancellables)
     }
@@ -525,7 +525,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         return recommendations
     }
     
-    private func handleBackgroundRefreshNotification(_ notification: Notification) {
+    private func handleBackgroundRefreshFameFitNotification(_ notification: FameFitNotification) {
         guard let userInfo = notification.userInfo,
               let _ = userInfo["feedType"] as? String,
               let userId = userInfo["userId"] as? String else { return }

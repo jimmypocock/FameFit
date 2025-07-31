@@ -142,17 +142,17 @@ struct NotificationDebugView: View {
 
             VStack(spacing: 8) {
                 Button("Send Test Workout Notification") {
-                    sendTestWorkoutNotification()
+                    sendTestWorkoutFameFitNotification()
                 }
                 .foregroundColor(.blue)
 
                 Button("Send Test Social Notification") {
-                    sendTestSocialNotification()
+                    sendTestSocialFameFitNotification()
                 }
                 .foregroundColor(.green)
 
                 Button("Send Test Achievement Notification") {
-                    sendTestAchievementNotification()
+                    sendTestAchievementFameFitNotification()
                 }
                 .foregroundColor(.purple)
             }
@@ -346,8 +346,8 @@ struct NotificationDebugView: View {
         loadNotificationQueues()
     }
 
-    private func sendTestWorkoutNotification() {
-        let testWorkout = WorkoutHistoryItem(
+    private func sendTestWorkoutFameFitNotification() {
+        let testWorkout = Workout(
             id: UUID(),
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-1_800), // 30 minutes ago
@@ -367,7 +367,7 @@ struct NotificationDebugView: View {
         }
     }
 
-    private func sendTestSocialNotification() {
+    private func sendTestSocialFameFitNotification() {
         let testUser = UserProfile(
             id: "debug-user",
             userID: "debug-user",
@@ -387,7 +387,7 @@ struct NotificationDebugView: View {
         }
     }
 
-    private func sendTestAchievementNotification() {
+    private func sendTestAchievementFameFitNotification() {
         Task {
             await dependencies.notificationManager.notifyXPMilestone(previousXP: 950, currentXP: 1_050)
             await refreshStatus()

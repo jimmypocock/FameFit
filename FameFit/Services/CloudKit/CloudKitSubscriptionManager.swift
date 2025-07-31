@@ -61,7 +61,7 @@ struct CloudKitNotificationInfo {
 protocol CloudKitSubscriptionManaging {
     func setupSubscriptions() async throws
     func removeAllSubscriptions() async throws
-    func handleNotification(_ notification: CKQueryNotification) async
+    func handleFameFitNotification(_ notification: CKQueryNotification) async
 
     var notificationPublisher: AnyPublisher<CloudKitNotificationInfo, Never> { get }
 }
@@ -242,7 +242,7 @@ final class CloudKitSubscriptionManager: CloudKitSubscriptionManaging {
 
     // MARK: - Handle Notifications
 
-    func handleNotification(_ notification: CKQueryNotification) async {
+    func handleFameFitNotification(_ notification: CKQueryNotification) async {
         guard let recordID = notification.recordID else { return }
 
         let recordType = notification.recordFields?["recordType"] as? String ?? ""

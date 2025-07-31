@@ -1,7 +1,7 @@
 import Foundation
 import HealthKit
 
-struct WorkoutHistoryItem: Identifiable, Codable {
+struct Workout: Identifiable, Codable {
     let id: UUID
     let workoutType: String
     let startDate: Date
@@ -82,7 +82,7 @@ struct WorkoutHistoryItem: Identifiable, Codable {
     }
 }
 
-extension WorkoutHistoryItem {
+extension Workout {
     init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil) {
         id = UUID()
         workoutType = workout.workoutActivityType.displayName

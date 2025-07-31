@@ -1,21 +1,21 @@
 //
-//  ActivitySharingSettingsTests.swift
+//  ActivityFeedSettingsTests.swift
 //  FameFitTests
 //
-//  Unit tests for ActivitySharingSettings model
+//  Unit tests for ActivityFeedSettings model
 //
 
 @testable import FameFit
 import HealthKit
 import XCTest
 
-final class ActivitySharingSettingsTests: XCTestCase {
+final class ActivityFeedSettingsTests: XCTestCase {
     
     // MARK: - Default Settings Tests
     
     func testDefaultSettings() {
         // When
-        let settings = ActivitySharingSettings()
+        let settings = ActivityFeedSettings()
         
         // Then
         XCTAssertTrue(settings.shareActivitiesToFeed)
@@ -41,7 +41,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testDefaultWorkoutTypes() {
         // When
-        let settings = ActivitySharingSettings()
+        let settings = ActivityFeedSettings()
         
         // Then
         let workoutTypes = settings.workoutTypesToShare
@@ -63,7 +63,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testConservativePreset() {
         // When
-        let settings = ActivitySharingSettings.conservative
+        let settings = ActivityFeedSettings.conservative
         
         // Then
         XCTAssertTrue(settings.shareWorkouts)
@@ -76,7 +76,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testBalancedPreset() {
         // When
-        let settings = ActivitySharingSettings.balanced
+        let settings = ActivityFeedSettings.balanced
         
         // Then - Should use defaults
         XCTAssertTrue(settings.shareWorkouts)
@@ -89,7 +89,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testSocialPreset() {
         // When
-        let settings = ActivitySharingSettings.social
+        let settings = ActivityFeedSettings.social
         
         // Then
         XCTAssertTrue(settings.shareWorkouts)
@@ -107,7 +107,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_MasterToggleOff() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         settings.shareActivitiesToFeed = false
         
         // Then
@@ -117,7 +117,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_WorkoutsDisabled() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         settings.shareActivitiesToFeed = true
         settings.shareWorkouts = false
         
@@ -128,7 +128,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_DurationFilter() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         
         // When
         settings.minimumWorkoutDuration = 600 // 10 minutes
@@ -139,7 +139,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_WorkoutTypeFilter() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         
         // When
         settings.workoutTypesToShare = [.running, .cycling]
@@ -152,7 +152,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_SourceFilter() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         
         // When
         settings.shareFromAllSources = false
@@ -166,7 +166,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testWorkoutSharingLogic_BlockedSources() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         
         // When
         settings.blockedSources = ["com.blocked.app"]
@@ -180,7 +180,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testPrivacyLevelForActivity() {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         settings.workoutPrivacy = .private
         settings.achievementPrivacy = .public
         settings.levelUpPrivacy = .friendsOnly
@@ -200,7 +200,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testCodable() throws {
         // Given
-        var settings = ActivitySharingSettings()
+        var settings = ActivityFeedSettings()
         settings.shareWorkouts = false
         settings.minimumWorkoutDuration = 900
         settings.workoutPrivacy = .public
@@ -209,7 +209,7 @@ final class ActivitySharingSettingsTests: XCTestCase {
         
         // When
         let encoded = try JSONEncoder().encode(settings)
-        let decoded = try JSONDecoder().decode(ActivitySharingSettings.self, from: encoded)
+        let decoded = try JSONDecoder().decode(ActivityFeedSettings.self, from: encoded)
         
         // Then
         XCTAssertEqual(decoded.shareWorkouts, false)
@@ -225,8 +225,8 @@ final class ActivitySharingSettingsTests: XCTestCase {
     
     func testEquatable() {
         // Given
-        let settings1 = ActivitySharingSettings()
-        var settings2 = ActivitySharingSettings()
+        let settings1 = ActivityFeedSettings()
+        var settings2 = ActivityFeedSettings()
         
         // Then
         XCTAssertEqual(settings1, settings2)

@@ -192,17 +192,17 @@ class APNSManager: NSObject, APNSManaging {
         // Handle different notification types
         switch notificationType {
         case "newFollower":
-            await handleNewFollowerNotification(userInfo)
+            await handleNewFollowerFameFitNotification(userInfo)
         case "workoutKudos":
-            await handleWorkoutKudosNotification(userInfo)
+            await handleWorkoutKudosFameFitNotification(userInfo)
         case "followRequest":
-            await handleFollowRequestNotification(userInfo)
+            await handleFollowRequestFameFitNotification(userInfo)
         case "workoutCompleted":
-            await handleWorkoutCompletedNotification(userInfo)
+            await handleWorkoutCompletedFameFitNotification(userInfo)
         case "achievementUnlocked", "unlockAchieved":
-            await handleAchievementNotification(userInfo)
+            await handleAchievementFameFitNotification(userInfo)
         case "levelUp":
-            await handleLevelUpNotification(userInfo)
+            await handleLevelUpFameFitNotification(userInfo)
         default:
             print("Unknown notification type: \(notificationType)")
         }
@@ -301,32 +301,32 @@ class APNSManager: NSObject, APNSManaging {
 
     // MARK: - Notification Handlers
 
-    private func handleNewFollowerNotification(_: [AnyHashable: Any]) async {
+    private func handleNewFollowerFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling new follower notification")
         // Navigate to followers list or profile
     }
 
-    private func handleWorkoutKudosNotification(_: [AnyHashable: Any]) async {
+    private func handleWorkoutKudosFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling workout kudos notification")
         // Navigate to workout details
     }
 
-    private func handleFollowRequestNotification(_: [AnyHashable: Any]) async {
+    private func handleFollowRequestFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling follow request notification")
         // Navigate to follow requests
     }
 
-    private func handleWorkoutCompletedNotification(_: [AnyHashable: Any]) async {
+    private func handleWorkoutCompletedFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling workout completed notification")
         // Show workout summary
     }
 
-    private func handleAchievementNotification(_: [AnyHashable: Any]) async {
+    private func handleAchievementFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling achievement notification")
         // Show achievement details
     }
 
-    private func handleLevelUpNotification(_: [AnyHashable: Any]) async {
+    private func handleLevelUpFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling level up notification")
         // Show level up celebration
     }

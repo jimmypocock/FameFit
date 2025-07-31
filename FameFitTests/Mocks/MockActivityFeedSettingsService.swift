@@ -1,33 +1,33 @@
 //
-//  MockActivitySharingSettingsService.swift
+//  MockActivityFeedSettingsService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivitySharingSettingsServicing for testing
+//  Mock implementation of ActivityFeedSettingsServicing for testing
 //
 
 @testable import FameFit
 import Combine
 import Foundation
 
-final class MockActivitySharingSettingsService: ActivitySharingSettingsServicing {
+final class MockActivityFeedSettingsService: ActivityFeedSettingsServicing {
     // MARK: - Mock State
     
-    var mockSettings = ActivitySharingSettings()
+    var mockSettings = ActivityFeedSettings()
     var shouldFail = false
     var loadSettingsCallCount = 0
     var saveSettingsCallCount = 0
     var resetToDefaultsCallCount = 0
-    var lastSavedSettings: ActivitySharingSettings?
+    var lastSavedSettings: ActivityFeedSettings?
     
-    private let settingsSubject = CurrentValueSubject<ActivitySharingSettings, Never>(ActivitySharingSettings())
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
     
     // MARK: - Protocol Implementation
     
-    var settingsPublisher: AnyPublisher<ActivitySharingSettings, Never> {
+    var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> {
         settingsSubject.eraseToAnyPublisher()
     }
     
-    func loadSettings() async throws -> ActivitySharingSettings {
+    func loadSettings() async throws -> ActivityFeedSettings {
         loadSettingsCallCount += 1
         
         if shouldFail {
@@ -37,7 +37,7 @@ final class MockActivitySharingSettingsService: ActivitySharingSettingsServicing
         return mockSettings
     }
     
-    func saveSettings(_ settings: ActivitySharingSettings) async throws {
+    func saveSettings(_ settings: ActivityFeedSettings) async throws {
         saveSettingsCallCount += 1
         lastSavedSettings = settings
         
@@ -56,23 +56,23 @@ final class MockActivitySharingSettingsService: ActivitySharingSettingsServicing
             throw MockError.testError
         }
         
-        mockSettings = ActivitySharingSettings()
+        mockSettings = ActivityFeedSettings()
         settingsSubject.send(mockSettings)
     }
     
     // MARK: - Test Helpers
     
     func reset() {
-        mockSettings = ActivitySharingSettings()
+        mockSettings = ActivityFeedSettings()
         shouldFail = false
         loadSettingsCallCount = 0
         saveSettingsCallCount = 0
         resetToDefaultsCallCount = 0
         lastSavedSettings = nil
-        settingsSubject.send(ActivitySharingSettings())
+        settingsSubject.send(ActivityFeedSettings())
     }
     
-    func updateSettings(_ settings: ActivitySharingSettings) {
+    func updateSettings(_ settings: ActivityFeedSettings) {
         mockSettings = settings
         settingsSubject.send(settings)
     }

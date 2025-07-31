@@ -53,9 +53,9 @@ struct SocialFeedView: View {
             }
             .sheet(isPresented: $showingComments) {
                 if let workout = selectedWorkoutForComments {
-                    // Convert FeedItem to WorkoutHistoryItem for WorkoutCommentsView
+                    // Convert FeedItem to Workout for WorkoutCommentsView
                     WorkoutCommentsView(
-                        workout: WorkoutHistoryItem(
+                        workout: Workout(
                             id: UUID(uuidString: workout.id) ?? UUID(),
                             workoutType: workout.content.workoutType ?? "Unknown",
                             startDate: workout.timestamp,

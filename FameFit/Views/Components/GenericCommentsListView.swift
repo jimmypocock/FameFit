@@ -440,7 +440,7 @@ class GenericCommentsViewModel: ObservableObject {
                 // Simply update the content and metadata of the existing comment
                 let existingUser = comments[index].user
                 comments[index] = AnyCommentWithUser(
-                    CommentWithUser(comment: ActivityComment(
+                    CommentWithUser(comment: ActivityFeedComment(
                         id: updatedComment.id,
                         activityFeedId: "",
                         sourceType: "",

@@ -208,7 +208,7 @@ struct NotificationCenterView: View {
 
     // MARK: - Helper Methods
 
-    private func handleNotificationAction(notification: NotificationItem, action: NotificationAction) {
+    private func handleNotificationAction(notification: Notification, action: NotificationAction) {
         viewModel.handleNotificationAction(notification, action: action)
     }
 

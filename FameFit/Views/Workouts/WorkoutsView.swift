@@ -3,7 +3,7 @@ import SwiftUI
 
 struct WorkoutsView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
-    @State private var workouts: [WorkoutHistoryItem] = []
+    @State private var workouts: [Workout] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -108,7 +108,7 @@ struct WorkoutsView: View {
 }
 
 struct WorkoutRow: View {
-    let workout: WorkoutHistoryItem
+    let workout: Workout
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

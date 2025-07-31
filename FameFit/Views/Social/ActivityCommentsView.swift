@@ -396,9 +396,9 @@ struct ActivityCommentsView: View {
     }
     
     private func getCommentService(for feedItemType: FeedItemType) -> AnyCommentService {
-        // Always use ActivityCommentsService for consistency
+        // Always use ActivityFeedCommentsService for consistency
         // This ensures all comments go to the same table regardless of activity type
-        let adapter = ActivityCommentsAdapter(activityCommentsService: container.activityCommentsService)
+        let adapter = ActivityFeedCommentsAdapter(activityCommentsService: container.activityCommentsService)
         return AnyCommentService(adapter)
     }
 }

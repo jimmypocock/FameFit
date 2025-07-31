@@ -1,5 +1,5 @@
 //
-//  ActivitySharingSettingsService.swift
+//  ActivityFeedSettingsService.swift
 //  FameFit
 //
 //  Service for managing user's activity sharing preferences
@@ -11,27 +11,27 @@ import Combine
 
 // MARK: - Protocol
 
-protocol ActivitySharingSettingsServicing: AnyObject {
-    func loadSettings() async throws -> ActivitySharingSettings
-    func saveSettings(_ settings: ActivitySharingSettings) async throws
+protocol ActivityFeedSettingsServicing: AnyObject {
+    func loadSettings() async throws -> ActivityFeedSettings
+    func saveSettings(_ settings: ActivityFeedSettings) async throws
     func resetToDefaults() async throws
     
     // Publisher for settings changes
-    var settingsPublisher: AnyPublisher<ActivitySharingSettings, Never> { get }
+    var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> { get }
 }
 
 // MARK: - Implementation
 
-final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
+final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
     private let cloudKitManager: any CloudKitManaging
     private let privateDatabase: CKDatabase
     private let userDefaults = UserDefaults.standard
-    private let settingsKey = "ActivitySharingSettings"
-    private let recordType = "ActivitySharingSettings"
+    private let settingsKey = "ActivityFeedSettings"
+    private let recordType = "ActivityFeedSettings"
     
-    private let settingsSubject = CurrentValueSubject<ActivitySharingSettings, Never>(ActivitySharingSettings())
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
     
-    var settingsPublisher: AnyPublisher<ActivitySharingSettings, Never> {
+    var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> {
         settingsSubject.eraseToAnyPublisher()
     }
     
@@ -48,7 +48,7 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
     
     // MARK: - Public Methods
     
-    func loadSettings() async throws -> ActivitySharingSettings {
+    func loadSettings() async throws -> ActivityFeedSettings {
         // First check if we have settings in CloudKit
         do {
             if let settings = try await fetchFromCloudKit() {
@@ -66,13 +66,13 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
         }
         
         // Return defaults for new users
-        let defaultSettings = ActivitySharingSettings()
+        let defaultSettings = ActivityFeedSettings()
         cacheSettings(defaultSettings)
         settingsSubject.send(defaultSettings)
         return defaultSettings
     }
     
-    func saveSettings(_ settings: ActivitySharingSettings) async throws {
+    func saveSettings(_ settings: ActivityFeedSettings) async throws {
         // Save to CloudKit
         try await saveToCloudKit(settings)
         
@@ -84,15 +84,15 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
     }
     
     func resetToDefaults() async throws {
-        let defaultSettings = ActivitySharingSettings()
+        let defaultSettings = ActivityFeedSettings()
         try await saveSettings(defaultSettings)
     }
     
     // MARK: - Private Methods
     
-    private func fetchFromCloudKit() async throws -> ActivitySharingSettings? {
+    private func fetchFromCloudKit() async throws -> ActivityFeedSettings? {
         guard let userId = cloudKitManager.currentUserID else {
-            throw NSError(domain: "ActivitySharingSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
+            throw NSError(domain: "ActivityFeedSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
         }
         
         // Create predicate to find settings for current user
@@ -108,7 +108,7 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
             
             // Return first record if found
             if let record = records.first {
-                return ActivitySharingSettings.fromCKRecord(record)
+                return ActivityFeedSettings.fromCKRecord(record)
             }
             
             return nil
@@ -118,9 +118,9 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
         }
     }
     
-    private func saveToCloudKit(_ settings: ActivitySharingSettings) async throws {
+    private func saveToCloudKit(_ settings: ActivityFeedSettings) async throws {
         guard let userId = cloudKitManager.currentUserID else {
-            throw NSError(domain: "ActivitySharingSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
+            throw NSError(domain: "ActivityFeedSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
         }
         
         // First, try to fetch existing record to update it
@@ -163,7 +163,7 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
         return records.first
     }
     
-    private func updateRecord(_ record: CKRecord, with settings: ActivitySharingSettings) {
+    private func updateRecord(_ record: CKRecord, with settings: ActivityFeedSettings) {
         // Update all fields from settings
         record["shareActivitiesToFeed"] = settings.shareActivitiesToFeed ? 1 : 0
         record["shareWorkouts"] = settings.shareWorkouts ? 1 : 0
@@ -191,15 +191,15 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
         record["historicalWorkoutMaxAge"] = Int64(settings.historicalWorkoutMaxAge)
     }
     
-    private func loadCachedSettings() -> ActivitySharingSettings? {
+    private func loadCachedSettings() -> ActivityFeedSettings? {
         guard let data = userDefaults.data(forKey: settingsKey),
-              let settings = try? JSONDecoder().decode(ActivitySharingSettings.self, from: data) else {
+              let settings = try? JSONDecoder().decode(ActivityFeedSettings.self, from: data) else {
             return nil
         }
         return settings
     }
     
-    private func cacheSettings(_ settings: ActivitySharingSettings) {
+    private func cacheSettings(_ settings: ActivityFeedSettings) {
         if let data = try? JSONEncoder().encode(settings) {
             userDefaults.set(data, forKey: settingsKey)
         }
@@ -208,25 +208,25 @@ final class ActivitySharingSettingsService: ActivitySharingSettingsServicing {
 
 // MARK: - Mock Implementation
 
-final class MockActivitySharingSettingsService: ActivitySharingSettingsServicing {
-    private let settingsSubject = CurrentValueSubject<ActivitySharingSettings, Never>(ActivitySharingSettings())
-    private var currentSettings = ActivitySharingSettings()
+final class MockActivityFeedSettingsService: ActivityFeedSettingsServicing {
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
+    private var currentSettings = ActivityFeedSettings()
     
-    var settingsPublisher: AnyPublisher<ActivitySharingSettings, Never> {
+    var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> {
         settingsSubject.eraseToAnyPublisher()
     }
     
     var shouldFail = false
     var error: Error = NSError(domain: "MockError", code: 0)
     
-    func loadSettings() async throws -> ActivitySharingSettings {
+    func loadSettings() async throws -> ActivityFeedSettings {
         if shouldFail {
             throw error
         }
         return currentSettings
     }
     
-    func saveSettings(_ settings: ActivitySharingSettings) async throws {
+    func saveSettings(_ settings: ActivityFeedSettings) async throws {
         if shouldFail {
             throw error
         }
@@ -238,7 +238,7 @@ final class MockActivitySharingSettingsService: ActivitySharingSettingsServicing
         if shouldFail {
             throw error
         }
-        currentSettings = ActivitySharingSettings()
+        currentSettings = ActivityFeedSettings()
         settingsSubject.send(currentSettings)
     }
 }

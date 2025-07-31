@@ -350,8 +350,8 @@ final class CloudKitSeeder {
         }
     }
     
-    private func createWorkoutHistory(for persona: TestAccountPersona) -> [WorkoutHistoryItem] {
-        var workouts: [WorkoutHistoryItem] = []
+    private func createWorkoutHistory(for persona: TestAccountPersona) -> [Workout] {
+        var workouts: [Workout] = []
         let workoutTypes = getWorkoutTypes(for: persona)
         let daysBack = min(persona.joinedDaysAgo, 90) // Last 90 days max
         
@@ -399,14 +399,14 @@ final class CloudKitSeeder {
         }
     }
     
-    private func createWorkout(type: String, date: Date, persona: TestAccountPersona) -> WorkoutHistoryItem {
+    private func createWorkout(type: String, date: Date, persona: TestAccountPersona) -> Workout {
         let duration = getTypicalDuration(for: type, persona: persona)
         let calories = getTypicalCalories(for: type, duration: duration, persona: persona)
         let distance = getTypicalDistance(for: type, duration: duration, persona: persona)
         let heartRate = getTypicalHeartRate(for: type, persona: persona)
         
         // Create workout first to calculate XP
-        let workout = WorkoutHistoryItem(
+        let workout = Workout(
             id: UUID(),
             workoutType: type,
             startDate: date,
@@ -424,7 +424,7 @@ final class CloudKitSeeder {
         let xpEarned = XPCalculator.calculateXP(for: workout, currentStreak: Int.random(in: 0...30))
         
         // Return workout with calculated XP
-        return WorkoutHistoryItem(
+        return Workout(
             id: workout.id,
             workoutType: workout.workoutType,
             startDate: workout.startDate,

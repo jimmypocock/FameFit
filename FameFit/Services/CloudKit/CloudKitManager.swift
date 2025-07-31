@@ -395,12 +395,12 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     /// Fetches all workouts for the current user
-    private func fetchAllWorkouts() async throws -> [WorkoutHistoryItem] {
+    private func fetchAllWorkouts() async throws -> [Workout] {
         guard isSignedIn else {
             throw FameFitError.cloudKitUserNotFound
         }
         
-        var allWorkouts: [WorkoutHistoryItem] = []
+        var allWorkouts: [Workout] = []
         var cursor: CKQueryOperation.Cursor?
         var batchCount = 0
         
@@ -424,7 +424,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     /// Fetches a batch of workouts with pagination support
-    private func fetchWorkoutsBatch(cursor: CKQueryOperation.Cursor?) async throws -> ([WorkoutHistoryItem], CKQueryOperation.Cursor?) {
+    private func fetchWorkoutsBatch(cursor: CKQueryOperation.Cursor?) async throws -> ([Workout], CKQueryOperation.Cursor?) {
         if let cursor = cursor {
             // Continue from cursor
             let (results, nextCursor) = try await privateDatabase.records(continuingMatchFrom: cursor)
@@ -449,7 +449,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     return record
                 }
                 return nil
-            }.compactMap { workoutHistoryItem(from: $0) }
+            }.compactMap { workout(from: $0) }
             
             return (workouts, nextCursor)
         } else {
@@ -494,7 +494,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     return record
                 }
                 return nil
-            }.compactMap { workoutHistoryItem(from: $0) }
+            }.compactMap { workout(from: $0) }
             
             return (workouts, cursor)
         }
@@ -502,7 +502,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     // MARK: - Workout History
 
-    func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem) {
+    func saveWorkoutHistory(_ workoutHistory: Workout) {
         guard isSignedIn else {
             FameFitLogger.error(
                 "Cannot save workout history - not signed in", category: FameFitLogger.cloudKit
@@ -563,7 +563,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         }
     }
 
-    func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void) {
+    func fetchWorkoutHistory(completion: @escaping (Result<[Workout], Error>) -> Void) {
         guard isSignedIn else {
             FameFitLogger.error(
                 "❌ Cannot fetch workout history - not signed in", category: FameFitLogger.cloudKit
@@ -590,7 +590,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         query.sortDescriptors = [NSSortDescriptor(key: "endDate", ascending: false)]
 
         // Use the older API that might be more forgiving
-        var workoutHistoryItems: [WorkoutHistoryItem] = []
+        var workouts: [Workout] = []
 
         privateDatabase.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: 100) {
             [weak self] result in
@@ -620,8 +620,8 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 for (_, recordResult) in matchResults {
                     switch recordResult {
                     case let .success(record):
-                        if let historyItem = self?.workoutHistoryItem(from: record) {
-                            workoutHistoryItems.append(historyItem)
+                        if let historyItem = self?.workout(from: record) {
+                            workouts.append(historyItem)
                             FameFitLogger.info(
                                 "📊 Parsed workout: \(historyItem.workoutType) from \(historyItem.endDate)",
                                 category: FameFitLogger.cloudKit
@@ -635,13 +635,13 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 }
 
                 // Sort by endDate descending
-                workoutHistoryItems.sort { $0.endDate > $1.endDate }
-                completion(.success(workoutHistoryItems))
+                workouts.sort { $0.endDate > $1.endDate }
+                completion(.success(workouts))
             }
         }
     }
 
-    private func workoutHistoryItem(from record: CKRecord) -> WorkoutHistoryItem? {
+    private func workout(from record: CKRecord) -> Workout? {
         guard let workoutId = record["workoutId"] as? String,
               let workoutType = record["workoutType"] as? String,
               let startDate = record["startDate"] as? Date,
@@ -657,7 +657,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         // Read XP - required field
         let xp = record["xpEarned"] as? Int ?? 0
 
-        return WorkoutHistoryItem(
+        return Workout(
             id: id,
             workoutType: workoutType,
             startDate: startDate,
@@ -792,7 +792,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         
         // Delete all workout records
         if !allWorkouts.isEmpty {
-            // Since we can't easily get record IDs from WorkoutHistoryItem, let's query and delete
+            // Since we can't easily get record IDs from Workout, let's query and delete
             let predicate = NSPredicate(value: true)
             let query = CKQuery(recordType: "Workouts", predicate: predicate)
             
@@ -892,7 +892,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     // MARK: - XP Transaction Creation
     
-    private func createXPTransaction(for workout: WorkoutHistoryItem, workoutRecordID: String) async {
+    private func createXPTransaction(for workout: Workout, workoutRecordID: String) async {
         guard let currentUserID = currentUserID,
               let xpTransactionService = xpTransactionService else {
             FameFitLogger.error(

@@ -266,7 +266,7 @@ class IntegrationTestScheduler: MockNotificationScheduler {
         currentPreferences?.maxNotificationsPerHour ?? 10
     }
 
-    override func scheduleNotification(_ request: NotificationRequest) async throws {
+    override func scheduleFameFitNotification(_ request: NotificationRequest) async throws {
         // Simulate rate limiting
         if respectRateLimit, request.priority != .immediate {
             if scheduledRequests.count >= rateLimitCount {
@@ -289,7 +289,7 @@ class IntegrationTestScheduler: MockNotificationScheduler {
             }
         }
 
-        try await super.scheduleNotification(request)
+        try await super.scheduleFameFitNotification(request)
     }
 }
 

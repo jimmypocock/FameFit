@@ -1,5 +1,5 @@
 //
-//  ActivityComment.swift
+//  ActivityFeedComment.swift
 //  FameFit
 //
 //  Model for comments on any activity feed item
@@ -8,7 +8,7 @@
 import CloudKit
 import Foundation
 
-struct ActivityComment: Identifiable, Codable, Equatable {
+struct ActivityFeedComment: Identifiable, Codable, Equatable {
     let id: String // CKRecord.ID as String
     
     // Dual reference system
@@ -39,7 +39,7 @@ struct ActivityComment: Identifiable, Codable, Equatable {
 
 // MARK: - CloudKit Extensions
 
-extension ActivityComment {
+extension ActivityFeedComment {
     init?(from record: CKRecord) {
         guard let activityFeedId = record["activityFeedId"] as? String,
               let sourceType = record["sourceType"] as? String,
@@ -69,9 +69,9 @@ extension ActivityComment {
     
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
         let record = if let recordID {
-            CKRecord(recordType: "ActivityComments", recordID: recordID)
+            CKRecord(recordType: "ActivityFeedComments", recordID: recordID)
         } else {
-            CKRecord(recordType: "ActivityComments")
+            CKRecord(recordType: "ActivityFeedComments")
         }
         
         record["activityFeedId"] = activityFeedId
@@ -98,7 +98,7 @@ extension ActivityComment {
 // MARK: - Comment with User Info
 
 struct CommentWithUser: Identifiable {
-    var comment: ActivityComment
+    var comment: ActivityFeedComment
     let user: UserProfile
     
     var id: String { comment.id }

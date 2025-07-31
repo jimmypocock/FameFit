@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct WorkoutCommentsView: View {
-    let workout: WorkoutHistoryItem
+    let workout: Workout
     let workoutOwner: UserProfile?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencyContainer) private var container
@@ -230,7 +230,7 @@ struct WorkoutCommentsView: View {
 
 #Preview {
     WorkoutCommentsView(
-        workout: WorkoutHistoryItem(
+        workout: Workout(
             id: UUID(),
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-3_600),

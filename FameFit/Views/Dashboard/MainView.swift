@@ -13,7 +13,7 @@ struct MainView: View {
     @State private var showingNotificationDebug = false
     @State private var showingFollowersList = false
     @State private var selectedFollowTab: FollowListTab = .followers
-    @State private var workoutToShare: WorkoutHistoryItem?
+    @State private var workoutToShare: Workout?
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -491,7 +491,7 @@ struct MainView: View {
             .store(in: &cancellables)
     }
 
-    private func showWorkoutSharingPrompt(for workout: WorkoutHistoryItem) {
+    private func showWorkoutSharingPrompt(for workout: Workout) {
         // Only show prompt if user is authenticated and has a profile
         guard viewModel.hasProfile else { return }
 

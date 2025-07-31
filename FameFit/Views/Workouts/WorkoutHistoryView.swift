@@ -4,7 +4,7 @@ import SwiftUI
 struct WorkoutHistoryView: View {
     @EnvironmentObject var cloudKitManager: CloudKitManager
     @Environment(\.dependencyContainer) var dependencyContainer
-    @State private var workoutHistory: [WorkoutHistoryItem] = []
+    @State private var workoutHistory: [Workout] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedTransaction: XPTransaction?
@@ -118,7 +118,7 @@ struct WorkoutHistoryView: View {
         }
     }
     
-    private func fetchXPTransaction(for workout: WorkoutHistoryItem) {
+    private func fetchXPTransaction(for workout: Workout) {
         Task {
             do {
                 let transaction = try await dependencyContainer.xpTransactionService
@@ -163,7 +163,7 @@ struct WorkoutHistoryView: View {
 }
 
 struct WorkoutHistoryRow: View {
-    let workout: WorkoutHistoryItem
+    let workout: Workout
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

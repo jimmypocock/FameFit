@@ -12,7 +12,7 @@ enum SheetType: Identifiable {
     case notifications
     case workoutHistory
     case editProfile
-    case workoutSharing(WorkoutHistoryItem)
+    case workoutSharing(Workout)
     case notificationDebug
     case developerMenu
     

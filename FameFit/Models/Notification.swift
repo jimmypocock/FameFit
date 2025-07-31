@@ -1,6 +1,6 @@
 import Foundation
 
-struct NotificationItem: Identifiable, Codable {
+struct FameFitNotification: Identifiable, Codable {
     let id: String
     let type: NotificationType
     let title: String
@@ -110,19 +110,19 @@ struct NotificationItem: Identifiable, Codable {
 }
 
 // Extension for UserDefaults storage
-extension NotificationItem {
+extension FameFitNotification {
     static let storageKey = "com.jimmypocock.FameFit.notifications"
 
-    static func loadAll() -> [NotificationItem] {
+    static func loadAll() -> [FameFitNotification] {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let notifications = try? JSONDecoder().decode([NotificationItem].self, from: data)
+              let notifications = try? JSONDecoder().decode([FameFitNotification].self, from: data)
         else {
             return []
         }
         return notifications
     }
 
-    static func saveAll(_ notifications: [NotificationItem]) {
+    static func saveAll(_ notifications: [FameFitNotification]) {
         if let data = try? JSONEncoder().encode(notifications) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }

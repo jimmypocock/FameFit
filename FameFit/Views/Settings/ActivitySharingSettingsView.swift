@@ -1,5 +1,5 @@
 //
-//  ActivitySharingSettingsView.swift
+//  ActivityFeedSettingsView.swift
 //  FameFit
 //
 //  Settings interface for configuring automatic activity sharing
@@ -8,11 +8,11 @@
 import SwiftUI
 import HealthKit
 
-struct ActivitySharingSettingsView: View {
+struct ActivityFeedSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
     
-    @State private var settings = ActivitySharingSettings()
+    @State private var settings = ActivityFeedSettings()
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var showError = false
@@ -485,6 +485,6 @@ struct WorkoutTypesSelectionView: View {
 // MARK: - Preview
 
 #Preview {
-    ActivitySharingSettingsView()
+    ActivityFeedSettingsView()
         .environmentObject(DependencyContainer())
 }

@@ -1,5 +1,5 @@
 //
-//  ActivityCommentsService.swift
+//  ActivityFeedCommentsService.swift
 //  FameFit
 //
 //  Service for managing comments on any activity feed item
@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: - Protocol
 
-protocol ActivityCommentsServicing {
+protocol ActivityFeedCommentsServicing {
     // Fetch comments for any activity
     func fetchComments(for activityFeedId: String, limit: Int) async throws -> [CommentWithUser]
     func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [CommentWithUser]
@@ -24,10 +24,10 @@ protocol ActivityCommentsServicing {
         activityOwnerId: String,
         content: String,
         parentCommentId: String?
-    ) async throws -> ActivityComment
+    ) async throws -> ActivityFeedComment
     
     // Update/Delete
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityComment
+    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment
     func deleteComment(commentId: String) async throws
     
     // Interactions
@@ -41,7 +41,7 @@ protocol ActivityCommentsServicing {
 
 // MARK: - Service Implementation
 
-final class ActivityCommentsService: ActivityCommentsServicing {
+final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     // MARK: - Properties
     
     private let publicDatabase: CKDatabase
@@ -87,7 +87,7 @@ final class ActivityCommentsService: ActivityCommentsServicing {
     }
     
     private func fetchCommentsWithPredicate(_ predicate: NSPredicate, limit: Int) async throws -> [CommentWithUser] {
-        let query = CKQuery(recordType: "ActivityComments", predicate: predicate)
+        let query = CKQuery(recordType: "ActivityFeedComments", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         
         // TODO: Implement actual CloudKit query when available
@@ -104,10 +104,10 @@ final class ActivityCommentsService: ActivityCommentsServicing {
         activityOwnerId: String,
         content: String,
         parentCommentId: String?
-    ) async throws -> ActivityComment {
+    ) async throws -> ActivityFeedComment {
         // Validate content
-        guard ActivityComment.isValidComment(content) else {
-            throw ActivityCommentError.invalidContent
+        guard ActivityFeedComment.isValidComment(content) else {
+            throw ActivityFeedCommentError.invalidContent
         }
         
         // Rate limiting check
@@ -115,11 +115,11 @@ final class ActivityCommentsService: ActivityCommentsServicing {
         
         // Content moderation
         if containsInappropriateContent(content) {
-            throw ActivityCommentError.inappropriateContent
+            throw ActivityFeedCommentError.inappropriateContent
         }
         
         // Create comment
-        let comment = ActivityComment(
+        let comment = ActivityFeedComment(
             id: UUID().uuidString,
             activityFeedId: activityFeedId,
             sourceType: sourceType,
@@ -141,7 +141,7 @@ final class ActivityCommentsService: ActivityCommentsServicing {
         // Send notification if not commenting on own activity
         if activityOwnerId != cloudKitManager.currentUserID {
             Task {
-                await sendCommentNotification(
+                await sendCommentFameFitNotification(
                     to: activityOwnerId,
                     sourceType: sourceType,
                     sourceRecordId: sourceRecordId
@@ -154,36 +154,36 @@ final class ActivityCommentsService: ActivityCommentsServicing {
     
     // MARK: - Update/Delete
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityComment {
+    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
         // Validate content
-        guard ActivityComment.isValidComment(newContent) else {
-            throw ActivityCommentError.invalidContent
+        guard ActivityFeedComment.isValidComment(newContent) else {
+            throw ActivityFeedCommentError.invalidContent
         }
         
         // Content moderation
         if containsInappropriateContent(newContent) {
-            throw ActivityCommentError.inappropriateContent
+            throw ActivityFeedCommentError.inappropriateContent
         }
         
         // TODO: Implement actual update when CloudKit is available
-        throw ActivityCommentError.notImplemented
+        throw ActivityFeedCommentError.notImplemented
     }
     
     func deleteComment(commentId: String) async throws {
         // TODO: Implement actual delete when CloudKit is available
-        throw ActivityCommentError.notImplemented
+        throw ActivityFeedCommentError.notImplemented
     }
     
     // MARK: - Interactions
     
     func likeComment(commentId: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
-        throw ActivityCommentError.notImplemented
+        throw ActivityFeedCommentError.notImplemented
     }
     
     func unlikeComment(commentId: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
-        throw ActivityCommentError.notImplemented
+        throw ActivityFeedCommentError.notImplemented
     }
     
     // MARK: - Count
@@ -213,7 +213,7 @@ final class ActivityCommentsService: ActivityCommentsServicing {
         return false
     }
     
-    private func sendCommentNotification(to userId: String, sourceType: String, sourceRecordId: String) async {
+    private func sendCommentFameFitNotification(to userId: String, sourceType: String, sourceRecordId: String) async {
         // Get the commenter's profile
         guard let currentUserId = cloudKitManager.currentUserID,
               let commenterProfile = try? await userProfileService.fetchProfile(userId: currentUserId) else {
@@ -232,7 +232,7 @@ final class ActivityCommentsService: ActivityCommentsServicing {
 
 // MARK: - Errors
 
-enum ActivityCommentError: LocalizedError {
+enum ActivityFeedCommentError: LocalizedError {
     case invalidContent
     case inappropriateContent
     case unauthorized

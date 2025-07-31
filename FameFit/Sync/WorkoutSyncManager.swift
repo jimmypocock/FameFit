@@ -225,7 +225,7 @@ class WorkoutSyncManager: ObservableObject {
         FameFitLogger.info("📅 App install date: \(appInstallDate)", category: FameFitLogger.workout)
         FameFitLogger.info("📅 Current date: \(Date())", category: FameFitLogger.workout)
 
-        var workoutHistoryItems: [WorkoutHistoryItem] = []
+        var workouts: [Workout] = []
 
         for workout in workouts {
             // Skip workouts before app install
@@ -259,7 +259,7 @@ class WorkoutSyncManager: ObservableObject {
 
             // Calculate XP for this workout
             let calculatedXP = XPCalculator.calculateXP(
-                for: WorkoutHistoryItem(from: workout, followersEarned: 0, xpEarned: 0),
+                for: Workout(from: workout, followersEarned: 0, xpEarned: 0),
                 currentStreak: cloudKitManager?.currentStreak ?? 0
             )
 
@@ -278,8 +278,8 @@ class WorkoutSyncManager: ObservableObject {
             )
 
             // Create workout history item with calculated XP
-            let historyItem = WorkoutHistoryItem(from: workout, followersEarned: totalXP, xpEarned: totalXP)
-            workoutHistoryItems.append(historyItem)
+            let historyItem = Workout(from: workout, followersEarned: totalXP, xpEarned: totalXP)
+            workouts.append(historyItem)
 
             // For initial sync, we might want to batch process
             // For incremental updates, process immediately
@@ -295,11 +295,11 @@ class WorkoutSyncManager: ObservableObject {
                 cloudKitManager?.saveWorkoutHistory(historyItem)
 
                 // Send notifications using both systems for now
-                sendWorkoutNotification(for: workout) // Legacy system
+                sendWorkoutFameFitNotification(for: workout) // Legacy system
 
                 // Send modern notification asynchronously
                 Task { @MainActor in
-                    await self.sendModernWorkoutNotification(for: historyItem)
+                    await self.sendModernWorkoutFameFitNotification(for: historyItem)
                 }
             }
         }
@@ -311,7 +311,7 @@ class WorkoutSyncManager: ObservableObject {
                 category: FameFitLogger.workout
             )
             // Batch save workout history for initial sync
-            for historyItem in workoutHistoryItems {
+            for historyItem in workouts {
                 cloudKitManager?.saveWorkoutHistory(historyItem)
             }
         }
@@ -330,7 +330,7 @@ class WorkoutSyncManager: ObservableObject {
 
     /// Send notification using modern NotificationManager for completed workout
     @MainActor
-    private func sendModernWorkoutNotification(for workout: WorkoutHistoryItem) async {
+    private func sendModernWorkoutFameFitNotification(for workout: Workout) async {
         guard let notificationManager else {
             FameFitLogger.debug(
                 "NotificationManager not available, skipping modern notification",
@@ -375,7 +375,7 @@ class WorkoutSyncManager: ObservableObject {
     #endif
 
     /// Send notification for completed workout (legacy system)
-    private func sendWorkoutNotification(for workout: HKWorkout) {
+    private func sendWorkoutFameFitNotification(for workout: HKWorkout) {
         let character = FameFitCharacter.characterForWorkoutType(workout.workoutActivityType)
         let duration = Int(workout.duration / 60)
 
@@ -400,14 +400,14 @@ class WorkoutSyncManager: ObservableObject {
 
         // Calculate XP for notification
         let calculatedXP = XPCalculator.calculateXP(
-            for: WorkoutHistoryItem(from: workout, followersEarned: 0, xpEarned: 0),
+            for: Workout(from: workout, followersEarned: 0, xpEarned: 0),
             currentStreak: cloudKitManager?.currentStreak ?? 0
         )
 
         let body = character.workoutCompletionMessage(followers: calculatedXP)
 
         // Add to notification store
-        let notificationItem = NotificationItem(
+        let notificationItem = FameFitNotification(
             title: title,
             body: body,
             character: character,
@@ -417,7 +417,7 @@ class WorkoutSyncManager: ObservableObject {
         )
 
         DispatchQueue.main.async { [weak self] in
-            self?.notificationStore?.addNotification(notificationItem)
+            self?.notificationStore?.addFameFitNotification(notificationItem)
         }
 
         // Also send push notification

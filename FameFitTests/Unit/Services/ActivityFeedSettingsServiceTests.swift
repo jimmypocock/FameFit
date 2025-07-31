@@ -1,8 +1,8 @@
 //
-//  ActivitySharingSettingsServiceTests.swift
+//  ActivityFeedSettingsServiceTests.swift
 //  FameFitTests
 //
-//  Unit tests for ActivitySharingSettingsService
+//  Unit tests for ActivityFeedSettingsService
 //
 
 @testable import FameFit
@@ -10,15 +10,15 @@ import CloudKit
 import Combine
 import XCTest
 
-final class ActivitySharingSettingsServiceTests: XCTestCase {
-    private var service: ActivitySharingSettingsService!
+final class ActivityFeedSettingsServiceTests: XCTestCase {
+    private var service: ActivityFeedSettingsService!
     private var mockCloudKitManager: MockCloudKitManager!
     private var cancellables: Set<AnyCancellable>!
     
     override func setUp() {
         super.setUp()
         mockCloudKitManager = MockCloudKitManager()
-        service = ActivitySharingSettingsService(cloudKitManager: mockCloudKitManager)
+        service = ActivityFeedSettingsService(cloudKitManager: mockCloudKitManager)
         cancellables = []
     }
     
@@ -27,7 +27,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
         mockCloudKitManager = nil
         cancellables = nil
         // Clear UserDefaults
-        UserDefaults.standard.removeObject(forKey: "ActivitySharingSettings")
+        UserDefaults.standard.removeObject(forKey: "ActivityFeedSettings")
         super.tearDown()
     }
     
@@ -35,22 +35,22 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     func testLoadSettings_FirstTime_ReturnsDefaults() async throws {
         // Given - No local cache (CloudKit fetch returns nil in current implementation)
-        UserDefaults.standard.removeObject(forKey: "ActivitySharingSettings")
+        UserDefaults.standard.removeObject(forKey: "ActivityFeedSettings")
         
         // When
         let settings = try await service.loadSettings()
         
         // Then
-        XCTAssertEqual(settings, ActivitySharingSettings())
+        XCTAssertEqual(settings, ActivityFeedSettings())
         XCTAssertTrue(settings.shareActivitiesToFeed)
         XCTAssertEqual(settings.workoutPrivacy, .friendsOnly)
     }
     
     func testLoadSettings_FromLocalCache() async throws {
         // Given - Settings in local cache
-        let cachedSettings = ActivitySharingSettings.conservative
+        let cachedSettings = ActivityFeedSettings.conservative
         let encoded = try JSONEncoder().encode(cachedSettings)
-        UserDefaults.standard.set(encoded, forKey: "ActivitySharingSettings")
+        UserDefaults.standard.set(encoded, forKey: "ActivityFeedSettings")
         
         // When
         let settings = try await service.loadSettings()
@@ -70,15 +70,15 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     func testSaveSettings_UpdatesLocalCache() async throws {
         // Given
-        let settings = ActivitySharingSettings.conservative
+        let settings = ActivityFeedSettings.conservative
         
         // When
         try await service.saveSettings(settings)
         
         // Then - Verify local cache
-        let cached = UserDefaults.standard.data(forKey: "ActivitySharingSettings")
+        let cached = UserDefaults.standard.data(forKey: "ActivityFeedSettings")
         XCTAssertNotNil(cached)
-        let decoded = try JSONDecoder().decode(ActivitySharingSettings.self, from: cached!)
+        let decoded = try JSONDecoder().decode(ActivityFeedSettings.self, from: cached!)
         XCTAssertEqual(decoded, settings)
     }
     
@@ -91,7 +91,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     func testSaveSettings_PublishesUpdate() async throws {
         // Given
         let expectation = XCTestExpectation(description: "Settings published")
-        var receivedSettings: ActivitySharingSettings?
+        var receivedSettings: ActivityFeedSettings?
         
         service.settingsPublisher
             .dropFirst() // Skip initial value
@@ -102,7 +102,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
             .store(in: &cancellables)
         
         // When
-        let newSettings = ActivitySharingSettings.conservative
+        let newSettings = ActivityFeedSettings.conservative
         try await service.saveSettings(newSettings)
         
         // Then
@@ -114,7 +114,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     func testResetToDefaults() async throws {
         // Given - Save custom settings first
-        var customSettings = ActivitySharingSettings()
+        var customSettings = ActivityFeedSettings()
         customSettings.shareWorkouts = false
         customSettings.workoutPrivacy = .private
         try await service.saveSettings(customSettings)
@@ -124,7 +124,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
         
         // Then
         let settings = try await service.loadSettings()
-        XCTAssertEqual(settings, ActivitySharingSettings()) // Default settings
+        XCTAssertEqual(settings, ActivityFeedSettings()) // Default settings
         XCTAssertTrue(settings.shareWorkouts)
         XCTAssertEqual(settings.workoutPrivacy, .friendsOnly)
     }
@@ -133,9 +133,9 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     func testLoadSettings_CloudKitError_FallsBackToCache() async throws {
         // Given - Cache exists (CloudKit always returns nil in current implementation)
-        let cachedSettings = ActivitySharingSettings.conservative
+        let cachedSettings = ActivityFeedSettings.conservative
         let encoded = try JSONEncoder().encode(cachedSettings)
-        UserDefaults.standard.set(encoded, forKey: "ActivitySharingSettings")
+        UserDefaults.standard.set(encoded, forKey: "ActivityFeedSettings")
         
         // When
         let settings = try await service.loadSettings()
@@ -146,15 +146,15 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     func testSaveSettings_CloudKitError_StillUpdatesCache() async throws {
         // Given
-        let settings = ActivitySharingSettings.social
+        let settings = ActivityFeedSettings.social
         
         // When - Should not throw (CloudKit errors don't fail the operation)
         try await service.saveSettings(settings)
         
         // Verify cache was updated
-        let cached = UserDefaults.standard.data(forKey: "ActivitySharingSettings")
+        let cached = UserDefaults.standard.data(forKey: "ActivityFeedSettings")
         XCTAssertNotNil(cached)
-        let decoded = try JSONDecoder().decode(ActivitySharingSettings.self, from: cached!)
+        let decoded = try JSONDecoder().decode(ActivityFeedSettings.self, from: cached!)
         XCTAssertEqual(decoded, settings)
     }
     
@@ -163,7 +163,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     func testSettingsPublisher_InitialValue() {
         // Given
         let expectation = XCTestExpectation(description: "Initial value received")
-        var receivedSettings: ActivitySharingSettings?
+        var receivedSettings: ActivityFeedSettings?
         
         // When
         service.settingsPublisher
@@ -176,7 +176,7 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
         
         // Then
         wait(for: [expectation], timeout: 1.0)
-        XCTAssertEqual(receivedSettings, ActivitySharingSettings()) // Default
+        XCTAssertEqual(receivedSettings, ActivityFeedSettings()) // Default
     }
     
     func testSettingsPublisher_MultipleUpdates() async throws {
@@ -204,8 +204,8 @@ final class ActivitySharingSettingsServiceTests: XCTestCase {
     
     // MARK: - Helper Methods
     
-    private func createCloudKitRecord(from settings: ActivitySharingSettings) throws -> CKRecord {
-        let record = CKRecord(recordType: "ActivitySharingSettings")
+    private func createCloudKitRecord(from settings: ActivityFeedSettings) throws -> CKRecord {
+        let record = CKRecord(recordType: "ActivityFeedSettings")
         
         record["shareActivitiesToFeed"] = settings.shareActivitiesToFeed as CKRecordValue
         record["shareWorkouts"] = settings.shareWorkouts as CKRecordValue

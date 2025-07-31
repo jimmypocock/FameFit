@@ -65,12 +65,12 @@ struct NotificationsListView: View {
     }
 
     private func deleteNotifications(at offsets: IndexSet) {
-        notificationStore.deleteNotification(at: offsets)
+        notificationStore.deleteFameFitNotification(at: offsets)
     }
 }
 
 struct NotificationRow: View {
-    let notification: NotificationItem
+    let notification: Notification
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

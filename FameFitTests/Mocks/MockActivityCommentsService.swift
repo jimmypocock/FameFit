@@ -1,14 +1,14 @@
 //
-//  MockActivityCommentsService.swift
+//  MockActivityFeedCommentsService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivityCommentsServicing for testing
+//  Mock implementation of ActivityFeedCommentsServicing for testing
 //
 
 @testable import FameFit
 import Foundation
 
-final class MockActivityCommentsService: ActivityCommentsServicing {
+final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
     var shouldFail = false
     var error: Error = NSError(domain: "MockError", code: 0, userInfo: nil)
     
@@ -36,13 +36,13 @@ final class MockActivityCommentsService: ActivityCommentsServicing {
         activityOwnerId: String,
         content: String,
         parentCommentId: String?
-    ) async throws -> ActivityComment {
+    ) async throws -> ActivityFeedComment {
         postCommentCalled = true
         if shouldFail {
             throw error
         }
         
-        return ActivityComment(
+        return ActivityFeedComment(
             id: UUID().uuidString,
             activityFeedId: activityFeedId,
             sourceType: sourceType,
@@ -65,13 +65,13 @@ final class MockActivityCommentsService: ActivityCommentsServicing {
         }
     }
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityComment {
+    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
         updateCommentCalled = true
         if shouldFail {
             throw error
         }
         
-        return ActivityComment(
+        return ActivityFeedComment(
             id: commentId,
             activityFeedId: "test-feed",
             sourceType: "workout",

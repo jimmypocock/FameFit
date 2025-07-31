@@ -24,7 +24,7 @@ final class CloudKitPushNotificationService {
     /// - Parameters:
     ///   - userID: The CloudKit user ID to send the notification to
     ///   - request: The push notification request containing all notification data
-    func sendPushNotification(to userID: String, request: PushNotificationRequest) async throws {
+    func sendPushFameFitNotification(to userID: String, request: PushNotificationRequest) async throws {
         // First, check if the user has any active device tokens
         let deviceTokens = try await fetchActiveDeviceTokens(for: userID)
 
@@ -80,7 +80,7 @@ final class CloudKitPushNotificationService {
                 for userID in batch {
                     group.addTask {
                         do {
-                            try await self.sendPushNotification(to: userID, request: request)
+                            try await self.sendPushFameFitNotification(to: userID, request: request)
                         } catch {
                             print("Failed to send notification to \(userID): \(error)")
                         }
@@ -230,7 +230,7 @@ final class CloudKitPushNotificationService {
 
 extension CloudKitPushNotificationService {
     /// Creates a push notification request for a new follower
-    static func newFollowerNotification(from user: UserProfile, to userID: String)
+    static func newFollowerFameFitNotification(from user: UserProfile, to userID: String)
         -> PushNotificationRequest {
         PushNotificationRequest(
             userID: userID,
@@ -245,7 +245,7 @@ extension CloudKitPushNotificationService {
     }
 
     /// Creates a push notification request for workout kudos
-    static func workoutKudosNotification(
+    static func workoutKudosFameFitNotification(
         from user: UserProfile,
         for workoutId: String,
         to userID: String
@@ -265,7 +265,7 @@ extension CloudKitPushNotificationService {
     }
 
     /// Creates a push notification request for a follow request
-    static func followRequestNotification(from user: UserProfile, to userID: String)
+    static func followRequestFameFitNotification(from user: UserProfile, to userID: String)
         -> PushNotificationRequest {
         PushNotificationRequest(
             userID: userID,

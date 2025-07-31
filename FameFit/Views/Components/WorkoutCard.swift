@@ -9,7 +9,7 @@ import HealthKit
 import SwiftUI
 
 struct WorkoutCard: View {
-    let workout: WorkoutHistoryItem
+    let workout: Workout
     let userProfile: UserProfile?
     let kudosSummary: WorkoutKudosSummary?
     let onKudosTap: () async -> Void

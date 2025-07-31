@@ -3,10 +3,10 @@ import SwiftUI
 import UserNotifications
 
 class NotificationStore: ObservableObject, NotificationStoring {
-    @Published var notifications: [NotificationItem] = []
+    @Published var notifications: [FameFitNotification] = []
     @Published var unreadCount: Int = 0
 
-    var notificationsPublisher: Published<[NotificationItem]>.Publisher { $notifications }
+    var notificationsPublisher: Published<[FameFitNotification]>.Publisher { $notifications }
     var unreadCountPublisher: Published<Int>.Publisher { $unreadCount }
 
     private let maxNotifications = 50 // Keep last 50 notifications
@@ -16,17 +16,17 @@ class NotificationStore: ObservableObject, NotificationStoring {
     }
 
     func loadNotifications() {
-        notifications = NotificationItem.loadAll()
+        notifications = FameFitNotification.loadAll()
         updateUnreadCount()
     }
 
     func saveNotifications() {
         // Keep only the most recent notifications
         let recentNotifications = notifications.prefix(maxNotifications)
-        NotificationItem.saveAll(Array(recentNotifications))
+        FameFitNotification.saveAll(Array(recentNotifications))
     }
 
-    func addNotification(_ item: NotificationItem) {
+    func addFameFitNotification(_ item: FameFitNotification) {
         notifications.insert(item, at: 0) // Add to beginning
         // Trim to max notifications if needed
         if notifications.count > maxNotifications {
@@ -62,14 +62,14 @@ class NotificationStore: ObservableObject, NotificationStoring {
         clearBadge()
     }
 
-    func deleteNotification(at offsets: IndexSet) {
+    func deleteFameFitNotification(at offsets: IndexSet) {
         notifications.remove(atOffsets: offsets)
         saveNotifications()
         updateUnreadCount()
         updateBadgeCount()
     }
 
-    func deleteNotification(_ id: String) {
+    func deleteFameFitNotification(_ id: String) {
         notifications.removeAll { $0.id == id }
         saveNotifications()
         updateUnreadCount()

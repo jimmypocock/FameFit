@@ -1,29 +1,29 @@
 //
-//  ActivityCommentsAdapter.swift
+//  ActivityFeedCommentsAdapter.swift
 //  FameFit
 //
-//  Adapter to make ActivityCommentsService conform to the unified CommentServicing protocol
+//  Adapter to make ActivityFeedCommentsService conform to the unified CommentServicing protocol
 //
 
 import Foundation
 
 // MARK: - Make existing types conform to protocols
 
-extension ActivityComment: Comment {}
+extension ActivityFeedComment: Comment {}
 
 extension CommentWithUser: CommentWithUserProtocol {
-    typealias CommentType = ActivityComment
+    typealias CommentType = ActivityFeedComment
 }
 
-// MARK: - Adapter for ActivityCommentsService
+// MARK: - Adapter for ActivityFeedCommentsService
 
-class ActivityCommentsAdapter: CommentServicing {
-    typealias CommentType = ActivityComment
+class ActivityFeedCommentsAdapter: CommentServicing {
+    typealias CommentType = ActivityFeedComment
     typealias CommentWithUserType = CommentWithUser
     
-    private let activityCommentsService: ActivityCommentsServicing
+    private let activityCommentsService: ActivityFeedCommentsServicing
     
-    init(activityCommentsService: ActivityCommentsServicing) {
+    init(activityCommentsService: ActivityFeedCommentsServicing) {
         self.activityCommentsService = activityCommentsService
     }
     
@@ -39,7 +39,7 @@ class ActivityCommentsAdapter: CommentServicing {
         content: String,
         parentCommentId: String?,
         metadata: CommentMetadata
-    ) async throws -> ActivityComment {
+    ) async throws -> ActivityFeedComment {
         try await activityCommentsService.postComment(
             activityFeedId: resourceId,
             sourceType: metadata.resourceType,
@@ -50,7 +50,7 @@ class ActivityCommentsAdapter: CommentServicing {
         )
     }
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityComment {
+    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
         try await activityCommentsService.updateComment(
             commentId: commentId,
             newContent: newContent

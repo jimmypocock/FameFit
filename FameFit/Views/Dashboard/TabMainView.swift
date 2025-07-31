@@ -13,7 +13,7 @@ struct TabMainView: View {
     @State private var selectedTab = 0
     @State private var showingFilters = false
     @State private var activeSheet: SheetType?
-    @State private var workoutToShare: WorkoutHistoryItem?
+    @State private var workoutToShare: Workout?
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -261,7 +261,7 @@ struct TabMainView: View {
             .store(in: &cancellables)
     }
 
-    private func showWorkoutSharingPrompt(for workout: WorkoutHistoryItem) {
+    private func showWorkoutSharingPrompt(for workout: Workout) {
         // Only show prompt if user is authenticated and has a profile
         guard viewModel.hasProfile else { return }
 

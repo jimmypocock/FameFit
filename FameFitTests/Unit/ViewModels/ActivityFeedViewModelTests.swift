@@ -33,7 +33,7 @@ final class ActivityFeedViewModelTests: XCTestCase {
             profileService: mockProfileService,
             activityFeedService: mockActivityFeedService,
             kudosService: mockKudosService,
-            commentsService: MockActivityCommentsService(),
+            commentsService: MockActivityFeedCommentsService(),
             currentUserId: "test-current-user"
         )
     }

@@ -145,7 +145,7 @@ class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(mockUnlockService.lastCurrentXP, 1_100)
     }
 
-    func testNotifyStreakUpdate_AtRisk_SchedulesHighPriorityNotification() async {
+    func testNotifyStreakUpdate_AtRisk_SchedulesHighPriorityFameFitNotification() async {
         // When
         await sut.notifyStreakUpdate(streak: 7, isAtRisk: true)
 
@@ -158,7 +158,7 @@ class NotificationManagerTests: XCTestCase {
         XCTAssertTrue(request.body.contains("7-day streak"))
     }
 
-    func testNotifyStreakUpdate_Maintained_SchedulesMediumPriorityNotification() async {
+    func testNotifyStreakUpdate_Maintained_SchedulesMediumPriorityFameFitNotification() async {
         // When
         await sut.notifyStreakUpdate(streak: 30, isAtRisk: false)
 
@@ -296,7 +296,7 @@ class NotificationManagerTests: XCTestCase {
 
     // MARK: - System Notification Tests
 
-    func testNotifySecurityAlert_SchedulesImmediatePriorityNotification() async {
+    func testNotifySecurityAlert_SchedulesImmediatePriorityFameFitNotification() async {
         // When
         await sut.notifySecurityAlert(
             title: "Suspicious Login",
@@ -315,7 +315,7 @@ class NotificationManagerTests: XCTestCase {
         }
     }
 
-    func testNotifyFeatureAnnouncement_SchedulesLowPriorityNotification() async {
+    func testNotifyFeatureAnnouncement_SchedulesLowPriorityFameFitNotification() async {
         // When
         await sut.notifyFeatureAnnouncement(
             feature: "Social Feed",
@@ -363,11 +363,11 @@ class MockNotificationScheduler: NotificationScheduling {
     var updatePreferencesCalled = false
     var currentPreferences: NotificationPreferences?
 
-    func scheduleNotification(_ request: NotificationRequest) async throws {
+    func scheduleFameFitNotification(_ request: NotificationRequest) async throws {
         scheduledRequests.append(request)
     }
 
-    func cancelNotification(withId id: String) async {
+    func cancelFameFitNotification(withId id: String) async {
         scheduledRequests.removeAll { $0.id == id }
     }
 

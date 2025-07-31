@@ -21,8 +21,8 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private let notificationThrottleInterval: TimeInterval = 300 // 5 minutes between notifications
 
     // Publisher for workout completion events (for sharing prompt)
-    private let workoutCompletedSubject = PassthroughSubject<WorkoutHistoryItem, Never>()
-    var workoutCompletedPublisher: AnyPublisher<WorkoutHistoryItem, Never> {
+    private let workoutCompletedSubject = PassthroughSubject<Workout, Never>()
+    var workoutCompletedPublisher: AnyPublisher<Workout, Never> {
         workoutCompletedSubject.eraseToAnyPublisher()
     }
 
@@ -211,7 +211,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         }
 
         // Create workout history item (includes average heart rate from workout)
-        let historyItem = WorkoutHistoryItem(from: workout, followersEarned: 0)
+        let historyItem = Workout(from: workout, followersEarned: 0)
 
         // Calculate XP using the XPCalculator
         let currentStreak = cloudKitManager?.currentStreak ?? 0
@@ -238,7 +238,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         cloudKitManager?.addXP(calculatedXP)
 
         // Create final history item with calculated XP
-        let finalHistoryItem = WorkoutHistoryItem(from: workout, followersEarned: calculatedXP, xpEarned: calculatedXP)
+        let finalHistoryItem = Workout(from: workout, followersEarned: calculatedXP, xpEarned: calculatedXP)
 
         // Save workout history to CloudKit
         FameFitLogger.info(
@@ -253,7 +253,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             workoutCompletedSubject.send(finalHistoryItem)
         }
 
-        sendWorkoutNotification(
+        sendWorkoutFameFitNotification(
             character: character,
             duration: Int(duration),
             calories: Int(calories),
@@ -276,7 +276,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         }
     }
 
-    private func sendWorkoutNotification(character: FameFitCharacter, duration: Int, calories: Int, xpEarned: Int) {
+    private func sendWorkoutFameFitNotification(character: FameFitCharacter, duration: Int, calories: Int, xpEarned: Int) {
         // Throttle notifications to prevent spam
         if let lastDate = lastNotificationDate,
            Date().timeIntervalSince(lastDate) < notificationThrottleInterval {
@@ -291,7 +291,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         let body = character.workoutCompletionMessage(followers: xpEarned)
 
         // Add to notification store
-        let notificationItem = NotificationItem(
+        let notificationItem = FameFitNotification(
             title: title,
             body: body,
             character: character,
@@ -301,7 +301,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         )
 
         DispatchQueue.main.async { [weak self] in
-            self?.notificationStore?.addNotification(notificationItem)
+            self?.notificationStore?.addFameFitNotification(notificationItem)
         }
 
         // Also send push notification if enabled
@@ -341,7 +341,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
 
         // Also trigger remote push notification via APNS if configured
         Task { [weak self] in
-            await self?.sendWorkoutPushNotification(
+            await self?.sendWorkoutPushFameFitNotification(
                 character: character,
                 duration: duration,
                 calories: calories,
@@ -350,7 +350,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         }
     }
 
-    private func sendWorkoutPushNotification(
+    private func sendWorkoutPushFameFitNotification(
         character: FameFitCharacter,
         duration: Int,
         calories: Int,

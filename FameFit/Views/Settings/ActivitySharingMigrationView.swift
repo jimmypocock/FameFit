@@ -124,7 +124,7 @@ struct ActivitySharingMigrationView: View {
             .navigationBarHidden(true)
         }
         .sheet(isPresented: $showCustomSettings) {
-            ActivitySharingSettingsView()
+            ActivityFeedSettingsView()
                 .onDisappear {
                     markMigrationComplete()
                     onComplete()
@@ -135,7 +135,7 @@ struct ActivitySharingMigrationView: View {
     private func applyPresetAndContinue() {
         Task {
             do {
-                let settings: ActivitySharingSettings
+                let settings: ActivityFeedSettings
                 
                 switch selectedPreset {
                 case .minimal:
@@ -145,7 +145,7 @@ struct ActivitySharingMigrationView: View {
                 case .social:
                     settings = .social
                 case .off:
-                    var offSettings = ActivitySharingSettings()
+                    var offSettings = ActivityFeedSettings()
                     offSettings.shareActivitiesToFeed = false
                     settings = offSettings
                 }

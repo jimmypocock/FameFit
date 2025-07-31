@@ -299,12 +299,12 @@ class MockCloudKitSubscriptionManager: CloudKitSubscriptionManaging {
         removeAllSubscriptionsCallCount += 1
     }
 
-    func handleNotification(_ notification: CKQueryNotification) async {
+    func handleFameFitNotification(_ notification: CKQueryNotification) async {
         handledNotifications.append(notification)
     }
 
     // Test helper to simulate notifications
-    func simulateNotification(_ info: CloudKitNotificationInfo) {
+    func simulateFameFitNotification(_ info: CloudKitNotificationInfo) {
         notificationSubject.send(info)
     }
 }

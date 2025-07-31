@@ -156,12 +156,12 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
 
             // Send notification to workout owner if it's not their own comment
             if userId != workoutOwnerId {
-                await sendCommentNotification(comment: savedComment, workoutOwnerId: workoutOwnerId)
+                await sendCommentFameFitNotification(comment: savedComment, workoutOwnerId: workoutOwnerId)
             }
 
             // If it's a reply, notify the parent comment author
             if let parentCommentId {
-                await sendReplyNotification(comment: savedComment, parentCommentId: parentCommentId)
+                await sendReplyFameFitNotification(comment: savedComment, parentCommentId: parentCommentId)
             }
 
             return savedComment
@@ -298,13 +298,13 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
         }
     }
 
-    private func sendCommentNotification(comment: WorkoutComment, workoutOwnerId _: String) async {
+    private func sendCommentFameFitNotification(comment: WorkoutComment, workoutOwnerId _: String) async {
         // Fetch commenter's profile
         guard let commenterProfile = try? await userProfileService.fetchProfile(userId: comment.userId) else {
             return
         }
 
-        _ = NotificationItem(
+        _ = FameFitNotification(
             type: .workoutComment,
             title: "New Comment on Your Workout",
             body: "\(commenterProfile.username) commented: \(String(comment.content.prefix(50)))...",
@@ -326,7 +326,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
         )
     }
 
-    private func sendReplyNotification(comment: WorkoutComment, parentCommentId: String) async {
+    private func sendReplyFameFitNotification(comment: WorkoutComment, parentCommentId: String) async {
         // Fetch parent comment to get author
         let recordID = CKRecord.ID(recordName: parentCommentId)
 
@@ -343,7 +343,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
                 return
             }
 
-            _ = NotificationItem(
+            _ = FameFitNotification(
                 type: .workoutComment,
                 title: "New Reply to Your Comment",
                 body: "\(replierProfile.username) replied: \(String(comment.content.prefix(50)))...",

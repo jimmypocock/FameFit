@@ -90,8 +90,8 @@ class DependencyContainer: ObservableObject {
     let workoutChallengesService: WorkoutChallengesServicing
     let subscriptionManager: CloudKitSubscriptionManaging
     let realTimeSyncCoordinator: RealTimeSyncCoordinating
-    let activityCommentsService: ActivityCommentsServicing
-    let activitySharingSettingsService: ActivitySharingSettingsServicing
+    let activityCommentsService: ActivityFeedCommentsServicing
+    let activitySharingSettingsService: ActivityFeedSettingsServicing
     let xpTransactionService: XPTransactionService
 
     init() {
@@ -181,14 +181,14 @@ class DependencyContainer: ObservableObject {
         )
 
         // Initialize activity services
-        activityCommentsService = ActivityCommentsService(
+        activityCommentsService = ActivityFeedCommentsService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
             notificationManager: notificationManager,
             rateLimiter: rateLimitingService
         )
         
-        activitySharingSettingsService = ActivitySharingSettingsService(
+        activitySharingSettingsService = ActivityFeedSettingsService(
             cloudKitManager: cloudKitManager
         )
         
@@ -260,8 +260,8 @@ class DependencyContainer: ObservableObject {
         workoutChallengesService: WorkoutChallengesServicing? = nil,
         subscriptionManager: CloudKitSubscriptionManaging? = nil,
         realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
-        activityCommentsService: ActivityCommentsServicing? = nil,
-        activitySharingSettingsService: ActivitySharingSettingsServicing? = nil,
+        activityCommentsService: ActivityFeedCommentsServicing? = nil,
+        activitySharingSettingsService: ActivityFeedSettingsServicing? = nil,
         xpTransactionService: XPTransactionService? = nil
     ) {
         self.authenticationManager = authenticationManager
@@ -346,14 +346,14 @@ class DependencyContainer: ObservableObject {
 
         self.subscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
         
-        self.activityCommentsService = activityCommentsService ?? ActivityCommentsService(
+        self.activityCommentsService = activityCommentsService ?? ActivityFeedCommentsService(
             cloudKitManager: self.cloudKitManager,
             userProfileService: self.userProfileService,
             notificationManager: self.notificationManager,
             rateLimiter: self.rateLimitingService
         )
         
-        self.activitySharingSettingsService = activitySharingSettingsService ?? ActivitySharingSettingsService(
+        self.activitySharingSettingsService = activitySharingSettingsService ?? ActivityFeedSettingsService(
             cloudKitManager: self.cloudKitManager
         )
         

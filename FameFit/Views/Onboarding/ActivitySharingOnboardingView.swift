@@ -11,7 +11,7 @@ struct ActivitySharingOnboardingView: View {
     @Binding var onboardingStep: Int
     @Environment(\.dependencyContainer) var container
     
-    @State private var selectedPreset: ActivitySharingSettings.SharingPreset = .balanced
+    @State private var selectedPreset: ActivityFeedSettings.SharingPreset = .balanced
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
@@ -98,7 +98,7 @@ struct ActivitySharingOnboardingView: View {
         }
     }
     
-    private func presetOption(_ preset: ActivitySharingSettings.SharingPreset, _ title: String, _ description: String, _ icon: String) -> some View {
+    private func presetOption(_ preset: ActivityFeedSettings.SharingPreset, _ title: String, _ description: String, _ icon: String) -> some View {
         Button(action: { selectedPreset = preset }) {
             HStack(spacing: 16) {
                 Image(systemName: icon)
@@ -143,7 +143,7 @@ struct ActivitySharingOnboardingView: View {
         
         Task {
             do {
-                let settings: ActivitySharingSettings
+                let settings: ActivityFeedSettings
                 
                 switch selectedPreset {
                 case .minimal:

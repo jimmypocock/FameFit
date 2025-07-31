@@ -65,7 +65,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test the complete notification pipeline directly
         // Create a workout notification for a running workout
         let character = FameFitCharacter.sierra // Running -> Sierra
-        let workoutNotification = NotificationItem(
+        let workoutNotification = FameFitNotification(
             title: "\(character.emoji) \(character.fullName)",
             body: character.workoutCompletionMessage(followers: 25),
             character: character,
@@ -76,7 +76,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // When: Add the workout notification
         await MainActor.run {
-            mockNotificationStore.addNotification(workoutNotification)
+            mockNotificationStore.addFameFitNotification(workoutNotification)
         }
 
         // Then: Verify notification store was updated
@@ -113,7 +113,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test character-based notification for strength training workout
         // Strength training should get Chad character
         let character = FameFitCharacter.chad
-        let strengthNotification = NotificationItem(
+        let strengthNotification = FameFitNotification(
             title: "\(character.emoji) \(character.fullName)",
             body: character.workoutCompletionMessage(followers: 30),
             character: character,
@@ -124,7 +124,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // When: Add the strength training notification
         await MainActor.run {
-            mockNotificationStore.addNotification(strengthNotification)
+            mockNotificationStore.addFameFitNotification(strengthNotification)
         }
 
         // Then: Verify character-based notification
@@ -161,7 +161,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test the notification flow directly
         // Create a workout notification item
         let character = FameFitCharacter.chad
-        let notificationItem = NotificationItem(
+        let notificationItem = FameFitNotification(
             title: "\(character.emoji) \(character.fullName)",
             body: character.workoutCompletionMessage(followers: 15),
             character: character,
@@ -172,7 +172,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // Add notification through the store (simulating what sendWorkoutNotification does)
         await MainActor.run {
-            mockNotificationStore.addNotification(notificationItem)
+            mockNotificationStore.addFameFitNotification(notificationItem)
         }
 
         // Then: Badge count should be updated
@@ -190,7 +190,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // When: Add two workout notifications
         for (index, character) in characters.enumerated() {
-            let notificationItem = NotificationItem(
+            let notificationItem = FameFitNotification(
                 title: "\(character.emoji) \(character.fullName)",
                 body: character.workoutCompletionMessage(followers: 15 + index * 5),
                 character: character,
@@ -200,7 +200,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
             )
 
             await MainActor.run {
-                mockNotificationStore.addNotification(notificationItem)
+                mockNotificationStore.addFameFitNotification(notificationItem)
             }
         }
 
@@ -233,7 +233,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // When: Permission is granted, add a notification
         mockNotificationManager.currentAuthStatus = .authorized
 
-        let runningNotification = NotificationItem(
+        let runningNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
             body: "Great run! You earned 20 XP!",
             character: .sierra,
@@ -243,7 +243,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         )
 
         await MainActor.run {
-            mockNotificationStore.addNotification(runningNotification)
+            mockNotificationStore.addFameFitNotification(runningNotification)
         }
 
         // Then: Notification should be added to store
@@ -256,7 +256,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // When: Permission is denied, add another notification
         mockNotificationManager.currentAuthStatus = .denied
 
-        let cyclingNotification = NotificationItem(
+        let cyclingNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
             body: "Nice cycling session! You earned 25 XP!",
             character: .sierra,
@@ -266,7 +266,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         )
 
         await MainActor.run {
-            mockNotificationStore.addNotification(cyclingNotification)
+            mockNotificationStore.addFameFitNotification(cyclingNotification)
         }
 
         // Then: Legacy notification store should still work
@@ -286,7 +286,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test XP milestone notifications directly
 
         // Create a milestone notification for reaching 100 XP
-        let milestoneNotification = NotificationItem(
+        let milestoneNotification = FameFitNotification(
             type: .xpMilestone,
             title: "🎯 XP Milestone!",
             body: "Congratulations! You've reached 100 XP! Keep up the great work!",
@@ -302,7 +302,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // When: Add the milestone notification
         await MainActor.run {
-            mockNotificationStore.addNotification(milestoneNotification)
+            mockNotificationStore.addFameFitNotification(milestoneNotification)
         }
 
         // Then: Should have milestone notification
@@ -379,8 +379,8 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 // MARK: - Mock Extensions
 
 private extension MockNotificationStore {
-    func simulateWorkoutNotification() {
-        let notification = NotificationItem(
+    func simulateWorkoutFameFitNotification() {
+        let notification = FameFitNotification(
             type: .workoutCompleted,
             title: "🏃‍♀️ Sierra Summit",
             body: "Great job! You crushed that 30-minute run and earned 15 XP!",
@@ -394,7 +394,7 @@ private extension MockNotificationStore {
                 averageHeartRate: 145
             ))
         )
-        addNotification(notification)
+        addFameFitNotification(notification)
     }
 }
 

@@ -29,7 +29,7 @@ final class NotificationPipelineTests: XCTestCase {
         workoutObserver.notificationStore = notificationStore
 
         // Clear any existing notifications and unlock tracking
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
         // Clear any cached unlock notifications to prevent duplicates
         for key in UserDefaults.standard.dictionaryRepresentation().keys {
             if key.hasPrefix("unlock_notified_") || key.hasPrefix("level_notified_") {
@@ -45,7 +45,7 @@ final class NotificationPipelineTests: XCTestCase {
         workoutObserver = nil
         unlockService = nil
         cloudKitManager = nil
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
         super.tearDown()
     }
 
@@ -69,7 +69,7 @@ final class NotificationPipelineTests: XCTestCase {
 
         // When - Directly test the notification creation (since processCompletedWorkout is private)
         // We'll test the sendWorkoutNotification method directly through reflection or create a test notification
-        let testNotification = NotificationItem(
+        let testNotification = FameFitNotification(
             title: "🏃 Chad",
             body: "Awesome job! You crushed that 30-minute workout and earned 15 followers!",
             character: .chad,
@@ -78,7 +78,7 @@ final class NotificationPipelineTests: XCTestCase {
             followersEarned: 15
         )
 
-        notificationStore.addNotification(testNotification)
+        notificationStore.addFameFitNotification(testNotification)
 
         // Then
         waitForExpectations(timeout: 1.0)
@@ -120,7 +120,7 @@ final class NotificationPipelineTests: XCTestCase {
 
     func testNotificationReadStateManagement() {
         // Given
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .workoutCompleted,
             title: "Test Workout Complete",
             body: "Great job on your workout!",
@@ -136,7 +136,7 @@ final class NotificationPipelineTests: XCTestCase {
         )
 
         // When
-        notificationStore.addNotification(notification)
+        notificationStore.addFameFitNotification(notification)
         XCTAssertEqual(notificationStore.unreadCount, 1)
         XCTAssertFalse(notificationStore.notifications.first!.isRead)
 
@@ -150,28 +150,28 @@ final class NotificationPipelineTests: XCTestCase {
 
     func testNotificationFilteringByType() {
         // Given - Add notifications of different types
-        let workoutNotification = NotificationItem(
+        let workoutNotification = FameFitNotification(
             type: .workoutCompleted,
             title: "Workout Done",
             body: "Nice work!"
         )
 
-        let socialNotification = NotificationItem(
+        let socialNotification = FameFitNotification(
             type: .newFollower,
             title: "New Follower",
             body: "Someone started following you!"
         )
 
-        let achievementNotification = NotificationItem(
+        let achievementNotification = FameFitNotification(
             type: .unlockAchieved,
             title: "Achievement Unlocked",
             body: "You earned a new badge!"
         )
 
         // When
-        notificationStore.addNotification(workoutNotification)
-        notificationStore.addNotification(socialNotification)
-        notificationStore.addNotification(achievementNotification)
+        notificationStore.addFameFitNotification(workoutNotification)
+        notificationStore.addFameFitNotification(socialNotification)
+        notificationStore.addFameFitNotification(achievementNotification)
 
         // Then - Verify we can filter by type
         let workoutNotifications = notificationStore.notifications.filter { $0.type == .workoutCompleted }
@@ -192,14 +192,14 @@ final class NotificationPipelineTests: XCTestCase {
     func testNotificationPersistence() {
         // Given - Use real NotificationStore for persistence test
         let realStore = NotificationStore()
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .levelUp,
             title: "Level Up!",
             body: "You reached level 3!"
         )
 
         // When - Add notification and create new store instance
-        realStore.addNotification(notification)
+        realStore.addFameFitNotification(notification)
         let newStore = NotificationStore()
 
         // Then - Verify notifications persist across instances
@@ -213,7 +213,7 @@ final class NotificationPipelineTests: XCTestCase {
     func testNotificationBatchOperations() {
         // Given
         let notifications = (1 ... 5).map { index in
-            NotificationItem(
+            FameFitNotification(
                 type: .workoutCompleted,
                 title: "Workout \(index)",
                 body: "Workout \(index) completed"
@@ -221,7 +221,7 @@ final class NotificationPipelineTests: XCTestCase {
         }
 
         // When
-        notifications.forEach { notificationStore.addNotification($0) }
+        notifications.forEach { notificationStore.addFameFitNotification($0) }
         XCTAssertEqual(notificationStore.unreadCount, 5)
 
         // Mark all as read
@@ -244,14 +244,14 @@ final class NotificationPipelineTests: XCTestCase {
         let viewModel = NotificationCenterViewModel()
         viewModel.configure(notificationStore: notificationStore)
 
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .workoutKudos,
             title: "Someone liked your workout",
             body: "FitnessGuru gave kudos to your run"
         )
 
         // When
-        notificationStore.addNotification(notification)
+        notificationStore.addFameFitNotification(notification)
 
         // Allow time for publisher to update
         try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
@@ -266,8 +266,8 @@ final class NotificationPipelineTests: XCTestCase {
 // MARK: - Helper Extensions
 
 extension NotificationPipelineTests {
-    private func createTestNotification(type: NotificationType = .workoutCompleted) -> NotificationItem {
-        NotificationItem(
+    private func createTestFameFitNotification(type: NotificationType = .workoutCompleted) -> Notification {
+        FameFitNotification(
             type: type,
             title: "Test \(type.displayName)",
             body: "Test notification body"

@@ -42,7 +42,7 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     func testConfigure_SubscribesToNotificationUpdates() {
         // Given
-        let testNotification = createTestNotification(.workoutCompleted)
+        let testNotification = createTestFameFitNotification(.workoutCompleted)
         let expectation = XCTestExpectation(description: "Notification received")
 
         // When
@@ -58,7 +58,7 @@ class NotificationCenterViewModelTests: XCTestCase {
             }
             .store(in: &cancellables)
 
-        mockNotificationStore.addNotification(testNotification)
+        mockNotificationStore.addFameFitNotification(testNotification)
 
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -68,7 +68,7 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     func testConfigure_SubscribesToUnreadCountUpdates() {
         // Given
-        let unreadNotification = createTestNotification(.workoutCompleted, isRead: false)
+        let unreadNotification = createTestFameFitNotification(.workoutCompleted, isRead: false)
         let expectation = XCTestExpectation(description: "Unread count updated")
 
         // When
@@ -84,7 +84,7 @@ class NotificationCenterViewModelTests: XCTestCase {
             }
             .store(in: &cancellables)
 
-        mockNotificationStore.addNotification(unreadNotification)
+        mockNotificationStore.addFameFitNotification(unreadNotification)
 
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -124,9 +124,9 @@ class NotificationCenterViewModelTests: XCTestCase {
     func testFilteredNotifications_AllTab_ReturnsAllNotifications() {
         // Given
         let notifications = [
-            createTestNotification(.workoutCompleted),
-            createTestNotification(.newFollower),
-            createTestNotification(.unlockAchieved)
+            createTestFameFitNotification(.workoutCompleted),
+            createTestFameFitNotification(.newFollower),
+            createTestFameFitNotification(.unlockAchieved)
         ]
         sut.notifications = notifications
 
@@ -139,8 +139,8 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     func testFilteredNotifications_UnreadTab_ReturnsUnreadOnly() {
         // Given
-        let readNotification = createTestNotification(.workoutCompleted, isRead: true)
-        let unreadNotification = createTestNotification(.newFollower, isRead: false)
+        let readNotification = createTestFameFitNotification(.workoutCompleted, isRead: true)
+        let unreadNotification = createTestFameFitNotification(.newFollower, isRead: false)
         sut.notifications = [readNotification, unreadNotification]
 
         // When
@@ -153,9 +153,9 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     func testFilteredNotifications_SocialTab_ReturnsSocialNotificationsOnly() {
         // Given
-        let workoutNotification = createTestNotification(.workoutCompleted)
-        let socialNotification = createTestNotification(.newFollower)
-        let achievementNotification = createTestNotification(.unlockAchieved)
+        let workoutNotification = createTestFameFitNotification(.workoutCompleted)
+        let socialNotification = createTestFameFitNotification(.newFollower)
+        let achievementNotification = createTestFameFitNotification(.unlockAchieved)
         sut.notifications = [workoutNotification, socialNotification, achievementNotification]
 
         // When
@@ -169,9 +169,9 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     func testFilteredNotifications_WorkoutsTab_ReturnsWorkoutNotificationsOnly() {
         // Given
-        let workoutNotification = createTestNotification(.workoutCompleted)
-        let socialNotification = createTestNotification(.newFollower)
-        let achievementNotification = createTestNotification(.unlockAchieved)
+        let workoutNotification = createTestFameFitNotification(.workoutCompleted)
+        let socialNotification = createTestFameFitNotification(.newFollower)
+        let achievementNotification = createTestFameFitNotification(.unlockAchieved)
         sut.notifications = [workoutNotification, socialNotification, achievementNotification]
 
         // When
@@ -226,7 +226,7 @@ class NotificationCenterViewModelTests: XCTestCase {
         let testId = "test-id"
 
         // When
-        sut.deleteNotification(testId)
+        sut.deleteFameFitNotification(testId)
 
         // Then
         XCTAssertTrue(mockNotificationStore.deleteNotificationCalled)
@@ -237,7 +237,7 @@ class NotificationCenterViewModelTests: XCTestCase {
     func testHandleNotificationTap_MarksUnreadAsRead() {
         // Given
         sut.configure(notificationStore: mockNotificationStore)
-        let unreadNotification = createTestNotification(.workoutCompleted, isRead: false)
+        let unreadNotification = createTestFameFitNotification(.workoutCompleted, isRead: false)
 
         // When
         sut.handleNotificationTap(unreadNotification)
@@ -250,7 +250,7 @@ class NotificationCenterViewModelTests: XCTestCase {
     func testHandleNotificationTap_DoesNotMarkReadAsRead() {
         // Given
         sut.configure(notificationStore: mockNotificationStore)
-        let readNotification = createTestNotification(.workoutCompleted, isRead: true)
+        let readNotification = createTestFameFitNotification(.workoutCompleted, isRead: true)
         mockNotificationStore.markAsReadCalled = false
 
         // When
@@ -264,7 +264,7 @@ class NotificationCenterViewModelTests: XCTestCase {
     func testHandleNotificationAction_Accept_HandlesAcceptAction() {
         // Given
         sut.configure(notificationStore: mockNotificationStore)
-        let notification = createTestNotification(.followRequest)
+        let notification = createTestFameFitNotification(.followRequest)
 
         // When
         sut.handleNotificationAction(notification, action: .accept)
@@ -277,7 +277,7 @@ class NotificationCenterViewModelTests: XCTestCase {
     func testHandleNotificationAction_Ignore_MarksAsRead() {
         // Given
         sut.configure(notificationStore: mockNotificationStore)
-        let notification = createTestNotification(.followRequest)
+        let notification = createTestFameFitNotification(.followRequest)
 
         // When
         sut.handleNotificationAction(notification, action: .dismiss)
@@ -289,8 +289,8 @@ class NotificationCenterViewModelTests: XCTestCase {
 
     // MARK: - Helper Methods
 
-    private func createTestNotification(_ type: NotificationType, isRead: Bool = false) -> NotificationItem {
-        var notification = NotificationItem(
+    private func createTestFameFitNotification(_ type: NotificationType, isRead: Bool = false) -> Notification {
+        var notification = FameFitNotification(
             type: type,
             title: "Test \(type.displayName)",
             body: "Test notification body"

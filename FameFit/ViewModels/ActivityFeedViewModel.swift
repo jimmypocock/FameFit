@@ -21,7 +21,7 @@ final class ActivityFeedViewModel: ObservableObject {
     private var profileService: UserProfileServicing?
     private var activityFeedService: ActivityFeedServicing?
     private var kudosService: WorkoutKudosServicing?
-    private var commentsService: ActivityCommentsServicing?
+    private var commentsService: ActivityFeedCommentsServicing?
     private var currentUserId = ""
     private var followingUsers: Set<String> = []
     private var lastFetchedDate: Date?
@@ -69,7 +69,7 @@ final class ActivityFeedViewModel: ObservableObject {
         profileService: UserProfileServicing,
         activityFeedService: ActivityFeedServicing,
         kudosService: WorkoutKudosServicing,
-        commentsService: ActivityCommentsServicing,
+        commentsService: ActivityFeedCommentsServicing,
         currentUserId: String
     ) {
         self.socialService = socialService

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NotificationRowView: View {
-    let notification: NotificationItem
+    let notification: Notification
     let onTap: () -> Void
     let onAction: (NotificationAction) -> Void
 
@@ -368,7 +368,7 @@ struct NotificationRowView: View {
     VStack {
         // Workout notification
         NotificationRowView(
-            notification: NotificationItem(
+            notification: FameFitNotification(
                 type: .workoutCompleted,
                 title: "Workout Complete! 💪",
                 body: "Great job on that 30-minute run! You earned 45 XP.",
@@ -390,7 +390,7 @@ struct NotificationRowView: View {
 
         // Social notification
         NotificationRowView(
-            notification: NotificationItem(
+            notification: FameFitNotification(
                 type: .newFollower,
                 title: "New Follower! 👥",
                 body: "FitnessGuru started following you",
@@ -411,7 +411,7 @@ struct NotificationRowView: View {
 
         // Achievement notification
         NotificationRowView(
-            notification: NotificationItem(
+            notification: FameFitNotification(
                 type: .unlockAchieved,
                 title: "Achievement Unlocked! 🏆",
                 body: "You've earned the 'Workout Warrior' achievement!",

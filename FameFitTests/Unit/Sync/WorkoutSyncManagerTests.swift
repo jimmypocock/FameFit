@@ -15,7 +15,7 @@ class WorkoutSyncManagerTests: XCTestCase {
         // Clear UserDefaults for sync anchor
         UserDefaults.standard.removeObject(forKey: "FameFitWorkoutSyncAnchor")
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.appInstallDate)
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
 
         mockCloudKitManager = MockCloudKitManager()
         mockHealthKitService = MockHealthKitService()
@@ -37,7 +37,7 @@ class WorkoutSyncManagerTests: XCTestCase {
 
         UserDefaults.standard.removeObject(forKey: "FameFitWorkoutSyncAnchor")
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.appInstallDate)
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
 
         super.tearDown()
     }

@@ -11,7 +11,7 @@ struct CommentRowView: View {
     let commentWithUser: CommentWithUser
     let currentUserId: String?
     let onReply: (String) -> Void
-    let onEdit: (ActivityComment) -> Void
+    let onEdit: (ActivityFeedComment) -> Void
     let onDelete: (String) -> Void
     let onLike: (String) -> Void
     let onUserTap: (String) -> Void
@@ -189,7 +189,7 @@ struct CommentRowView: View {
             // Parent comment
             CommentRowView(
                 commentWithUser: CommentWithUser(
-                    comment: ActivityComment(
+                    comment: ActivityFeedComment(
                         id: "1",
                         activityFeedId: "feed1",
                         sourceType: "workout",
@@ -230,7 +230,7 @@ struct CommentRowView: View {
             // Reply comment
             CommentRowView(
                 commentWithUser: CommentWithUser(
-                    comment: ActivityComment(
+                    comment: ActivityFeedComment(
                         id: "2",
                         activityFeedId: "feed1",
                         sourceType: "workout",

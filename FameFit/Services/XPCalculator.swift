@@ -47,7 +47,7 @@ class XPCalculator {
     
     // MARK: - Calculate XP with Detailed Factors
     static func calculateXP(
-        for workout: WorkoutHistoryItem,
+        for workout: Workout,
         userStats: UserStats? = nil
     ) -> XPCalculationResult {
         // Base XP calculation
@@ -68,7 +68,7 @@ class XPCalculator {
     
     // MARK: - Legacy method for compatibility
     static func calculateXP(
-        for workout: WorkoutHistoryItem,
+        for workout: Workout,
         currentStreak: Int = 0,
         userMaxHeartRate: Double = 180.0
     ) -> Int {
@@ -84,7 +84,7 @@ class XPCalculator {
     }
     
     // MARK: - Base XP Calculation
-    private static func calculateBaseXP(for workout: WorkoutHistoryItem) -> Int {
+    private static func calculateBaseXP(for workout: Workout) -> Int {
         let minutes = workout.duration / 60.0
         var xp = minutes * baseXPPerMinute
         
@@ -98,7 +98,7 @@ class XPCalculator {
     
     // MARK: - Calculate Factors
     private static func calculateFactors(
-        for workout: WorkoutHistoryItem,
+        for workout: Workout,
         userStats: UserStats?
     ) -> XPCalculationFactors {
         var bonuses: [XPBonus] = []
@@ -157,7 +157,7 @@ class XPCalculator {
             ))
         }
         
-        // First workout of day (simplified check since we don't have recent workouts for WorkoutHistoryItem)
+        // First workout of day (simplified check since we don't have recent workouts for Workout)
         if let stats = userStats, isFirstWorkoutOfDay(workout, userStats: stats) {
             bonuses.append(XPBonus(
                 type: .firstWorkoutOfDay,
@@ -219,7 +219,7 @@ class XPCalculator {
     }
     
     // MARK: - Helper Methods
-    private static func isFirstWorkoutOfDay(_ workout: WorkoutHistoryItem, userStats: UserStats) -> Bool {
+    private static func isFirstWorkoutOfDay(_ workout: Workout, userStats: UserStats) -> Bool {
         // Simplified check - in real implementation would check against today's workouts
         return true
     }

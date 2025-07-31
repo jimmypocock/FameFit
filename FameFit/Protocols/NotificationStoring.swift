@@ -11,20 +11,20 @@ import SwiftUI
 /// Protocol defining the interface for managing workout notifications
 protocol NotificationStoring: ObservableObject {
     /// All notifications, ordered from most recent to oldest
-    var notifications: [NotificationItem] { get }
+    var notifications: [FameFitNotification] { get }
 
     /// Count of unread notifications
     var unreadCount: Int { get }
 
     /// Published notifications for SwiftUI binding
-    var notificationsPublisher: Published<[NotificationItem]>.Publisher { get }
+    var notificationsPublisher: Published<[FameFitNotification]>.Publisher { get }
 
     /// Published unread count for SwiftUI binding
     var unreadCountPublisher: Published<Int>.Publisher { get }
 
     /// Add a new notification
     /// - Parameter item: The notification to add
-    func addNotification(_ item: NotificationItem)
+    func addFameFitNotification(_ item: FameFitNotification)
 
     /// Mark a specific notification as read
     /// - Parameter id: The ID of the notification to mark as read
@@ -38,11 +38,11 @@ protocol NotificationStoring: ObservableObject {
 
     /// Delete notifications at the specified offsets
     /// - Parameter offsets: The index set of notifications to delete
-    func deleteNotification(at offsets: IndexSet)
+    func deleteFameFitNotification(at offsets: IndexSet)
 
     /// Delete a specific notification by ID
     /// - Parameter id: The ID of the notification to delete
-    func deleteNotification(_ id: String)
+    func deleteFameFitNotification(_ id: String)
 
     /// Clear all notifications (alias for clearAll)
     func clearAllNotifications()

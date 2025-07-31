@@ -61,8 +61,8 @@ protocol CloudKitManaging: ObservableObject {
     func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getXPTitle() -> String
-    func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)
-    func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void)
+    func saveWorkoutHistory(_ workoutHistory: Workout)
+    func fetchWorkoutHistory(completion: @escaping (Result<[Workout], Error>) -> Void)
     func recalculateStatsIfNeeded() async throws
     func recalculateUserStats() async throws
     func clearAllWorkoutsAndResetStats() async throws

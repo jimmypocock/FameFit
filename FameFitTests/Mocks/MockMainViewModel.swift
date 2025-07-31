@@ -122,7 +122,7 @@ class MockMainViewModel: MainViewModeling {
         lastWorkoutDate = Date()
     }
 
-    func simulateNewNotification() {
+    func simulateNewFameFitNotification() {
         hasUnreadNotifications = true
         unreadNotificationCount += 1
     }

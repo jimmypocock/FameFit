@@ -12,7 +12,7 @@ struct WorkoutSharingPromptView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
 
-    let workoutHistory: WorkoutHistoryItem
+    let workoutHistory: Workout
     let onShare: (WorkoutPrivacy, Bool) -> Void
 
     @State private var selectedPrivacy: WorkoutPrivacy = .friendsOnly
@@ -312,7 +312,7 @@ struct WorkoutSharingPromptView: View {
 
 #Preview {
     WorkoutSharingPromptView(
-        workoutHistory: WorkoutHistoryItem(
+        workoutHistory: Workout(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-1_800),
