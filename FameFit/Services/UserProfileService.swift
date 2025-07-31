@@ -20,9 +20,9 @@ final class UserProfileService: UserProfileServicing {
     private let publicDatabase: CKDatabase
     private let privateDatabase: CKDatabase
 
-    // Cache with 15-minute TTL
+    // Cache with shorter TTL for better freshness
     private var profileCache: [String: (profile: UserProfile, timestamp: Date)] = [:]
-    private let cacheTTL: TimeInterval = 15 * 60 // 15 minutes
+    private let cacheTTL: TimeInterval = 5 * 60 // 5 minutes - more aggressive caching
 
     // Content moderation word list (basic implementation)
     private let inappropriateWords = Set<String>([
@@ -92,6 +92,26 @@ final class UserProfileService: UserProfileServicing {
         }
 
         // Try to fetch profile by userId field (not record ID)
+        let profile = try await fetchProfileByUserID(userId)
+        currentProfile = profile
+        return profile
+    }
+    
+    func fetchCurrentUserProfileFresh() async throws -> UserProfile {
+        guard cloudKitManager.isAvailable else {
+            throw ProfileServiceError.networkError(CKError(.networkUnavailable))
+        }
+
+        guard let userId = cloudKitManager.currentUserID else {
+            throw ProfileServiceError.profileNotFound
+        }
+
+        // Clear cache for current user to force fresh data
+        if let existingProfile = profileCache.values.first(where: { $0.profile.userID == userId }) {
+            profileCache.removeValue(forKey: existingProfile.profile.id)
+        }
+
+        // Fetch fresh profile by userId field
         let profile = try await fetchProfileByUserID(userId)
         currentProfile = profile
         return profile

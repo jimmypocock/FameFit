@@ -101,6 +101,20 @@ final class MockUserProfileService: UserProfileServicing {
 
         // Simulate network delay
         try await Task.sleep(nanoseconds: delay)
+        
+        return try await fetchCurrentUserProfileFresh()
+    }
+    
+    func fetchCurrentUserProfileFresh() async throws -> UserProfile {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Reduce delay for UI testing
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("UI-Testing")
+        let delay: UInt64 = isUITesting ? 10_000_000 : 100_000_000 // 0.01s for UI tests, 0.1s otherwise
+
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: delay)
 
         if currentProfile == nil {
             // Check if we have a profile for "test-user" first (UI testing)

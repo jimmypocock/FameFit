@@ -109,6 +109,25 @@ class MainViewModel: ObservableObject, MainViewModeling {
             }
         }
     }
+    
+    func refreshUserProfile() {
+        Task {
+            // First ensure CloudKit is ready
+            await ensureCloudKitReady()
+
+            do {
+                let profile = try await userProfileService.fetchCurrentUserProfileFresh()
+                await MainActor.run {
+                    self.userProfile = profile
+                }
+            } catch {
+                // Profile doesn't exist yet, that's ok
+                await MainActor.run {
+                    self.userProfile = nil
+                }
+            }
+        }
+    }
 
     private func ensureCloudKitReady() async {
         // Wait for CloudKit to be properly initialized

@@ -74,6 +74,7 @@ protocol UserProfileServicing {
     // Profile operations
     func fetchProfile(userId: String) async throws -> UserProfile
     func fetchCurrentUserProfile() async throws -> UserProfile
+    func fetchCurrentUserProfileFresh() async throws -> UserProfile
     func createProfile(_ profile: UserProfile) async throws -> UserProfile
     func updateProfile(_ profile: UserProfile) async throws -> UserProfile
     func deleteProfile(userId: String) async throws

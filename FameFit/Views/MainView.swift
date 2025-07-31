@@ -73,6 +73,9 @@ struct MainView: View {
                 }
                 .padding(.top)
             }
+            .refreshable {
+                viewModel.refreshUserProfile()
+            }
             .navigationTitle("FameFit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

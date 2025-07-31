@@ -156,6 +156,11 @@ struct TabMainView: View {
             viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearAllCaches"))) { _ in
+            // Refresh all data with fresh fetch when cache is cleared
+            viewModel.refreshUserProfile()
+            viewModel.loadFollowerCounts()
+        }
         #if DEBUG
         .sheet(isPresented: $showingDeveloperMenu) {
             DeveloperMenu()

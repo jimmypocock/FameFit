@@ -9,11 +9,22 @@
 #if DEBUG
 import SwiftUI
 
+enum DeveloperSheetType: Identifiable {
+    case personaPicker
+    case profilePicker
+    
+    var id: String {
+        switch self {
+        case .personaPicker: return "personaPicker"
+        case .profilePicker: return "profilePicker"
+        }
+    }
+}
+
 struct DeveloperMenu: View {
     @State private var isLoading = false
     @State private var message = ""
-    @State private var showPersonaPicker = false
-    @State private var showProfilePicker = false
+    @State private var sheetType: DeveloperSheetType?
     @State private var selectedPersona: TestAccountPersona?
     @State private var existingAccounts: [TestAccountPersona] = []
     @Environment(\.dismiss) var dismiss
@@ -168,20 +179,24 @@ struct DeveloperMenu: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
         }
-        .sheet(isPresented: $showPersonaPicker) {
-            PersonaSelectionView(title: "Select Persona", 
-                               subtitle: "Choose test data to apply to your account",
-                               onSelect: { persona in
-                                   applyPersonaToCurrentAccount(persona)
-                               })
-        }
-        .sheet(isPresented: $showProfilePicker) {
-            PersonaSelectionView(title: "Create New Profile",
-                               subtitle: "Choose a persona for the new profile",
-                               existingAccounts: existingAccounts,
-                               onSelect: { persona in
-                                   createNewProfile(with: persona)
-                               })
+        .sheet(item: $sheetType) { type in
+            switch type {
+            case .personaPicker:
+                PersonaSelectionView(title: "Select Persona", 
+                                   subtitle: "Choose test data to apply to your account",
+                                   onSelect: { persona in
+                                       sheetType = nil
+                                       applyPersonaToCurrentAccount(persona)
+                                   })
+            case .profilePicker:
+                PersonaSelectionView(title: "Create New Profile",
+                                   subtitle: "Choose a persona for the new profile",
+                                   existingAccounts: existingAccounts,
+                                   onSelect: { persona in
+                                       sheetType = nil
+                                       createNewProfile(with: persona)
+                                   })
+            }
         }
         .task {
             await loadExistingAccounts()
@@ -198,11 +213,11 @@ struct DeveloperMenu: View {
     }
     
     private func setupPersona() {
-        showPersonaPicker = true
+        sheetType = .personaPicker
     }
     
     private func createProfile() {
-        showProfilePicker = true
+        sheetType = .profilePicker
     }
     
     private func clearCache() {
@@ -323,7 +338,7 @@ struct DeveloperMenu: View {
                 
                 // Dismiss after a short delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    showProfilePicker = false
+                    sheetType = nil
                 }
             } catch {
                 message = "❌ Error: \(error.localizedDescription)"
