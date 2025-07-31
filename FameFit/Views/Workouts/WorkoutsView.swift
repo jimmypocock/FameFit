@@ -85,7 +85,7 @@ struct WorkoutsView: View {
     }
 
     private func loadWorkouts() {
-        cloudKitManager.fetchWorkoutHistory { result in
+        cloudKitManager.fetchWorkouts { result in
             DispatchQueue.main.async {
                 switch result {
                 case let .success(history):

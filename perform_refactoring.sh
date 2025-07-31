@@ -42,13 +42,13 @@ done
 echo
 echo "Step 3: Updating function names..."
 find . -name "*.swift" -type f | while read file; do
-    if grep -q "saveWorkoutHistory" "$file"; then
-        echo "  Updating saveWorkoutHistory in: $file"
-        replace_in_file "$file" "saveWorkoutHistory" "saveWorkout"
+    if grep -q "saveWorkout" "$file"; then
+        echo "  Updating saveWorkout in: $file"
+        replace_in_file "$file" "saveWorkout" "saveWorkout"
     fi
-    if grep -q "fetchWorkoutHistory" "$file"; then
-        echo "  Updating fetchWorkoutHistory in: $file"
-        replace_in_file "$file" "fetchWorkoutHistory" "fetchWorkouts"
+    if grep -q "fetchWorkouts" "$file"; then
+        echo "  Updating fetchWorkouts in: $file"
+        replace_in_file "$file" "fetchWorkouts" "fetchWorkouts"
     fi
 done
 

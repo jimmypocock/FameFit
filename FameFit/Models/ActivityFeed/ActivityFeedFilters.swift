@@ -1,5 +1,5 @@
 //
-//  FeedFilters.swift
+//  ActivityFeedFilters.swift
 //  FameFit
 //
 //  Filtering options for activity feed
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FeedFilters {
+struct ActivityFeedFilters {
     var showWorkouts = true
     var showAchievements = true
     var showLevelUps = true

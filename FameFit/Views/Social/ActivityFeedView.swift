@@ -8,7 +8,7 @@
 import SwiftUI
 
 // MARK: - Feed Item Types  
-// Using FeedItem, FeedItemType, and FeedContent from FeedModels.swift
+// Using ActivityFeedItem, ActivityFeedItemType, and ActivityFeedContent from FeedModels.swift
 
 // MARK: - Activity Feed View
 
@@ -20,7 +20,7 @@ struct ActivityFeedView: View {
 
     @State private var selectedUserId: String?
     @State private var showingProfile = false
-    @State private var selectedActivityForComments: FeedItem?
+    @State private var selectedActivityForComments: ActivityFeedItem?
     @State private var showingComments = false
 
     private var currentUserId: String? {
@@ -47,7 +47,7 @@ struct ActivityFeedView: View {
                 }
             }
             .sheet(isPresented: $showingFilters) {
-                FeedFiltersView(filters: viewModel.filters) { newFilters in
+                ActivityFeedFiltersView(filters: viewModel.filters) { newFilters in
                     viewModel.updateFilters(newFilters)
                 }
             }
@@ -154,11 +154,11 @@ struct ActivityFeedView: View {
 
 // MARK: - Feed Item View
 
-struct FeedItemView: View {
-    let item: FeedItem
+struct ActivityFeedItemView: View {
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
-    let onKudosTap: (FeedItem) async -> Void
-    let onCommentsTap: (FeedItem) -> Void
+    let onKudosTap: (ActivityFeedItem) async -> Void
+    let onCommentsTap: (ActivityFeedItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

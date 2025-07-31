@@ -502,7 +502,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     // MARK: - Workout History
 
-    func saveWorkoutHistory(_ workoutHistory: Workout) {
+    func saveWorkout(_ workoutHistory: Workout) {
         guard isSignedIn else {
             FameFitLogger.error(
                 "Cannot save workout history - not signed in", category: FameFitLogger.cloudKit
@@ -563,7 +563,7 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         }
     }
 
-    func fetchWorkoutHistory(completion: @escaping (Result<[Workout], Error>) -> Void) {
+    func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
         guard isSignedIn else {
             FameFitLogger.error(
                 "❌ Cannot fetch workout history - not signed in", category: FameFitLogger.cloudKit

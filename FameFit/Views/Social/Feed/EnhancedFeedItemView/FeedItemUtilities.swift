@@ -1,5 +1,5 @@
 //
-//  FeedItemUtilities.swift
+//  ActivityFeedItemUtilities.swift
 //  FameFit
 //
 //  Utility components for feed items

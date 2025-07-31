@@ -30,10 +30,10 @@ struct EnhancedFeedPreview: View {
         .background(Color(.systemGroupedBackground))
     }
 
-    private var sampleFeedItems: [FeedItem] {
+    private var sampleFeedItems: [ActivityFeedItem] {
         [
             // Running workout with PR
-            FeedItem(
+            ActivityFeedItem(
                 id: "1",
                 userID: "user1",
                 userProfile: UserProfile(
@@ -52,7 +52,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Morning Run 🌅",
                     subtitle: "Crushed my 5K personal record! Coach Alex is proud! 🎉",
                     details: [
@@ -75,7 +75,7 @@ struct EnhancedFeedPreview: View {
             ),
 
             // Achievement unlock
-            FeedItem(
+            ActivityFeedItem(
                 id: "2",
                 userID: "user2",
                 userProfile: UserProfile(
@@ -94,7 +94,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Iron Will Unlocked!",
                     subtitle: "Completed 50 strength training sessions",
                     details: [
@@ -111,7 +111,7 @@ struct EnhancedFeedPreview: View {
             ),
 
             // Level up
-            FeedItem(
+            ActivityFeedItem(
                 id: "3",
                 userID: "user3",
                 userProfile: UserProfile(
@@ -130,7 +130,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Level 15: Fitness Warrior",
                     subtitle: "Your dedication is inspiring!",
                     details: [
@@ -146,7 +146,7 @@ struct EnhancedFeedPreview: View {
             ),
 
             // Cycling workout
-            FeedItem(
+            ActivityFeedItem(
                 id: "4",
                 userID: "user4",
                 userProfile: UserProfile(
@@ -165,7 +165,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-14_400),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Evening Ride 🚴‍♀️",
                     subtitle: "Perfect weather for a sunset ride through the hills!",
                     details: [

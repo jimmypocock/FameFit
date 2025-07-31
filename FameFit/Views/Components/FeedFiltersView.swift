@@ -1,5 +1,5 @@
 //
-//  FeedFiltersView.swift
+//  ActivityFeedFiltersView.swift
 //  FameFit
 //
 //  Feed filters view component for filtering activity feeds
@@ -7,12 +7,12 @@
 
 import SwiftUI
 
-struct FeedFiltersView: View {
+struct ActivityFeedFiltersView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var filters: FeedFilters
-    let onApply: (FeedFilters) -> Void
+    @State private var filters: ActivityFeedFilters
+    let onApply: (ActivityFeedFilters) -> Void
 
-    init(filters: FeedFilters, onApply: @escaping (FeedFilters) -> Void) {
+    init(filters: ActivityFeedFilters, onApply: @escaping (ActivityFeedFilters) -> Void) {
         _filters = State(initialValue: filters)
         self.onApply = onApply
     }
@@ -29,7 +29,7 @@ struct FeedFiltersView: View {
 
                 Section("Time Range") {
                     Picker("Show activities from", selection: $filters.timeRange) {
-                        ForEach(FeedFilters.TimeRange.allCases, id: \.self) { range in
+                        ForEach(ActivityFeedFilters.TimeRange.allCases, id: \.self) { range in
                             Text(range.rawValue).tag(range)
                         }
                     }
@@ -57,5 +57,5 @@ struct FeedFiltersView: View {
 }
 
 #Preview {
-    FeedFiltersView(filters: FeedFilters()) { _ in }
+    ActivityFeedFiltersView(filters: ActivityFeedFilters()) { _ in }
 }

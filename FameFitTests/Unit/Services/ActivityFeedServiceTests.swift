@@ -124,7 +124,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // Parse content to verify no details
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
+           let content = try? JSONDecoder().decode(ActivityFeedContent.self, from: data) {
             XCTAssertNil(content.details["duration"])
             XCTAssertNil(content.details["calories"])
             XCTAssertNil(content.details["distance"])
@@ -221,7 +221,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         XCTAssertEqual(activity.visibility, "friends_only")
 
         if let data = activity.content.data(using: .utf8),
-           let content = try? JSONDecoder().decode(FeedContent.self, from: data) {
+           let content = try? JSONDecoder().decode(ActivityFeedContent.self, from: data) {
             XCTAssertEqual(content.title, "Reached Level 5!")
             XCTAssertEqual(content.subtitle, "Fitness Enthusiast")
         }
@@ -355,7 +355,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         )
 
         // When - Test private helper through mock
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Completed a High Intensity Interval Training workout",
             subtitle: "Great job on that 30-minute session! 💪",
             details: [

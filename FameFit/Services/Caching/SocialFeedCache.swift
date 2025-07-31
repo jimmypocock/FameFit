@@ -191,7 +191,7 @@ final class SocialFeedCache: @unchecked Sendable {
         let nextPageKey = feedCacheKey(feedType: feedType, userId: userId, page: nextPage)
         
         // Don't prefetch if already cached and fresh
-        if cacheManager.get(nextPageKey, type: FeedCacheEntry<[FeedItem]>.self) != nil {
+        if cacheManager.get(nextPageKey, type: FeedCacheEntry<[ActivityFeedItem]>.self) != nil {
             return false
         }
         
@@ -202,7 +202,7 @@ final class SocialFeedCache: @unchecked Sendable {
         feedType: String,
         userId: String,
         currentPage: Int,
-        fetchFunction: @escaping (Int) async throws -> [FeedItem]
+        fetchFunction: @escaping (Int) async throws -> [ActivityFeedItem]
     ) {
         let nextPage = currentPage + 1
         

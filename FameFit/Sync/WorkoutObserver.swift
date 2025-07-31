@@ -245,7 +245,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             "💾 Saving workout to CloudKit: \(finalHistoryItem.workoutType) with \(calculatedXP) XP",
             category: FameFitLogger.workout
         )
-        cloudKitManager?.saveWorkoutHistory(finalHistoryItem)
+        cloudKitManager?.saveWorkout(finalHistoryItem)
 
         // Publish workout completion for sharing prompt (only for recent workouts)
         let workoutAge = Date().timeIntervalSince(workout.endDate)

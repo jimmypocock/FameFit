@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct EnhancedFeedItemView: View {
-    let item: FeedItem
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
-    let onKudosTap: (FeedItem) async -> Void
-    let onCommentsTap: (FeedItem) -> Void
+    let onKudosTap: (ActivityFeedItem) async -> Void
+    let onCommentsTap: (ActivityFeedItem) -> Void
 
     @State private var showKudosAnimation = false
     @State private var kudosScale: CGFloat = 1.0

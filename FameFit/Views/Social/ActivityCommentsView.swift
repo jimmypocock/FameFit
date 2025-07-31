@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ActivityCommentsView: View {
-    let feedItem: FeedItem
+    let feedItem: ActivityFeedItem
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dependencyContainer) private var container
     
@@ -378,7 +378,7 @@ struct ActivityCommentsView: View {
         }
     }
     
-    private func getResourceType(for feedItemType: FeedItemType) -> String {
+    private func getResourceType(for feedItemType: ActivityFeedItemType) -> String {
         switch feedItemType {
         case .workout:
             return "workout"
@@ -395,7 +395,7 @@ struct ActivityCommentsView: View {
         }
     }
     
-    private func getCommentService(for feedItemType: FeedItemType) -> AnyCommentService {
+    private func getCommentService(for feedItemType: ActivityFeedItemType) -> AnyCommentService {
         // Always use ActivityFeedCommentsService for consistency
         // This ensures all comments go to the same table regardless of activity type
         let adapter = ActivityFeedCommentsAdapter(activityCommentsService: container.activityCommentsService)
@@ -406,9 +406,9 @@ struct ActivityCommentsView: View {
 // MARK: - Preview
 
 #Preview {
-    // Create a preview with the actual FeedItem structure used in ActivityFeedView
+    // Create a preview with the actual ActivityFeedItem structure used in ActivityFeedView
     ActivityCommentsView(
-        feedItem: FeedItem(
+        feedItem: ActivityFeedItem(
             id: "test-feed-item",
             userID: "user123",
             userProfile: UserProfile(
@@ -426,7 +426,7 @@ struct ActivityCommentsView: View {
             ),
             type: .workout,
             timestamp: Date().addingTimeInterval(-3600),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: "Great workout!",
                 details: [

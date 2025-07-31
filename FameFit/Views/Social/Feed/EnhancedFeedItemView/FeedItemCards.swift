@@ -1,5 +1,5 @@
 //
-//  FeedItemCards.swift
+//  ActivityFeedItemCards.swift
 //  FameFit
 //
 //  Additional card components for different feed item types
@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Achievement Card
 
 struct EnhancedAchievementCard: View {
-    let item: FeedItem
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
     @Binding var showCelebration: Bool
 
@@ -71,7 +71,7 @@ struct EnhancedAchievementCard: View {
 // MARK: - Level Up Card
 
 struct EnhancedLevelUpCard: View {
-    let item: FeedItem
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
 
     @State private var animate = false
@@ -138,7 +138,7 @@ struct EnhancedLevelUpCard: View {
 // MARK: - Milestone Card
 
 struct EnhancedMilestoneCard: View {
-    let item: FeedItem
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
 
     var body: some View {

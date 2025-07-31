@@ -15,7 +15,7 @@ import UIKit
 protocol SocialMediaCacheCoordinating {
     // Feed management
     func refreshFeed(userId: String, userInitiated: Bool) async
-    func loadFeedPage(userId: String, page: Int, userInitiated: Bool) async -> [FeedItem]?
+    func loadFeedPage(userId: String, page: Int, userInitiated: Bool) async -> [ActivityFeedItem]?
     func preloadNextFeedPage(userId: String, currentPage: Int)
     
     // Social data management  
@@ -125,7 +125,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             feedType: "activity",
             userId: userId,
             page: 0,
-            type: [FeedItem].self,
+            type: [ActivityFeedItem].self,
             userInitiated: userInitiated
         ) {
             // Fetch fresh feed data
@@ -150,7 +150,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         }
     }
     
-    func loadFeedPage(userId: String, page: Int, userInitiated: Bool = false) async -> [FeedItem]? {
+    func loadFeedPage(userId: String, page: Int, userInitiated: Bool = false) async -> [ActivityFeedItem]? {
         print("📄 Loading feed page \(page) for user: \(userId)")
         
         // Try cache first
@@ -158,7 +158,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             feedType: "activity",
             userId: userId,
             page: page,
-            type: [FeedItem].self,
+            type: [ActivityFeedItem].self,
             strategy: userInitiated ? .immediate : .staleWhileRevalidate
         )
         
@@ -407,13 +407,13 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             .store(in: &cancellables)
     }
     
-    private func fetchFeedItems(userId: String, page: Int) async throws -> [FeedItem] {
+    private func fetchFeedItems(userId: String, page: Int) async throws -> [ActivityFeedItem] {
         // This would call the actual feed service
         // For now, return empty array - would be implemented with real service calls
         return []
     }
     
-    private func updateFeedCacheWithInvalidation(userId: String, page: Int, items: [FeedItem]) async {
+    private func updateFeedCacheWithInvalidation(userId: String, page: Int, items: [ActivityFeedItem]) async {
         // Update the cache
         socialFeedCache.setFeedPage(
             feedType: "activity",
@@ -433,7 +433,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             feedType: "activity",
             userId: userId,
             page: page,
-            type: [FeedItem].self,
+            type: [ActivityFeedItem].self,
             userInitiated: false
         ) {
             return try await self.fetchFeedItems(userId: userId, page: page)

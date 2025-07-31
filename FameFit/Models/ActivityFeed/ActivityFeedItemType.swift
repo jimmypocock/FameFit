@@ -1,5 +1,5 @@
 //
-//  FeedItemType.swift
+//  ActivityFeedItemType.swift
 //  FameFit
 //
 //  Activity feed item types with UI configuration
@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-enum FeedItemType: String, Codable {
+enum ActivityFeedItemType: String, Codable {
     case workout
     case achievement  
     case levelUp = "level_up"

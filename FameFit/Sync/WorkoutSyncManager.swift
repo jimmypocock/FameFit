@@ -292,7 +292,7 @@ class WorkoutSyncManager: ObservableObject {
                     "💾 Saving workout to CloudKit: \(historyItem.workoutType) with \(totalXP) XP",
                     category: FameFitLogger.workout
                 )
-                cloudKitManager?.saveWorkoutHistory(historyItem)
+                cloudKitManager?.saveWorkout(historyItem)
 
                 // Send notifications using both systems for now
                 sendWorkoutFameFitNotification(for: workout) // Legacy system
@@ -312,7 +312,7 @@ class WorkoutSyncManager: ObservableObject {
             )
             // Batch save workout history for initial sync
             for historyItem in workouts {
-                cloudKitManager?.saveWorkoutHistory(historyItem)
+                cloudKitManager?.saveWorkout(historyItem)
             }
         }
     }

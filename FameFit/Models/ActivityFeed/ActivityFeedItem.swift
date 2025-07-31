@@ -2,86 +2,40 @@
 //  ActivityFeedItem.swift
 //  FameFit
 //
-//  Core activity feed item model stored in CloudKit
+//  Activity feed item for UI display with user profile data
 //
 
 import Foundation
-import CloudKit
 
-struct ActivityFeedItem: Codable, Identifiable, Equatable {
+struct ActivityFeedItem: Identifiable, Codable {
     let id: String
     let userID: String
-    let activityType: String
+    let userProfile: UserProfile?
+    let type: ActivityFeedItemType
+    let timestamp: Date
+    let content: ActivityFeedContent
     let workoutId: String?
-    let content: String // JSON encoded content
-    let visibility: String // "private", "friends_only", "public"
-    let createdTimestamp: Date
-    let expiresAt: Date
-    let xpEarned: Int?
-    let achievementName: String?
-
-    // Computed properties for UI display
-    var privacyLevel: WorkoutPrivacy {
-        WorkoutPrivacy(rawValue: visibility) ?? .private
-    }
-
-    var contentData: FeedContent? {
-        guard let data = content.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(FeedContent.self, from: data)
-    }
-}
-
-// MARK: - CloudKit Extensions
-
-extension ActivityFeedItem {
-    init?(from record: CKRecord) {
-        guard let userID = record["userID"] as? String,
-              let activityType = record["activityType"] as? String,
-              let content = record["content"] as? String,
-              let visibility = record["visibility"] as? String,
-              let createdTimestamp = record["createdTimestamp"] as? Date,
-              let expiresAt = record["expiresAt"] as? Date
-        else {
-            return nil
-        }
-        
-        self.id = record.recordID.recordName
-        self.userID = userID
-        self.activityType = activityType
-        self.workoutId = record["workoutId"] as? String
-        self.content = content
-        self.visibility = visibility
-        self.createdTimestamp = createdTimestamp
-        self.expiresAt = expiresAt
-        self.xpEarned = record["xpEarned"] as? Int
-        self.achievementName = record["achievementName"] as? String
+    var kudosCount: Int
+    var commentCount: Int
+    var hasKudoed: Bool
+    var kudosSummary: WorkoutKudosSummary?
+    
+    // Convenience computed properties
+    var userName: String {
+        userProfile?.username ?? "Unknown User"
     }
     
-    func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
-        let record = if let recordID {
-            CKRecord(recordType: "ActivityFeed", recordID: recordID)
-        } else {
-            CKRecord(recordType: "ActivityFeed")
-        }
-        
-        record["userID"] = userID
-        record["activityType"] = activityType
-        if let workoutId {
-            record["workoutId"] = workoutId
-        }
-        record["content"] = content
-        record["visibility"] = visibility
-        record["createdTimestamp"] = createdTimestamp
-        record["expiresAt"] = expiresAt
-        
-        if let xpEarned {
-            record["xpEarned"] = Int64(xpEarned)
-        }
-        
-        if let achievementName {
-            record["achievementName"] = achievementName
-        }
-        
-        return record
+    var userXP: Int {
+        userProfile?.totalXP ?? 0
+    }
+    
+    var isVerified: Bool {
+        userProfile?.isVerified ?? false
+    }
+    
+    var timeAgo: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: timestamp, relativeTo: Date())
     }
 }

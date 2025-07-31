@@ -292,7 +292,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
             userID: testUserId,
             activityType: "workout",
             workoutId: workout.id.uuidString,
-            content: try! String(data: JSONEncoder().encode(FeedContent(
+            content: try! String(data: JSONEncoder().encode(ActivityFeedContent(
                 title: "Completed a Cycling workout",
                 subtitle: "Great job on that 60-minute session! 💪",
                 details: [
@@ -400,13 +400,13 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
     func testToggleKudos_Success() async {
         // Given
         let workoutId = "workout123"
-        let feedItem = FeedItem(
+        let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]
@@ -428,13 +428,13 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
 
     func testToggleKudos_NonWorkoutItem() async {
         // Given
-        let feedItem = FeedItem(
+        let feedItem = ActivityFeedItem(
             id: "achievement123",
             userID: "user456",
             userProfile: nil,
             type: .achievement,
             timestamp: Date(),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "First Workout Achievement",
                 subtitle: nil,
                 details: ["achievementName": "First Workout"]
@@ -451,13 +451,13 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
     func testToggleKudos_Failure() async {
         // Given
         let workoutId = "workout123"
-        let feedItem = FeedItem(
+        let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]
@@ -517,7 +517,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
             userID: "user1",
             activityType: "workout",
             workoutId: workout.id.uuidString,
-            content: try! String(data: JSONEncoder().encode(FeedContent(
+            content: try! String(data: JSONEncoder().encode(ActivityFeedContent(
                 title: "Completed a Running workout",
                 subtitle: "Great run!",
                 details: [
@@ -573,13 +573,13 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let workoutId = "workout123"
 
         // Setup initial feed item
-        let feedItem = FeedItem(
+        let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]
@@ -632,13 +632,13 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
             recentUsers: []
         )
 
-        let feedItem = FeedItem(
+        let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
-            content: FeedContent(
+            content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]

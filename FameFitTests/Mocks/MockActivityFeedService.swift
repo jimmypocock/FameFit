@@ -34,7 +34,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Completed a \(workoutHistory.workoutType) workout",
             subtitle: includeDetails ? "Duration: \(Int(workoutHistory.duration / 60)) minutes" : nil,
             details: includeDetails ? [
@@ -74,7 +74,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Earned the '\(achievementName)' achievement!",
             subtitle: "Unlocked with \(xpEarned) XP",
             details: [
@@ -113,7 +113,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Reached Level \(newLevel)!",
             subtitle: newTitle,
             details: ["newLevel": String(newLevel), "newTitle": newTitle]
@@ -162,7 +162,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 let userTimeOffset = baseTimeOffset - Double(index * 3_600) // Space users by 1 hour
 
                 // Workout activity
-                let workoutContent = FeedContent(
+                let workoutContent = ActivityFeedContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Great job on that 30-minute session! 💪",
                     details: [
@@ -190,7 +190,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 }
 
                 // Achievement activity
-                let achievementContent = FeedContent(
+                let achievementContent = ActivityFeedContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
@@ -216,7 +216,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 }
 
                 // Level up activity
-                let levelUpContent = FeedContent(
+                let levelUpContent = ActivityFeedContent(
                     title: "Reached Level 5!",
                     subtitle: "Fitness Enthusiast",
                     details: [

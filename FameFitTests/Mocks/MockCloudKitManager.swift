@@ -261,11 +261,11 @@ class MockCloudKitManager: CloudKitManager {
     
     // MARK: - New Protocol Methods
     
-    override func saveWorkoutHistory(_ workoutHistory: Workout) {
+    override func saveWorkout(_ workoutHistory: Workout) {
         // Mock implementation - no-op for tests
     }
     
-    override func fetchWorkoutHistory(completion: @escaping (Result<[Workout], Error>) -> Void) {
+    override func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
         completion(.success([]))
     }
     

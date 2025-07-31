@@ -11,10 +11,10 @@ import Foundation
 
 @MainActor
 final class SocialFeedViewModel: ObservableObject {
-    @Published var feedItems: [FeedItem] = []
+    @Published var feedItems: [ActivityFeedItem] = []
     @Published var isLoading = false
     @Published var error: String?
-    @Published var filters = FeedFilters()
+    @Published var filters = ActivityFeedFilters()
     @Published var hasMoreItems = true
 
     private var socialService: SocialFollowingServicing?
@@ -34,7 +34,7 @@ final class SocialFeedViewModel: ObservableObject {
         "spam", "inappropriate", "offensive"
     ])
 
-    var filteredFeedItems: [FeedItem] {
+    var filteredFeedItems: [ActivityFeedItem] {
         feedItems.filter { item in
             // Filter by type
             switch item.type {
@@ -125,7 +125,7 @@ final class SocialFeedViewModel: ObservableObject {
         isLoading = false
     }
 
-    func updateFilters(_ newFilters: FeedFilters) {
+    func updateFilters(_ newFilters: ActivityFeedFilters) {
         filters = newFilters
     }
 
@@ -174,7 +174,7 @@ final class SocialFeedViewModel: ObservableObject {
         }
     }
 
-    private func insertNewItems(_ items: [FeedItem]) async {
+    private func insertNewItems(_ items: [ActivityFeedItem]) async {
         // Filter inappropriate content
         let filteredItems = items.filter { item in
             !containsInappropriateContent(item.content.title) &&
@@ -193,7 +193,7 @@ final class SocialFeedViewModel: ObservableObject {
         await loadKudosForNewItems(sortedItems)
     }
 
-    private func loadKudosForNewItems(_ items: [FeedItem]) async {
+    private func loadKudosForNewItems(_ items: [ActivityFeedItem]) async {
         guard let kudosService else { return }
 
         let workoutIds = items
@@ -234,7 +234,7 @@ final class SocialFeedViewModel: ObservableObject {
                 limit: pageSize
             )
 
-            // Convert ActivityFeedItem to FeedItem
+            // Convert ActivityFeedRecord to ActivityFeedItem
             let feedItems = await convertActivityItemsToFeedItems(activityItems)
             await processFeedItems(feedItems)
         } catch {
@@ -244,7 +244,7 @@ final class SocialFeedViewModel: ObservableObject {
         }
     }
 
-    private func processFeedItems(_ items: [FeedItem]) async {
+    private func processFeedItems(_ items: [ActivityFeedItem]) async {
         // Filter inappropriate content
         let filteredItems = items.filter { item in
             !containsInappropriateContent(item.content.title) &&
@@ -267,15 +267,15 @@ final class SocialFeedViewModel: ObservableObject {
         lastFetchedDate = sortedItems.last?.timestamp
     }
 
-    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedItem]) async -> [FeedItem] {
-        var feedItems: [FeedItem] = []
+    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedItem]) async -> [ActivityFeedItem] {
+        var feedItems: [ActivityFeedItem] = []
 
         for activityItem in activityItems {
             // Get user profile for the activity
             let userProfile = try? await profileService?.fetchProfile(userId: activityItem.userID)
 
             // Convert activity type
-            let feedItemType: FeedItemType = switch activityItem.activityType {
+            let feedItemType: ActivityFeedItemType = switch activityItem.activityType {
             case "workout":
                 .workout
             case "achievement":
@@ -287,13 +287,13 @@ final class SocialFeedViewModel: ObservableObject {
             }
 
             // Parse content
-            let content = activityItem.contentData ?? FeedContent(
+            let content = activityItem.contentData ?? ActivityFeedContent(
                 title: "Activity",
                 subtitle: nil,
                 details: [:]
             )
 
-            var feedItem = FeedItem(
+            var feedItem = ActivityFeedItem(
                 id: activityItem.id,
                 userID: activityItem.userID,
                 userProfile: userProfile,
@@ -331,19 +331,19 @@ final class SocialFeedViewModel: ObservableObject {
         return inappropriateWords.contains { lowercased.contains($0) }
     }
 
-    private func createMockFeedItems() async -> [FeedItem] {
+    private func createMockFeedItems() async -> [ActivityFeedItem] {
         // This would be replaced with actual CloudKit queries
-        var items: [FeedItem] = []
+        var items: [ActivityFeedItem] = []
 
         // Mock workout activities
         if let profile = try? await profileService?.fetchProfile(userId: "mock-user-1") {
-            items.append(FeedItem(
+            items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
                 userProfile: profile,
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Crushed another workout! 💪",
                     details: [
@@ -360,13 +360,13 @@ final class SocialFeedViewModel: ObservableObject {
                 kudosSummary: nil
             ))
 
-            items.append(FeedItem(
+            items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
                 userProfile: profile,
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
@@ -384,13 +384,13 @@ final class SocialFeedViewModel: ObservableObject {
 
         // Mock level up
         if let profile2 = try? await profileService?.fetchProfile(userId: "mock-user-2") {
-            items.append(FeedItem(
+            items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile2.id,
                 userProfile: profile2,
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: FeedContent(
+                content: ActivityFeedContent(
                     title: "Reached Level 5!",
                     subtitle: nil,
                     details: [
@@ -440,7 +440,7 @@ final class SocialFeedViewModel: ObservableObject {
         }
     }
 
-    func toggleKudos(for item: FeedItem) async {
+    func toggleKudos(for item: ActivityFeedItem) async {
         guard let kudosService,
               item.type == .workout
         else {

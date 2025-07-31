@@ -8,7 +8,7 @@
 import SwiftUI
 
 // MARK: - Feed Item Types
-// Using FeedItem, FeedItemType, FeedContent from FeedModels.swift
+// Using ActivityFeedItem, ActivityFeedItemType, ActivityFeedContent from FeedModels.swift
 
 // MARK: - Social Feed View
 
@@ -20,7 +20,7 @@ struct SocialFeedView: View {
 
     @State private var selectedUserId: String?
     @State private var showingProfile = false
-    @State private var selectedWorkoutForComments: FeedItem?
+    @State private var selectedWorkoutForComments: ActivityFeedItem?
     @State private var showingComments = false
 
     private var currentUserId: String? {
@@ -47,13 +47,13 @@ struct SocialFeedView: View {
                 }
             }
             .sheet(isPresented: $showingFilters) {
-                FeedFiltersView(filters: viewModel.filters) { newFilters in
+                ActivityFeedFiltersView(filters: viewModel.filters) { newFilters in
                     viewModel.updateFilters(newFilters)
                 }
             }
             .sheet(isPresented: $showingComments) {
                 if let workout = selectedWorkoutForComments {
-                    // Convert FeedItem to Workout for WorkoutCommentsView
+                    // Convert ActivityFeedItem to Workout for WorkoutCommentsView
                     WorkoutCommentsView(
                         workout: Workout(
                             id: UUID(uuidString: workout.id) ?? UUID(),

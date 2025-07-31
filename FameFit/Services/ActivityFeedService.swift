@@ -123,7 +123,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Earned the '\(achievementName)' achievement!",
             subtitle: "Unlocked with \(xpEarned) XP",
             details: [
@@ -163,7 +163,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Reached Level \(newLevel)!",
             subtitle: newTitle,
             details: [
@@ -236,7 +236,7 @@ final class ActivityFeedService: ActivityFeedServicing {
 
     // MARK: - Private Helper Methods
 
-    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> FeedContent {
+    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> ActivityFeedContent {
         var details: [String: String] = [
             "workoutType": workout.workoutType,
             "workoutIcon": "figure.run"
@@ -264,7 +264,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             subtitle = "Great job on that \(minutes)-minute session! 💪"
         }
 
-        return FeedContent(
+        return ActivityFeedContent(
             title: title,
             subtitle: subtitle,
             details: details

@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct EnhancedWorkoutCard: View {
-    let item: FeedItem
+    let item: ActivityFeedItem
     let onProfileTap: () -> Void
-    let onKudosTap: (FeedItem) async -> Void
-    let onCommentsTap: (FeedItem) -> Void
+    let onKudosTap: (ActivityFeedItem) async -> Void
+    let onCommentsTap: (ActivityFeedItem) -> Void
     @Binding var showKudosAnimation: Bool
     @Binding var kudosScale: CGFloat
 
