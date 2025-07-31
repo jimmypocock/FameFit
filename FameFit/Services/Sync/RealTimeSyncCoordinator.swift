@@ -28,7 +28,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     private let socialFollowingService: SocialFollowingServicing?
     private let userProfileService: UserProfileServicing?
     private let workoutKudosService: WorkoutKudosServicing?
-    private let workoutCommentsService: WorkoutCommentsServicing?
+    private let activityCommentsService: ActivityFeedCommentsServicing?
     private let workoutChallengesService: WorkoutChallengesServicing?
     private let groupWorkoutService: GroupWorkoutServicing?
     private let activityFeedService: ActivityFeedServicing?
@@ -51,7 +51,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         socialFollowingService: SocialFollowingServicing? = nil,
         userProfileService: UserProfileServicing? = nil,
         workoutKudosService: WorkoutKudosServicing? = nil,
-        workoutCommentsService: WorkoutCommentsServicing? = nil,
+        activityCommentsService: ActivityFeedCommentsServicing? = nil,
         workoutChallengesService: WorkoutChallengesServicing? = nil,
         groupWorkoutService: GroupWorkoutServicing? = nil,
         activityFeedService: ActivityFeedServicing? = nil
@@ -61,7 +61,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         self.socialFollowingService = socialFollowingService
         self.userProfileService = userProfileService
         self.workoutKudosService = workoutKudosService
-        self.workoutCommentsService = workoutCommentsService
+        self.activityCommentsService = activityCommentsService
         self.workoutChallengesService = workoutChallengesService
         self.groupWorkoutService = groupWorkoutService
         self.activityFeedService = activityFeedService

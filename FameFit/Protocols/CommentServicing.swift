@@ -22,7 +22,7 @@ protocol Comment {
 
 // MARK: - Comment with User Protocol
 
-protocol CommentWithUserProtocol {
+protocol ActivityFeedCommentWithUserProtocol {
     associatedtype CommentType: Comment
     var comment: CommentType { get }
     var user: UserProfile { get }
@@ -32,10 +32,10 @@ protocol CommentWithUserProtocol {
 
 protocol CommentServicing {
     associatedtype CommentType: Comment
-    associatedtype CommentWithUserType: CommentWithUserProtocol where CommentWithUserType.CommentType == CommentType
+    associatedtype ActivityFeedCommentWithUserType: ActivityFeedCommentWithUserProtocol where ActivityFeedCommentWithUserType.CommentType == CommentType
     
     // Core functionality that all comment services must implement
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [CommentWithUserType]
+    func fetchComments(for resourceId: String, limit: Int) async throws -> [ActivityFeedCommentWithUserType]
     func postComment(
         resourceId: String,
         resourceOwnerId: String,
@@ -66,13 +66,13 @@ struct CommentMetadata {
 
 // MARK: - Type Erasure for Protocol
 
-struct AnyCommentWithUser: CommentWithUserProtocol, Identifiable {
+struct AnyActivityFeedCommentWithUser: ActivityFeedCommentWithUserProtocol, Identifiable {
     let comment: AnyComment
     let user: UserProfile
     
     var id: String { comment.id }
     
-    init<T: CommentWithUserProtocol>(_ commentWithUser: T) {
+    init<T: ActivityFeedCommentWithUserProtocol>(_ commentWithUser: T) {
         self.comment = AnyComment(commentWithUser.comment)
         self.user = commentWithUser.user
     }
@@ -104,9 +104,9 @@ struct AnyComment: Comment {
 
 class AnyCommentService: CommentServicing {
     typealias CommentType = AnyComment
-    typealias CommentWithUserType = AnyCommentWithUser
+    typealias ActivityFeedCommentWithUserType = AnyActivityFeedCommentWithUser
     
-    private let _fetchComments: (String, Int) async throws -> [AnyCommentWithUser]
+    private let _fetchComments: (String, Int) async throws -> [AnyActivityFeedCommentWithUser]
     private let _postComment: (String, String, String, String?, CommentMetadata) async throws -> AnyComment
     private let _updateComment: (String, String) async throws -> AnyComment
     private let _deleteComment: (String) async throws -> Void
@@ -117,7 +117,7 @@ class AnyCommentService: CommentServicing {
     init<Service: CommentServicing>(_ service: Service) {
         self._fetchComments = { resourceId, limit in
             let comments = try await service.fetchComments(for: resourceId, limit: limit)
-            return comments.map { AnyCommentWithUser($0) }
+            return comments.map { AnyActivityFeedCommentWithUser($0) }
         }
         
         self._postComment = { resourceId, ownerId, content, parentId, metadata in
@@ -153,7 +153,7 @@ class AnyCommentService: CommentServicing {
         }
     }
     
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [AnyCommentWithUser] {
+    func fetchComments(for resourceId: String, limit: Int) async throws -> [AnyActivityFeedCommentWithUser] {
         try await _fetchComments(resourceId, limit)
     }
     

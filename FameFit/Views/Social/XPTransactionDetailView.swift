@@ -48,13 +48,13 @@ struct XPTransactionDetailView: View {
                             .font(.headline)
                         
                         VStack(spacing: 12) {
-                            DetailRow(label: "Type", value: transaction.factors.workoutType)
-                            DetailRow(label: "Duration", value: formatDuration(transaction.factors.duration))
-                            DetailRow(label: "Day", value: transaction.factors.dayOfWeek)
-                            DetailRow(label: "Time", value: transaction.factors.timeOfDay)
+                            XPDetailRow(label: "Type", value: transaction.factors.workoutType)
+                            XPDetailRow(label: "Duration", value: formatDuration(transaction.factors.duration))
+                            XPDetailRow(label: "Day", value: transaction.factors.dayOfWeek)
+                            XPDetailRow(label: "Time", value: transaction.factors.timeOfDay)
                             
                             if transaction.factors.consistencyStreak > 0 {
-                                DetailRow(
+                                XPDetailRow(
                                     label: "Streak",
                                     value: "\(transaction.factors.consistencyStreak) days",
                                     valueColor: .orange
@@ -157,7 +157,7 @@ struct XPTransactionDetailView: View {
     }
 }
 
-private struct DetailRow: View {
+private struct XPDetailRow: View {
     let label: String
     let value: String
     var valueColor: Color = .primary

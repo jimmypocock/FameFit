@@ -525,7 +525,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         return recommendations
     }
     
-    private func handleBackgroundRefreshFameFitNotification(_ notification: FameFitNotification) {
+    private func handleBackgroundRefreshFameFitNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let _ = userInfo["feedType"] as? String,
               let userId = userInfo["userId"] as? String else { return }

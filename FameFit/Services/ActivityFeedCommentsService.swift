@@ -13,8 +13,8 @@ import Foundation
 
 protocol ActivityFeedCommentsServicing {
     // Fetch comments for any activity
-    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [CommentWithUser]
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [CommentWithUser]
+    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
+    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
     
     // Post comment
     func postComment(
@@ -73,12 +73,12 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     
     // MARK: - Fetch Comments
     
-    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         let predicate = NSPredicate(format: "activityFeedId == %@", activityFeedId)
         return try await fetchCommentsWithPredicate(predicate, limit: limit)
     }
     
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         let predicate = NSPredicate(
             format: "sourceType == %@ AND sourceRecordId == %@",
             sourceType, sourceRecordId
@@ -86,7 +86,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         return try await fetchCommentsWithPredicate(predicate, limit: limit)
     }
     
-    private func fetchCommentsWithPredicate(_ predicate: NSPredicate, limit: Int) async throws -> [CommentWithUser] {
+    private func fetchCommentsWithPredicate(_ predicate: NSPredicate, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         let query = CKQuery(recordType: "ActivityFeedComments", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
         

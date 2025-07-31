@@ -85,7 +85,6 @@ class DependencyContainer: ObservableObject {
     let messageProvider: MessageProviding
     let workoutKudosService: WorkoutKudosServicing
     let apnsManager: APNSManaging
-    let workoutCommentsService: WorkoutCommentsServicing
     let groupWorkoutService: GroupWorkoutServicing
     let workoutChallengesService: WorkoutChallengesServicing
     let subscriptionManager: CloudKitSubscriptionManaging
@@ -159,12 +158,6 @@ class DependencyContainer: ObservableObject {
             rateLimiter: rateLimitingService
         )
 
-        workoutCommentsService = WorkoutCommentsService(
-            cloudKitManager: cloudKitManager,
-            userProfileService: userProfileService,
-            notificationManager: notificationManager,
-            rateLimiter: rateLimitingService
-        )
 
         groupWorkoutService = GroupWorkoutService(
             cloudKitManager: cloudKitManager,
@@ -204,7 +197,7 @@ class DependencyContainer: ObservableObject {
         let capturedSocialFollowingService = socialFollowingService
         let capturedUserProfileService = userProfileService
         let capturedWorkoutKudosService = workoutKudosService
-        let capturedWorkoutCommentsService = workoutCommentsService
+        let capturedActivityCommentsService = activityCommentsService
         let capturedWorkoutChallengesService = workoutChallengesService
         let capturedGroupWorkoutService = groupWorkoutService
         let capturedActivityFeedService = activityFeedService
@@ -216,7 +209,7 @@ class DependencyContainer: ObservableObject {
                 socialFollowingService: capturedSocialFollowingService,
                 userProfileService: capturedUserProfileService,
                 workoutKudosService: capturedWorkoutKudosService,
-                workoutCommentsService: capturedWorkoutCommentsService,
+                activityCommentsService: capturedActivityCommentsService,
                 workoutChallengesService: capturedWorkoutChallengesService,
                 groupWorkoutService: capturedGroupWorkoutService,
                 activityFeedService: capturedActivityFeedService
@@ -255,7 +248,6 @@ class DependencyContainer: ObservableObject {
         messageProvider: MessageProviding? = nil,
         workoutKudosService: WorkoutKudosServicing? = nil,
         apnsManager: APNSManaging? = nil,
-        workoutCommentsService: WorkoutCommentsServicing? = nil,
         groupWorkoutService: GroupWorkoutServicing? = nil,
         workoutChallengesService: WorkoutChallengesServicing? = nil,
         subscriptionManager: CloudKitSubscriptionManaging? = nil,
@@ -323,12 +315,6 @@ class DependencyContainer: ObservableObject {
             self.apnsManager = tempAPNSManager
         }
 
-        self.workoutCommentsService = workoutCommentsService ?? WorkoutCommentsService(
-            cloudKitManager: self.cloudKitManager,
-            userProfileService: self.userProfileService,
-            notificationManager: self.notificationManager,
-            rateLimiter: self.rateLimitingService
-        )
 
         self.groupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
             cloudKitManager: self.cloudKitManager,
@@ -368,7 +354,7 @@ class DependencyContainer: ObservableObject {
             let capturedSocialFollowingService = self.socialFollowingService
             let capturedUserProfileService = self.userProfileService
             let capturedWorkoutKudosService = self.workoutKudosService
-            let capturedWorkoutCommentsService = self.workoutCommentsService
+            let capturedActivityCommentsService = self.activityCommentsService
             let capturedWorkoutChallengesService = self.workoutChallengesService
             let capturedGroupWorkoutService = self.groupWorkoutService
             let capturedActivityFeedService = self.activityFeedService
@@ -380,7 +366,7 @@ class DependencyContainer: ObservableObject {
                     socialFollowingService: capturedSocialFollowingService,
                     userProfileService: capturedUserProfileService,
                     workoutKudosService: capturedWorkoutKudosService,
-                    workoutCommentsService: capturedWorkoutCommentsService,
+                    activityCommentsService: capturedActivityCommentsService,
                     workoutChallengesService: capturedWorkoutChallengesService,
                     groupWorkoutService: capturedGroupWorkoutService,
                     activityFeedService: capturedActivityFeedService

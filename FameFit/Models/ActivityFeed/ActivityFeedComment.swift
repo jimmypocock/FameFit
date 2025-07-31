@@ -97,7 +97,7 @@ extension ActivityFeedComment {
 
 // MARK: - Comment with User Info
 
-struct CommentWithUser: Identifiable {
+struct ActivityFeedCommentWithUser: Identifiable {
     var comment: ActivityFeedComment
     let user: UserProfile
     
@@ -107,8 +107,8 @@ struct CommentWithUser: Identifiable {
 // MARK: - Comment Thread
 
 struct CommentThread {
-    let parentComment: CommentWithUser
-    var replies: [CommentWithUser]
+    let parentComment: ActivityFeedCommentWithUser
+    var replies: [ActivityFeedCommentWithUser]
     
     var totalComments: Int {
         1 + replies.count

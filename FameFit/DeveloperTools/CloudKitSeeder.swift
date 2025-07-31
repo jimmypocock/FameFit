@@ -547,8 +547,8 @@ final class CloudKitSeeder {
         return baseHeartRate + fitnessAdjustment + Double.random(in: -10...10)
     }
     
-    private func createActivityFeed(for persona: TestAccountPersona, userID: String) -> [ActivityFeedItem] {
-        var activities: [ActivityFeedItem] = []
+    private func createActivityFeed(for persona: TestAccountPersona, userID: String) -> [ActivityFeedRecord] {
+        var activities: [ActivityFeedRecord] = []
         
         // Recent workout activities
         let recentWorkouts = createWorkoutHistory(for: persona).suffix(5)
@@ -565,7 +565,7 @@ final class CloudKitSeeder {
             )
             
             let contentData = try! JSONEncoder().encode(content)
-            let activity = ActivityFeedItem(
+            let activity = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "workout",
@@ -590,7 +590,7 @@ final class CloudKitSeeder {
             )
             
             let contentData = try! JSONEncoder().encode(achievementContent)
-            let achievement = ActivityFeedItem(
+            let achievement = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "achievement",

@@ -105,8 +105,8 @@ extension XPTransaction {
     }
     
     func toCKRecord() -> CKRecord {
-        let record = CKRecord(recordType: Self.recordType)
-        record.recordID = CKRecord.ID(recordName: id.uuidString)
+        let recordID = CKRecord.ID(recordName: id.uuidString)
+        let record = CKRecord(recordType: Self.recordType, recordID: recordID)
         
         record["userRecordID"] = userRecordID
         record["workoutRecordID"] = workoutRecordID

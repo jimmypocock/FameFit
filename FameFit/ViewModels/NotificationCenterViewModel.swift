@@ -59,7 +59,7 @@ final class NotificationCenterViewModel: ObservableObject {
 
     // MARK: - Filtering
 
-    func filteredNotifications(for tab: Int) -> [Notification] {
+    func filteredNotifications(for tab: Int) -> [FameFitNotification] {
         switch tab {
         case 1: // Unread
             notifications.filter { !$0.isRead }

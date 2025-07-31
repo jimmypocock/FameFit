@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NotificationRowView: View {
-    let notification: Notification
+    let notification: FameFitNotification
     let onTap: () -> Void
     let onAction: (NotificationAction) -> Void
 

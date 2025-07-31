@@ -21,90 +21,15 @@ struct NotificationCenterView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Tab selector
-                Picker("Filter", selection: $selectedTab) {
-                    Text("All").tag(0)
-                    Text("Unread").tag(1)
-                    Text("Social").tag(2)
-                    Text("Workouts").tag(3)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-
+                tabSelector
+                
                 // Notifications list with animations
-                if viewModel.isLoading, viewModel.notifications.isEmpty {
-                    loadingView
-                        .transition(.opacity)
-                } else if viewModel.filteredNotifications(for: selectedTab).isEmpty {
-                    emptyStateView
-                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(viewModel.filteredNotifications(for: selectedTab)) { notification in
-                                NotificationRowView(
-                                    notification: notification,
-                                    onTap: {
-                                        hapticFeedback(.light)
-                                        viewModel.handleNotificationTap(notification)
-                                    },
-                                    onAction: { action in
-                                        hapticFeedback(.medium)
-                                        handleNotificationAction(notification: notification, action: action)
-                                    }
-                                )
-                                .onAppear {
-                                    if !notification.isRead {
-                                        viewModel.markAsRead(notification.id)
-                                    }
-                                }
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .top).combined(with: .opacity),
-                                    removal: .move(edge: .trailing).combined(with: .opacity)
-                                ))
-
-                                if notification.id != viewModel.filteredNotifications(for: selectedTab).last?.id {
-                                    Divider()
-                                        .padding(.leading, 60)
-                                }
-                            }
-                        }
-                        .padding(.bottom, 20)
-                        .refreshable {
-                            await refreshNotifications()
-                        }
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                }
+                notificationContent
             }
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("Mark All Read") {
-                            hapticFeedback(.heavy)
-                            viewModel.markAllAsRead()
-                        }
-
-                        Button("Settings") {
-                            showingSettings = true
-                        }
-
-                        Button("Clear All", role: .destructive) {
-                            hapticFeedback(.heavy)
-                            viewModel.clearAllNotifications()
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                }
+                toolbarContent
             }
             .animation(.easeInOut(duration: 0.3), value: selectedTab)
             .animation(.easeInOut(duration: 0.3), value: viewModel.notifications.count)
@@ -119,6 +44,99 @@ struct NotificationCenterView: View {
         }
         .task {
             viewModel.configure(notificationStore: container.notificationStore)
+        }
+    }
+    
+    private var tabSelector: some View {
+        Picker("Filter", selection: $selectedTab) {
+            Text("All").tag(0)
+            Text("Unread").tag(1)
+            Text("Social").tag(2)
+            Text("Workouts").tag(3)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+    
+    @ViewBuilder
+    private var notificationContent: some View {
+        if viewModel.isLoading, viewModel.notifications.isEmpty {
+            loadingView
+                .transition(.opacity)
+        } else if viewModel.filteredNotifications(for: selectedTab).isEmpty {
+            emptyStateView
+                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+        } else {
+            notificationsList
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
+    }
+    
+    private var notificationsList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(viewModel.filteredNotifications(for: selectedTab)) { notification in
+                    NotificationRowView(
+                        notification: notification,
+                        onTap: {
+                            hapticFeedback(.light)
+                            viewModel.handleNotificationTap(notification)
+                        },
+                        onAction: { action in
+                            hapticFeedback(.medium)
+                            handleNotificationAction(notification: notification, action: action)
+                        }
+                    )
+                    .onAppear {
+                        if !notification.isRead {
+                            viewModel.markAsRead(notification.id)
+                        }
+                    }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
+                    
+                    if notification.id != viewModel.filteredNotifications(for: selectedTab).last?.id {
+                        Divider()
+                            .padding(.leading, 60)
+                    }
+                }
+            }
+            .padding(.bottom, 20)
+            .refreshable {
+                await refreshNotifications()
+            }
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button("Close") {
+                dismiss()
+            }
+        }
+        
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Menu {
+                Button("Mark All Read") {
+                    hapticFeedback(.heavy)
+                    viewModel.markAllAsRead()
+                }
+                
+                Button("Settings") {
+                    showingSettings = true
+                }
+                
+                Button("Clear All", role: .destructive) {
+                    hapticFeedback(.heavy)
+                    viewModel.clearAllNotifications()
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
         }
     }
 
@@ -208,7 +226,7 @@ struct NotificationCenterView: View {
 
     // MARK: - Helper Methods
 
-    private func handleNotificationAction(notification: Notification, action: NotificationAction) {
+    private func handleNotificationAction(notification: FameFitNotification, action: NotificationAction) {
         viewModel.handleNotificationAction(notification, action: action)
     }
 

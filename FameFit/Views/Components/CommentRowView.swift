@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CommentRowView: View {
-    let commentWithUser: CommentWithUser
+    let commentWithUser: ActivityFeedCommentWithUser
     let currentUserId: String?
     let onReply: (String) -> Void
     let onEdit: (ActivityFeedComment) -> Void
@@ -188,7 +188,7 @@ struct CommentRowView: View {
         VStack(spacing: 0) {
             // Parent comment
             CommentRowView(
-                commentWithUser: CommentWithUser(
+                commentWithUser: ActivityFeedCommentWithUser(
                     comment: ActivityFeedComment(
                         id: "1",
                         activityFeedId: "feed1",
@@ -229,7 +229,7 @@ struct CommentRowView: View {
 
             // Reply comment
             CommentRowView(
-                commentWithUser: CommentWithUser(
+                commentWithUser: ActivityFeedCommentWithUser(
                     comment: ActivityFeedComment(
                         id: "2",
                         activityFeedId: "feed1",

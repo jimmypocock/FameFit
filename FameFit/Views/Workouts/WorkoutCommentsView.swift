@@ -26,7 +26,7 @@ struct WorkoutCommentsView: View {
                     workoutId: workout.id.uuidString,
                     workoutOwnerId: workoutOwner?.id ?? "",
                     currentUser: currentUser,
-                    commentsService: container.workoutCommentsService
+                    commentsService: container.activityCommentsService
                 )
             }
             .navigationTitle("Comments")

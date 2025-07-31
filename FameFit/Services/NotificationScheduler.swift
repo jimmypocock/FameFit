@@ -11,7 +11,7 @@ import UserNotifications
 // MARK: - Notification Scheduler Protocol
 
 protocol NotificationScheduling {
-    func scheduleFameFitNotification(_ notification: FameFitNotificationRequest) async throws
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws
     func cancelFameFitNotification(withId id: String) async
     func cancelAllNotifications() async
     func getPendingNotifications() async -> [NotificationRequest]
@@ -86,7 +86,7 @@ final class NotificationScheduler: NotificationScheduling {
 
     // MARK: - Public Methods
 
-    func scheduleFameFitNotification(_ notification: FameFitNotificationRequest) async throws {
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws {
         // Check if notifications are enabled
         guard preferences.isEnabled(for: notification.type) else {
             print("Notifications disabled for type: \(notification.type)")
@@ -151,7 +151,7 @@ final class NotificationScheduler: NotificationScheduling {
 
     // MARK: - Private Methods
 
-    private func shouldDelayForQuietHours(_ notification: FameFitNotificationRequest) -> Bool {
+    private func shouldDelayForQuietHours(_ notification: NotificationRequest) -> Bool {
         guard preferences.quietHoursEnabled else { return false }
 
         // Immediate priority notifications bypass quiet hours if configured
@@ -206,7 +206,7 @@ final class NotificationScheduler: NotificationScheduling {
         return recentNotifications.count >= preferences.maxNotificationsPerHour
     }
 
-    private func shouldBatch(_ notification: FameFitNotificationRequest) -> Bool {
+    private func shouldBatch(_ notification: NotificationRequest) -> Bool {
         // Immediate priority always goes through
         if notification.priority == .immediate {
             return false
@@ -216,7 +216,7 @@ final class NotificationScheduler: NotificationScheduling {
         return preferences.shouldBatch(for: notification.type)
     }
 
-    private func addToBatch(_ notification: FameFitNotificationRequest) {
+    private func addToBatch(_ notification: NotificationRequest) {
         batchingLock.lock()
         defer { batchingLock.unlock() }
 
@@ -301,7 +301,7 @@ final class NotificationScheduler: NotificationScheduling {
         )
     }
 
-    private func deliverFameFitNotification(_ notification: FameFitNotificationRequest) async throws {
+    private func deliverFameFitNotification(_ notification: NotificationRequest) async throws {
         // Record for rate limiting
         await withCheckedContinuation { continuation in
             recentNotificationsLock.lock()
@@ -329,7 +329,7 @@ final class NotificationScheduler: NotificationScheduling {
         }
     }
 
-    private func scheduleLocalFameFitNotification(_ notification: FameFitNotificationRequest) async throws {
+    private func scheduleLocalFameFitNotification(_ notification: NotificationRequest) async throws {
         let content = UNMutableNotificationContent()
         content.title = notification.title
         content.body = notification.body
@@ -386,7 +386,7 @@ final class MockNotificationScheduler: NotificationScheduling {
     var preferences = NotificationPreferences()
     var shouldFailScheduling = false
 
-    func scheduleFameFitNotification(_ notification: FameFitNotificationRequest) async throws {
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws {
         if shouldFailScheduling {
             throw NSError(domain: "MockError", code: 1, userInfo: nil)
         }

@@ -15,14 +15,14 @@ struct CommentsListView: View {
     @StateObject private var viewModel: CommentsViewModel
     @State private var showingInput = false
     @State private var replyToCommentId: String?
-    @State private var editingComment: WorkoutComment?
+    @State private var editingComment: ActivityFeedComment?
     @State private var searchText = ""
 
     init(
         workoutId: String,
         workoutOwnerId: String,
         currentUser: UserProfile?,
-        commentsService: WorkoutCommentsServicing
+        commentsService: ActivityFeedCommentsServicing
     ) {
         self.workoutId = workoutId
         self.workoutOwnerId = workoutOwnerId
@@ -190,7 +190,7 @@ struct CommentsListView: View {
             List {
                 ForEach(filteredComments, id: \.comment.id) { commentWithUser in
                     GenericCommentRowView(
-                        commentWithUser: AnyCommentWithUser(commentWithUser),
+                        commentWithUser: AnyActivityFeedCommentWithUser(commentWithUser),
                         currentUserId: currentUser?.id,
                         onReply: { commentId in
                             replyToCommentId = commentId
@@ -199,11 +199,13 @@ struct CommentsListView: View {
                             }
                         },
                         onEdit: { comment in
-                            editingComment = WorkoutComment(
+                            editingComment = ActivityFeedComment(
                                 id: comment.id,
-                                workoutId: workoutId,
+                                activityFeedId: workoutId, // Using workoutId as activityFeedId
+                                sourceType: "workout",
+                                sourceRecordId: workoutId,
                                 userId: comment.userId,
-                                workoutOwnerId: workoutOwnerId,
+                                activityOwnerId: workoutOwnerId,
                                 content: comment.content,
                                 createdTimestamp: comment.createdTimestamp,
                                 modifiedTimestamp: comment.modifiedTimestamp,
@@ -319,7 +321,7 @@ struct CommentsListView: View {
 
     // MARK: - Computed Properties
 
-    private var filteredComments: [WorkoutCommentWithUser] {
+    private var filteredComments: [ActivityFeedCommentWithUser] {
         if searchText.isEmpty {
             viewModel.comments
         } else {
@@ -365,7 +367,7 @@ struct CommentsListView: View {
 
 @MainActor
 class CommentsViewModel: ObservableObject {
-    @Published var comments: [WorkoutCommentWithUser] = []
+    @Published var comments: [ActivityFeedCommentWithUser] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var totalComments = 0
@@ -373,7 +375,7 @@ class CommentsViewModel: ObservableObject {
     @Published var sortOrder: CommentSortOrder = .newest
 
     private let workoutId: String
-    private let commentsService: WorkoutCommentsServicing
+    private let commentsService: ActivityFeedCommentsServicing
     private let pageSize = 20
 
     enum CommentSortOrder: CaseIterable {
@@ -388,7 +390,7 @@ class CommentsViewModel: ObservableObject {
         }
     }
 
-    init(workoutId: String, commentsService: WorkoutCommentsServicing) {
+    init(workoutId: String, commentsService: ActivityFeedCommentsServicing) {
         self.workoutId = workoutId
         self.commentsService = commentsService
     }
@@ -411,8 +413,10 @@ class CommentsViewModel: ObservableObject {
     func postComment(content: String, parentCommentId: String?) async {
         do {
             _ = try await commentsService.postComment(
-                workoutId: workoutId,
-                workoutOwnerId: "", // Will be handled by service
+                activityFeedId: workoutId, // Using workoutId as activityFeedId
+                sourceType: "workout",
+                sourceRecordId: workoutId,
+                activityOwnerId: "", // Will be handled by service
                 content: content,
                 parentCommentId: parentCommentId
             )
@@ -476,8 +480,9 @@ class CommentsViewModel: ObservableObject {
         }
 
         do {
-            let fetchedComments = try await commentsService.fetchComments(
-                for: workoutId,
+            let fetchedComments = try await commentsService.fetchCommentsBySource(
+                sourceType: "workout",
+                sourceRecordId: workoutId,
                 limit: pageSize
             )
 
@@ -490,7 +495,7 @@ class CommentsViewModel: ObservableObject {
             hasMoreComments = fetchedComments.count == pageSize
 
             // Get total count
-            totalComments = try await commentsService.fetchCommentCount(for: workoutId)
+            totalComments = try await commentsService.fetchCommentCountBySource(sourceType: "workout", sourceRecordId: workoutId)
 
             sortComments()
         } catch {
@@ -539,38 +544,53 @@ class CommentsViewModel: ObservableObject {
 
 // MARK: - Preview Mock
 
-private class PreviewMockCommentsService: WorkoutCommentsServicing {
-    func fetchComments(for _: String, limit _: Int) async throws -> [WorkoutCommentWithUser] {
+private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
+    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
+        []
+    }
+    
+    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         []
     }
 
     func postComment(
-        workoutId: String,
-        workoutOwnerId: String,
+        activityFeedId: String,
+        sourceType: String,
+        sourceRecordId: String,
+        activityOwnerId: String,
         content: String,
-        parentCommentId _: String?
-    ) async throws -> WorkoutComment {
-        WorkoutComment(
+        parentCommentId: String?
+    ) async throws -> ActivityFeedComment {
+        ActivityFeedComment(
             id: UUID().uuidString,
-            workoutId: workoutId,
+            activityFeedId: activityFeedId,
+            sourceType: sourceType,
+            sourceRecordId: sourceRecordId,
             userId: "current",
-            workoutOwnerId: workoutOwnerId,
+            activityOwnerId: activityOwnerId,
             content: content,
             createdTimestamp: Date(),
-            modifiedTimestamp: Date()
+            modifiedTimestamp: Date(),
+            parentCommentId: parentCommentId,
+            isEdited: false,
+            likeCount: 0
         )
     }
 
-    func updateComment(commentId: String, newContent: String) async throws -> WorkoutComment {
-        WorkoutComment(
+    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
+        ActivityFeedComment(
             id: commentId,
-            workoutId: "workout",
+            activityFeedId: "feed1",
+            sourceType: "workout",
+            sourceRecordId: "workout1",
             userId: "current",
-            workoutOwnerId: "owner",
+            activityOwnerId: "owner",
             content: newContent,
             createdTimestamp: Date(),
             modifiedTimestamp: Date(),
-            isEdited: true
+            parentCommentId: nil,
+            isEdited: true,
+            likeCount: 0
         )
     }
 
@@ -587,6 +607,10 @@ private class PreviewMockCommentsService: WorkoutCommentsServicing {
     }
 
     func fetchCommentCount(for _: String) async throws -> Int {
+        0
+    }
+    
+    func fetchCommentCountBySource(sourceType: String, sourceRecordId: String) async throws -> Int {
         0
     }
 }

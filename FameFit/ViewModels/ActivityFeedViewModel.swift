@@ -267,7 +267,7 @@ final class ActivityFeedViewModel: ObservableObject {
         lastFetchedDate = sortedItems.last?.timestamp
     }
 
-    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedItem]) async -> [ActivityFeedItem] {
+    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedRecord]) async -> [ActivityFeedItem] {
         var feedItems: [ActivityFeedItem] = []
 
         for activityItem in activityItems {

@@ -79,7 +79,7 @@ struct SocialFeedView: View {
                 profileService: container.userProfileService,
                 activityFeedService: container.activityFeedService,
                 kudosService: container.workoutKudosService,
-                commentsService: container.workoutCommentsService,
+                commentsService: container.activityCommentsService,
                 currentUserId: currentUserId ?? ""
             )
             await viewModel.loadInitialFeed()

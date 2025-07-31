@@ -11,7 +11,7 @@ struct CommentInputView: View {
     let workoutId: String
     let workoutOwnerId: String
     let parentCommentId: String?
-    let editingComment: WorkoutComment?
+    let editingComment: ActivityFeedComment?
     let currentUser: UserProfile?
     let onSubmit: (String) -> Void
     let onCancel: () -> Void
@@ -256,8 +256,8 @@ struct CommentInputView: View {
         CommentInputView(
             workoutId: "workout1",
             workoutOwnerId: "owner1",
-            parentCommentId: nil,
-            editingComment: nil,
+            parentCommentId: nil as String?,
+            editingComment: nil as ActivityFeedComment?,
             currentUser: UserProfile(
                 id: "current",
                 userID: "current",

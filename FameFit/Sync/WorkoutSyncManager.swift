@@ -225,7 +225,7 @@ class WorkoutSyncManager: ObservableObject {
         FameFitLogger.info("📅 App install date: \(appInstallDate)", category: FameFitLogger.workout)
         FameFitLogger.info("📅 Current date: \(Date())", category: FameFitLogger.workout)
 
-        var workouts: [Workout] = []
+        var processedWorkouts: [Workout] = []
 
         for workout in workouts {
             // Skip workouts before app install
@@ -258,8 +258,9 @@ class WorkoutSyncManager: ObservableObject {
             )
 
             // Calculate XP for this workout
+            let workoutModel = Workout(from: workout, followersEarned: 0, xpEarned: 0)
             let calculatedXP = XPCalculator.calculateXP(
-                for: Workout(from: workout, followersEarned: 0, xpEarned: 0),
+                for: workoutModel,
                 currentStreak: cloudKitManager?.currentStreak ?? 0
             )
 
@@ -279,7 +280,7 @@ class WorkoutSyncManager: ObservableObject {
 
             // Create workout history item with calculated XP
             let historyItem = Workout(from: workout, followersEarned: totalXP, xpEarned: totalXP)
-            workouts.append(historyItem)
+            processedWorkouts.append(historyItem)
 
             // For initial sync, we might want to batch process
             // For incremental updates, process immediately
@@ -307,11 +308,11 @@ class WorkoutSyncManager: ObservableObject {
         // For initial sync, we might want to calculate total followers differently
         if isInitialSync, !workouts.isEmpty {
             FameFitLogger.info(
-                "Initial sync complete. Found \(workouts.count) workouts since install",
+                "Initial sync complete. Found \(processedWorkouts.count) workouts since install",
                 category: FameFitLogger.workout
             )
             // Batch save workout history for initial sync
-            for historyItem in workouts {
+            for historyItem in processedWorkouts {
                 cloudKitManager?.saveWorkout(historyItem)
             }
         }

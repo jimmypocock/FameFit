@@ -70,7 +70,7 @@ struct NotificationsListView: View {
 }
 
 struct NotificationRow: View {
-    let notification: Notification
+    let notification: FameFitNotification
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

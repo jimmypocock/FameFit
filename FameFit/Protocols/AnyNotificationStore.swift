@@ -17,7 +17,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     var notificationsPublisher: Published<[FameFitNotification]>.Publisher { $notifications }
     var unreadCountPublisher: Published<Int>.Publisher { $unreadCount }
 
-    private let _addNotification: (Notification) -> Void
+    private let _addNotification: (FameFitNotification) -> Void
     private let _markAsRead: (String) -> Void
     private let _markAllAsRead: () -> Void
     private let _clearAll: () -> Void
@@ -83,8 +83,8 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
             .store(in: &cancellables)
     }
 
-    func addFameFitNotification(_ item: Notification) {
-        _addFameFitNotification(item)
+    func addFameFitNotification(_ item: FameFitNotification) {
+        _addNotification(item)
     }
 
     func markAsRead(_ id: String) {
@@ -100,7 +100,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     }
 
     func deleteFameFitNotification(at offsets: IndexSet) {
-        _deleteFameFitNotification(offsets)
+        _deleteNotification(offsets)
     }
 
     func loadNotifications() {

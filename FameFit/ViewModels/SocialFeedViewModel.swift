@@ -21,7 +21,7 @@ final class SocialFeedViewModel: ObservableObject {
     private var profileService: UserProfileServicing?
     private var activityFeedService: ActivityFeedServicing?
     private var kudosService: WorkoutKudosServicing?
-    private var commentsService: WorkoutCommentsServicing?
+    private var commentsService: ActivityFeedCommentsServicing?
     private var currentUserId = ""
     private var followingUsers: Set<String> = []
     private var lastFetchedDate: Date?
@@ -69,7 +69,7 @@ final class SocialFeedViewModel: ObservableObject {
         profileService: UserProfileServicing,
         activityFeedService: ActivityFeedServicing,
         kudosService: WorkoutKudosServicing,
-        commentsService: WorkoutCommentsServicing,
+        commentsService: ActivityFeedCommentsServicing,
         currentUserId: String
     ) {
         self.socialService = socialService
@@ -267,7 +267,7 @@ final class SocialFeedViewModel: ObservableObject {
         lastFetchedDate = sortedItems.last?.timestamp
     }
 
-    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedItem]) async -> [ActivityFeedItem] {
+    private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedRecord]) async -> [ActivityFeedItem] {
         var feedItems: [ActivityFeedItem] = []
 
         for activityItem in activityItems {

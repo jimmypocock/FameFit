@@ -11,7 +11,7 @@ import Foundation
 
 extension ActivityFeedComment: Comment {}
 
-extension CommentWithUser: CommentWithUserProtocol {
+extension ActivityFeedCommentWithUser: ActivityFeedCommentWithUserProtocol {
     typealias CommentType = ActivityFeedComment
 }
 
@@ -19,7 +19,7 @@ extension CommentWithUser: CommentWithUserProtocol {
 
 class ActivityFeedCommentsAdapter: CommentServicing {
     typealias CommentType = ActivityFeedComment
-    typealias CommentWithUserType = CommentWithUser
+    typealias ActivityFeedCommentWithUserType = ActivityFeedCommentWithUser
     
     private let activityCommentsService: ActivityFeedCommentsServicing
     
@@ -27,7 +27,7 @@ class ActivityFeedCommentsAdapter: CommentServicing {
         self.activityCommentsService = activityCommentsService
     }
     
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchComments(for resourceId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         // For activity comments, resourceId could be either activityFeedId or sourceRecordId
         // Default to using it as activityFeedId
         try await activityCommentsService.fetchComments(for: resourceId, limit: limit)
@@ -74,7 +74,7 @@ class ActivityFeedCommentsAdapter: CommentServicing {
     }
     
     // Additional method to fetch by source when needed
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         try await activityCommentsService.fetchCommentsBySource(
             sourceType: sourceType,
             sourceRecordId: sourceRecordId,

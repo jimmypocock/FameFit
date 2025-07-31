@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GenericCommentRowView: View {
-    let commentWithUser: AnyCommentWithUser
+    let commentWithUser: AnyActivityFeedCommentWithUser
     let currentUserId: String?
     let onReply: (String) -> Void
     let onEdit: (AnyComment) -> Void

@@ -318,7 +318,7 @@ struct GenericCommentsListView: View {
     
     // MARK: - Computed Properties
     
-    private var filteredComments: [AnyCommentWithUser] {
+    private var filteredComments: [AnyActivityFeedCommentWithUser] {
         if searchText.isEmpty {
             viewModel.comments
         } else {
@@ -368,7 +368,7 @@ struct GenericCommentsListView: View {
 
 @MainActor
 class GenericCommentsViewModel: ObservableObject {
-    @Published var comments: [AnyCommentWithUser] = []
+    @Published var comments: [AnyActivityFeedCommentWithUser] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var totalComments = 0
@@ -439,8 +439,8 @@ class GenericCommentsViewModel: ObservableObject {
             if let index = comments.firstIndex(where: { $0.comment.id == commentId }) {
                 // Simply update the content and metadata of the existing comment
                 let existingUser = comments[index].user
-                comments[index] = AnyCommentWithUser(
-                    CommentWithUser(comment: ActivityFeedComment(
+                comments[index] = AnyActivityFeedCommentWithUser(
+                    ActivityFeedCommentWithUser(comment: ActivityFeedComment(
                         id: updatedComment.id,
                         activityFeedId: "",
                         sourceType: "",
