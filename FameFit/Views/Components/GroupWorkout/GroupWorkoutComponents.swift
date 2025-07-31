@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Status Indicator
 
 struct GroupWorkoutStatusIndicator: View {
-    let status: GroupWorkout.Status
+    let status: GroupWorkoutStatus
     @Binding var isAnimating: Bool
 
     var body: some View {

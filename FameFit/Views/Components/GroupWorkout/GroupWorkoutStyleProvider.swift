@@ -10,7 +10,7 @@ import SwiftUI
 enum GroupWorkoutStyleProvider {
     // MARK: - Status Colors
 
-    static func statusColor(for status: GroupWorkout.Status) -> Color {
+    static func statusColor(for status: GroupWorkoutStatus) -> Color {
         switch status {
         case .scheduled:
             .blue
@@ -25,7 +25,7 @@ enum GroupWorkoutStyleProvider {
 
     // MARK: - Background Colors
 
-    static func backgroundColor(for status: GroupWorkout.Status) -> Color {
+    static func backgroundColor(for status: GroupWorkoutStatus) -> Color {
         switch status {
         case .active:
             Color.green.opacity(0.05)
@@ -40,7 +40,7 @@ enum GroupWorkoutStyleProvider {
 
     // MARK: - Shadow Properties
 
-    static func shadowColor(for status: GroupWorkout.Status) -> Color {
+    static func shadowColor(for status: GroupWorkoutStatus) -> Color {
         switch status {
         case .active:
             .green.opacity(0.2)
@@ -51,17 +51,17 @@ enum GroupWorkoutStyleProvider {
         }
     }
 
-    static func shadowRadius(for status: GroupWorkout.Status) -> CGFloat {
+    static func shadowRadius(for status: GroupWorkoutStatus) -> CGFloat {
         status == .active ? 8 : 4
     }
 
-    static func shadowOffset(for status: GroupWorkout.Status) -> CGFloat {
+    static func shadowOffset(for status: GroupWorkoutStatus) -> CGFloat {
         status == .active ? 4 : 2
     }
 
     // MARK: - Border Properties
 
-    static func borderColor(for status: GroupWorkout.Status) -> Color {
+    static func borderColor(for status: GroupWorkoutStatus) -> Color {
         switch status {
         case .active:
             .green.opacity(0.3)
@@ -70,13 +70,13 @@ enum GroupWorkoutStyleProvider {
         }
     }
 
-    static func borderWidth(for status: GroupWorkout.Status) -> CGFloat {
+    static func borderWidth(for status: GroupWorkoutStatus) -> CGFloat {
         status == .active ? 1 : 0
     }
 
     // MARK: - Time Display
 
-    static func timeDisplayText(for status: GroupWorkout.Status) -> String {
+    static func timeDisplayText(for status: GroupWorkoutStatus) -> String {
         switch status {
         case .scheduled:
             "Starts"
@@ -89,7 +89,7 @@ enum GroupWorkoutStyleProvider {
         }
     }
 
-    static func timeDisplayColor(for status: GroupWorkout.Status) -> Color {
+    static func timeDisplayColor(for status: GroupWorkoutStatus) -> Color {
         switch status {
         case .scheduled:
             .blue

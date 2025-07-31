@@ -74,7 +74,7 @@ struct FeedContent: Codable {
 
 // MARK: - Feed Item Type (for UI display)
 
-enum FeedItemType: String {
+enum FeedItemType: String, Codable {
     case workout
     case achievement  
     case levelUp = "level_up"
@@ -114,7 +114,7 @@ enum FeedItemType: String {
 // MARK: - Feed Item (for UI display)
 // This wraps ActivityFeedItem with user profile data for display
 
-struct FeedItem: Identifiable {
+struct FeedItem: Identifiable, Codable {
     let id: String
     let userID: String
     let userProfile: UserProfile?
