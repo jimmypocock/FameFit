@@ -45,6 +45,16 @@ struct EnhancedFeedItemView: View {
                     item: item,
                     onProfileTap: onProfileTap
                 )
+            case .challenge, .groupWorkout:
+                // TODO: Add specific cards for challenges and group workouts
+                EnhancedWorkoutCard(
+                    item: item,
+                    onProfileTap: onProfileTap,
+                    onKudosTap: onKudosTap,
+                    onCommentsTap: onCommentsTap,
+                    showKudosAnimation: $showKudosAnimation,
+                    kudosScale: $kudosScale
+                )
             }
         }
         .background(Color(.systemBackground))
@@ -120,7 +130,7 @@ struct EnhancedWorkoutCard: View {
 
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
-                                Text(item.userProfile?.displayName ?? "Unknown")
+                                Text(item.userProfile?.username ?? "Unknown")
                                     .font(.body)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
@@ -166,7 +176,7 @@ struct EnhancedWorkoutCard: View {
 
                         if let calories = item.content.calories {
                             CircularProgressView(
-                                progress: min(calories / 500, 1.0), // 500 cal max
+                                progress: min(Double(calories) / 500, 1.0), // 500 cal max
                                 value: "\(Int(calories))",
                                 label: "Cal",
                                 color: .white,
@@ -520,7 +530,7 @@ struct EnhancedAchievementCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.displayName ?? "Unknown")
+                    Text(item.userProfile?.username ?? "Unknown")
                         .font(.body)
                         .fontWeight(.medium)
 
@@ -582,7 +592,7 @@ struct EnhancedLevelUpCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.displayName ?? "Unknown")
+                    Text(item.userProfile?.username ?? "Unknown")
                         .font(.body)
                         .fontWeight(.medium)
 
@@ -648,7 +658,7 @@ struct EnhancedMilestoneCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.displayName ?? "Unknown")
+                    Text(item.userProfile?.username ?? "Unknown")
                         .font(.body)
                         .fontWeight(.medium)
 

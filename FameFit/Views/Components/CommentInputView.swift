@@ -42,7 +42,7 @@ struct CommentInputView: View {
                             Circle()
                                 .fill(Color.blue.opacity(0.2))
                                 .overlay(
-                                    Text(user.displayName.prefix(1))
+                                    Text(user.username.prefix(1))
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.blue)
                                 )
@@ -262,7 +262,6 @@ struct CommentInputView: View {
                 id: "current",
                 userID: "current",
                 username: "currentuser",
-                displayName: "Current User",
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
@@ -288,7 +287,6 @@ struct CommentInputView: View {
                 id: "current",
                 userID: "current",
                 username: "currentuser",
-                displayName: "Current User",
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,

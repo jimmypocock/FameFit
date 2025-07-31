@@ -8,7 +8,7 @@
 import CloudKit
 import Foundation
 
-struct WorkoutComment: Identifiable, Codable, Equatable {
+struct WorkoutComment: Identifiable, Codable, Equatable, Comment {
     let id: String // CKRecord.ID as String
     let workoutId: String // Reference to workout activity
     let userId: String // User who posted the comment
@@ -82,7 +82,8 @@ extension WorkoutComment {
 
 // MARK: - Comment with User Info
 
-struct CommentWithUser: Identifiable {
+struct WorkoutCommentWithUser: Identifiable, CommentWithUserProtocol {
+    typealias CommentType = WorkoutComment
     var comment: WorkoutComment
     let user: UserProfile
 
@@ -91,9 +92,9 @@ struct CommentWithUser: Identifiable {
 
 // MARK: - Comment Thread
 
-struct CommentThread {
-    let parentComment: CommentWithUser
-    var replies: [CommentWithUser]
+struct WorkoutCommentThread {
+    let parentComment: WorkoutCommentWithUser
+    var replies: [WorkoutCommentWithUser]
 
     var totalComments: Int {
         1 + replies.count

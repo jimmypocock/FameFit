@@ -145,7 +145,7 @@ struct CommentsListView: View {
                                     Circle()
                                         .fill(Color.blue.opacity(0.2))
                                         .overlay(
-                                            Text(user.displayName.prefix(1))
+                                            Text(user.username.prefix(1))
                                                 .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(.blue)
                                         )
@@ -189,8 +189,8 @@ struct CommentsListView: View {
         ScrollViewReader { proxy in
             List {
                 ForEach(filteredComments, id: \.comment.id) { commentWithUser in
-                    CommentRowView(
-                        commentWithUser: commentWithUser,
+                    GenericCommentRowView(
+                        commentWithUser: AnyCommentWithUser(commentWithUser),
                         currentUserId: currentUser?.id,
                         onReply: { commentId in
                             replyToCommentId = commentId
@@ -199,7 +199,18 @@ struct CommentsListView: View {
                             }
                         },
                         onEdit: { comment in
-                            editingComment = comment
+                            editingComment = WorkoutComment(
+                                id: comment.id,
+                                workoutId: workoutId,
+                                userId: comment.userId,
+                                workoutOwnerId: workoutOwnerId,
+                                content: comment.content,
+                                createdTimestamp: comment.createdTimestamp,
+                                modifiedTimestamp: comment.modifiedTimestamp,
+                                parentCommentId: comment.parentCommentId,
+                                isEdited: comment.isEdited,
+                                likeCount: comment.likeCount
+                            )
                         },
                         onDelete: { commentId in
                             Task {
@@ -308,13 +319,13 @@ struct CommentsListView: View {
 
     // MARK: - Computed Properties
 
-    private var filteredComments: [CommentWithUser] {
+    private var filteredComments: [WorkoutCommentWithUser] {
         if searchText.isEmpty {
             viewModel.comments
         } else {
             viewModel.comments.filter { commentWithUser in
                 commentWithUser.comment.content.localizedCaseInsensitiveContains(searchText) ||
-                    commentWithUser.user.displayName.localizedCaseInsensitiveContains(searchText) ||
+                    commentWithUser.user.username.localizedCaseInsensitiveContains(searchText) ||
                     commentWithUser.user.username.localizedCaseInsensitiveContains(searchText)
             }
         }
@@ -354,7 +365,7 @@ struct CommentsListView: View {
 
 @MainActor
 class CommentsViewModel: ObservableObject {
-    @Published var comments: [CommentWithUser] = []
+    @Published var comments: [WorkoutCommentWithUser] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var totalComments = 0
@@ -512,7 +523,6 @@ class CommentsViewModel: ObservableObject {
                 id: "current",
                 userID: "current",
                 username: "currentuser",
-                displayName: "Current User",
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
@@ -530,7 +540,7 @@ class CommentsViewModel: ObservableObject {
 // MARK: - Preview Mock
 
 private class PreviewMockCommentsService: WorkoutCommentsServicing {
-    func fetchComments(for _: String, limit _: Int) async throws -> [CommentWithUser] {
+    func fetchComments(for _: String, limit _: Int) async throws -> [WorkoutCommentWithUser] {
         []
     }
 

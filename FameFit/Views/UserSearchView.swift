@@ -344,7 +344,7 @@ struct UserSearchRow: View {
             // User info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(profile.displayName)
+                    Text(profile.username)
                         .font(.body)
                         .fontWeight(.medium)
 

@@ -383,7 +383,7 @@ class CloudKitSchemaManager {
                 let dummyParticipants = [
                     GroupWorkoutParticipant(
                         userId: "dummy1",
-                        displayName: "Dummy User",
+                        username: "DummyUser",
                         profileImageURL: nil
                     )
                 ]

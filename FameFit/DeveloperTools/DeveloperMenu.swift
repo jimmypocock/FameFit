@@ -13,287 +13,286 @@ struct DeveloperMenu: View {
     @State private var isLoading = false
     @State private var message = ""
     @State private var showPersonaPicker = false
+    @State private var showProfilePicker = false
     @State private var selectedPersona: TestAccountPersona?
-    @State private var currentUserID: String?
-    @State private var currentPersona: TestAccountPersona?
+    @State private var existingAccounts: [TestAccountPersona] = []
     @Environment(\.dismiss) var dismiss
     
     private let seeder = CloudKitSeeder()
     
     var body: some View {
-        menuContent
-            .task {
-                await loadCurrentUser()
-            }
-    }
-    
-    @ViewBuilder
-    private var menuContent: some View {
-        VStack(spacing: 20) {
-            Text("🛠 Developer Menu")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            if let currentUserID {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Header
                 VStack(spacing: 8) {
-                    Text("Current User")
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.blue)
+                    
+                    Text("Developer Tools")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
+                .padding(.top, 20)
+                
+                // Menu Options
+                VStack(spacing: 16) {
+                    // Setup Persona
+                    Button(action: setupPersona) {
+                        HStack {
+                            Image(systemName: "person.crop.circle.badge.plus")
+                                .font(.title3)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Setup Persona")
+                                    .font(.headline)
+                                Text("Update your account with test data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Create a Profile
+                    Button(action: createProfile) {
+                        HStack {
+                            Image(systemName: "person.badge.plus")
+                                .font(.title3)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Create a Profile")
+                                    .font(.headline)
+                                Text("Create a new test profile")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Clear Cache
+                    Button(action: clearCache) {
+                        HStack {
+                            Image(systemName: "trash")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.orange)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Clear Cache")
+                                    .font(.headline)
+                                Text("Clear all local cached data")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Reset Account
+                    Button(action: resetAccount) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.red)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Reset Account")
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                                Text("Delete all data and restart")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal)
+                
+                Spacer()
+                
+                // Status/Loading
+                if isLoading {
+                    ProgressView()
+                        .padding()
+                }
+                
+                if !message.isEmpty {
+                    Text(message)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(currentUserID)
-                        .font(.caption2)
-                        .monospaced()
-                    
-                    if let currentPersona {
-                        Label(currentPersona.displayName, systemImage: "person.fill")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-                }
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-            }
-            
-            VStack(spacing: 12) {
-                // Account Setup
-                Group {
-                    Button(action: registerAccount) {
-                        Label("Register This Account", systemImage: "person.badge.plus")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
-                    if currentPersona != nil {
-                        Button(action: setupProfile) {
-                            Label("Setup Profile", systemImage: "person.text.rectangle")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Button(action: setupSocialGraph) {
-                            Label("Setup Social Graph", systemImage: "person.2")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Button(action: seedWorkouts) {
-                            Label("Seed Workout History", systemImage: "figure.run")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Button(action: seedActivityFeed) {
-                            Label("Seed Activity Feed", systemImage: "newspaper")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                    }
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
                 
-                Divider()
-                
-                // Quick Actions
-                Group {
-                    Button(action: setupEverything) {
-                        Label("Setup Everything", systemImage: "wand.and.stars")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    
-                    Button(action: cleanupData) {
-                        Label("Clean All Data", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
+                // Close button
+                Button("Done") {
+                    dismiss()
                 }
-                
-                Divider()
-                
-                Button(action: showInstructions) {
-                    Label("Setup Instructions", systemImage: "questionmark.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .padding(.bottom)
             }
-            
-            if isLoading {
-                ProgressView()
-                    .padding()
-            }
-            
-            if !message.isEmpty {
-                Text(message)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding()
-            }
-            
-            Button("Close") {
-                dismiss()
-            }
-            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
         }
-        .padding()
-        .background(Color(uiColor: .systemBackground))
-        .cornerRadius(20)
-        .shadow(radius: 10)
-        .padding()
         .sheet(isPresented: $showPersonaPicker) {
-            PersonaPicker(selectedPersona: $selectedPersona)
+            PersonaSelectionView(title: "Select Persona", 
+                               subtitle: "Choose test data to apply to your account",
+                               onSelect: { persona in
+                                   applyPersonaToCurrentAccount(persona)
+                               })
         }
-        .onChange(of: selectedPersona) { oldValue, newValue in
-            if let persona = newValue {
-                currentPersona = persona
-                selectedPersona = nil
-                // Also reload from UserDefaults to ensure it's saved
-                reloadCurrentPersona()
-            }
+        .sheet(isPresented: $showProfilePicker) {
+            PersonaSelectionView(title: "Create New Profile",
+                               subtitle: "Choose a persona for the new profile",
+                               existingAccounts: existingAccounts,
+                               onSelect: { persona in
+                                   createNewProfile(with: persona)
+                               })
+        }
+        .task {
+            await loadExistingAccounts()
         }
     }
     
     // MARK: - Actions
     
-    private func loadCurrentUser() async {
-        do {
-            currentUserID = try await seeder.getCurrentUserID()
-            
-            // Check if this user has a persona
-            let registry = UserDefaults.standard.dictionary(forKey: "TestAccountRegistry") ?? [:]
-            for (personaRaw, storedID) in registry {
-                if storedID as? String == currentUserID,
-                   let persona = TestAccountPersona(rawValue: personaRaw) {
-                    currentPersona = persona
-                    break
-                }
-            }
-        } catch {
-            message = "Error loading user: \(error.localizedDescription)"
-        }
-    }
-    
-    private func reloadCurrentPersona() {
-        guard let currentUserID = currentUserID else { return }
-        
+    private func loadExistingAccounts() async {
         let registry = UserDefaults.standard.dictionary(forKey: "TestAccountRegistry") ?? [:]
-        for (personaRaw, storedID) in registry {
-            if storedID as? String == currentUserID,
-               let persona = TestAccountPersona(rawValue: personaRaw) {
-                currentPersona = persona
-                break
-            }
+        existingAccounts = registry.compactMap { key, _ in
+            TestAccountPersona(rawValue: key)
         }
     }
     
-    private func registerAccount() {
+    private func setupPersona() {
         showPersonaPicker = true
     }
     
-    private func setupProfile() {
+    private func createProfile() {
+        showProfilePicker = true
+    }
+    
+    private func clearCache() {
         Task {
             isLoading = true
-            message = ""
+            message = "Clearing cache..."
             
-            do {
-                try await seeder.setupCurrentUserProfile()
-                message = "✅ Profile created successfully"
-            } catch {
-                message = "❌ Error: \(error.localizedDescription)"
+            // Clear all UserDefaults cache keys
+            let defaults = UserDefaults.standard
+            let cacheKeys = [
+                "cachedWorkouts",
+                "cachedProfiles",
+                "cachedFollowers",
+                "cachedFollowing",
+                "cachedActivities",
+                "lastFetchTimestamps"
+            ]
+            
+            for key in cacheKeys {
+                defaults.removeObject(forKey: key)
             }
+            
+            // Clear any in-memory caches
+            NotificationCenter.default.post(name: Notification.Name("ClearAllCaches"), object: nil)
+            
+            message = "✅ Cache cleared successfully"
             
             isLoading = false
         }
     }
     
-    private func setupSocialGraph() {
+    private func resetAccount() {
         Task {
             isLoading = true
-            message = ""
+            message = "Resetting account..."
             
             do {
-                try await seeder.setupSocialGraph()
-                message = "✅ Social relationships created"
-            } catch {
-                message = "❌ Error: \(error.localizedDescription)"
-            }
-            
-            isLoading = false
-        }
-    }
-    
-    private func seedWorkouts() {
-        Task {
-            isLoading = true
-            message = ""
-            
-            do {
-                try await seeder.seedWorkoutHistory()
-                message = "✅ Workout history created"
-            } catch {
-                message = "❌ Error: \(error.localizedDescription)"
-            }
-            
-            isLoading = false
-        }
-    }
-    
-    private func seedActivityFeed() {
-        Task {
-            isLoading = true
-            message = ""
-            
-            do {
-                try await seeder.seedActivityFeed()
-                message = "✅ Activity feed populated"
-            } catch {
-                message = "❌ Error: \(error.localizedDescription)"
-            }
-            
-            isLoading = false
-        }
-    }
-    
-    private func setupEverything() {
-        Task {
-            isLoading = true
-            message = "Setting up everything..."
-            
-            do {
-                if currentPersona == nil {
-                    message = "❌ Please register this account first"
-                    isLoading = false
-                    return
+                // Delete all CloudKit data for current user
+                try await seeder.cleanupCurrentUserData()
+                
+                // Clear all UserDefaults
+                if let bundleID = Bundle.main.bundleIdentifier {
+                    UserDefaults.standard.removePersistentDomain(forName: bundleID)
                 }
                 
-                try await seeder.setupCurrentUserProfile()
-                message = "Profile created..."
-                
-                try await seeder.setupSocialGraph()
-                message = "Social graph created..."
-                
-                try await seeder.seedWorkoutHistory()
-                message = "Workout history created..."
-                
-                try await seeder.seedActivityFeed()
-                message = "✅ Everything set up successfully!"
+                // Post notification to reset app state
+                await MainActor.run {
+                    NotificationCenter.default.post(name: Notification.Name("ResetApplication"), object: nil)
+                    
+                    // Restart the app
+                    // Note: In a real app, you might want to use a more graceful restart
+                    // For now, we'll just dismiss and show a message
+                    message = "✅ Account reset. Please restart the app."
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        exit(0) // Force quit the app
+                    }
+                }
             } catch {
-                message = "❌ Error: \(error.localizedDescription)"
+                message = "❌ Error resetting account: \(error.localizedDescription)"
             }
             
             isLoading = false
         }
     }
     
-    private func cleanupData() {
+    private func applyPersonaToCurrentAccount(_ persona: TestAccountPersona) {
         Task {
             isLoading = true
-            message = ""
+            message = "Applying persona data..."
             
             do {
-                try await seeder.cleanupCurrentUserData()
-                message = "✅ All data cleaned"
+                // Update the current user's profile with persona data
+                try await seeder.updateCurrentUserWithPersona(persona)
+                
+                // Setup social graph
+                try await seeder.setupSocialGraph()
+                
+                // Seed workout history
+                try await seeder.seedWorkoutHistory()
+                
+                // Seed activity feed
+                try await seeder.seedActivityFeed()
+                
+                message = "✅ Persona applied successfully"
+                
+                // Dismiss after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    dismiss()
+                }
             } catch {
                 message = "❌ Error: \(error.localizedDescription)"
             }
@@ -302,64 +301,183 @@ struct DeveloperMenu: View {
         }
     }
     
-    private func showInstructions() {
-        message = TestAccountSetupGuide.instructions
+    private func createNewProfile(with persona: TestAccountPersona) {
+        Task {
+            isLoading = true
+            message = "Creating new profile..."
+            
+            do {
+                // Register a new account with the persona
+                try await seeder.registerAccountAsPersona(persona)
+                
+                // Setup the profile
+                try await seeder.setupProfileForPersona(persona)
+                
+                // Add some workout history
+                try await seeder.seedWorkoutHistoryForPersona(persona)
+                
+                message = "✅ Profile created for \(persona.username)"
+                
+                // Update existing accounts list
+                await loadExistingAccounts()
+                
+                // Dismiss after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    showProfilePicker = false
+                }
+            } catch {
+                message = "❌ Error: \(error.localizedDescription)"
+            }
+            
+            isLoading = false
+        }
     }
 }
 
-// MARK: - Persona Picker
+// MARK: - Persona Selection View
 
-private struct PersonaPicker: View {
-    @Binding var selectedPersona: TestAccountPersona?
+private struct PersonaSelectionView: View {
+    let title: String
+    let subtitle: String
+    var existingAccounts: [TestAccountPersona] = []
+    let onSelect: (TestAccountPersona) -> Void
     @Environment(\.dismiss) var dismiss
     
-    var body: some View {
-        NavigationView {
-            List(TestAccountPersona.allCases, id: \.self) { persona in
-                Button(action: {
-                    selectPersona(persona)
-                }) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(persona.displayName)
-                            .font(.headline)
-                        Text("@\(persona.username)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(persona.bio)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                        
-                        HStack {
-                            Label("\(persona.totalXP.formatted()) XP", systemImage: "star.fill")
-                            Label("\(persona.workoutCount) workouts", systemImage: "figure.run")
-                            if persona.isVerified {
-                                Label("Verified", systemImage: "checkmark.seal.fill")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.plain)
+    var availablePersonas: [TestAccountPersona] {
+        if existingAccounts.isEmpty {
+            return TestAccountPersona.allCases
+        } else {
+            // Filter out personas that are already in use
+            return TestAccountPersona.allCases.filter { persona in
+                !existingAccounts.contains(persona)
             }
-            .navigationTitle("Select Persona")
-            .navigationBarItems(trailing: Button("Cancel") { dismiss() })
         }
     }
     
-    private func selectPersona(_ persona: TestAccountPersona) {
-        Task {
-            do {
-                let seeder = CloudKitSeeder()
-                try await seeder.registerCurrentAccount(as: persona)
-                selectedPersona = persona
-                dismiss()
-            } catch {
-                print("Error registering persona: \(error)")
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 8) {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .padding(.vertical)
+                
+                if availablePersonas.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Available Personas")
+                            .font(.headline)
+                        
+                        Text("All test personas are already in use")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(availablePersonas, id: \.self) { persona in
+                        Button(action: {
+                            onSelect(persona)
+                            dismiss()
+                        }) {
+                            HStack(spacing: 16) {
+                                // Avatar
+                                Circle()
+                                    .fill(Color(persona.accentColor))
+                                    .frame(width: 60, height: 60)
+                                    .overlay(
+                                        Text(persona.initials)
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                    )
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(persona.username)
+                                            .font(.headline)
+                                        
+                                        if persona.isVerified {
+                                            Image(systemName: "checkmark.seal.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                    
+                                    Text(persona.bio)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(2)
+                                    
+                                    HStack(spacing: 16) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "star.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.orange)
+                                            Text("\(persona.totalXP.formatted()) XP")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "figure.run")
+                                                .font(.caption2)
+                                                .foregroundColor(.green)
+                                            Text("\(persona.workoutCount) workouts")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - TestAccountPersona Extensions
+
+extension TestAccountPersona {
+    var initials: String {
+        username.prefix(2).uppercased()
+    }
+    
+    var accentColor: UIColor {
+        switch self {
+        case .athlete: return .systemBlue
+        case .beginner: return .systemPink
+        case .influencer: return .systemPurple
+        case .coach: return .systemOrange
+        case .casual: return .systemGreen
         }
     }
 }

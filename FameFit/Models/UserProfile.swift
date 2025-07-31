@@ -44,7 +44,6 @@ struct UserProfile: Identifiable, Codable, Equatable {
     let id: String // CKRecord.ID as String (for the UserProfiles record)
     let userID: String // Reference to Users record ID
     let username: String
-    let displayName: String
     let bio: String
 
     // Cached stats from Users table
@@ -63,14 +62,7 @@ struct UserProfile: Identifiable, Codable, Equatable {
 
     // Computed properties
     var initials: String {
-        let components = displayName.split(separator: " ")
-        if components.count >= 2 {
-            return String(components[0].prefix(1)) + String(components[1].prefix(1))
-        } else if !displayName.isEmpty {
-            return String(displayName.prefix(2))
-        } else {
-            return String(username.prefix(2))
-        }
+        return String(username.prefix(2)).uppercased()
     }
 
     var formattedJoinDate: String {
@@ -92,9 +84,6 @@ struct UserProfile: Identifiable, Codable, Equatable {
         return regex?.firstMatch(in: username, options: [], range: range) != nil
     }
 
-    static func isValidDisplayName(_ name: String) -> Bool {
-        !name.isEmpty && name.count <= 50 && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
 
     static func isValidBio(_ bio: String) -> Bool {
         bio.count <= 500
@@ -107,7 +96,6 @@ extension UserProfile {
     init?(from record: CKRecord) {
         guard let userID = record["userID"] as? String,
               let username = record["username"] as? String,
-              let displayName = record["displayName"] as? String,
               let bio = record["bio"] as? String,
               let workoutCount = record["workoutCount"] as? Int64,
               let totalXP = record["totalXP"] as? Int64,
@@ -122,7 +110,6 @@ extension UserProfile {
         id = record.recordID.recordName
         self.userID = userID
         self.username = username
-        self.displayName = displayName
         self.bio = bio
         self.workoutCount = Int(workoutCount)
         self.totalXP = Int(totalXP)
@@ -143,7 +130,6 @@ extension UserProfile {
 
         record["userID"] = userID
         record["username"] = username.lowercased()
-        record["displayName"] = displayName
         record["bio"] = bio
         record["workoutCount"] = Int64(workoutCount)
         record["totalXP"] = Int64(totalXP)
@@ -170,7 +156,6 @@ extension UserProfile {
         id: "mock-profile-1",
         userID: "mock-user-1",
         username: "fitnessfanatic",
-        displayName: "Fitness Fanatic",
         bio: "Just a fitness enthusiast on a journey to get stronger every day! 💪",
         workoutCount: 42,
         totalXP: 12_500,
@@ -186,7 +171,6 @@ extension UserProfile {
         id: "mock-profile-2",
         userID: "mock-user-2",
         username: "privateperson",
-        displayName: "Private Person",
         bio: "Keeping my fitness journey personal",
         workoutCount: 15,
         totalXP: 3_200,
@@ -204,7 +188,6 @@ extension UserProfile {
             id: "runner-pro",
             userID: "runner-user",
             username: "runnerpromax",
-            displayName: "Marathon Master",
             bio: "🏃‍♂️ Running my way to fitness! 26.2 miles at a time.",
             workoutCount: 127,
             totalXP: 45_000,
@@ -219,7 +202,6 @@ extension UserProfile {
             id: "yoga-zen",
             userID: "yoga-user",
             username: "yogazenmaster",
-            displayName: "Zen Yoga Flow",
             bio: "🧘‍♀️ Finding balance through movement. Namaste fit!",
             workoutCount: 89,
             totalXP: 28_500,
@@ -234,7 +216,6 @@ extension UserProfile {
             id: "strength-beast",
             userID: "strength-user",
             username: "strengthbeast",
-            displayName: "Iron Lifter",
             bio: "💪 Lifting heavy, dreaming bigger. No pain, no gain!",
             workoutCount: 203,
             totalXP: 67_800,
@@ -249,7 +230,6 @@ extension UserProfile {
             id: "cycling-pro",
             userID: "cycling-user",
             username: "cyclingpro2024",
-            displayName: "Bike Explorer",
             bio: "🚴‍♀️ Exploring the world one pedal at a time!",
             workoutCount: 156,
             totalXP: 52_300,
@@ -264,7 +244,6 @@ extension UserProfile {
             id: "beginner-fit",
             userID: "beginner-user",
             username: "juststarted",
-            displayName: "Fitness Newbie",
             bio: "🌟 Just started my fitness journey! Every step counts.",
             workoutCount: 8,
             totalXP: 450,

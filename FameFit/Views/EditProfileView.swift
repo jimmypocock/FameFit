@@ -12,7 +12,6 @@ struct EditProfileView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
 
-    @State private var displayName: String
     @State private var bio: String
     @State private var privacyLevel: ProfilePrivacyLevel
     @State private var selectedImage: PhotosPickerItem?
@@ -35,7 +34,6 @@ struct EditProfileView: View {
         self.onSave = onSave
 
         // Initialize state with current values
-        _displayName = State(initialValue: profile.displayName)
         _bio = State(initialValue: profile.bio)
         _privacyLevel = State(initialValue: profile.privacyLevel)
     }
@@ -91,13 +89,10 @@ struct EditProfileView: View {
                 // Profile Info Section
                 Section(header: Text("Profile Info")) {
                     HStack {
-                        Text("Display Name")
+                        Text("Username")
                         Spacer()
-                        TextField("Display Name", text: $displayName)
-                            .multilineTextAlignment(.trailing)
-                            .onChange(of: displayName) { _, _ in
-                                hasChanges = true
-                            }
+                        Text("@\(profile.username)")
+                            .foregroundColor(.secondary)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -228,7 +223,7 @@ struct EditProfileView: View {
     // MARK: - Validation
 
     private var isDisplayNameValid: Bool {
-        UserProfile.isValidDisplayName(displayName)
+        true
     }
 
     private var isBioValid: Bool {
@@ -236,7 +231,7 @@ struct EditProfileView: View {
     }
 
     private var canSave: Bool {
-        hasChanges && isDisplayNameValid && isBioValid && !displayName.isEmpty
+        hasChanges && isBioValid
     }
 
     // MARK: - Save Profile
@@ -252,7 +247,6 @@ struct EditProfileView: View {
                     id: profile.id,
                     userID: profile.userID,
                     username: profile.username,
-                    displayName: displayName,
                     bio: bio,
                     workoutCount: profile.workoutCount,
                     totalXP: profile.totalXP,

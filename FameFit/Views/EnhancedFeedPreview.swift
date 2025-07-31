@@ -40,7 +40,6 @@ struct EnhancedFeedPreview: View {
                     id: "user1",
                     userID: "user1",
                     username: "speedster",
-                    displayName: "Sarah Runner",
                     bio: "Marathon enthusiast",
                     workoutCount: 156,
                     totalXP: 45_000,
@@ -63,13 +62,16 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "85"
                     ]
                 ),
+                workoutId: "1",
+                kudosCount: 12,
+                commentCount: 5,
+                hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
                     workoutId: "1",
                     totalCount: 12,
                     hasUserKudos: false,
                     recentUsers: []
-                ),
-                commentCount: 5
+                )
             ),
 
             // Achievement unlock
@@ -80,7 +82,6 @@ struct EnhancedFeedPreview: View {
                     id: "user2",
                     userID: "user2",
                     username: "fitnessguru",
-                    displayName: "Mike Strong",
                     bio: "Lifting heavy things",
                     workoutCount: 200,
                     totalXP: 67_800,
@@ -102,8 +103,11 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "500"
                     ]
                 ),
-                kudosSummary: nil,
-                commentCount: 8
+                workoutId: nil,
+                kudosCount: 0,
+                commentCount: 8,
+                hasKudoed: false,
+                kudosSummary: nil
             ),
 
             // Level up
@@ -114,7 +118,6 @@ struct EnhancedFeedPreview: View {
                     id: "user3",
                     userID: "user3",
                     username: "yogamaster",
-                    displayName: "Emma Zen",
                     bio: "Finding balance",
                     workoutCount: 89,
                     totalXP: 28_500,
@@ -135,8 +138,11 @@ struct EnhancedFeedPreview: View {
                         "newTitle": "Fitness Warrior"
                     ]
                 ),
-                kudosSummary: nil,
-                commentCount: 15
+                workoutId: nil,
+                kudosCount: 0,
+                commentCount: 15,
+                hasKudoed: false,
+                kudosSummary: nil
             ),
 
             // Cycling workout
@@ -147,7 +153,6 @@ struct EnhancedFeedPreview: View {
                     id: "user4",
                     userID: "user4",
                     username: "bikerlady",
-                    displayName: "Lisa Cyclist",
                     bio: "Two wheels, endless roads",
                     workoutCount: 134,
                     totalXP: 52_300,
@@ -170,13 +175,16 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "120"
                     ]
                 ),
+                workoutId: "4",
+                kudosCount: 8,
+                commentCount: 3,
+                hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
                     workoutId: "4",
                     totalCount: 8,
                     hasUserKudos: false,
                     recentUsers: []
-                ),
-                commentCount: 3
+                )
             )
         ]
     }

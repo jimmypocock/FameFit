@@ -54,7 +54,7 @@ class NotificationFlowTests: XCTestCase {
         // Mock unlock service to trigger XP milestone
         mockUnlockService.shouldTriggerUnlock = true
 
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-1_800),
@@ -87,9 +87,9 @@ class NotificationFlowTests: XCTestCase {
         // Given
         let workoutId = "workout123"
         let users = [
-            createTestUser(id: "1", username: "user1", displayName: "User One"),
-            createTestUser(id: "2", username: "user2", displayName: "User Two"),
-            createTestUser(id: "3", username: "user3", displayName: "User Three")
+            createTestUser(id: "1", username: "user1"),
+            createTestUser(id: "2", username: "user2"),
+            createTestUser(id: "3", username: "user3")
         ]
 
         // When - Multiple users give kudos to same workout
@@ -109,8 +109,7 @@ class NotificationFlowTests: XCTestCase {
         // Given
         let requester = createTestUser(
             id: "requester",
-            username: "fitfan",
-            displayName: "Fitness Fan"
+            username: "fitfan"
         )
 
         // When
@@ -133,7 +132,7 @@ class NotificationFlowTests: XCTestCase {
         notificationManager.updatePreferences(preferences)
         mockScheduler.respectRateLimit = true
 
-        let user = createTestUser(id: "spammer", username: "spammer", displayName: "Spammer")
+        let user = createTestUser(id: "spammer", username: "spammer")
 
         // When - Try to send many notifications
         for index in 0 ..< 5 {
@@ -155,7 +154,7 @@ class NotificationFlowTests: XCTestCase {
         mockScheduler.respectRateLimit = true
 
         // Use up rate limit
-        let user = createTestUser(id: "user", username: "user", displayName: "User")
+        let user = createTestUser(id: "user", username: "user")
         await notificationManager.notifyNewFollower(from: user)
 
         // When - Security alert (immediate priority)
@@ -220,14 +219,12 @@ class NotificationFlowTests: XCTestCase {
 
     private func createTestUser(
         id: String,
-        username: String,
-        displayName: String
+        username: String
     ) -> UserProfile {
         UserProfile(
             id: id,
             userID: id,
             username: username,
-            displayName: displayName,
             bio: "",
             workoutCount: 0,
             totalXP: 0,
@@ -240,8 +237,8 @@ class NotificationFlowTests: XCTestCase {
         )
     }
 
-    private func createTestWorkout() -> WorkoutHistoryItem {
-        WorkoutHistoryItem(
+    private func createTestWorkout() -> WorkoutItem {
+        WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-1_800),

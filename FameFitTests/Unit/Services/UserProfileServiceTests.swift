@@ -65,7 +65,6 @@ final class UserProfileServiceTests: XCTestCase {
             id: "new-profile",
             userID: "new-user",
             username: "newuser",
-            displayName: "New User",
             bio: "Just joined!",
             workoutCount: 0,
             totalXP: 0,
@@ -93,7 +92,6 @@ final class UserProfileServiceTests: XCTestCase {
             id: "invalid-profile",
             userID: "invalid-user",
             username: "ab", // Too short
-            displayName: "Invalid",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
@@ -120,7 +118,6 @@ final class UserProfileServiceTests: XCTestCase {
             id: "duplicate-profile",
             userID: "duplicate-user",
             username: "fitnessfanatic", // Already taken by mockProfile
-            displayName: "Duplicate",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
@@ -141,32 +138,7 @@ final class UserProfileServiceTests: XCTestCase {
         }
     }
 
-    func testCreateProfileWithInvalidDisplayName() async {
-        // Given
-        let invalidProfile = UserProfile(
-            id: "invalid-profile",
-            userID: "invalid-user",
-            username: "validusername",
-            displayName: "", // Empty
-            bio: "",
-            workoutCount: 0,
-            totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date(),
-            isVerified: false,
-            privacyLevel: .publicProfile
-        )
-
-        // When/Then
-        do {
-            _ = try await mockService.createProfile(invalidProfile)
-            XCTFail("Should throw invalid display name error")
-        } catch ProfileServiceError.invalidDisplayName {
-            // Expected
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
+    // Display name test removed - no longer applicable
 
     func testCreateProfileWithInvalidBio() async {
         // Given
@@ -174,7 +146,6 @@ final class UserProfileServiceTests: XCTestCase {
             id: "invalid-profile",
             userID: "invalid-user",
             username: "validusername",
-            displayName: "Valid Name",
             bio: String(repeating: "a", count: 501), // Too long
             workoutCount: 0,
             totalXP: 0,

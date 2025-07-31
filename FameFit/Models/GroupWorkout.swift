@@ -233,7 +233,7 @@ extension GroupWorkout: Codable {
 struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     let id: String
     let userId: String
-    let displayName: String
+    let username: String
     let profileImageURL: String?
     let joinedAt: Date
     var status: ParticipantStatus
@@ -242,7 +242,7 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     init(
         id: String = UUID().uuidString,
         userId: String,
-        displayName: String,
+        username: String,
         profileImageURL: String? = nil,
         joinedAt: Date = Date(),
         status: ParticipantStatus = .joined,
@@ -250,7 +250,7 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     ) {
         self.id = id
         self.userId = userId
-        self.displayName = displayName
+        self.username = username
         self.profileImageURL = profileImageURL
         self.joinedAt = joinedAt
         self.status = status

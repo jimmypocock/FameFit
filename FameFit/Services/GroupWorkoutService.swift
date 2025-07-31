@@ -100,7 +100,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         let hostProfile = try await userProfileService.fetchProfile(userId: userId)
         let hostParticipant = GroupWorkoutParticipant(
             userId: userId,
-            displayName: hostProfile.displayName,
+            username: hostProfile.username,
             profileImageURL: hostProfile.profileImageURL
         )
 
@@ -314,7 +314,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         let userProfile = try await userProfileService.fetchProfile(userId: userId)
         let participant = GroupWorkoutParticipant(
             userId: userId,
-            displayName: userProfile.displayName,
+            username: userProfile.username,
             profileImageURL: userProfile.profileImageURL
         )
 
@@ -631,7 +631,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         for participant in workout.participants where participant.userId != userId {
             await notificationManager.notifyFeatureAnnouncement(
                 feature: "Workout Started! 🚀",
-                description: "\(starter.displayName) just started \(workout.name). Join now!"
+                description: "\(starter.username) just started \(workout.name). Join now!"
             )
         }
     }
@@ -644,7 +644,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         // In production, this would be sent only to the host
         await notificationManager.notifyFeatureAnnouncement(
             feature: "New Participant! 👥",
-            description: "\(participant.displayName) just joined \(workout.name)"
+            description: "\(participant.username) just joined \(workout.name)"
         )
     }
 

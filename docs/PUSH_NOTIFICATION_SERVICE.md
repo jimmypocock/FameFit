@@ -73,7 +73,7 @@ The FameFit Push Notification Service is a backend service responsible for sendi
 // Workout completion
 {
   type: "workout_completed",
-  trigger: "WorkoutHistory record created",
+  trigger: "Workouts record created",
   target: "workout owner + followers",
   timing: "immediate",
   data: {
@@ -169,7 +169,7 @@ class PushNotificationService {
   async startCloudKitSubscriptions() {
     // Subscribe to relevant record changes
     const subscriptions = [
-      'WorkoutHistory',
+      'Workouts',
       'UserRelationships', 
       'WorkoutComments',
       'GroupWorkouts'
@@ -184,7 +184,7 @@ class PushNotificationService {
 
   handleRecordChange(recordType, change) {
     switch (recordType) {
-      case 'WorkoutHistory':
+      case 'Workouts':
         if (change.type === 'CREATE') {
           this.queueWorkoutNotification(change.record);
         }

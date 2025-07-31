@@ -12,7 +12,7 @@ import Foundation
 // MARK: - Protocol
 
 protocol WorkoutCommentsServicing {
-    func fetchComments(for workoutId: String, limit: Int) async throws -> [CommentWithUser]
+    func fetchComments(for workoutId: String, limit: Int) async throws -> [WorkoutCommentWithUser]
     func postComment(workoutId: String, workoutOwnerId: String, content: String, parentCommentId: String?) async throws
         -> WorkoutComment
     func updateComment(commentId: String, newContent: String) async throws -> WorkoutComment
@@ -56,7 +56,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
 
     // MARK: - Public Methods
 
-    func fetchComments(for workoutId: String, limit: Int = 50) async throws -> [CommentWithUser] {
+    func fetchComments(for workoutId: String, limit: Int = 50) async throws -> [WorkoutCommentWithUser] {
         // Query comments for the workout
         let predicate = NSPredicate(format: "workoutId == %@", workoutId)
         let query = CKQuery(recordType: "WorkoutComments", predicate: predicate)
@@ -91,9 +91,9 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
             }
 
             // Combine comments with user profiles
-            let commentsWithUsers = comments.compactMap { comment -> CommentWithUser? in
+            let commentsWithUsers = comments.compactMap { comment -> WorkoutCommentWithUser? in
                 guard let user = userProfiles[comment.userId] else { return nil }
-                return CommentWithUser(comment: comment, user: user)
+                return WorkoutCommentWithUser(comment: comment, user: user)
             }
 
             // Organize into threads if needed
@@ -263,7 +263,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
 
     // MARK: - Private Methods
 
-    private func organizeCommentThreads(_ comments: [CommentWithUser]) -> [CommentWithUser] {
+    private func organizeCommentThreads(_ comments: [WorkoutCommentWithUser]) -> [WorkoutCommentWithUser] {
         // Separate parent comments and replies
         let parentComments = comments.filter { $0.comment.parentCommentId == nil }
         let replies = comments.filter { $0.comment.parentCommentId != nil }
@@ -272,7 +272,7 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
         let replyGroups = Dictionary(grouping: replies) { $0.comment.parentCommentId ?? "" }
 
         // Build final list with threads
-        var organizedComments: [CommentWithUser] = []
+        var organizedComments: [WorkoutCommentWithUser] = []
 
         for parent in parentComments {
             organizedComments.append(parent)
@@ -307,11 +307,11 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
         _ = NotificationItem(
             type: .workoutComment,
             title: "New Comment on Your Workout",
-            body: "\(commenterProfile.displayName) commented: \(String(comment.content.prefix(50)))...",
+            body: "\(commenterProfile.username) commented: \(String(comment.content.prefix(50)))...",
             metadata: .social(SocialNotificationMetadata(
                 userID: comment.userId,
                 username: commenterProfile.username,
-                displayName: commenterProfile.displayName,
+                displayName: commenterProfile.username,
                 profileImageUrl: commenterProfile.profileImageURL,
                 relationshipType: "comment",
                 actionCount: nil
@@ -346,11 +346,11 @@ final class WorkoutCommentsService: WorkoutCommentsServicing {
             _ = NotificationItem(
                 type: .workoutComment,
                 title: "New Reply to Your Comment",
-                body: "\(replierProfile.displayName) replied: \(String(comment.content.prefix(50)))...",
+                body: "\(replierProfile.username) replied: \(String(comment.content.prefix(50)))...",
                 metadata: .social(SocialNotificationMetadata(
                     userID: comment.userId,
                     username: replierProfile.username,
-                    displayName: replierProfile.displayName,
+                    displayName: replierProfile.username,
                     profileImageUrl: replierProfile.profileImageURL,
                     relationshipType: "reply",
                     actionCount: nil

@@ -41,6 +41,78 @@ final class CloudKitSeeder {
         print("✅ Registered \(userID) as \(persona.displayName)")
     }
     
+    /// Update current user's profile with persona data
+    func updateCurrentUserWithPersona(_ persona: TestAccountPersona) async throws {
+        let userID = try await getCurrentUserID()
+        
+        // Create UserProfile in public database
+        let profile = createProfile(for: persona, userID: userID)
+        let record = profile.toCKRecord(recordID: CKRecord.ID(recordName: userID))
+        
+        _ = try await publicDatabase.save(record)
+        print("✅ Updated profile for \(persona.displayName)")
+    }
+    
+    /// Register a new account as a specific persona (for creating test profiles)
+    func registerAccountAsPersona(_ persona: TestAccountPersona) async throws {
+        // Generate a unique ID for this test profile
+        let testUserID = "test_\(persona.rawValue)_\(UUID().uuidString.prefix(8))"
+        
+        // Save to UserDefaults
+        var registry = UserDefaults.standard.dictionary(forKey: "TestAccountRegistry") ?? [:]
+        registry[persona.rawValue] = testUserID
+        UserDefaults.standard.set(registry, forKey: "TestAccountRegistry")
+        
+        print("✅ Registered test account \(testUserID) as \(persona.displayName)")
+    }
+    
+    /// Setup profile for a specific persona
+    func setupProfileForPersona(_ persona: TestAccountPersona) async throws {
+        guard let userID = getStoredUserID(for: persona) else {
+            throw SeederError.personaNotFound
+        }
+        
+        // Create UserProfile in public database
+        let profile = createProfile(for: persona, userID: userID)
+        let record = profile.toCKRecord(recordID: CKRecord.ID(recordName: userID))
+        
+        _ = try await publicDatabase.save(record)
+        print("✅ Created profile for \(persona.displayName)")
+    }
+    
+    /// Seed workout history for a specific persona
+    func seedWorkoutHistoryForPersona(_ persona: TestAccountPersona) async throws {
+        guard let userID = getStoredUserID(for: persona) else {
+            throw SeederError.personaNotFound
+        }
+        
+        let workouts = createWorkoutHistory(for: persona)
+        
+        for workout in workouts {
+            let record = CKRecord(recordType: "Workouts")
+            record["workoutId"] = workout.id.uuidString
+            record["workoutType"] = workout.workoutType
+            record["startDate"] = workout.startDate
+            record["endDate"] = workout.endDate
+            record["duration"] = workout.duration
+            record["totalEnergyBurned"] = workout.totalEnergyBurned
+            record["totalDistance"] = workout.totalDistance ?? 0
+            record["averageHeartRate"] = workout.averageHeartRate ?? 0
+            record["followersEarned"] = Int64(workout.followersEarned)
+            record["xpEarned"] = Int64(workout.xpEarned ?? workout.followersEarned)
+            record["source"] = workout.source
+            record["userID"] = userID
+            
+            do {
+                _ = try await privateDatabase.save(record)
+            } catch {
+                print("⚠️ Error saving workout: \(error)")
+            }
+        }
+        
+        print("✅ Created \(workouts.count) workouts for \(persona.displayName)")
+    }
+    
     // MARK: - Profile Setup
     
     /// Setup profile for current user based on their persona
@@ -201,7 +273,6 @@ final class CloudKitSeeder {
             id: userID,
             userID: userID,
             username: persona.username,
-            displayName: persona.displayName,
             bio: persona.bio,
             workoutCount: persona.workoutCount,
             totalXP: persona.totalXP,

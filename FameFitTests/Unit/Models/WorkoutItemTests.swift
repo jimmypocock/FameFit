@@ -2,8 +2,8 @@
 import HealthKit
 import XCTest
 
-final class WorkoutHistoryItemTests: XCTestCase {
-    func testWorkoutHistoryItemInitialization() {
+final class WorkoutItemTests: XCTestCase {
+    func testWorkoutItemInitialization() {
         let id = UUID()
         let workoutType = "Running"
         let startDate = Date().addingTimeInterval(-3_600) // 1 hour ago
@@ -15,7 +15,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
         let followersEarned = 5
         let source = "Apple Watch"
 
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: id,
             workoutType: workoutType,
             startDate: startDate,
@@ -42,7 +42,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testFormattedDuration() {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
@@ -60,7 +60,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testFormattedCalories() {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
@@ -78,7 +78,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testFormattedDistance() {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
@@ -96,7 +96,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testFormattedDistanceNil() {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "Yoga",
             startDate: Date(),
@@ -114,7 +114,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testWorkoutActivityTypeConversion() {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date(),
@@ -132,7 +132,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
     }
 
     func testCodable() throws {
-        let historyItem = WorkoutHistoryItem(
+        let historyItem = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
@@ -150,7 +150,7 @@ final class WorkoutHistoryItemTests: XCTestCase {
         let data = try encoder.encode(historyItem)
 
         let decoder = JSONDecoder()
-        let decodedItem = try decoder.decode(WorkoutHistoryItem.self, from: data)
+        let decodedItem = try decoder.decode(WorkoutItem.self, from: data)
 
         XCTAssertEqual(historyItem.id, decodedItem.id)
         XCTAssertEqual(historyItem.workoutType, decodedItem.workoutType)

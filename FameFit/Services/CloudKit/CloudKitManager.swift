@@ -470,7 +470,6 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             id: profile.id,
             userID: userRecord.recordID.recordName,
             username: profile.username,
-            displayName: profile.displayName,
             bio: profile.bio,
             workoutCount: totalWorkouts,
             totalXP: totalXP,

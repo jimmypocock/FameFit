@@ -372,7 +372,6 @@ struct NotificationDebugView: View {
             id: "debug-user",
             userID: "debug-user",
             username: "debuguser",
-            displayName: "Debug User",
             bio: "Test user for debugging",
             workoutCount: 50,
             totalXP: 1_500,

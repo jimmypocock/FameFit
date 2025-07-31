@@ -16,7 +16,7 @@ final class XPCalculatorTests: XCTestCase {
         workoutType: String = "Running",
         startDate: Date? = nil,
         averageHeartRate: Double? = 140
-    ) -> WorkoutHistoryItem {
+    ) -> WorkoutItem {
         // Use provided date or create a fixed weekday date (Tuesday 2pm) to avoid weekend/time bonuses
         let fixedDate: Date
         if let providedDate = startDate {
@@ -31,7 +31,7 @@ final class XPCalculatorTests: XCTestCase {
             fixedDate = calendar.date(from: components)!
         }
 
-        return WorkoutHistoryItem(
+        return WorkoutItem(
             id: UUID(),
             workoutType: workoutType,
             startDate: fixedDate,

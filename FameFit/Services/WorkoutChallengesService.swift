@@ -420,13 +420,13 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         let notification = NotificationItem(
             type: .challengeInvite,
             title: "New Challenge Invite! \(challenge.type.icon)",
-            body: "\(inviterProfile.displayName) challenged you: \(challenge.name)",
+            body: "\(inviterProfile.username) challenged you: \(challenge.name)",
             metadata: .challenge(ChallengeNotificationMetadata(
                 challengeId: challenge.id,
                 challengeName: challenge.name,
                 challengeType: challenge.type.rawValue,
                 creatorId: challenge.creatorId,
-                creatorName: inviterProfile.displayName,
+                creatorName: inviterProfile.username,
                 targetValue: challenge.targetValue,
                 endDate: challenge.endDate
             )),
@@ -466,7 +466,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         let notification = NotificationItem(
             type: .challengeCompleted,
             title: "Challenge Declined",
-            body: "\(declinerProfile.displayName) declined your challenge: \(challenge.name)",
+            body: "\(declinerProfile.username) declined your challenge: \(challenge.name)",
             actions: []
         )
 

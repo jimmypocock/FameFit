@@ -242,57 +242,13 @@ struct ChallengeDetailView: View {
 
             VStack(spacing: 8) {
                 ForEach(Array(sortedParticipants.enumerated()), id: \.element.id) { index, participant in
-                    HStack(spacing: 12) {
-                        // Position
-                        ZStack {
-                            Circle()
-                                .fill(positionColor(for: index))
-                                .frame(width: 32, height: 32)
-
-                            Text("\(index + 1)")
-                                .font(.callout)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                        }
-
-                        // Name
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text(participant.displayName)
-                                    .font(.body)
-                                    .fontWeight(participant.id == currentUserId ? .medium : .regular)
-
-                                if participant.id == challenge.winnerId {
-                                    Image(systemName: "trophy.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.yellow)
-                                }
-                            }
-
-                            if participant.lastUpdated > Date().addingTimeInterval(-3_600) {
-                                Text("Updated recently")
-                                    .font(.caption2)
-                                    .foregroundColor(.green)
-                            }
-                        }
-
-                        Spacer()
-
-                        // Progress
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(Int(participant.progress)) \(challenge.type.unit)")
-                                .font(.callout)
-                                .fontWeight(.medium)
-
-                            Text("\(Int((participant.progress / challenge.targetValue) * 100))%")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(participant.id == currentUserId ? Color.accentColor.opacity(0.1) : Color.clear)
-                    .cornerRadius(8)
+                    ChallengeLeaderboardRow(
+                        participant: participant,
+                        position: index + 1,
+                        challenge: challenge,
+                        currentUserId: currentUserId,
+                        positionColor: positionColor(for: index)
+                    )
                 }
             }
         }
@@ -515,6 +471,70 @@ struct UpdateProgressView: View {
     }
 }
 
+// MARK: - Challenge Leaderboard Row
+
+private struct ChallengeLeaderboardRow: View {
+    let participant: ChallengeParticipant
+    let position: Int
+    let challenge: WorkoutChallenge
+    let currentUserId: String?
+    let positionColor: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Position
+            ZStack {
+                Circle()
+                    .fill(positionColor)
+                    .frame(width: 32, height: 32)
+                
+                Text("\(position)")
+                    .font(.callout)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
+            
+            // Name
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(participant.username)
+                        .font(.body)
+                        .fontWeight(participant.id == currentUserId ? .medium : .regular)
+                    
+                    if participant.id == challenge.winnerId {
+                        Image(systemName: "trophy.fill")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                    }
+                }
+                
+                if participant.lastUpdated > Date().addingTimeInterval(-3_600) {
+                    Text("Updated recently")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
+            }
+            
+            Spacer()
+            
+            // Progress
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(Int(participant.progress)) \(challenge.type.unit)")
+                    .font(.callout)
+                    .fontWeight(.medium)
+                
+                Text("\(Int((participant.progress / challenge.targetValue) * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(participant.id == currentUserId ? Color.accentColor.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
@@ -525,13 +545,13 @@ struct UpdateProgressView: View {
             participants: [
                 ChallengeParticipant(
                     id: "preview-creator",
-                    displayName: "Creator",
+                    username: "Creator",
                     profileImageURL: nil,
                     progress: 25
                 ),
                 ChallengeParticipant(
                     id: "preview-participant",
-                    displayName: "Participant",
+                    username: "Participant",
                     profileImageURL: nil,
                     progress: 30
                 )
@@ -548,7 +568,9 @@ struct UpdateProgressView: View {
             winnerId: nil,
             xpStake: 100,
             winnerTakesAll: false,
-            isPublic: true
+            isPublic: true,
+            maxParticipants: 10,
+            joinCode: nil
         )
     )
     .environment(\.dependencyContainer, DependencyContainer())

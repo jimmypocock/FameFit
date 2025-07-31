@@ -25,22 +25,23 @@ extension MockCloudKitManager {
         saveCallCount += 1
 
         // Store the record
-        mockRecords[record.recordID.recordName] = record
+        mockRecordsByID[record.recordID.recordName] = record
 
         // Also store in mock database if available
-        mockPublicDatabase?.addRecord(record)
+        // mockDatabase.addRecord(record) // Can't access from extension
 
         return record
     }
 
     func fetchChallengeRecord(recordID: CKRecord.ID) async throws -> CKRecord {
         // Check mockRecords first
-        if let record = mockRecords[recordID.recordName] {
+        if let record = mockRecordsByID[recordID.recordName] {
             return record
         }
 
         // Try mock database
-        if let record = try? await mockPublicDatabase?.record(for: recordID) {
+        // Check in saved records instead
+        if let record = mockRecords.first(where: { $0.recordID == recordID }) {
             return record
         }
 

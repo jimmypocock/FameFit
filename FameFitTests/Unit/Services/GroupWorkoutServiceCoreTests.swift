@@ -52,7 +52,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Morning Run Club",
             description: "Let's run together!",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200)
@@ -63,7 +63,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
 
         // Then
         XCTAssertEqual(createdWorkout.name, workout.name)
-        XCTAssertEqual(createdWorkout.hostId, "test-user-123")
+        XCTAssertEqual(createdWorkout.hostID, "test-user-123")
         XCTAssertEqual(createdWorkout.status, .scheduled)
         XCTAssertEqual(createdWorkout.participants.count, 1) // Host added as participant
         XCTAssertEqual(createdWorkout.participants.first?.userId, "test-user-123")
@@ -80,7 +80,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Too Short",
             description: "This is too short",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(3_700) // Only 100 seconds
@@ -106,7 +106,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Past Workout",
             description: "Already passed",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(-3_600), // 1 hour ago
             scheduledEnd: Date()
@@ -132,7 +132,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Not My Workout",
             description: "Different host",
             workoutType: .running,
-            hostId: "different-user-456",
+            hostID: "different-user-456",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200)
@@ -158,7 +158,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Rate Limited",
             description: "Too many requests",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200)
@@ -185,7 +185,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Original Name",
             description: "Original description",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200),
@@ -201,7 +201,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
 
         // Then
         XCTAssertEqual(result.name, originalWorkout.name)
-        XCTAssertTrue(result.updatedAt > originalWorkout.updatedAt)
+        XCTAssertTrue(result.modifiedTimestamp > originalWorkout.modifiedTimestamp)
         XCTAssertTrue(sut.updateGroupWorkoutCalled)
     }
 
@@ -212,7 +212,7 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Not My Workout",
             description: "Different host",
             workoutType: .running,
-            hostId: "different-user-456",
+            hostID: "different-user-456",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200)
@@ -241,16 +241,16 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "To Cancel",
             description: "Will be cancelled",
             workoutType: .running,
-            hostId: "test-user-123", // Current user is host
+            hostID: "test-user-123", // Current user is host
             participants: [
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 ),
                 GroupWorkoutParticipant(
                     userId: "participant-456",
-                    displayName: "Other User",
+                    username: "OtherUser",
                     profileImageURL: nil
                 )
             ],
@@ -278,11 +278,11 @@ final class GroupWorkoutServiceCoreTests: XCTestCase {
             name: "Not My Workout",
             description: "Cannot cancel",
             workoutType: .running,
-            hostId: "other-host-789",
+            hostID: "other-host-789",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "other-host-789",
-                    displayName: "Other User",
+                    username: "OtherUser",
                     profileImageURL: nil
                 )
             ],

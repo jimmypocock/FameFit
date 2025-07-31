@@ -151,7 +151,7 @@ struct ProfileView: View {
 
             // Name and Username
             VStack(spacing: 4) {
-                Text(profile.displayName)
+                Text(profile.username)
                     .font(.title2)
                     .fontWeight(.bold)
 

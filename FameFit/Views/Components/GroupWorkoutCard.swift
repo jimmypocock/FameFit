@@ -215,7 +215,7 @@ struct GroupWorkoutCard: View {
                             .font(.system(size: 12))
                             .foregroundColor(.yellow)
 
-                        Text("Host: \(host.displayName)")
+                        Text("Host: \(host.username)")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
@@ -330,7 +330,7 @@ struct GroupWorkoutCard: View {
                 .fill(Color.blue.opacity(0.2))
                 .frame(width: 32, height: 32)
                 .overlay(
-                    Text(participant.displayName.prefix(1))
+                    Text(participant.username.prefix(1))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.blue)
                 )
@@ -551,17 +551,17 @@ struct GroupWorkoutCard: View {
                     participants: [
                         GroupWorkoutParticipant(
                             userId: "host1",
-                            displayName: "Sarah Wilson",
+                            username: "SarahWilson",
                             profileImageURL: nil
                         ),
                         GroupWorkoutParticipant(
                             userId: "user2",
-                            displayName: "Mike Johnson",
+                            username: "MikeJohnson",
                             profileImageURL: nil
                         ),
                         GroupWorkoutParticipant(
                             userId: "user3",
-                            displayName: "Emma Chen",
+                            username: "EmmaChen",
                             profileImageURL: nil
                         )
                     ],
@@ -588,13 +588,13 @@ struct GroupWorkoutCard: View {
                     participants: [
                         GroupWorkoutParticipant(
                             userId: "host2",
-                            displayName: "Coach Alex",
+                            username: "CoachAlex",
                             profileImageURL: nil,
                             status: .active
                         ),
                         GroupWorkoutParticipant(
                             userId: "currentUser",
-                            displayName: "Current User",
+                            username: "CurrentUser",
                             profileImageURL: nil,
                             status: .active
                         )

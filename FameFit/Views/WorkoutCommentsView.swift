@@ -77,7 +77,7 @@ struct WorkoutCommentsView: View {
                         Circle()
                             .fill(Color.blue.opacity(0.2))
                             .overlay(
-                                Text(owner.displayName.prefix(1))
+                                Text(owner.username.prefix(1))
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(.blue)
                             )
@@ -87,7 +87,7 @@ struct WorkoutCommentsView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(owner.displayName)
+                            Text(owner.username)
                                 .font(.system(size: 16, weight: .semibold))
 
                             if owner.isVerified {
@@ -247,7 +247,6 @@ struct WorkoutCommentsView: View {
             id: "owner123",
             userID: "owner123",
             username: "runner_sam",
-            displayName: "Sam Rodriguez",
             bio: "Marathon enthusiast",
             workoutCount: 312,
             totalXP: 12_500,

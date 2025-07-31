@@ -1,5 +1,5 @@
 //
-//  SocialFeedViewModelTests.swift
+//  ActivityFeedViewModelTests.swift
 //  FameFitTests
 //
 //  Unit tests for social feed view model
@@ -10,8 +10,8 @@ import Combine
 import XCTest
 
 @MainActor
-final class SocialFeedViewModelTests: XCTestCase {
-    private var viewModel: SocialFeedViewModel!
+final class ActivityFeedViewModelTests: XCTestCase {
+    private var viewModel: ActivityFeedViewModel!
     private var mockSocialService: MockSocialFollowingService!
     private var mockProfileService: MockUserProfileService!
     private var mockActivityFeedService: MockActivityFeedService!
@@ -20,7 +20,7 @@ final class SocialFeedViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        viewModel = SocialFeedViewModel()
+        viewModel = ActivityFeedViewModel()
         mockSocialService = MockSocialFollowingService()
         mockProfileService = MockUserProfileService()
         mockActivityFeedService = MockActivityFeedService()
@@ -33,7 +33,7 @@ final class SocialFeedViewModelTests: XCTestCase {
             profileService: mockProfileService,
             activityFeedService: mockActivityFeedService,
             kudosService: mockKudosService,
-            commentsService: MockWorkoutCommentsService(),
+            commentsService: MockActivityCommentsService(),
             currentUserId: "test-current-user"
         )
     }

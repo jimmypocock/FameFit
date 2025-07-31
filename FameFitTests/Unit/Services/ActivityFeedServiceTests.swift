@@ -38,7 +38,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostWorkoutActivity_PublicPrivacy_Success() async throws {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-1_800),
@@ -70,7 +70,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostWorkoutActivity_PrivatePrivacy_NotPosted() async throws {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "yoga",
             startDate: Date().addingTimeInterval(-3_600),
@@ -97,7 +97,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostWorkoutActivity_WithoutDetails() async throws {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "cycling",
             startDate: Date().addingTimeInterval(-2_400),
@@ -141,7 +141,7 @@ final class ActivityFeedServiceTests: XCTestCase {
             privacySettings: restrictedSettings
         )
 
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "swimming",
             startDate: Date().addingTimeInterval(-1_200),
@@ -246,7 +246,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testFetchFeed_MockServiceReturnsFilteredItems() async throws {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date(),
@@ -303,7 +303,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         mockActivityFeedService.shouldFail = true
         mockActivityFeedService.mockError = .networkError("Connection failed")
 
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date(),
@@ -340,7 +340,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testWorkoutContentCreation_WithAllDetails() {
         // Given
-        _ = WorkoutHistoryItem(
+        _ = WorkoutItem(
             id: UUID(),
             workoutType: "high_intensity_interval_training",
             startDate: Date().addingTimeInterval(-1_800),

@@ -174,8 +174,8 @@ final class UserProfileService: UserProfileServicing {
         defer { isLoading = false }
 
         // Validate fields (except username which can't change)
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
+        guard UserProfile.isValidUsername(profile.username) else {
+            throw ProfileServiceError.invalidUsername
         }
 
         guard UserProfile.isValidBio(profile.bio) else {
@@ -192,7 +192,7 @@ final class UserProfileService: UserProfileServicing {
             let existingRecord = try await publicDatabase.record(for: recordID)
 
             // Update fields
-            existingRecord["displayName"] = profile.displayName
+            existingRecord["displayName"] = profile.username
             existingRecord["bio"] = profile.bio
             existingRecord["workoutCount"] = Int64(profile.workoutCount)
             existingRecord["totalXP"] = Int64(profile.totalXP)
@@ -335,7 +335,7 @@ final class UserProfileService: UserProfileServicing {
             let lowercaseQuery = query.lowercased()
             let filteredProfiles = profiles.filter { profile in
                 profile.username.lowercased().contains(lowercaseQuery) ||
-                profile.displayName.lowercased().contains(lowercaseQuery)
+                profile.username.lowercased().contains(lowercaseQuery)
             }
             
             // Cache results
@@ -481,8 +481,8 @@ final class UserProfileService: UserProfileServicing {
             throw ProfileServiceError.invalidUsername
         }
 
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
+        guard UserProfile.isValidUsername(profile.username) else {
+            throw ProfileServiceError.invalidUsername
         }
 
         guard UserProfile.isValidBio(profile.bio) else {
@@ -493,7 +493,7 @@ final class UserProfileService: UserProfileServicing {
     private func moderateContent(_ profile: UserProfile) throws {
         let contentToCheck = [
             profile.username.lowercased(),
-            profile.displayName.lowercased(),
+            profile.username.lowercased(),
             profile.bio.lowercased()
         ]
 

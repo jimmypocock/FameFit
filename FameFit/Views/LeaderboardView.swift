@@ -415,7 +415,7 @@ struct LeaderboardRow: View {
                     // Name and username
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(entry.profile.displayName)
+                            Text(entry.profile.username)
                                 .font(.body)
                                 .fontWeight(entry.isCurrentUser ? .semibold : .medium)
 

@@ -81,7 +81,7 @@ enum ChallengeStatus: String, Codable {
 
 struct ChallengeParticipant: Codable, Identifiable {
     let id: String // User ID
-    let displayName: String
+    let username: String
     let profileImageURL: String?
     var progress: Double = 0
     var lastUpdated: Date = .init()
@@ -110,12 +110,18 @@ struct WorkoutChallenge: Identifiable, Codable {
     var xpStake: Int = 0 // XP each participant puts up
     var winnerTakesAll: Bool = false
 
-    // Privacy
+    // Privacy and Access Control
     var isPublic: Bool = true // Whether challenge shows in public feeds
+    let maxParticipants: Int // Maximum number of participants allowed
+    let joinCode: String? // For private challenges (invite-only)
 
     // Computed properties
     var isExpired: Bool {
         status == .active && Date() > endDate
+    }
+    
+    var hasSpace: Bool {
+        participants.count < maxParticipants
     }
 
     var daysRemaining: Int {
@@ -174,6 +180,12 @@ struct WorkoutChallenge: Identifiable, Codable {
             return targetValue <= 50 // Max 50 specific workouts
         }
     }
+    
+    // Generate a unique join code for private challenges
+    static func generateJoinCode() -> String {
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0 ..< 6).map { _ in letters.randomElement()! })
+    }
 }
 
 // MARK: - CloudKit Extensions
@@ -213,6 +225,8 @@ extension WorkoutChallenge {
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
         winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
         isPublic = (record["isPublic"] as? Int64) == 1
+        maxParticipants = Int(record["maxParticipants"] as? Int64 ?? 10)
+        joinCode = record["joinCode"] as? String
     }
 
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
@@ -248,6 +262,11 @@ extension WorkoutChallenge {
         record["xpStake"] = Int64(xpStake)
         record["winnerTakesAll"] = winnerTakesAll ? Int64(1) : Int64(0)
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
+        record["maxParticipants"] = Int64(maxParticipants)
+        
+        if let joinCode {
+            record["joinCode"] = joinCode
+        }
 
         return record
     }

@@ -237,7 +237,7 @@ extension CloudKitPushNotificationService {
             userID: userID,
             type: .newFollower,
             title: "New Follower! 🎉",
-            body: "\(user.displayName) is now following your fitness journey",
+            body: "\(user.username) is now following your fitness journey",
             metadata: [
                 "followerUserId": user.userID,
                 "followerUsername": user.username
@@ -255,7 +255,7 @@ extension CloudKitPushNotificationService {
             userID: userID,
             type: .workoutKudos,
             title: "Kudos! 💪",
-            body: "\(user.displayName) gave kudos to your workout",
+            body: "\(user.username) gave kudos to your workout",
             metadata: [
                 "kudosUserId": user.userID,
                 "kudosUsername": user.username,
@@ -272,7 +272,7 @@ extension CloudKitPushNotificationService {
             userID: userID,
             type: .followRequest,
             title: "Follow Request",
-            body: "\(user.displayName) wants to follow you",
+            body: "\(user.username) wants to follow you",
             metadata: [
                 "requesterUserId": user.userID,
                 "requesterUsername": user.username

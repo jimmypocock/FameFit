@@ -60,7 +60,7 @@ class MockNotificationManager: NotificationManaging {
     }
 
     // Workout notifications
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: WorkoutItem) async {
         notifyWorkoutCompletedCalled = true
         scheduleNotificationCalled = true
         sentNotifications.append("workout_completed")
@@ -84,6 +84,21 @@ class MockNotificationManager: NotificationManaging {
     func notifyStreakUpdate(streak _: Int, isAtRisk _: Bool) async {
         notifyStreakUpdateCalled = true
         sentNotifications.append("streak_update")
+    }
+    
+    func notifyWorkoutShared(_ workout: WorkoutItem, privacy: WorkoutPrivacy) async {
+        scheduleNotificationCalled = true
+        sentNotifications.append("workout_shared")
+        lastWorkoutId = workout.id.uuidString
+        
+        // Create mock notification for tracking
+        let notification = NotificationItem(
+            type: .workoutShared,
+            title: "Workout Shared!",
+            body: "Your workout was shared to your activity feed."
+        )
+        lastScheduledNotification = notification
+        allScheduledNotifications.append(notification)
     }
 
     // Social notifications

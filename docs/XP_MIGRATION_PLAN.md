@@ -9,7 +9,7 @@ This document outlines the migration strategy from "followers" to "Influencer XP
 
 1. **Add New Fields** (don't remove old ones yet):
    - Add `influencerXP` (Int64) to User record
-   - Add `xpEarned` (Int64) to WorkoutHistory record
+   - Add `xpEarned` (Int64) to Workouts record
    - Keep existing `followerCount` and `followersEarned` fields
 
 2. **Dual-Write Period**:
@@ -48,7 +48,7 @@ After all users have migrated (monitor analytics):
 
 ### CloudKit Dashboard Changes:
 - [ ] Add `influencerXP` field to User record type
-- [ ] Add `xpEarned` field to WorkoutHistory record type
+- [ ] Add `xpEarned` field to Workouts record type
 - [ ] Deploy schema to production after testing
 
 ### Code Changes:

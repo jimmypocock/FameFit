@@ -299,7 +299,12 @@ final class SocialFeedViewModel: ObservableObject {
                 userProfile: userProfile,
                 type: feedItemType,
                 timestamp: activityItem.createdTimestamp,
-                content: content
+                content: content,
+                workoutId: activityItem.workoutId,
+                kudosCount: 0,
+                commentCount: 0,
+                hasKudoed: false,
+                kudosSummary: nil
             )
 
             // For workout items, get kudos and comment counts
@@ -347,7 +352,12 @@ final class SocialFeedViewModel: ObservableObject {
                         "calories": "450",
                         "xpEarned": "45"
                     ]
-                )
+                ),
+                workoutId: UUID().uuidString,
+                kudosCount: 15,
+                commentCount: 5,
+                hasKudoed: false,
+                kudosSummary: nil
             ))
 
             items.append(FeedItem(
@@ -363,7 +373,12 @@ final class SocialFeedViewModel: ObservableObject {
                         "achievementName": "Workout Warrior",
                         "achievementIcon": "medal.fill"
                     ]
-                )
+                ),
+                workoutId: nil,
+                kudosCount: 0,
+                commentCount: 0,
+                hasKudoed: false,
+                kudosSummary: nil
             ))
         }
 
@@ -382,7 +397,12 @@ final class SocialFeedViewModel: ObservableObject {
                         "newLevel": "5",
                         "newTitle": "Fitness Enthusiast"
                     ]
-                )
+                ),
+                workoutId: nil,
+                kudosCount: 0,
+                commentCount: 0,
+                hasKudoed: false,
+                kudosSummary: nil
             ))
         }
 

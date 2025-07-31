@@ -216,7 +216,7 @@ struct MainView: View {
 
             // Name and Username
             VStack(spacing: 4) {
-                Text(viewModel.userProfile?.displayName ?? viewModel.userName)
+                Text(viewModel.userProfile?.username ?? viewModel.userName)
                     .font(.title2)
                     .fontWeight(.bold)
 

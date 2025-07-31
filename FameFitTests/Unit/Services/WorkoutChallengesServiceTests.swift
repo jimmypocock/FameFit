@@ -54,8 +54,8 @@ final class WorkoutChallengesServiceTests: XCTestCase {
     func testCreateChallenge_Success() async throws {
         // Given
         let participants = [
-            ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil)
+            ChallengeParticipant(id: "test-user", username: "TestUser", profileImageURL: nil),
+            ChallengeParticipant(id: "user-2", username: "User2", profileImageURL: nil)
         ]
 
         let challenge = WorkoutChallenge(
@@ -69,16 +69,21 @@ final class WorkoutChallengesServiceTests: XCTestCase {
             description: "Run 50km this week",
             startDate: Date(),
             endDate: Date().addingTimeInterval(7 * 24 * 3_600),
-            createdAt: Date(),
+            createdTimestamp: Date(),
             status: .pending,
-            winnerId: nil
+            winnerId: nil,
+            xpStake: 0,
+            winnerTakesAll: false,
+            isPublic: true,
+            maxParticipants: 10,
+            joinCode: nil
         )
 
         // When
         let createdChallenge = try await sut.createChallenge(challenge)
 
         // Then
-        XCTAssertEqual(createdChallenge.status, .pending)
+        XCTAssertEqual(createdChallenge.status, ChallengeStatus.pending)
         XCTAssertEqual(mockRateLimiter.recordActionCallCount, 1)
         XCTAssertGreaterThanOrEqual(
             mockNotificationManager.scheduleNotificationCallCount,
@@ -215,8 +220,8 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         // Given
         let challengeId = "test-challenge"
         let participants = [
-            ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 0),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 0)
+            ChallengeParticipant(id: "test-user", username: "TestUser", profileImageURL: nil, progress: 0),
+            ChallengeParticipant(id: "user-2", username: "User2", profileImageURL: nil, progress: 0)
         ]
 
         sut.setMockRecord(
@@ -241,8 +246,8 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let challengeId = "test-challenge"
         let targetValue = 50.0
         let participants = [
-            ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 45),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 30)
+            ChallengeParticipant(id: "test-user", username: "TestUser", profileImageURL: nil, progress: 45),
+            ChallengeParticipant(id: "user-2", username: "User2", profileImageURL: nil, progress: 30)
         ]
 
         sut.setMockRecord(
@@ -295,8 +300,8 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         // Given
         let challengeId = "test-challenge"
         let participants = [
-            ChallengeParticipant(id: "test-user", displayName: "Test User", profileImageURL: nil, progress: 55),
-            ChallengeParticipant(id: "user-2", displayName: "User 2", profileImageURL: nil, progress: 45)
+            ChallengeParticipant(id: "test-user", username: "TestUser", profileImageURL: nil, progress: 55),
+            ChallengeParticipant(id: "user-2", username: "User2", profileImageURL: nil, progress: 45)
         ]
 
         sut.setMockRecord(
@@ -389,7 +394,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         let record = CKRecord(recordType: "WorkoutChallenges", recordID: CKRecord.ID(recordName: id))
 
         let actualParticipants = participantData ?? participants.map { userId in
-            ChallengeParticipant(id: userId, displayName: "User \(userId)", profileImageURL: nil)
+            ChallengeParticipant(id: userId, username: "User\(userId)", profileImageURL: nil)
         }
 
         record["creatorId"] = participants.first ?? "test-user"

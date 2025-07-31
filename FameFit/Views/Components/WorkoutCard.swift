@@ -33,7 +33,7 @@ struct WorkoutCard: View {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
                             .overlay(
-                                Text(profile.displayName.prefix(1))
+                                Text(profile.username.prefix(1))
                                     .font(.system(size: 18, weight: .medium))
                             )
                     }
@@ -45,7 +45,7 @@ struct WorkoutCard: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(profile.displayName)
+                            Text(profile.username)
                                 .font(.system(size: 16, weight: .semibold))
 
                             if profile.isVerified {

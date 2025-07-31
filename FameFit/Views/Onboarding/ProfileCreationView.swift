@@ -15,7 +15,7 @@ struct ProfileCreationView: View {
 
     @State private var currentStep = 0
     @State private var username = ""
-    @State private var displayName = ""
+    // Display name removed - using username for display
     @State private var bio = ""
     @State private var privacyLevel = ProfilePrivacyLevel.publicProfile
     @State private var selectedImage: PhotosPickerItem?
@@ -34,9 +34,7 @@ struct ProfileCreationView: View {
         UserProfile.isValidUsername(username) && usernameError == nil
     }
 
-    private var isDisplayNameValid: Bool {
-        UserProfile.isValidDisplayName(displayName)
-    }
+    // Display name validation no longer needed
 
     private var isBioValid: Bool {
         UserProfile.isValidBio(bio)
@@ -51,10 +49,11 @@ struct ProfileCreationView: View {
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
+                .dismissKeyboardOnTap()
 
                 VStack(spacing: 20) {
                     // Progress indicator
-                    ProgressView(value: Double(currentStep + 1), total: 4)
+                    ProgressView(value: Double(currentStep + 1), total: 3)
                         .tint(.white)
                         .padding(.horizontal)
 
@@ -62,10 +61,8 @@ struct ProfileCreationView: View {
                     case 0:
                         usernameStep
                     case 1:
-                        displayNameStep
+                        bioStep
                     case 2:
-                        bioAndPhotoStep
-                    case 3:
                         privacyStep
                     default:
                         EmptyView()
@@ -76,34 +73,38 @@ struct ProfileCreationView: View {
                     // Navigation buttons
                     HStack(spacing: 20) {
                         if currentStep > 0 {
-                            Button("Back") {
+                            Button(action: {
                                 withAnimation {
                                     currentStep -= 1
                                 }
+                            }) {
+                                Text("Back")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white.opacity(0.2))
+                                    .cornerRadius(15)
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(15)
                         }
 
-                        Button(currentStep == 3 ? "Create Profile" : "Next") {
-                            if currentStep == 3 {
+                        Button(action: {
+                            if currentStep == 2 {
                                 createProfile()
                             } else {
                                 withAnimation {
                                     currentStep += 1
                                 }
                             }
+                        }) {
+                            Text(currentStep == 2 ? "Create Profile" : "Next")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(canProceed ? Color.white.opacity(0.3) : Color.white.opacity(0.1))
+                                .cornerRadius(15)
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(canProceed ? Color.white.opacity(0.3) : Color.white.opacity(0.1))
-                        .cornerRadius(15)
                         .disabled(!canProceed || isCreatingProfile)
                     }
                     .padding(.horizontal)
@@ -112,14 +113,6 @@ struct ProfileCreationView: View {
             }
             .navigationTitle("Create Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-            }
             .alert("Error", isPresented: .constant(creationError != nil)) {
                 Button("OK") {
                     creationError = nil
@@ -149,6 +142,7 @@ struct ProfileCreationView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.none)
                     .autocorrectionDisabled()
+                    .keyboardDoneButton()
                     .onChange(of: username) { _, newValue in
                         // Remove spaces and special characters except underscore
                         let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
@@ -188,32 +182,8 @@ struct ProfileCreationView: View {
         .padding()
     }
 
-    private var displayNameStep: some View {
-        VStack(spacing: 30) {
-            Text("WHAT'S YOUR NAME?")
-                .font(.system(size: 30, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
 
-            Text("This is how you'll appear on leaderboards and to friends")
-                .font(.body)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-
-            VStack(alignment: .trailing, spacing: 10) {
-                TextField("Display Name", text: $displayName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                Text("\(displayName.count)/50")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding(.horizontal)
-        }
-        .padding()
-    }
-
-    private var bioAndPhotoStep: some View {
+    private var bioStep: some View {
         VStack(spacing: 30) {
             Text("TELL US ABOUT YOURSELF")
                 .font(.system(size: 28, weight: .black, design: .rounded))
@@ -269,6 +239,7 @@ struct ProfileCreationView: View {
                         .background(Color.white.opacity(0.9))
                         .cornerRadius(10)
                         .frame(height: 100)
+                        .keyboardDoneButton()
                 }
 
                 Text("\(bio.count)/500")
@@ -336,12 +307,12 @@ struct ProfileCreationView: View {
     private var canProceed: Bool {
         switch currentStep {
         case 0:
-            isUsernameValid && !username.isEmpty && !isCheckingUsername
+            // Allow proceeding if username is valid format and not empty
+            // Don't block on username checking - we'll validate on final submission
+            isUsernameValid && !username.isEmpty && usernameError == nil
         case 1:
-            isDisplayNameValid && !displayName.isEmpty
-        case 2:
             isBioValid // Bio can be empty
-        case 3:
+        case 2:
             true
         default:
             false
@@ -369,8 +340,17 @@ struct ProfileCreationView: View {
 
             // Check if username is still the same
             let currentUsername = username
+            
+            // Set a timeout failsafe
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                if currentUsername == username && isCheckingUsername {
+                    isCheckingUsername = false
+                }
+            }
 
             do {
+                // Try to check username availability
                 let isAvailable = try await profileService.isUsernameAvailable(username.lowercased())
 
                 // Only update if username hasn't changed
@@ -390,16 +370,29 @@ struct ProfileCreationView: View {
                     if let ckError = error as? CKError {
                         switch ckError.code {
                         case .unknownItem:
-                            usernameError = "Profile system not set up yet"
+                            // This is likely because the UserProfiles record type doesn't exist yet
+                            // Allow the user to proceed - we'll handle this during profile creation
+                            usernameError = nil
                         case .networkUnavailable, .networkFailure:
-                            usernameError = "Network error - please try again"
+                            // Allow proceeding with a warning
+                            usernameError = nil
                         case .notAuthenticated:
                             usernameError = "Please sign in to iCloud"
                         default:
-                            usernameError = "Error: \(ckError.localizedDescription)"
+                            // For other CloudKit errors, allow proceeding
+                            usernameError = nil
+                        }
+                    } else if let profileError = error as? ProfileServiceError {
+                        switch profileError {
+                        case .networkError:
+                            // If network error, allow proceeding - we'll validate on submission
+                            usernameError = nil
+                        default:
+                            usernameError = nil
                         }
                     } else {
-                        usernameError = "Error checking username"
+                        // For other errors, allow proceeding
+                        usernameError = nil
                     }
                 }
             }
@@ -412,32 +405,41 @@ struct ProfileCreationView: View {
 
         Task {
             do {
+                // Ensure CloudKit is ready
+                var retries = 0
+                while container.cloudKitManager.currentUserID == nil && retries < 10 {
+                    try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                    retries += 1
+                }
+                
                 // Get current user ID from CloudKit
                 guard let userId = container.cloudKitManager.currentUserID else {
                     throw ProfileServiceError.profileNotFound
                 }
 
+                // TODO: Upload profile image if provided
+                // For now, we'll create the profile without an image
+                let profileImageURL: String? = nil
+
                 // Create profile with lowercase username
-                // Profile ID will be generated by CloudKit
                 let profileId = UUID().uuidString
                 let profile = UserProfile(
                     id: profileId,
                     userID: userId, // Reference to Users record
                     username: username.lowercased(),
-                    displayName: displayName,
                     bio: bio,
-                    workoutCount: container.cloudKitManager.totalWorkouts,
-                    totalXP: container.cloudKitManager.totalXP,
-                    joinedDate: container.cloudKitManager.joinTimestamp ?? Date(),
+                    workoutCount: 0, // New profile starts with 0 workouts
+                    totalXP: 0, // New profile starts with 0 XP
+                    joinedDate: Date(), // New profile joins now
                     lastUpdated: Date(),
                     isVerified: false,
                     privacyLevel: privacyLevel,
-                    profileImageURL: nil, // TODO: Upload image
+                    profileImageURL: profileImageURL,
                     headerImageURL: nil
                 )
 
                 _ = try await profileService.createProfile(profile)
-
+                
                 // Success - dismiss
                 await MainActor.run {
                     dismiss()
@@ -445,7 +447,43 @@ struct ProfileCreationView: View {
             } catch {
                 await MainActor.run {
                     isCreatingProfile = false
-                    creationError = error.localizedDescription
+                    
+                    // Provide user-friendly error messages
+                    if let serviceError = error as? ProfileServiceError {
+                        switch serviceError {
+                        case .profileNotFound:
+                            creationError = "Unable to find user account. Please try signing out and back in."
+                        case .usernameAlreadyTaken:
+                            creationError = "Username is already taken. Please choose another."
+                        case .invalidUsername:
+                            creationError = "Invalid username format."
+                        case .invalidDisplayName:
+                            creationError = "Invalid display name format." // Legacy error
+                        case .invalidBio:
+                            creationError = "Bio is too long. Maximum 500 characters."
+                        case .networkError(let underlyingError):
+                            creationError = "Network error: \(underlyingError.localizedDescription)"
+                        case .insufficientPermissions:
+                            creationError = "Permission denied. Please try again."
+                        case .contentModerated:
+                            creationError = "Content was moderated. Please try different text."
+                        case .quotaExceeded:
+                            creationError = "Too many requests. Please try again later."
+                        }
+                    } else if let ckError = error as? CKError {
+                        switch ckError.code {
+                        case .networkUnavailable, .networkFailure:
+                            creationError = "Network error. Please check your connection."
+                        case .notAuthenticated:
+                            creationError = "Please sign in to iCloud in Settings."
+                        case .serverRejectedRequest:
+                            creationError = "Server error. Please try again."
+                        default:
+                            creationError = "Error: \(ckError.localizedDescription)"
+                        }
+                    } else {
+                        creationError = "Failed to create profile: \(error.localizedDescription)"
+                    }
                 }
             }
         }

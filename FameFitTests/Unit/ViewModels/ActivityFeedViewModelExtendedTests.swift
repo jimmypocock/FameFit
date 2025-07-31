@@ -1,5 +1,5 @@
 //
-//  SocialFeedViewModelExtendedTests.swift
+//  ActivityFeedViewModelExtendedTests.swift
 //  FameFitTests
 //
 //  Extended unit tests for social feed view model (error handling, pagination, performance, etc.)
@@ -13,8 +13,8 @@ import XCTest
 typealias MockKudosService = MockWorkoutKudosService
 
 @MainActor
-final class SocialFeedViewModelExtendedTests: XCTestCase {
-    private var viewModel: SocialFeedViewModel!
+final class ActivityFeedViewModelExtendedTests: XCTestCase {
+    private var viewModel: ActivityFeedViewModel!
     private var mockSocialService: MockSocialFollowingService!
     private var mockProfileService: MockUserProfileService!
     private var mockActivityFeedService: MockActivityFeedService!
@@ -23,7 +23,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        viewModel = SocialFeedViewModel()
+        viewModel = ActivityFeedViewModel()
         mockSocialService = MockSocialFollowingService()
         mockProfileService = MockUserProfileService()
         mockActivityFeedService = MockActivityFeedService()
@@ -36,7 +36,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
             profileService: mockProfileService,
             activityFeedService: mockActivityFeedService,
             kudosService: mockKudosService,
-            commentsService: MockWorkoutCommentsService(),
+            commentsService: MockActivityCommentsService(),
             currentUserId: "test-current-user"
         )
     }
@@ -213,7 +213,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
 
     func testLoadFeed_WithActivityFeedService() async {
         // Given - Create some test activities
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-1_800),
@@ -271,7 +271,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         mockProfileService.profiles[testUserId] = profile
 
         // Create activity
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "cycling",
             startDate: Date().addingTimeInterval(-3_600),
@@ -304,7 +304,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil
@@ -340,7 +340,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         mockSocialService.relationships["test-current-user"] = ["mock-user"]
 
         // Create initial activity
-        let initialWorkout = WorkoutHistoryItem(
+        let initialWorkout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-4_800),
@@ -368,7 +368,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         XCTAssertEqual(viewModel.feedItems.count, 1)
 
         // When - Post a new activity and reload
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "yoga",
             startDate: Date().addingTimeInterval(-2_400),
@@ -498,7 +498,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
         mockSocialService.relationships["test-current-user"] = ["user1"]
 
         // Setup mock workout activity
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-3_600),
@@ -528,7 +528,7 @@ final class SocialFeedViewModelExtendedTests: XCTestCase {
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil

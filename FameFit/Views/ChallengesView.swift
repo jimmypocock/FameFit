@@ -245,7 +245,7 @@ struct ChallengeCard: View {
                             Text("Leading")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text(leader.displayName)
+                            Text(leader.username)
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .foregroundColor(leader.id == currentUserId ? .green : .primary)
@@ -300,7 +300,7 @@ struct ChallengeCard: View {
                                 .fill(Color.gray.opacity(0.3))
                                 .frame(width: 24, height: 24)
 
-                            Text(String(participant.displayName.prefix(1)))
+                            Text(String(participant.username.prefix(1)))
                                 .font(.caption2)
                                 .fontWeight(.medium)
                         }
@@ -348,7 +348,7 @@ struct PendingChallengeCard: View {
                     Text(challenge.name)
                         .font(.headline)
 
-                    Text("From \(challenge.participants.first?.displayName ?? "Unknown")")
+                    Text("From \(challenge.participants.first?.username ?? "Unknown")")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -449,7 +449,7 @@ struct CompletedChallengeCard: View {
 
                 if let winner = challenge.participants.first(where: { $0.id == challenge.winnerId }) {
                     HStack {
-                        Text("Winner: \(winner.displayName)")
+                        Text("Winner: \(winner.username)")
                             .font(.caption)
                             .foregroundColor(.secondary)
 

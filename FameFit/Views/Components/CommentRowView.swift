@@ -11,7 +11,7 @@ struct CommentRowView: View {
     let commentWithUser: CommentWithUser
     let currentUserId: String?
     let onReply: (String) -> Void
-    let onEdit: (WorkoutComment) -> Void
+    let onEdit: (ActivityComment) -> Void
     let onDelete: (String) -> Void
     let onLike: (String) -> Void
     let onUserTap: (String) -> Void
@@ -46,7 +46,7 @@ struct CommentRowView: View {
                         Circle()
                             .fill(Color.blue.opacity(0.2))
                             .overlay(
-                                Text(commentWithUser.user.displayName.prefix(1))
+                                Text(commentWithUser.user.username.prefix(1).uppercased())
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.blue)
                             )
@@ -61,7 +61,7 @@ struct CommentRowView: View {
                     HStack(alignment: .top, spacing: 8) {
                         Button(action: { onUserTap(commentWithUser.user.id) }) {
                             HStack(spacing: 4) {
-                                Text(commentWithUser.user.displayName)
+                                Text(commentWithUser.user.username)
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.primary)
 
@@ -189,11 +189,13 @@ struct CommentRowView: View {
             // Parent comment
             CommentRowView(
                 commentWithUser: CommentWithUser(
-                    comment: WorkoutComment(
+                    comment: ActivityComment(
                         id: "1",
-                        workoutId: "workout1",
+                        activityFeedId: "feed1",
+                        sourceType: "workout",
+                        sourceRecordId: "workout1",
                         userId: "user1",
-                        workoutOwnerId: "owner1",
+                        activityOwnerId: "owner1",
                         content: "Great workout! Your form looked amazing throughout the entire session. Keep it up! 💪",
                         createdTimestamp: Date().addingTimeInterval(-3_600),
                         modifiedTimestamp: Date().addingTimeInterval(-3_600),
@@ -205,7 +207,6 @@ struct CommentRowView: View {
                         id: "user1",
                         userID: "user1",
                         username: "fitnessCoach",
-                        displayName: "Fitness Coach Sarah",
                         bio: "Certified trainer",
                         workoutCount: 127,
                         totalXP: 5_000,
@@ -229,11 +230,13 @@ struct CommentRowView: View {
             // Reply comment
             CommentRowView(
                 commentWithUser: CommentWithUser(
-                    comment: WorkoutComment(
+                    comment: ActivityComment(
                         id: "2",
-                        workoutId: "workout1",
+                        activityFeedId: "feed1",
+                        sourceType: "workout",
+                        sourceRecordId: "workout1",
                         userId: "user2",
-                        workoutOwnerId: "owner1",
+                        activityOwnerId: "owner1",
                         content: "Thanks for the motivation! 🙏",
                         createdTimestamp: Date().addingTimeInterval(-1_800),
                         modifiedTimestamp: Date().addingTimeInterval(-1_800),
@@ -245,7 +248,6 @@ struct CommentRowView: View {
                         id: "user2",
                         userID: "user2",
                         username: "runner_mike",
-                        displayName: "Mike Johnson",
                         bio: "Weekend warrior",
                         workoutCount: 45,
                         totalXP: 1_200,

@@ -129,7 +129,7 @@ struct FollowersListView: View {
         let query = searchText.lowercased()
         return currentList.filter { profile in
             profile.username.lowercased().contains(query) ||
-                profile.displayName.lowercased().contains(query)
+                profile.username.lowercased().contains(query)
         }
     }
 
@@ -452,7 +452,7 @@ struct FollowerRow: View {
             // User info
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(profile.displayName)
+                    Text(profile.username)
                         .font(.body)
                         .fontWeight(.medium)
 

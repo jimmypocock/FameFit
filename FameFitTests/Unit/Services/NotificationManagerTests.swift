@@ -72,7 +72,7 @@ class NotificationManagerTests: XCTestCase {
 
     func testNotifyWorkoutCompleted_SchedulesNotificationWithCorrectContent() async {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-1_800),
@@ -111,7 +111,7 @@ class NotificationManagerTests: XCTestCase {
 
     func testNotifyWorkoutCompleted_HandlesNilXPEarned() async {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "Yoga",
             startDate: Date().addingTimeInterval(-600),
@@ -179,7 +179,6 @@ class NotificationManagerTests: XCTestCase {
             id: "profile123",
             userID: "user123",
             username: "fitguru",
-            displayName: "Fitness Guru",
             bio: "Love fitness",
             workoutCount: 10,
             totalXP: 500,
@@ -198,14 +197,14 @@ class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(mockScheduler.scheduledRequests.count, 1)
         let request = mockScheduler.scheduledRequests.first!
         XCTAssertEqual(request.type, .newFollower)
-        XCTAssertTrue(request.body.contains("Fitness Guru"))
+        XCTAssertTrue(request.body.contains("fitguru"))
         XCTAssertTrue(request.body.contains("@fitguru"))
 
         // Verify metadata
         if case let .social(metadata) = request.metadata {
             XCTAssertEqual(metadata.userID, "user123")
             XCTAssertEqual(metadata.username, "fitguru")
-            XCTAssertEqual(metadata.displayName, "Fitness Guru")
+            // Display name check removed
         } else {
             XCTFail("Expected social metadata")
         }
@@ -217,7 +216,6 @@ class NotificationManagerTests: XCTestCase {
             id: "profile456",
             userID: "user456",
             username: "gymrat",
-            displayName: "Gym Rat",
             bio: "",
             workoutCount: 15,
             totalXP: 750,
@@ -245,7 +243,6 @@ class NotificationManagerTests: XCTestCase {
             id: "profile789",
             userID: "user789",
             username: "supporter",
-            displayName: "Supportive Friend",
             bio: "",
             workoutCount: 25,
             totalXP: 1_200,
@@ -274,7 +271,6 @@ class NotificationManagerTests: XCTestCase {
             id: "profile999",
             userID: "user999",
             username: "commenter",
-            displayName: "Chatty User",
             bio: "",
             workoutCount: 5,
             totalXP: 200,

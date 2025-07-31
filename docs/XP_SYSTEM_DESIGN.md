@@ -137,7 +137,7 @@ Separate from XP, FameCoins will be a spendable currency:
 
 ```swift
 struct XPCalculator {
-    static func calculateXP(for workout: WorkoutHistoryItem) -> Int {
+    static func calculateXP(for workout: WorkoutsItem) -> Int {
         // Base XP
         let minutes = workout.duration / 60.0
         var xp = minutes * 1.0

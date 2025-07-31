@@ -157,7 +157,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: "follower",
                 actionCount: nil
@@ -167,7 +167,7 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .newFollower,
             title: "New Follower! 👥",
-            body: "\(user.displayName) (@\(user.username)) started following you",
+            body: "\(user.username) (@\(user.username)) started following you",
             metadata: metadata,
             actions: [.view]
         )
@@ -184,7 +184,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -194,7 +194,7 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .followRequest,
             title: "Follow Request",
-            body: "\(user.displayName) wants to follow your fitness journey",
+            body: "\(user.username) wants to follow your fitness journey",
             metadata: metadata,
             priority: .immediate,
             actions: [.accept, .decline]
@@ -212,7 +212,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: "following",
                 actionCount: nil
@@ -222,7 +222,7 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .followAccepted,
             title: "Follow Request Accepted",
-            body: "\(user.displayName) accepted your follow request",
+            body: "\(user.username) accepted your follow request",
             metadata: metadata,
             actions: [.view]
         )
@@ -239,7 +239,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: 1
@@ -249,7 +249,7 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .workoutKudos,
             title: "Workout Kudos! ❤️",
-            body: "\(user.displayName) cheered your workout",
+            body: "\(user.username) cheered your workout",
             metadata: metadata,
             actions: [.view],
             groupId: "kudos_\(workoutId)"
@@ -267,7 +267,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -279,7 +279,7 @@ final class NotificationManager: NotificationManaging {
 
         let request = NotificationRequest(
             type: .workoutComment,
-            title: "\(user.displayName) commented",
+            title: "\(user.username) commented",
             body: truncatedComment,
             metadata: metadata,
             priority: .high,
@@ -298,7 +298,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -307,7 +307,7 @@ final class NotificationManager: NotificationManaging {
 
         let request = NotificationRequest(
             type: .mentioned,
-            title: "\(user.displayName) mentioned you",
+            title: "\(user.username) mentioned you",
             body: context,
             metadata: metadata,
             priority: .immediate,

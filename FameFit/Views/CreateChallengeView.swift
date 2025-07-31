@@ -20,6 +20,7 @@ struct CreateChallengeView: View {
     @State private var xpStake = ""
     @State private var winnerTakesAll = false
     @State private var isPublic = true
+    @State private var maxParticipants = "10"
     @State private var selectedFriends: Set<String> = []
     @State private var showingFriendPicker = false
     @State private var isCreating = false
@@ -41,7 +42,8 @@ struct CreateChallengeView: View {
         !challengeName.isEmpty &&
             !targetValue.isEmpty &&
             Double(targetValue) ?? 0 > 0 &&
-            !selectedFriends.isEmpty
+            (isPublic || !selectedFriends.isEmpty) &&
+            Int(maxParticipants) ?? 0 > 0
     }
 
     var body: some View {
@@ -92,19 +94,21 @@ struct CreateChallengeView: View {
                 }
 
                 // Participants
-                Section("Participants") {
-                    Button(action: {
-                        showingFriendPicker = true
-                    }) {
-                        HStack {
-                            Text("Select Friends")
-                            Spacer()
-                            if selectedFriends.isEmpty {
-                                Text("Required")
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text("\(selectedFriends.count) selected")
-                                    .foregroundColor(.secondary)
+                if !isPublic {
+                    Section("Participants") {
+                        Button(action: {
+                            showingFriendPicker = true
+                        }) {
+                            HStack {
+                                Text("Select Friends to Invite")
+                                Spacer()
+                                if selectedFriends.isEmpty {
+                                    Text("Required")
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("\(selectedFriends.count) selected")
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                     }
@@ -131,11 +135,24 @@ struct CreateChallengeView: View {
                     Toggle("Public Challenge", isOn: $isPublic)
                         .tint(.accentColor)
 
-                    Text(isPublic ? "Others can see and join this challenge" :
-                        "Only invited friends can see this challenge"
-                    )
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    if isPublic {
+                        HStack {
+                            Text("Max Participants")
+                            Spacer()
+                            TextField("Max", text: $maxParticipants)
+                                .keyboardType(.numberPad)
+                                .frame(width: 60)
+                                .multilineTextAlignment(.trailing)
+                        }
+                        
+                        Text("Others can see and join this challenge up to the participant limit")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("Only invited friends can see this challenge. A join code will be generated.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 // Error message
@@ -229,7 +246,7 @@ struct CreateChallengeView: View {
                 if let creatorProfile = try? await container.userProfileService.fetchProfile(userId: currentUserId) {
                     participants.append(ChallengeParticipant(
                         id: currentUserId,
-                        displayName: creatorProfile.displayName,
+                        username: creatorProfile.username,
                         profileImageURL: creatorProfile.profileImageURL
                     ))
                 }
@@ -239,7 +256,7 @@ struct CreateChallengeView: View {
                     if let profile = try? await container.userProfileService.fetchProfile(userId: friendId) {
                         participants.append(ChallengeParticipant(
                             id: friendId,
-                            displayName: profile.displayName,
+                            username: profile.username,
                             profileImageURL: profile.profileImageURL
                         ))
                     }
@@ -263,7 +280,9 @@ struct CreateChallengeView: View {
                     winnerId: nil,
                     xpStake: Int(xpStake) ?? 0,
                     winnerTakesAll: winnerTakesAll,
-                    isPublic: isPublic
+                    isPublic: isPublic,
+                    maxParticipants: Int(maxParticipants) ?? 10,
+                    joinCode: isPublic ? nil : WorkoutChallenge.generateJoinCode()
                 )
 
                 _ = try await container.workoutChallengesService.createChallenge(challenge)
@@ -325,7 +344,7 @@ struct FriendPickerView: View {
                                 )
 
                             VStack(alignment: .leading) {
-                                Text(friend.displayName)
+                                Text(friend.username)
                                     .font(.body)
 
                                 Text("@\(friend.username)")

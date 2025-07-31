@@ -90,6 +90,8 @@ class DependencyContainer: ObservableObject {
     let workoutChallengesService: WorkoutChallengesServicing
     let subscriptionManager: CloudKitSubscriptionManaging
     let realTimeSyncCoordinator: RealTimeSyncCoordinating
+    let activityCommentsService: ActivityCommentsServicing
+    let activitySharingSettingsService: ActivitySharingSettingsServicing
 
     init() {
         // Initialize core services
@@ -177,6 +179,18 @@ class DependencyContainer: ObservableObject {
             rateLimiter: rateLimitingService
         )
 
+        // Initialize activity services
+        activityCommentsService = ActivityCommentsService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager,
+            rateLimiter: rateLimitingService
+        )
+        
+        activitySharingSettingsService = ActivitySharingSettingsService(
+            cloudKitManager: cloudKitManager
+        )
+        
         // Initialize sync coordinator
         subscriptionManager = CloudKitSubscriptionManager()
 
@@ -240,7 +254,9 @@ class DependencyContainer: ObservableObject {
         groupWorkoutService: GroupWorkoutServicing? = nil,
         workoutChallengesService: WorkoutChallengesServicing? = nil,
         subscriptionManager: CloudKitSubscriptionManaging? = nil,
-        realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil
+        realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
+        activityCommentsService: ActivityCommentsServicing? = nil,
+        activitySharingSettingsService: ActivitySharingSettingsServicing? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -323,6 +339,17 @@ class DependencyContainer: ObservableObject {
         )
 
         self.subscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
+        
+        self.activityCommentsService = activityCommentsService ?? ActivityCommentsService(
+            cloudKitManager: self.cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        self.activitySharingSettingsService = activitySharingSettingsService ?? ActivitySharingSettingsService(
+            cloudKitManager: self.cloudKitManager
+        )
 
         if let realTimeSyncCoordinator {
             self.realTimeSyncCoordinator = realTimeSyncCoordinator

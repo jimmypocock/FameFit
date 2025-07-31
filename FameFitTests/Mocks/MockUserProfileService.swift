@@ -67,6 +67,29 @@ final class MockUserProfileService: UserProfileServicing {
 
         return profile
     }
+    
+    func fetchProfileByUserID(_ userID: String) async throws -> UserProfile {
+        isLoading = true
+        defer { isLoading = false }
+        
+        // Reduce delay for UI testing
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("UI-Testing")
+        let delay: UInt64 = isUITesting ? 10_000_000 : 100_000_000 // 0.01s for UI tests, 0.1s otherwise
+        
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: delay)
+        
+        if shouldFail {
+            throw ProfileServiceError.profileNotFound
+        }
+        
+        // For mock, search by userID field in profiles
+        guard let profile = profiles.values.first(where: { $0.userID == userID }) else {
+            throw ProfileServiceError.profileNotFound
+        }
+        
+        return profile
+    }
 
     func fetchCurrentUserProfile() async throws -> UserProfile {
         isLoading = true
@@ -100,9 +123,7 @@ final class MockUserProfileService: UserProfileServicing {
             throw ProfileServiceError.invalidUsername
         }
 
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
-        }
+        // Display name validation no longer needed
 
         guard UserProfile.isValidBio(profile.bio) else {
             throw ProfileServiceError.invalidBio
@@ -133,9 +154,7 @@ final class MockUserProfileService: UserProfileServicing {
         defer { isLoading = false }
 
         // Validate
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
-        }
+        // Display name validation no longer needed
 
         guard UserProfile.isValidBio(profile.bio) else {
             throw ProfileServiceError.invalidBio
@@ -210,8 +229,7 @@ final class MockUserProfileService: UserProfileServicing {
 
         let lowercaseQuery = query.lowercased()
         let results = profiles.values.filter { profile in
-            profile.username.lowercased().contains(lowercaseQuery) ||
-                profile.displayName.lowercased().contains(lowercaseQuery)
+            profile.username.lowercased().contains(lowercaseQuery)
         }
 
         return Array(results.prefix(limit))

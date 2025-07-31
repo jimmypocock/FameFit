@@ -23,10 +23,13 @@ class MockCloudKitManager: CloudKitManager {
     var addFollowersCalls: [(count: Int, date: Date)] = []
     var addXPCalls: [(xp: Int, date: Date)] = []
     var saveCallCount = 0 // Add this property
-    var mockRecords: [String: CKRecord] = [:] // Add this property
+    var mockRecords: [CKRecord] = [] // Add this property
+    var mockRecordsByID: [String: CKRecord] = [:] // For lookup by ID
     var mockQueryResults: [CKRecord] = [] // Add this property
-
+    var savedRecords: [CKRecord] = [] // Track saved records
+    
     // Control test behavior
+    var shouldFail = false // General failure flag
     var shouldFailAddFollowers = false
     var shouldFailAddXP = false
     var shouldFailFetchUserRecord = false
@@ -110,12 +113,26 @@ class MockCloudKitManager: CloudKitManager {
     // Mock CloudKit database access
     func save(_ record: CKRecord) async throws -> CKRecord {
         saveCallCount += 1
-        mockRecords[record.recordID.recordName] = record
+        mockRecords.append(record)
+        mockRecordsByID[record.recordID.recordName] = record
+        savedRecords.append(record)
+        if shouldFail {
+            throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
         return record
     }
 
     func query(_: CKQuery, in _: CKDatabase? = nil) async throws -> [CKRecord] {
         mockQueryResults
+    }
+    
+    func performQuery(_ query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?, desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord] {
+        if shouldFail {
+            throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
+        
+        // Return mockRecords for testing
+        return mockRecords
     }
 
     override func addFollowers(_ count: Int) {
@@ -207,13 +224,13 @@ class MockCloudKitManager: CloudKitManager {
 
     // MARK: - Workout History
 
-    private var workoutHistory: [WorkoutHistoryItem] = []
+    private var workoutHistory: [WorkoutItem] = []
 
-    override func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem) {
+    override func saveWorkout(_ workoutHistory: WorkoutItem) {
         self.workoutHistory.append(workoutHistory)
     }
 
-    override func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void) {
+    override func fetchWorkouts(completion: @escaping (Result<[WorkoutItem], Error>) -> Void) {
         // Sort by endDate descending to match CloudKit implementation
         let sortedHistory = workoutHistory.sorted { $0.endDate > $1.endDate }
         completion(.success(sortedHistory))
@@ -233,5 +250,12 @@ class MockCloudKitManager: CloudKitManager {
         default:
             "FameFit Elite"
         }
+    }
+    
+    func resetUserStats() {
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
     }
 }
