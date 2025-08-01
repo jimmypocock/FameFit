@@ -225,41 +225,42 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
 
         privateDatabase.save(userRecord) { [weak self] record, error in
             DispatchQueue.main.async {
-                if let error {
-                    self?.lastError = error.fameFitError
-                    return
-                }
+                self?.handleSaveResult(record: record, error: error, previousXP: previousXP)
+            }
+        }
+    }
+    
+    private func handleSaveResult(record: CKRecord?, error: Error?, previousXP: Int) {
+        if let error {
+            self.lastError = error.fameFitError
+            return
+        }
 
-                if let record {
-                    self?.userRecord = record
+        guard let record else { return }
+        
+        self.userRecord = record
 
-                    // Update cached values
-                    self?.totalXP = record["totalXP"] as? Int ?? 0
-                    self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
-                    
-                    FameFitLogger.info(
-                        "✅ Users record saved - XP: \(self?.totalXP ?? 0), Workouts: \(self?.totalWorkouts ?? 0)",
-                        category: FameFitLogger.cloudKit
-                    )
+        // Update cached values
+        self.totalXP = record["totalXP"] as? Int ?? 0
+        self.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
+        self.currentStreak = record["currentStreak"] as? Int ?? 0
+        self.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
+        self.joinTimestamp = record["joinTimestamp"] as? Date
+        self.lastError = nil
+        
+        FameFitLogger.info(
+            "✅ Users record saved - XP: \(self.totalXP), Workouts: \(self.totalWorkouts)",
+            category: FameFitLogger.cloudKit
+        )
 
-                    // Check for new unlocks
-                    // Check for new XP value from either field
-                    let newXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int
-                    if let newXP {
-                        Task {
-                            await self?.unlockNotificationService?.checkForNewUnlocks(
-                                previousXP: previousXP,
-                                currentXP: newXP
-                            )
-                        }
-                    }
-
-                    self?.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
-                    self?.currentStreak = record["currentStreak"] as? Int ?? 0
-                    self?.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
-                    self?.joinTimestamp = record["joinTimestamp"] as? Date
-                    self?.lastError = nil
-                }
+        // Check for new unlocks
+        let newXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int
+        if let newXP {
+            Task {
+                await self.unlockNotificationService?.checkForNewUnlocks(
+                    previousXP: previousXP,
+                    currentXP: newXP
+                )
             }
         }
     }
@@ -984,5 +985,16 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 category: FameFitLogger.cloudKit
             )
         }
+    }
+    
+    // MARK: - Additional CloudKit Operations
+    
+    func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord] {
+        let (records, _) = try await privateDatabase.records(matching: query, inZoneWith: zoneID)
+        return Array(records.values)
+    }
+    
+    var database: CKDatabase {
+        privateDatabase
     }
 }

@@ -72,6 +72,9 @@ struct FameFitApp: App {
                         // Start the reliable sync manager using HKAnchoredObjectQuery
                         // This provides more reliable workout tracking than observer queries
                         dependencyContainer.workoutSyncManager.startReliableSync()
+                        
+                        // Start auto-sharing service for workouts
+                        dependencyContainer.workoutAutoShareService.setupAutoSharing()
 
                         // Request APNS permissions if user has completed onboarding
                         if dependencyContainer.authenticationManager.hasCompletedOnboarding {

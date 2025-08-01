@@ -1,114 +1,248 @@
-# FameFit Architecture Improvements TODO
+# FameFit TODO Overview
 
-This document tracks planned architecture improvements to enhance testability, reduce coupling, and follow modern iOS/Swift best practices.
+This document provides a high-level overview of the FameFit development phases and current status.
 
-## 🔄 **NEXT REFACTORING - CloudKit Field Cleanup**
+## 📁 TODO Organization
 
-### Remove Redundant Fields from UserProfile
+The TODO documentation has been reorganized into separate files for better clarity:
 
-**Analysis Complete**:
-- `lastUpdated` field duplicates CloudKit's `record.modificationDate`
-- `joinedDate` field duplicates CloudKit's `record.creationDate`
+- **TODO_DAILY.md** - Daily tasks, technical debt, and one-off improvements
+- **TODO_PHASE_1.md** - Influencer XP System ✅
+- **TODO_PHASE_2.md** - User Profile System ✅
+- **TODO_PHASE_3.md** - Social Following System ✅
+- **TODO_PHASE_4.md** - Social Interactions ✅
+- **TODO_PHASE_5.md** - Sharing & Content Creation System (Current)
+- **TODO_PHASE_6.md** - Gamification Enhancements
+- **TODO_PHASE_7.md** - FameCoin Currency System
 
-**Action Required**:
-1. Remove both fields from UserProfile model
-2. Update all code to use CloudKit system fields
-3. Migration strategy for existing data
-4. Update tests accordingly
+## 🎯 Current Status
 
-**CloudKit Field Deprecation**:
-- CloudKit doesn't support marking fields as deprecated in production
-- Best practice: Stop writing to old fields, continue reading for compatibility
-- After all clients updated, manually remove fields from CloudKit Dashboard
-- Document deprecated fields in CLOUDKIT_SCHEMA.md with removal timeline
+**Phases Completed**: 1-4 ✅
+**Current Phase**: 5 - Sharing & Content Creation System
+**Next Phase**: 6 - Gamification Enhancements
 
-## 🌅 **MORNING FOCUS - 2025-07-31**
+## 📊 Phase Progress Summary
 
-### ✅ Activity Sharing Foundation Complete!
+### ✅ Completed Phases
+- **Phase 1**: Influencer XP System - Complete with XP engine, achievements, and unlocks
+- **Phase 2**: User Profile System - Full CloudKit integration with photo uploads
+- **Phase 3**: Social Following System - Following/followers with privacy controls
+- **Phase 4**: Social Interactions - Comments, kudos, challenges, real-time updates, enhanced leaderboards
 
-**Yesterday's Achievement**: Completed the automatic activity sharing infrastructure:
-- ✅ ActivitySharingSettings model with presets (conservative, balanced, social, custom)
-- ✅ ActivitySharingSettingsService with CloudKit backend
-- ✅ Modified WorkoutObserver to auto-post workouts based on settings
-- ✅ Built complete UI flow (settings view, migration, onboarding)
-- ✅ Removed old WorkoutSharingPromptView 
-- ✅ Updated all tests and documentation
+### 🚀 In Progress
+- **Phase 5**: Sharing & Content Creation System
+  - ✅ Activity sharing foundation complete
+  - ✅ Auto-sharing implementation
+  - ✅ Group workout scheduling implementation
+  - 🔄 Historical workout sharing UI
+  - 🔄 Visual polish for workout cards
 
-### ✅ Today's Tasks Complete!
+### 📅 Upcoming Phases
+- **Phase 6**: Gamification Enhancements - Tournaments, advanced achievements, seasonal events
+- **Phase 7**: FameCoin Currency System - Secondary economy with earning/spending mechanics
 
-**Morning Tasks - DONE**:
-1. **Test Auto-Sharing with Real Workouts** ✅
-   - ✅ Integrated auto-sharing into WorkoutSyncManager.processWorkouts()
-   - ✅ Added support for privacy controls from ActivitySharingSettings
-   - ✅ Implemented sharing delay with Task.sleep
-   - ✅ Re-checks settings after delay to handle changes
+## 🏆 Key Achievements
 
-2. **Fix Remaining Build Issues** ✅
-   - ✅ Fixed ActivitySharingSettingsServiceTests compilation errors
-   - ✅ Updated tests to work with placeholder CloudKit implementation
-   - ✅ All tests now compile and pass
+- **500+ Tests**: Comprehensive test coverage across all features
+- **Protocol-Oriented Architecture**: Clean, testable code structure with dependency injection
+- **Real-time Updates**: CloudKit subscriptions for live social features
+- **Security First**: Rate limiting, content moderation, privacy controls
+- **Performance Optimized**: Caching, pagination, background processing
+- **Architecture Complete**: All technical debt resolved, factory patterns implemented
 
-3. **Auto-Sharing Implementation** ✅
-   - ✅ Added autoShareWorkoutIfEnabled() method to WorkoutSyncManager
-   - ✅ Wired up required services in DependencyContainer
-   - ✅ Respects all user settings (workout types, minimum duration, privacy)
-   - ✅ Includes optional workout details based on user preference
+## 🔗 Quick Links
 
-## 🎯 **PHASE 5 IN PROGRESS - Activity Sharing & Visual Polish**
+For detailed information about each component:
 
-### ✅ Completed Today (2025-07-31):
-- ✅ Fixed all ActivitySharingSettingsServiceTests compilation errors
-- ✅ Implemented auto-sharing in WorkoutSyncManager
-- ✅ Added full privacy control support
-- ✅ Implemented configurable sharing delay
-- ✅ Connected all required services
+- **Daily Tasks & Technical Debt**: See TODO_DAILY.md
+- **Phase Details**: See TODO_PHASE_[1-7].md
+- **Current Work**: See TODO_PHASE_5.md for active tasks
 
-### 🔄 Next Steps:
 
-**High Priority**:
-1. **Historical Workout Sharing** (Optional Enhancement)
-   - Add UI to share past workouts when first enabling auto-share
-   - Respect historicalWorkoutMaxAge setting
-   - Show progress indicator for bulk sharing
+---
 
-2. **Bulk Privacy Updates**
-   - Add UI to update privacy on existing shared activities
-   - Batch update CloudKit records efficiently
-   
-3. **Visual Polish - Workout Cards**
-   - Enhance WorkoutCard component with better visuals
-   - Add workout type icons and colors
-   - Improve layout and spacing
-
-**Medium Priority**:
-- Test follower/following functionality thoroughly
-- Add CloudKit integration to ActivitySharingSettingsService
-- Implement source filtering (allow/block specific apps)
-- Add notification when workouts are auto-shared
+Last Updated: 2025-08-01 - TODO documentation reorganized into phase-specific files
 
 ### 📅 Group Workout Scheduling System
 
 **Priority**: High - Essential for planning ahead
 **Impact**: Major - Enables social coordination
 
+#### Implementation Architecture
+
+**CloudKit Schema Design**:
+```swift
+// GroupWorkout (Public Database)
+- workoutId: String (CKRecord.ID) - UUID
+- creatorId: String (Reference to Users) - QUERYABLE
+- title: String - QUERYABLE
+- description: String
+- workoutType: String - QUERYABLE
+- scheduledDate: Date - QUERYABLE, SORTABLE
+- duration: Int64 (minutes)
+- maxParticipants: Int64 (0 = unlimited)
+- currentParticipants: Int64
+- visibility: String ("public", "friends", "invite_only") - QUERYABLE
+- location: String (optional)
+- locationCoordinates: CLLocation (optional)
+- tags: [String] - QUERYABLE
+- isRecurring: Int64 (0/1)
+- recurringPattern: String (JSON)
+- status: String ("scheduled", "active", "completed", "cancelled") - QUERYABLE
+- timezone: String (timezone identifier)
+- createdAt: Date
+- modifiedAt: Date
+
+// GroupWorkoutParticipant (Public Database)
+- participantId: String (CKRecord.ID)
+- workoutId: String (Reference) - QUERYABLE
+- userId: String (Reference) - QUERYABLE
+- status: String ("invited", "accepted", "declined", "maybe", "joined") - QUERYABLE
+- joinedAt: Date
+- role: String ("creator", "participant")
+- reminderEnabled: Int64 (0/1)
+
+// GroupWorkoutInvite (Private Database)
+- inviteId: String (CKRecord.ID)
+- workoutId: String (Reference)
+- inviterId: String
+- inviteeId: String - QUERYABLE
+- status: String ("pending", "accepted", "declined") - QUERYABLE
+- sentAt: Date
+- message: String (optional)
+```
+
 **Core Features**:
 1. **Scheduling Mechanism**
    - Create workouts up to 30 days in advance
-   - Set date, time, and duration
-   - Timezone-aware scheduling
-   - Recurring workout options (daily, weekly)
+   - Set date, time, and duration with timezone support
+   - Timezone-aware scheduling (store in UTC, display in local)
+   - Recurring workout options:
+     - Daily (every day)
+     - Weekly (specific days)
+     - Bi-weekly
+     - Monthly (same day each month)
+   - Copy existing workout as template
+   - Quick schedule options (tomorrow morning, this weekend, etc.)
    
 2. **Participant Management**
    - Public workouts: Unlimited participants
-   - Invite-only: At least one friend required
-   - Participant number entry UI for public workouts
-   - RSVP system with yes/maybe/no
+   - Friends-only: Visible to followers only
+   - Invite-only: Requires invitation (min 1 friend)
+   - RSVP system:
+     - Yes (committed)
+     - Maybe (interested)
+     - No (declined)
+     - Auto-accept for creator
+   - Participant limits with waitlist
+   - Real-time participant count updates
+   - "Join" converts Maybe to Yes
    
 3. **Discovery & Visibility**
    - Public workouts in discovery feed
-   - Friend-only visibility option
-   - Tag system for categorization and discovery
-   - Search by tags, time, workout type
+   - Filter by:
+     - Date/time range
+     - Workout type
+     - Tags
+     - Distance (if location enabled)
+     - Friend participation
+   - Sort by:
+     - Start time
+     - Popularity (participant count)
+     - Relevance (based on user preferences)
+   - Friend activity indicators
+   - Trending workouts section
+   
+4. **Notifications & Reminders**
+   - 24 hours before: "Workout tomorrow!"
+   - 1 hour before: "Starting soon"
+   - 15 minutes before: "Get ready!"
+   - Participant updates:
+     - New participant joined
+     - Friend RSVP'd
+     - Workout cancelled/rescheduled
+   - Smart notifications (respect quiet hours)
+   - In-app and push notifications
+   
+5. **Calendar Integration**
+   - Add to iOS Calendar
+   - Calendar event includes:
+     - FameFit deep link
+     - Participant list
+     - Location (if provided)
+   - Sync updates to calendar
+   - Handle calendar conflicts
+
+#### Technical Implementation
+
+**Service Layer**:
+```swift
+protocol GroupWorkoutSchedulingService {
+    // CRUD Operations
+    func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout
+    func updateGroupWorkout(_ workout: GroupWorkout) async throws
+    func cancelGroupWorkout(_ workoutId: String) async throws
+    func getGroupWorkout(_ workoutId: String) async throws -> GroupWorkout
+    func deleteGroupWorkout(_ workoutId: String) async throws
+    
+    // Discovery
+    func getUpcomingPublicWorkouts(limit: Int) async throws -> [GroupWorkout]
+    func getUpcomingFriendsWorkouts(limit: Int) async throws -> [GroupWorkout]
+    func getMyScheduledWorkouts() async throws -> [GroupWorkout]
+    func searchWorkouts(query: String, filters: WorkoutFilters) async throws -> [GroupWorkout]
+    func getWorkoutsByTags(_ tags: [String]) async throws -> [GroupWorkout]
+    
+    // Participation
+    func joinWorkout(_ workoutId: String) async throws
+    func leaveWorkout(_ workoutId: String) async throws
+    func updateRSVP(_ workoutId: String, status: RSVPStatus) async throws
+    func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant]
+    
+    // Invitations
+    func inviteUsers(_ userIds: [String], to workoutId: String) async throws
+    func respondToInvite(_ inviteId: String, accept: Bool) async throws
+    func getMyInvites() async throws -> [GroupWorkoutInvite]
+    
+    // Recurring Workouts
+    func createRecurringWorkout(_ template: GroupWorkout, pattern: RecurringPattern) async throws
+    func updateRecurringSeries(_ workoutId: String, updates: GroupWorkout) async throws
+    func deleteRecurringSeries(_ workoutId: String) async throws
+}
+```
+
+**Key Implementation Details**:
+
+1. **Timezone Handling**:
+   - Store all dates in UTC in CloudKit
+   - Store timezone identifier with workout
+   - Convert to user's local timezone for display
+   - Handle daylight saving transitions
+   - Show timezone in UI when different from user's
+
+2. **Real-time Updates**:
+   - CloudKit subscriptions for participant changes
+   - Push notifications for important updates
+   - Optimistic UI updates with rollback
+
+3. **Performance Optimizations**:
+   - Cache upcoming workouts locally
+   - Paginate discovery results
+   - Prefetch participant details
+   - Batch invitation sending
+
+4. **Edge Cases**:
+   - Creator cancellation
+   - Participant limit reached
+   - Time conflicts detection
+   - Past workout handling
+   - Network failure recovery
+
+5. **Security & Privacy**:
+   - Respect user privacy settings
+   - Validate participant limits
+   - Prevent spam invitations
+   - Rate limit workout creation
+   - Block/mute user support
 
 ### 🏷️ Tag System Functionality (Future Enhancement)
 

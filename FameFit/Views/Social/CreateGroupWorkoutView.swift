@@ -1,0 +1,307 @@
+//
+//  CreateGroupWorkoutView.swift
+//  FameFit
+//
+//  View for creating a new group workout
+//
+
+import SwiftUI
+import EventKit
+
+struct CreateGroupWorkoutView: View {
+    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var title = ""
+    @State private var selectedWorkoutType: Int = 37 // Running
+    @State private var scheduledDate = Date().addingTimeInterval(86400) // Tomorrow
+    @State private var location = ""
+    @State private var notes = ""
+    @State private var maxParticipants = 10
+    @State private var isPublic = false
+    @State private var tagInput = ""
+    @State private var tags: [String] = []
+    @State private var addToCalendar = true
+    
+    @State private var isCreating = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+    
+    // Timezone handling
+    @State private var selectedTimeZone = TimeZone.current
+    @State private var showTimeZonePicker = false
+    
+    private let workoutTypes: [(id: Int, name: String, icon: String)] = [
+        (37, "Running", "figure.run"),
+        (13, "Cycling", "bicycle"),
+        (46, "Swimming", "figure.pool.swim"),
+        (20, "Functional Training", "figure.strengthtraining.functional"),
+        (71, "Yoga", "figure.yoga"),
+        (16, "Dance", "figure.dance"),
+        (35, "Racquetball", "figure.racquetball"),
+        (52, "Tennis", "figure.tennis"),
+        (24, "Hiking", "figure.hiking"),
+        (15, "Crossfit", "figure.cross.training")
+    ]
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                // Basic Info
+                Section {
+                    TextField("Workout Title", text: $title)
+                    
+                    Picker("Workout Type", selection: $selectedWorkoutType) {
+                        ForEach(workoutTypes, id: \.id) { type in
+                            Label(type.name, systemImage: type.icon)
+                                .tag(type.id)
+                        }
+                    }
+                }
+                
+                // Schedule
+                Section {
+                    DatePicker("Date & Time", selection: $scheduledDate, in: Date()..., displayedComponents: [.date, .hourAndMinute])
+                    
+                    HStack {
+                        Text("Time Zone")
+                        Spacer()
+                        Button(action: { showTimeZonePicker = true }) {
+                            Text(selectedTimeZone.identifier.replacingOccurrences(of: "_", with: " "))
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                
+                // Location & Details
+                Section {
+                    TextField("Location (optional)", text: $location)
+                    
+                    VStack(alignment: .leading) {
+                        Text("Notes (optional)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextEditor(text: $notes)
+                            .frame(minHeight: 60)
+                    }
+                }
+                
+                // Settings
+                Section {
+                    Stepper("Max Participants: \(maxParticipants)", value: $maxParticipants, in: 2...50)
+                    
+                    Toggle("Make Public", isOn: $isPublic)
+                    
+                    if isPublic {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Tags")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            HStack {
+                                TextField("Add tag", text: $tagInput)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onSubmit {
+                                        addTag()
+                                    }
+                                
+                                Button("Add", action: addTag)
+                                    .disabled(tagInput.isEmpty)
+                            }
+                            
+                            if !tags.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack {
+                                        ForEach(tags, id: \.self) { tag in
+                                            HStack(spacing: 4) {
+                                                Text("#\(tag)")
+                                                Button(action: { removeTag(tag) }) {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .font(.caption)
+                                                }
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.accentColor.opacity(0.1))
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Toggle("Add to Calendar", isOn: $addToCalendar)
+                }
+            }
+            .navigationTitle("Create Group Workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Create") {
+                        createWorkout()
+                    }
+                    .disabled(title.isEmpty || isCreating)
+                }
+            }
+            .sheet(isPresented: $showTimeZonePicker) {
+                TimeZonePickerView(selectedTimeZone: $selectedTimeZone)
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
+            .disabled(isCreating)
+            .overlay {
+                if isCreating {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .overlay {
+                            ProgressView("Creating workout...")
+                                .padding()
+                                .background(Color(.systemBackground))
+                                .cornerRadius(12)
+                        }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func addTag() {
+        let trimmedTag = tagInput.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !trimmedTag.isEmpty && !tags.contains(trimmedTag) && tags.count < 5 {
+            tags.append(trimmedTag)
+            tagInput = ""
+        }
+    }
+    
+    private func removeTag(_ tag: String) {
+        tags.removeAll { $0 == tag }
+    }
+    
+    private func createWorkout() {
+        guard !title.isEmpty else { return }
+        
+        isCreating = true
+        
+        Task {
+            do {
+                // Get current user ID
+                let currentUserId = try await container.cloudKitManager.getCurrentUserID()
+                
+                // Create the workout
+                let workout = GroupWorkout(
+                    title: title,
+                    workoutType: String(selectedWorkoutType),
+                    scheduledDate: scheduledDate,
+                    timeZone: selectedTimeZone.identifier,
+                    location: location.isEmpty ? nil : location,
+                    notes: notes.isEmpty ? nil : notes,
+                    maxParticipants: maxParticipants,
+                    createdBy: currentUserId,
+                    isPublic: isPublic,
+                    tags: tags
+                )
+                
+                let createdWorkout = try await container.groupWorkoutSchedulingService.createGroupWorkout(workout)
+                
+                // Add to calendar if requested
+                if addToCalendar {
+                    do {
+                        try await container.groupWorkoutSchedulingService.addToCalendar(createdWorkout)
+                    } catch {
+                        // Calendar addition failed, but workout was created
+                        print("Failed to add to calendar: \(error)")
+                    }
+                }
+                
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    isCreating = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Time Zone Picker
+
+struct TimeZonePickerView: View {
+    @Binding var selectedTimeZone: TimeZone
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    
+    private var timeZones: [TimeZone] {
+        TimeZone.knownTimeZoneIdentifiers.compactMap { TimeZone(identifier: $0) }
+    }
+    
+    private var filteredTimeZones: [TimeZone] {
+        if searchText.isEmpty {
+            return timeZones
+        }
+        return timeZones.filter { zone in
+            zone.identifier.localizedCaseInsensitiveContains(searchText) ||
+            zone.localizedName(for: .standard, locale: .current)?.localizedCaseInsensitiveContains(searchText) ?? false
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(filteredTimeZones, id: \.identifier) { zone in
+                    Button(action: {
+                        selectedTimeZone = zone
+                        dismiss()
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(zone.identifier.replacingOccurrences(of: "_", with: " "))
+                                    .foregroundColor(.primary)
+                                
+                                if let name = zone.localizedName(for: .standard, locale: .current) {
+                                    Text(name)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Text(zone.abbreviation() ?? "")
+                                .foregroundColor(.secondary)
+                            
+                            if zone.identifier == selectedTimeZone.identifier {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search time zones")
+            .navigationTitle("Select Time Zone")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}

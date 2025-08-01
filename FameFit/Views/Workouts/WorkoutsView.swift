@@ -122,11 +122,11 @@ struct WorkoutRow: View {
                     Text(workout.workoutType)
                         .font(.headline)
 
-                    Text(workout.startDate, style: .date)
+                    Text(workout.startDate.workoutDisplayDate)
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    Text(workout.startDate, style: .time)
+                    Text(workout.startDate.workoutDisplayTime)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

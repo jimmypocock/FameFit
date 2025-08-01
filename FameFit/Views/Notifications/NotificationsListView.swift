@@ -83,7 +83,7 @@ struct NotificationRow: View {
                         .font(.headline)
                         .lineLimit(1)
 
-                    Text(notification.timestamp, style: .relative)
+                    Text(notification.timestamp.relativeDisplayString)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

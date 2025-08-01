@@ -18,6 +18,7 @@ struct ActivityFeedSettingsView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var hasUnsavedChanges = false
+    @State private var showBulkPrivacyUpdate = false
     
     // Preset selection
     @State private var selectedPreset: SharingPreset = .custom
@@ -105,6 +106,9 @@ struct ActivityFeedSettingsView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+        .sheet(isPresented: $showBulkPrivacyUpdate) {
+            BulkPrivacyUpdateView(dependencyContainer: container)
         }
     }
     
@@ -302,6 +306,20 @@ struct ActivityFeedSettingsView: View {
                         hasUnsavedChanges = true
                         selectedPreset = .custom
                     }
+            }
+            
+            // Bulk privacy update
+            Button {
+                showBulkPrivacyUpdate = true
+            } label: {
+                HStack {
+                    Label("Update Privacy for Existing Activities", systemImage: "lock.shield")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
             }
         }
     }

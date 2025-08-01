@@ -31,6 +31,7 @@ enum NotificationCategory: String, Codable, CaseIterable {
 enum NotificationType: String, Codable, CaseIterable {
     // Workout notifications
     case workoutCompleted = "workout_completed"
+    case workoutShared = "workout_shared"
     case xpMilestone = "xp_milestone"
     case levelUp = "level_up"
     case streakMaintained = "streak_maintained"
@@ -57,7 +58,7 @@ enum NotificationType: String, Codable, CaseIterable {
 
     var category: NotificationCategory {
         switch self {
-        case .workoutCompleted, .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk, .unlockAchieved:
+        case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk, .unlockAchieved:
             .workout
         case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned,
              .challengeInvite,
@@ -85,7 +86,7 @@ enum NotificationType: String, Codable, CaseIterable {
 
     var defaultSetting: NotificationSetting {
         switch self {
-        case .workoutCompleted, .xpMilestone, .levelUp, .unlockAchieved:
+        case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .unlockAchieved:
             .enabled
         case .streakMaintained, .streakAtRisk:
             .enabled
@@ -122,6 +123,8 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .workoutCompleted:
             "Workout Completed"
+        case .workoutShared:
+            "Workout Shared"
         case .xpMilestone:
             "XP Milestone"
         case .levelUp:
@@ -167,6 +170,8 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .workoutCompleted:
             "🏃"
+        case .workoutShared:
+            "📢"
         case .xpMilestone, .levelUp:
             "🎉"
         case .streakMaintained:

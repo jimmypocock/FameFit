@@ -674,6 +674,9 @@ enum GroupWorkoutError: LocalizedError {
     case saveFailed
     case updateFailed
     case fetchFailed
+    case calendarAccessDenied
+    case calendarSaveFailed
+    case calendarRemoveFailed
 
     var errorDescription: String? {
         switch self {
@@ -701,6 +704,12 @@ enum GroupWorkoutError: LocalizedError {
             "Failed to update workout"
         case .fetchFailed:
             "Failed to fetch workouts"
+        case .calendarAccessDenied:
+            "Calendar access denied"
+        case .calendarSaveFailed:
+            "Failed to save to calendar"
+        case .calendarRemoveFailed:
+            "Failed to remove from calendar"
         }
     }
 }

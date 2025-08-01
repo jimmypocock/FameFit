@@ -107,7 +107,7 @@ struct WorkoutCommentsView: View {
 
                 // Workout time
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(workout.startDate, style: .relative)
+                    Text(workout.startDate.relativeDisplayString)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

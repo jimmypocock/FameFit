@@ -27,6 +27,8 @@ struct GroupWorkout: Identifiable, Equatable {
     let isPublic: Bool
     let joinCode: String? // For private groups
     let tags: [String]
+    let location: String? // Optional location
+    let notes: String? // Optional notes
 
     // Computed Properties
     var duration: TimeInterval {
@@ -52,6 +54,10 @@ struct GroupWorkout: Identifiable, Equatable {
     var participantIds: [String] {
         participants.map(\.userId)
     }
+    
+    // Compatibility aliases for different naming conventions
+    var title: String { name }
+    var scheduledDate: Date { scheduledStart }
 
     // MARK: - Initialization
 
@@ -70,7 +76,9 @@ struct GroupWorkout: Identifiable, Equatable {
         modifiedTimestamp: Date = Date(),
         isPublic: Bool = true,
         joinCode: String? = nil,
-        tags: [String] = []
+        tags: [String] = [],
+        location: String? = nil,
+        notes: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -87,6 +95,8 @@ struct GroupWorkout: Identifiable, Equatable {
         self.isPublic = isPublic
         self.joinCode = joinCode ?? (isPublic ? nil : Self.generateJoinCode())
         self.tags = tags
+        self.location = location
+        self.notes = notes
     }
 
     // MARK: - CloudKit Integration
@@ -117,6 +127,8 @@ struct GroupWorkout: Identifiable, Equatable {
         }
 
         let tags = record["tags"] as? [String] ?? []
+        let location = record["location"] as? String
+        let notes = record["notes"] as? String
 
         self.init(
             id: record.recordID.recordName,
@@ -133,7 +145,9 @@ struct GroupWorkout: Identifiable, Equatable {
             modifiedTimestamp: modifiedTimestamp,
             isPublic: isPublic != 0,
             joinCode: record["joinCode"] as? String,
-            tags: tags
+            tags: tags,
+            location: location,
+            notes: notes
         )
     }
 
@@ -157,6 +171,8 @@ struct GroupWorkout: Identifiable, Equatable {
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
         record["joinCode"] = joinCode
         record["tags"] = tags
+        record["location"] = location
+        record["notes"] = notes
 
         return record
     }
@@ -176,6 +192,7 @@ extension GroupWorkout: Codable {
         case id, name, description, workoutType, hostId, participants
         case maxParticipants, scheduledStart, scheduledEnd, status
         case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
+        case location, notes
     }
 
     init(from decoder: Decoder) throws {
@@ -206,6 +223,8 @@ extension GroupWorkout: Codable {
         isPublic = try container.decode(Bool.self, forKey: .isPublic)
         joinCode = try container.decodeIfPresent(String.self, forKey: .joinCode)
         tags = try container.decode([String].self, forKey: .tags)
+        location = try container.decodeIfPresent(String.self, forKey: .location)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -225,6 +244,8 @@ extension GroupWorkout: Codable {
         try container.encode(isPublic, forKey: .isPublic)
         try container.encodeIfPresent(joinCode, forKey: .joinCode)
         try container.encode(tags, forKey: .tags)
+        try container.encodeIfPresent(location, forKey: .location)
+        try container.encodeIfPresent(notes, forKey: .notes)
     }
 }
 

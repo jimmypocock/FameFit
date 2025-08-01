@@ -108,7 +108,7 @@ struct ActivityCommentsView: View {
                 
                 // Activity time
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(feedItem.timestamp, style: .relative)
+                    Text(feedItem.timestamp.relativeDisplayString)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

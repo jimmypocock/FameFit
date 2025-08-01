@@ -6,6 +6,7 @@
 //
 
 import AuthenticationServices
+import CloudKit
 import Combine
 import Foundation
 import HealthKit
@@ -68,6 +69,10 @@ protocol CloudKitManaging: ObservableObject {
     func clearAllWorkoutsAndResetStats() async throws
     func debugCloudKitEnvironment() async throws
     func forceResetStats() async throws
+    
+    // Additional CloudKit operations
+    func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord]
+    var database: CKDatabase { get }
 }
 
 // MARK: - WorkoutObserver Protocol
@@ -77,6 +82,9 @@ protocol WorkoutObserving: ObservableObject {
     var todaysWorkouts: [HKWorkout] { get }
     var isAuthorized: Bool { get }
     var lastError: FameFitError? { get }
+    
+    // Publisher for workout completion events
+    var workoutCompletedPublisher: AnyPublisher<Workout, Never> { get }
 
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void)
     func startObservingWorkouts()

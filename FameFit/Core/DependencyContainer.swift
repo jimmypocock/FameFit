@@ -10,8 +10,10 @@ import HealthKit
 import SwiftUI
 
 class DependencyContainer: ObservableObject {
-    // MARK: - Factory Methods
-
+    // MARK: - Factory-Based Dependency Creation
+    
+    private let factory: DependencyFactory
+    
     private struct CoreServices {
         let cloudKitManager: CloudKitManager
         let authenticationManager: AuthenticationManager
@@ -20,12 +22,12 @@ class DependencyContainer: ObservableObject {
         let unlockStorageService: UnlockStorageService
     }
 
-    private static func createCoreServices() -> CoreServices {
-        let cloudKitManager = CloudKitManager()
-        let authenticationManager = AuthenticationManager(cloudKitManager: cloudKitManager)
-        let healthKitService = RealHealthKitService()
-        let notificationStore = NotificationStore()
-        let unlockStorageService = UnlockStorageService()
+    private func createCoreServices() -> CoreServices {
+        let cloudKitManager = factory.createCloudKitManager()
+        let authenticationManager = factory.createAuthenticationManager(cloudKitManager: cloudKitManager)
+        let healthKitService = factory.createHealthKitService()
+        let notificationStore = factory.createNotificationStore()
+        let unlockStorageService = factory.createUnlockStorageService()
 
         return CoreServices(
             cloudKitManager: cloudKitManager,
@@ -42,21 +44,21 @@ class DependencyContainer: ObservableObject {
         let workoutSyncQueue: WorkoutSyncQueue
     }
 
-    private static func createWorkoutServices(
+    private func createWorkoutServices(
         cloudKitManager: CloudKitManager,
         healthKitService: HealthKitService
     ) -> WorkoutServices {
-        let workoutObserver = WorkoutObserver(
+        let workoutObserver = factory.createWorkoutObserver(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
 
-        let workoutSyncManager = WorkoutSyncManager(
+        let workoutSyncManager = factory.createWorkoutSyncManager(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
 
-        let workoutSyncQueue = WorkoutSyncQueue(
+        let workoutSyncQueue = factory.createWorkoutSyncQueue(
             cloudKitManager: cloudKitManager
         )
 
@@ -90,12 +92,17 @@ class DependencyContainer: ObservableObject {
     let subscriptionManager: CloudKitSubscriptionManaging
     let realTimeSyncCoordinator: RealTimeSyncCoordinating
     let activityCommentsService: ActivityFeedCommentsServicing
+    let bulkPrivacyUpdateService: BulkPrivacyUpdateServicing
     let activitySharingSettingsService: ActivityFeedSettingsServicing
+    let workoutAutoShareService: WorkoutAutoShareServicing
     let xpTransactionService: XPTransactionService
+    let groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing
 
-    init() {
+    init(factory: DependencyFactory = ProductionDependencyFactory()) {
+        self.factory = factory
+        
         // Initialize core services
-        let core = Self.createCoreServices()
+        let core = createCoreServices()
         cloudKitManager = core.cloudKitManager
         authenticationManager = core.authenticationManager
         healthKitService = core.healthKitService
@@ -103,7 +110,7 @@ class DependencyContainer: ObservableObject {
         unlockStorageService = core.unlockStorageService
 
         // Initialize workout services
-        let workout = Self.createWorkoutServices(
+        let workout = createWorkoutServices(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
@@ -112,34 +119,28 @@ class DependencyContainer: ObservableObject {
         workoutSyncQueue = workout.workoutSyncQueue
 
         // Initialize notification services (before social services that depend on them)
-        unlockNotificationService = UnlockNotificationService(
+        unlockNotificationService = factory.createUnlockNotificationService(
             notificationStore: notificationStore,
             unlockStorage: unlockStorageService
         )
 
-        messageProvider = FameFitMessageProvider()
+        messageProvider = factory.createMessageProvider()
 
-        notificationScheduler = NotificationScheduler(
-            notificationStore: notificationStore
-        )
+        notificationScheduler = factory.createNotificationScheduler()
 
-        let tempAPNSManager = APNSManager(cloudKitManager: cloudKitManager, notificationStore: notificationStore)
-        apnsManager = tempAPNSManager
+        apnsManager = factory.createAPNSManager()
 
-        notificationManager = NotificationManager(
-            scheduler: notificationScheduler,
+        notificationManager = factory.createNotificationManager(
             notificationStore: notificationStore,
-            unlockService: unlockNotificationService,
-            messageProvider: messageProvider,
-            apnsManager: apnsManager
+            scheduler: notificationScheduler
         )
 
         // Initialize social services
-        userProfileService = UserProfileService(cloudKitManager: cloudKitManager)
+        userProfileService = factory.createUserProfileService(cloudKitManager: cloudKitManager)
 
-        rateLimitingService = RateLimitingService()
+        rateLimitingService = factory.createRateLimitingService()
 
-        socialFollowingService = SocialFollowingService(
+        socialFollowingService = factory.createSocialFollowingService(
             cloudKitManager: cloudKitManager,
             rateLimiter: rateLimitingService,
             profileService: userProfileService
@@ -185,8 +186,30 @@ class DependencyContainer: ObservableObject {
             cloudKitManager: cloudKitManager
         )
         
+        // Initialize bulk privacy update service
+        bulkPrivacyUpdateService = BulkPrivacyUpdateService(
+            cloudKitManager: cloudKitManager,
+            activityFeedService: activityFeedService
+        )
+        
+        // Initialize workout auto-share service
+        workoutAutoShareService = WorkoutAutoShareService(
+            workoutObserver: workoutObserver,
+            activityFeedService: activityFeedService,
+            activityFeedSettingsService: activitySharingSettingsService,
+            notificationManager: notificationManager,
+            notificationStore: notificationStore
+        )
+        
         // Initialize XP transaction service
         xpTransactionService = XPTransactionService(container: cloudKitManager.container)
+        
+        // Initialize group workout scheduling service
+        groupWorkoutSchedulingService = GroupWorkoutSchedulingService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager
+        )
         
         // Initialize sync coordinator
         subscriptionManager = CloudKitSubscriptionManager()
@@ -254,7 +277,10 @@ class DependencyContainer: ObservableObject {
         realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
         activityCommentsService: ActivityFeedCommentsServicing? = nil,
         activitySharingSettingsService: ActivityFeedSettingsServicing? = nil,
-        xpTransactionService: XPTransactionService? = nil
+        bulkPrivacyUpdateService: BulkPrivacyUpdateServicing? = nil,
+        workoutAutoShareService: WorkoutAutoShareServicing? = nil,
+        xpTransactionService: XPTransactionService? = nil,
+        groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing? = nil
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -277,7 +303,7 @@ class DependencyContainer: ObservableObject {
             cloudKitManager: cloudKitManager
         )
         self.rateLimitingService = rateLimitingService ?? RateLimitingService()
-        self.socialFollowingService = socialFollowingService ?? SocialFollowingService(
+        self.socialFollowingService = socialFollowingService ?? CachedSocialFollowingService(
             cloudKitManager: cloudKitManager,
             rateLimiter: self.rateLimitingService,
             profileService: self.userProfileService
@@ -339,11 +365,30 @@ class DependencyContainer: ObservableObject {
             rateLimiter: self.rateLimitingService
         )
         
+        self.bulkPrivacyUpdateService = bulkPrivacyUpdateService ?? BulkPrivacyUpdateService(
+            cloudKitManager: self.cloudKitManager,
+            activityFeedService: self.activityFeedService
+        )
+        
         self.activitySharingSettingsService = activitySharingSettingsService ?? ActivityFeedSettingsService(
             cloudKitManager: self.cloudKitManager
         )
         
+        self.workoutAutoShareService = workoutAutoShareService ?? WorkoutAutoShareService(
+            workoutObserver: self.workoutObserver,
+            activityFeedService: self.activityFeedService,
+            activityFeedSettingsService: self.activitySharingSettingsService,
+            notificationManager: self.notificationManager,
+            notificationStore: self.notificationStore
+        )
+        
         self.xpTransactionService = xpTransactionService ?? XPTransactionService(container: self.cloudKitManager.container)
+        
+        self.groupWorkoutSchedulingService = groupWorkoutSchedulingService ?? GroupWorkoutSchedulingService(
+            cloudKitManager: self.cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager
+        )
 
         if let realTimeSyncCoordinator {
             self.realTimeSyncCoordinator = realTimeSyncCoordinator

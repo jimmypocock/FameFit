@@ -64,7 +64,7 @@ struct WorkoutCard: View {
 
                     // Workout time
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(workout.startDate, style: .relative)
+                        Text(workout.startDate.relativeDisplayString)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -135,7 +135,7 @@ struct WorkoutCard: View {
 
                             Spacer()
 
-                            Text(workout.startDate, style: .time)
+                            Text(workout.startDate.workoutDisplayTime)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -147,7 +147,7 @@ struct WorkoutCard: View {
 
                             Spacer()
 
-                            Text(workout.endDate, style: .time)
+                            Text(workout.endDate.workoutDisplayTime)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

@@ -14,6 +14,7 @@ struct MainView: View {
     @State private var showingFollowersList = false
     @State private var selectedFollowTab: FollowListTab = .followers
     @State private var workoutToShare: Workout?
+    @State private var showingGroupWorkouts = false
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -139,6 +140,12 @@ struct MainView: View {
                         }) {
                             Label("Discover Users", systemImage: "magnifyingglass")
                         }
+                        
+                        Button(action: {
+                            showingGroupWorkouts = true
+                        }) {
+                            Label("Group Workouts", systemImage: "person.3")
+                        }
 
                         Divider()
 
@@ -197,6 +204,12 @@ struct MainView: View {
         .sheet(isPresented: $showingFollowersList) {
             if let userId = viewModel.userProfile?.id {
                 FollowersListView(userId: userId, initialTab: selectedFollowTab)
+            }
+        }
+        .sheet(isPresented: $showingGroupWorkouts) {
+            NavigationView {
+                GroupWorkoutListView()
+                    .environmentObject(container)
             }
         }
         .onAppear {
@@ -434,7 +447,7 @@ struct MainView: View {
                     .foregroundColor(.secondary)
 
                 if let joinDate = viewModel.joinDate {
-                    Text(joinDate, style: .date)
+                    Text(joinDate.workoutDisplayDate)
                         .font(.body)
                         .fontWeight(.medium)
                 } else {
