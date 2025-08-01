@@ -7,8 +7,13 @@ struct WorkoutsView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
+    // Use cached values as single source of truth
     var totalXP: Int {
-        workouts.reduce(0) { $0 + $1.effectiveXPEarned }
+        cloudKitManager.totalXP
+    }
+    
+    var totalWorkouts: Int {
+        cloudKitManager.totalWorkouts
     }
 
     var body: some View {
@@ -60,7 +65,7 @@ struct WorkoutsView: View {
                     VStack(alignment: .leading) {
                         Text("Total XP Earned")
                             .font(.headline)
-                        Text("From \(workouts.count) workouts")
+                        Text("From \(totalWorkouts) workouts")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

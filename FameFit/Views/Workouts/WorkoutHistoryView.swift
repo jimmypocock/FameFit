@@ -10,8 +10,13 @@ struct WorkoutHistoryView: View {
     @State private var selectedTransaction: XPTransaction?
     @State private var showingXPBreakdown = false
 
+    // Use cached values as single source of truth
     var totalXP: Int {
-        workoutHistory.reduce(0) { $0 + $1.effectiveXPEarned }
+        cloudKitManager.totalXP
+    }
+    
+    var totalWorkouts: Int {
+        cloudKitManager.totalWorkouts
     }
 
     var body: some View {
@@ -68,7 +73,7 @@ struct WorkoutHistoryView: View {
                     VStack(alignment: .leading) {
                         Text("Total XP Earned")
                             .font(.headline)
-                        Text("From \(workoutHistory.count) workouts")
+                        Text("From \(totalWorkouts) workouts")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

@@ -394,6 +394,40 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         }
     }
     
+    /// Updates user stats immediately after a workout is saved (incremental update)
+    private func updateUserStatsAfterWorkout(_ workout: Workout) async throws {
+        guard let userRecord else {
+            throw FameFitError.cloudKitUserNotFound
+        }
+        
+        FameFitLogger.info("⚡ Updating user stats after workout save", category: FameFitLogger.cloudKit)
+        
+        // Get current cached stats
+        let currentWorkoutCount = userRecord["totalWorkouts"] as? Int ?? 0
+        let currentXP = userRecord["totalXP"] as? Int ?? 0
+        
+        // Increment by the new workout
+        let newWorkoutCount = currentWorkoutCount + 1
+        let newTotalXP = currentXP + workout.effectiveXPEarned
+        
+        FameFitLogger.info("📊 Updating stats: \(currentWorkoutCount) → \(newWorkoutCount) workouts, \(currentXP) → \(newTotalXP) XP", category: FameFitLogger.cloudKit)
+        
+        // Update the record
+        userRecord["totalWorkouts"] = newWorkoutCount
+        userRecord["totalXP"] = newTotalXP
+        
+        // Save to CloudKit
+        try await privateDatabase.save(userRecord)
+        
+        // Update local cached values immediately
+        await MainActor.run {
+            self.totalWorkouts = newWorkoutCount
+            self.totalXP = newTotalXP
+        }
+        
+        FameFitLogger.info("✅ User stats updated: \(newWorkoutCount) workouts, \(newTotalXP) XP", category: FameFitLogger.cloudKit)
+    }
+    
     /// Fetches all workouts for the current user
     private func fetchAllWorkouts() async throws -> [Workout] {
         guard isSignedIn else {
@@ -558,6 +592,16 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 // Create XP transaction for audit trail
                 Task { [weak self] in
                     await self?.createXPTransaction(for: workoutHistory, workoutRecordID: savedRecord.recordID.recordName)
+                }
+                
+                // Update user stats immediately for data consistency
+                Task { [weak self] in
+                    do {
+                        try await self?.updateUserStatsAfterWorkout(workoutHistory)
+                        FameFitLogger.info("✅ User stats updated after workout save", category: FameFitLogger.cloudKit)
+                    } catch {
+                        FameFitLogger.error("❌ Failed to update user stats after workout", error: error, category: FameFitLogger.cloudKit)
+                    }
                 }
             }
         }

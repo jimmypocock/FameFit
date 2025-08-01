@@ -621,6 +621,12 @@ final class CloudKitSeeder {
             }
             
             print("✅ Deleted \(results.count) \(recordType) records")
+        } catch let error as CKError where error.code == .unknownItem {
+            // Record doesn't exist, that's fine
+            print("✅ No \(recordType) records found (already clean)")
+        } catch let error as CKError where error.code == .invalidArguments {
+            // Record type doesn't exist in schema, that's fine
+            print("✅ \(recordType) record type not found in schema (already clean)")
         } catch {
             print("⚠️ Error deleting \(recordType): \(error)")
         }
