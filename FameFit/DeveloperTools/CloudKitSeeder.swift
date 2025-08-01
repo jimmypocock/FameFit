@@ -240,12 +240,52 @@ final class CloudKitSeeder {
         }
         
         // Delete from private database
-        let privateTypes = ["WorkoutHistory", "Users"]
+        let privateTypes = ["Workouts"] // Changed from WorkoutHistory to Workouts
         for recordType in privateTypes {
             try await deleteRecords(ofType: recordType, in: privateDatabase, for: userID)
         }
         
+        // Reset user stats fields (instead of deleting the Users record)
+        try await resetUserStats(for: userID)
+        
         print("✅ Cleaned up all data for current user")
+    }
+    
+    /// Reset user stats fields to zero (instead of deleting the Users record)
+    private func resetUserStats(for userID: String) async throws {
+        let predicate = NSPredicate(format: "TRUEPREDICATE") // Get the user record
+        let query = CKQuery(recordType: "Users", predicate: predicate)
+        
+        do {
+            let (results, _) = try await privateDatabase.records(matching: query)
+            
+            for (_, result) in results {
+                switch result {
+                case .success(let record):
+                    // Reset stats to zero
+                    record["totalWorkouts"] = 0
+                    record["totalXP"] = 0
+                    record["currentStreak"] = 0
+                    
+                    // Save the updated record
+                    try await privateDatabase.save(record)
+                    print("✅ Reset user stats to zero")
+                    
+                case .failure(let error):
+                    print("⚠️ Failed to fetch user record: \(error)")
+                }
+            }
+            
+            if results.isEmpty {
+                print("✅ No Users record found (already clean)")
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            print("✅ No Users records found (already clean)")
+        } catch let error as CKError where error.code == .invalidArguments {
+            print("✅ Users record type not found in schema (already clean)")
+        } catch {
+            print("⚠️ Error resetting user stats: \(error)")
+        }
     }
     
     // MARK: - Helper Methods

@@ -59,7 +59,8 @@ struct OnboardingView: View {
 
 struct WelcomeView: View {
     @Binding var onboardingStep: Int
-    @State private var currentDialogue = 0
+    @State private var displayedMessages: [ConversationMessage] = []
+    @State private var conversationComplete = false
 
     let dialogues = [
         ("Chad", "💪", "Yo! Welcome to FameFit! I'm Chad Maximus, and these are my... coworkers.", Color.red),
@@ -107,50 +108,125 @@ struct WelcomeView: View {
                 .font(.system(size: 40, weight: .black, design: .rounded))
                 .foregroundColor(.white)
 
-            Spacer()
-
-            if currentDialogue < dialogues.count {
-                let dialogue = dialogues[currentDialogue]
-
-                VStack(spacing: 15) {
-                    Text(dialogue.1)
-                        .font(.system(size: 60))
-
-                    Text(dialogue.0)
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text(dialogue.2)
-                        .font(.body)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Scrollable conversation
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 15) {
+                        ForEach(Array(displayedMessages.enumerated()), id: \.offset) { index, message in
+                            ConversationBubbleView(message: message)
+                                .id(index)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .opacity
+                                ))
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .padding()
-                .background(dialogue.3.opacity(0.3))
-                .cornerRadius(20)
+                .frame(maxHeight: 400)
+                .onChange(of: displayedMessages.count) { _, newCount in
+                    if newCount > 0 {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo(newCount - 1, anchor: .bottom)
+                        }
+                    }
+                }
             }
 
             Spacer()
 
-            Button(action: {
-                withAnimation {
-                    if currentDialogue < dialogues.count - 1 {
-                        currentDialogue += 1
-                    } else {
-                        onboardingStep = 1
+            // Show button only when conversation is complete
+            if conversationComplete {
+                Button(action: {
+                    onboardingStep = 1
+                }, label: {
+                    Text("Let's Go!")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white.opacity(0.3))
+                        .cornerRadius(15)
+                })
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .onAppear {
+            startConversation()
+        }
+    }
+    
+    private func startConversation() {
+        // Reset state
+        displayedMessages = []
+        conversationComplete = false
+        
+        // Start adding messages with delays
+        for (index, dialogue) in dialogues.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 2.0) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    displayedMessages.append(ConversationMessage(
+                        name: dialogue.0,
+                        emoji: dialogue.1,
+                        message: dialogue.2,
+                        color: dialogue.3
+                    ))
+                }
+                
+                // Mark conversation complete after last message
+                if index == dialogues.count - 1 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        withAnimation(.spring(response: 0.8, dampingFraction: 0.9)) {
+                            conversationComplete = true
+                        }
                     }
                 }
-            }, label: {
-                Text(currentDialogue < dialogues.count - 1 ? "Next" : "Let's Go!")
-                    .font(.headline)
+            }
+        }
+    }
+}
+
+struct ConversationMessage {
+    let name: String
+    let emoji: String
+    let message: String
+    let color: Color
+}
+
+struct ConversationBubbleView: View {
+    let message: ConversationMessage
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Character avatar
+            VStack {
+                Text(message.emoji)
+                    .font(.system(size: 40))
+                Text(message.name)
+                    .font(.caption)
+                    .fontWeight(.semibold)
                     .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white.opacity(0.3))
-                    .cornerRadius(15)
-            })
+            }
+            .frame(width: 60)
+            
+            // Message bubble
+            VStack(alignment: .leading, spacing: 4) {
+                Text(message.message)
+                    .font(.body)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(message.color.opacity(0.3))
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(message.color.opacity(0.5), lineWidth: 1)
+            )
+            
+            Spacer()
         }
     }
 }
@@ -307,7 +383,8 @@ struct ProfileSetupView: View {
 
 struct GameMechanicsView: View {
     @Binding var onboardingStep: Int
-    @State private var currentDialogue = 0
+    @State private var displayedMessages: [ConversationMessage] = []
+    @State private var conversationComplete = false
     @EnvironmentObject var authManager: AuthenticationManager
 
     let dialogues = [
@@ -368,51 +445,81 @@ struct GameMechanicsView: View {
                 .font(.system(size: 40, weight: .black, design: .rounded))
                 .foregroundColor(.white)
 
-            Spacer()
-
-            if currentDialogue < dialogues.count {
-                let dialogue = dialogues[currentDialogue]
-
-                VStack(spacing: 15) {
-                    Text(dialogue.1)
-                        .font(.system(size: 60))
-
-                    Text(dialogue.0)
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    Text(dialogue.2)
-                        .font(.body)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Scrollable conversation
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 15) {
+                        ForEach(Array(displayedMessages.enumerated()), id: \.offset) { index, message in
+                            ConversationBubbleView(message: message)
+                                .id(index)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .opacity
+                                ))
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .padding()
-                .background(dialogue.3.opacity(0.3))
-                .cornerRadius(20)
+                .frame(maxHeight: 400)
+                .onChange(of: displayedMessages.count) { _, newCount in
+                    if newCount > 0 {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo(newCount - 1, anchor: .bottom)
+                        }
+                    }
+                }
             }
 
             Spacer()
 
-            Button(action: {
-                withAnimation {
-                    if currentDialogue < dialogues.count - 1 {
-                        currentDialogue += 1
-                    } else {
-                        // Complete onboarding
-                        authManager.completeOnboarding()
+            // Show button only when conversation is complete
+            if conversationComplete {
+                Button(action: {
+                    // Complete onboarding
+                    authManager.completeOnboarding()
+                }, label: {
+                    Text("Let's Get Started!")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white.opacity(0.3))
+                        .cornerRadius(15)
+                })
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .onAppear {
+            startConversation()
+        }
+    }
+    
+    private func startConversation() {
+        // Reset state
+        displayedMessages = []
+        conversationComplete = false
+        
+        // Start adding messages with delays
+        for (index, dialogue) in dialogues.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 2.0) {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    displayedMessages.append(ConversationMessage(
+                        name: dialogue.0,
+                        emoji: dialogue.1,
+                        message: dialogue.2,
+                        color: dialogue.3
+                    ))
+                }
+                
+                // Mark conversation complete after last message
+                if index == dialogues.count - 1 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        withAnimation(.spring(response: 0.8, dampingFraction: 0.9)) {
+                            conversationComplete = true
+                        }
                     }
                 }
-            }, label: {
-                Text(currentDialogue < dialogues.count - 1 ? "Next" : "Let's Get Started!")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white.opacity(0.3))
-                    .cornerRadius(15)
-            })
+            }
         }
     }
 }
