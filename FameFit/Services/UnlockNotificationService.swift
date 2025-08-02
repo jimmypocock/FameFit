@@ -79,7 +79,7 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         guard !userDefaults.bool(forKey: notificationKey) else { return }
 
         let character = getCharacterForLevel(newLevel)
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .levelUp,
             title: "\(character.emoji) Level Up!",
             body: "Congratulations! You've reached Level \(newLevel): \(title)",
@@ -94,12 +94,12 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         )
 
         Task { @MainActor in
-            notificationStore.addNotification(notification)
+            notificationStore.addFameFitNotification(notification)
         }
         userDefaults.set(true, forKey: notificationKey)
 
         // Also send a local push notification if permissions granted
-        await sendLocalNotification(
+        await sendLocalFameFitNotification(
             title: "Level \(newLevel) Achieved! 🎉",
             body: "You're now a \(title)! Keep up the amazing work!",
             identifier: "level_\(newLevel)"
@@ -107,18 +107,18 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
     }
 
     private func notifyUnlock(_ unlock: XPUnlock) async {
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .unlockAchieved,
             title: "New Unlock! \(iconForUnlock(unlock))",
             body: "\(unlock.name): \(unlock.description)"
         )
 
         Task { @MainActor in
-            notificationStore.addNotification(notification)
+            notificationStore.addFameFitNotification(notification)
         }
 
         // Also send a local push notification if permissions granted
-        await sendLocalNotification(
+        await sendLocalFameFitNotification(
             title: "Unlock Achieved! \(iconForUnlock(unlock))",
             body: "\(unlock.name) is now available!",
             identifier: "unlock_\(unlock.xpRequired)"
@@ -137,7 +137,7 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
         }
     }
 
-    private func sendLocalNotification(title: String, body: String, identifier: String) async {
+    private func sendLocalFameFitNotification(title: String, body: String, identifier: String) async {
         let center = UNUserNotificationCenter.current()
 
         // Check if we have permission and notifications are enabled

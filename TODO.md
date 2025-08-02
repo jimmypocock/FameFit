@@ -1,6 +1,320 @@
-# FameFit Architecture Improvements TODO
+# FameFit TODO Overview
 
-This document tracks planned architecture improvements to enhance testability, reduce coupling, and follow modern iOS/Swift best practices.
+This document provides a high-level overview of the FameFit development phases and current status.
+
+## 📁 TODO Organization
+
+The TODO documentation has been reorganized into separate files for better clarity:
+
+- **TODO_DAILY.md** - Daily tasks, technical debt, and one-off improvements
+- **TODO_PHASE_1.md** - Influencer XP System ✅
+- **TODO_PHASE_2.md** - User Profile System ✅
+- **TODO_PHASE_3.md** - Social Following System ✅
+- **TODO_PHASE_4.md** - Social Interactions ✅
+- **TODO_PHASE_5.md** - Sharing & Content Creation System (Current)
+- **TODO_PHASE_6.md** - Gamification Enhancements
+- **TODO_PHASE_7.md** - FameCoin Currency System
+
+## 🎯 Current Status
+
+**Phases Completed**: 1-4 ✅
+**Current Phase**: 5 - Sharing & Content Creation System
+**Next Phase**: 6 - Gamification Enhancements
+
+## 📊 Phase Progress Summary
+
+### ✅ Completed Phases
+- **Phase 1**: Influencer XP System - Complete with XP engine, achievements, and unlocks
+- **Phase 2**: User Profile System - Full CloudKit integration with photo uploads
+- **Phase 3**: Social Following System - Following/followers with privacy controls
+- **Phase 4**: Social Interactions - Comments, kudos, challenges, real-time updates, enhanced leaderboards
+
+### 🚀 In Progress
+- **Phase 5**: Sharing & Content Creation System
+  - ✅ Activity sharing foundation complete
+  - ✅ Auto-sharing implementation
+  - ✅ Group workout scheduling implementation
+  - 🔄 Historical workout sharing UI
+  - 🔄 Visual polish for workout cards
+
+### 📅 Upcoming Phases
+- **Phase 6**: Gamification Enhancements - Tournaments, advanced achievements, seasonal events
+- **Phase 7**: FameCoin Currency System - Secondary economy with earning/spending mechanics
+
+## 🏆 Key Achievements
+
+- **500+ Tests**: Comprehensive test coverage across all features
+- **Protocol-Oriented Architecture**: Clean, testable code structure with dependency injection
+- **Real-time Updates**: CloudKit subscriptions for live social features
+- **Security First**: Rate limiting, content moderation, privacy controls
+- **Performance Optimized**: Caching, pagination, background processing
+- **Architecture Complete**: All technical debt resolved, factory patterns implemented
+
+## 🔗 Quick Links
+
+For detailed information about each component:
+
+- **Daily Tasks & Technical Debt**: See TODO_DAILY.md
+- **Phase Details**: See TODO_PHASE_[1-7].md
+- **Current Work**: See TODO_PHASE_5.md for active tasks
+
+
+---
+
+Last Updated: 2025-08-01 - TODO documentation reorganized into phase-specific files
+
+### 📅 Group Workout Scheduling System
+
+**Priority**: High - Essential for planning ahead
+**Impact**: Major - Enables social coordination
+
+#### Implementation Architecture
+
+**CloudKit Schema Design**:
+```swift
+// GroupWorkout (Public Database)
+- workoutId: String (CKRecord.ID) - UUID
+- creatorId: String (Reference to Users) - QUERYABLE
+- title: String - QUERYABLE
+- description: String
+- workoutType: String - QUERYABLE
+- scheduledDate: Date - QUERYABLE, SORTABLE
+- duration: Int64 (minutes)
+- maxParticipants: Int64 (0 = unlimited)
+- currentParticipants: Int64
+- visibility: String ("public", "friends", "invite_only") - QUERYABLE
+- location: String (optional)
+- locationCoordinates: CLLocation (optional)
+- tags: [String] - QUERYABLE
+- isRecurring: Int64 (0/1)
+- recurringPattern: String (JSON)
+- status: String ("scheduled", "active", "completed", "cancelled") - QUERYABLE
+- timezone: String (timezone identifier)
+- createdAt: Date
+- modifiedAt: Date
+
+// GroupWorkoutParticipant (Public Database)
+- participantId: String (CKRecord.ID)
+- workoutId: String (Reference) - QUERYABLE
+- userId: String (Reference) - QUERYABLE
+- status: String ("invited", "accepted", "declined", "maybe", "joined") - QUERYABLE
+- joinedAt: Date
+- role: String ("creator", "participant")
+- reminderEnabled: Int64 (0/1)
+
+// GroupWorkoutInvite (Private Database)
+- inviteId: String (CKRecord.ID)
+- workoutId: String (Reference)
+- inviterId: String
+- inviteeId: String - QUERYABLE
+- status: String ("pending", "accepted", "declined") - QUERYABLE
+- sentAt: Date
+- message: String (optional)
+```
+
+**Core Features**:
+1. **Scheduling Mechanism**
+   - Create workouts up to 30 days in advance
+   - Set date, time, and duration with timezone support
+   - Timezone-aware scheduling (store in UTC, display in local)
+   - Recurring workout options:
+     - Daily (every day)
+     - Weekly (specific days)
+     - Bi-weekly
+     - Monthly (same day each month)
+   - Copy existing workout as template
+   - Quick schedule options (tomorrow morning, this weekend, etc.)
+   
+2. **Participant Management**
+   - Public workouts: Unlimited participants
+   - Friends-only: Visible to followers only
+   - Invite-only: Requires invitation (min 1 friend)
+   - RSVP system:
+     - Yes (committed)
+     - Maybe (interested)
+     - No (declined)
+     - Auto-accept for creator
+   - Participant limits with waitlist
+   - Real-time participant count updates
+   - "Join" converts Maybe to Yes
+   
+3. **Discovery & Visibility**
+   - Public workouts in discovery feed
+   - Filter by:
+     - Date/time range
+     - Workout type
+     - Tags
+     - Distance (if location enabled)
+     - Friend participation
+   - Sort by:
+     - Start time
+     - Popularity (participant count)
+     - Relevance (based on user preferences)
+   - Friend activity indicators
+   - Trending workouts section
+   
+4. **Notifications & Reminders**
+   - 24 hours before: "Workout tomorrow!"
+   - 1 hour before: "Starting soon"
+   - 15 minutes before: "Get ready!"
+   - Participant updates:
+     - New participant joined
+     - Friend RSVP'd
+     - Workout cancelled/rescheduled
+   - Smart notifications (respect quiet hours)
+   - In-app and push notifications
+   
+5. **Calendar Integration**
+   - Add to iOS Calendar
+   - Calendar event includes:
+     - FameFit deep link
+     - Participant list
+     - Location (if provided)
+   - Sync updates to calendar
+   - Handle calendar conflicts
+
+#### Technical Implementation
+
+**Service Layer**:
+```swift
+protocol GroupWorkoutSchedulingService {
+    // CRUD Operations
+    func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout
+    func updateGroupWorkout(_ workout: GroupWorkout) async throws
+    func cancelGroupWorkout(_ workoutId: String) async throws
+    func getGroupWorkout(_ workoutId: String) async throws -> GroupWorkout
+    func deleteGroupWorkout(_ workoutId: String) async throws
+    
+    // Discovery
+    func getUpcomingPublicWorkouts(limit: Int) async throws -> [GroupWorkout]
+    func getUpcomingFriendsWorkouts(limit: Int) async throws -> [GroupWorkout]
+    func getMyScheduledWorkouts() async throws -> [GroupWorkout]
+    func searchWorkouts(query: String, filters: WorkoutFilters) async throws -> [GroupWorkout]
+    func getWorkoutsByTags(_ tags: [String]) async throws -> [GroupWorkout]
+    
+    // Participation
+    func joinWorkout(_ workoutId: String) async throws
+    func leaveWorkout(_ workoutId: String) async throws
+    func updateRSVP(_ workoutId: String, status: RSVPStatus) async throws
+    func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant]
+    
+    // Invitations
+    func inviteUsers(_ userIds: [String], to workoutId: String) async throws
+    func respondToInvite(_ inviteId: String, accept: Bool) async throws
+    func getMyInvites() async throws -> [GroupWorkoutInvite]
+    
+    // Recurring Workouts
+    func createRecurringWorkout(_ template: GroupWorkout, pattern: RecurringPattern) async throws
+    func updateRecurringSeries(_ workoutId: String, updates: GroupWorkout) async throws
+    func deleteRecurringSeries(_ workoutId: String) async throws
+}
+```
+
+**Key Implementation Details**:
+
+1. **Timezone Handling**:
+   - Store all dates in UTC in CloudKit
+   - Store timezone identifier with workout
+   - Convert to user's local timezone for display
+   - Handle daylight saving transitions
+   - Show timezone in UI when different from user's
+
+2. **Real-time Updates**:
+   - CloudKit subscriptions for participant changes
+   - Push notifications for important updates
+   - Optimistic UI updates with rollback
+
+3. **Performance Optimizations**:
+   - Cache upcoming workouts locally
+   - Paginate discovery results
+   - Prefetch participant details
+   - Batch invitation sending
+
+4. **Edge Cases**:
+   - Creator cancellation
+   - Participant limit reached
+   - Time conflicts detection
+   - Past workout handling
+   - Network failure recovery
+
+5. **Security & Privacy**:
+   - Respect user privacy settings
+   - Validate participant limits
+   - Prevent spam invitations
+   - Rate limit workout creation
+   - Block/mute user support
+
+### 🏷️ Tag System Functionality (Future Enhancement)
+
+**Priority**: Medium - Improves workout discovery
+**Impact**: High - Better user experience and community building
+
+**Core Tag Features**:
+1. **Discovery & Search**
+   - Filter group workouts by tags in discovery feed
+   - Search for workouts with specific tags ("#HIIT", "#Beginner")
+   - Auto-suggest popular tags during workout creation
+   - Trending tags dashboard
+   
+2. **Categorization System**
+   - **Difficulty**: Beginner, Intermediate, Advanced, Expert
+   - **Location**: Indoor, Outdoor, Gym, Home, Pool, Track
+   - **Style**: HIIT, Cardio, Strength, Endurance, Flexibility, Recovery
+   - **Equipment**: Bodyweight, Dumbbells, Resistance Bands, Treadmill
+   - **Time**: QuickWorkout, Marathon, Lunch Break
+   
+3. **Personalized Recommendations**
+   - Suggest workouts based on user's preferred tags
+   - "More like this" recommendations using tag similarity
+   - Personalized discovery algorithm incorporating tag preferences
+   - Save favorite tags for quick filtering
+   
+4. **Community Building**
+   - Track popular workout types/tags in community
+   - Help users find their fitness tribe (yoga lovers, runners, strength enthusiasts)
+   - Tag-based workout challenges and events
+   - Leaderboards by tag category
+   
+5. **Analytics & Insights**
+   - User engagement metrics by tag
+   - Popular tag combinations
+   - Seasonal tag trends
+   - Geographic tag preferences
+
+**Implementation Priority**:
+- Phase 1: Tag-based filtering and search
+- Phase 2: Recommendation engine
+- Phase 3: Analytics and community features
+   
+4. **Notifications**
+   - Reminder 1 hour before scheduled time
+   - Participant join notifications
+   - Schedule change alerts
+   - Auto-cancel if creator doesn't join
+   
+**Note**: Tags are currently implemented in UI but lack functional purpose. They're stored in CloudKit and displayed as purple pills in workout cards, but don't yet power discovery, search, or recommendations.
+
+**Future Enhancement - Background Workout Processing**:
+- **Problem**: Auto-sharing only works when app is open
+- **Current Behavior**: 
+  - Workouts completed while app is closed aren't shared until next app launch
+  - WorkoutSyncManager catches up on missed workouts during initial sync
+- **Proposed Solutions**:
+  1. **HealthKit Background Delivery** (Recommended)
+     - Register for background workout updates
+     - App wakes periodically to process new workouts
+     - Most battery-efficient approach
+  2. **Silent Push from Watch App**
+     - Watch app sends push when workout completes
+     - Requires server infrastructure
+  3. **Background App Refresh**
+     - iOS wakes app periodically
+     - Less reliable timing
+- **Implementation Requirements**:
+  - Add Background Modes capability
+  - Register for HKObserverQuery with background delivery
+  - Handle background processing limits
+  - Test battery impact
 
 ## ✅ **TEST SUITE FIXES - COMPLETE!** 
 
@@ -43,21 +357,376 @@ All core social features have been implemented with full backend, UI, and compre
 
 **Status After Fixes**: 500+ passing tests, all services integrated, ready for Phase 5! 🚀
 
+## 🚨 **CRITICAL: Fix Follower/Following System ID Confusion & Caching**
+
+**Status**: In Progress
+**Priority**: CRITICAL - System is currently buggy and unreliable
+**Impact**: High - Core social functionality is broken
+
+### The Problem
+
+The follower/following system has two major issues:
+
+1. **ID Confusion**: The app uses two different ID types inconsistently:
+   - **Profile UUID**: The CloudKit record ID for UserProfile (e.g., `6F835AC7-8100-4B8B-95F5-94AB7F431AA0`)
+   - **CloudKit User ID**: The actual user identifier (e.g., `_65016d98fd8579ab704d38d23d066b2f`)
+
+2. **Broken Caching**: The caching system has multiple issues:
+   - No cache invalidation when relationships change
+   - Optimistic updates that don't reflect server state
+   - ID confusion in cache keys (mixing profile UUIDs and user IDs)
+   - No expiration or TTL for cached data
+   - Lists (followers/following) aren't cached at all
+
+### Implementation Plan
+
+#### Phase 1: Standardize on CloudKit User IDs (Week 1)
+
+**Day 1-2: Audit & Document**
+- [ ] Create comprehensive audit document of all ID usage
+- [ ] Identify all places using profile.id vs profile.userID
+- [ ] Document data flow from UI → Service → CloudKit
+- [ ] Create migration plan for existing code
+
+**Day 3-4: Fix Core Services**
+- [ ] Update SocialFollowingService to ONLY use CloudKit user IDs
+  - [ ] Fix all query predicates to use userID
+  - [ ] Update cache keys to use userID
+  - [ ] Fix relationship checks
+- [ ] Update UserProfileService
+  - [ ] Add fetchProfileByUserID method
+  - [ ] Ensure profile lookups work with both ID types
+- [ ] Fix CloudKitManager user ID handling
+
+**Day 5: Fix UI Layer**
+- [ ] Update all views to pass correct ID types
+  - [ ] ProfileView: Accept profile UUID, resolve to userID for social ops
+  - [ ] FollowersListView: Use userID for all operations
+  - [ ] UserSearchView: Pass profile.id for navigation
+  - [ ] TabMainView: Fetch profile first, then navigate with profile.id
+- [ ] Add debug logging to verify correct IDs
+
+#### Phase 2: Professional Caching System (Week 1-2)
+
+**Day 1-2: Cache Infrastructure**
+- [ ] Create CacheEntry<T> wrapper with expiration
+  ```swift
+  struct CacheEntry<T> {
+      let value: T
+      let timestamp: Date
+      let ttl: TimeInterval
+      
+      var isExpired: Bool {
+          Date().timeIntervalSince(timestamp) > ttl
+      }
+  }
+  ```
+- [ ] Implement CacheManager protocol
+  - [ ] Generic get/set with TTL
+  - [ ] Batch invalidation
+  - [ ] Memory pressure handling
+  - [ ] Background cleanup
+
+**Day 3-4: Implement Caching Layers**
+- [ ] Profile cache with 5-minute TTL
+- [ ] Follower/following count cache with 2-minute TTL
+- [ ] Follower/following list cache with 1-minute TTL
+- [ ] Relationship status cache with 30-second TTL
+- [ ] Add cache warming for better UX
+
+**Day 5: Cache Invalidation**
+- [ ] Invalidate on follow/unfollow actions
+- [ ] Invalidate on block/mute actions
+- [ ] Invalidate on profile updates
+- [ ] Add manual refresh capability
+- [ ] Implement cache versioning
+
+#### Phase 3: Data Consistency (Week 2)
+
+**Day 1-2: Optimistic Updates**
+- [ ] Implement proper optimistic updates
+  - [ ] Update UI immediately
+  - [ ] Queue server request
+  - [ ] Rollback on failure
+  - [ ] Show loading states
+- [ ] Add conflict resolution
+- [ ] Handle network failures gracefully
+
+**Day 3-4: Real-time Sync**
+- [ ] Implement CloudKit subscriptions for relationships
+- [ ] Auto-update counts when changes occur
+- [ ] Handle subscription failures
+- [ ] Add connection status indicator
+
+**Day 5: Testing & Validation**
+- [ ] Create comprehensive test suite
+- [ ] Test all edge cases
+- [ ] Verify data consistency
+- [ ] Performance testing with 1000+ relationships
+
+### Success Criteria
+
+1. **ID Standardization**
+   - All social operations use CloudKit user IDs
+   - Navigation uses profile UUIDs
+   - No ID type confusion in any component
+
+2. **Caching Performance**
+   - Follower/following counts load instantly from cache
+   - Lists load quickly with pagination
+   - Cache hit rate > 80%
+   - Memory usage < 10MB for cache
+
+3. **Data Consistency**
+   - No duplicate follows possible
+   - Counts always match server state
+   - Can't follow self
+   - Updates reflect immediately
+
+4. **User Experience**
+   - Smooth, responsive UI
+   - Clear loading states
+   - Graceful error handling
+   - Pull-to-refresh works everywhere
+
+### Technical Implementation Details
+
+**Cache Key Format**:
+```swift
+// Counts
+"follower_count:\(userID)"
+"following_count:\(userID)"
+
+// Lists
+"followers:\(userID):\(page)"
+"following:\(userID):\(page)"
+
+// Relationships
+"relationship:\(userID1):\(userID2)"
+```
+
+**Memory Management**:
+- Use NSCache for automatic memory pressure handling
+- Implement LRU eviction for custom caches
+- Monitor memory warnings
+- Clear caches on app background
+
+**Error Recovery**:
+- Exponential backoff for failed requests
+- Queue operations for offline mode
+- Sync when connection restored
+- User-friendly error messages
+
+### Migration Plan
+
+1. **Phase 1**: Add new methods alongside old ones
+2. **Phase 2**: Update all callers to new methods
+3. **Phase 3**: Deprecate old methods
+4. **Phase 4**: Remove old code after verification
+
+### Monitoring & Analytics
+
+Track these metrics:
+- Cache hit/miss rates
+- API call frequency
+- Error rates by type
+- User engagement with social features
+- Performance metrics (load times)
+
 ## 🚀 **NEXT UP - HIGH PRIORITY FEATURES**
 
 ### 🎯 Phase 5: Sharing & Content Creation System
 
-**Status**: Planning  
+**Status**: In Progress ⚡  
 **Duration**: 3-4 weeks  
 **Impact**: High - Viral growth and external engagement
 
 Transform workouts into shareable content that drives growth both within the app and on external social platforms.
+
+### 🔄 **XP Transaction Audit System - PRIORITY**
+
+**Status**: Planning 📋  
+**Duration**: 1 week  
+**Impact**: Critical - Data integrity and user trust
+
+Create a comprehensive audit trail for all XP calculations that maintains privacy while providing full transparency.
+
+#### CloudKit Schema Design
+
+```
+XPTransaction (Public Database)
+- transactionId: String (CKRecord.ID) - UUID
+- userId: String (Reference) - QUERYABLE, SORTABLE
+- workoutId: String (Reference to private workout)
+- timestamp: Date - QUERYABLE, SORTABLE
+- transactionType: String - QUERYABLE ("workout", "achievement", "bonus", "challenge")
+- baseXP: Int64
+- finalXP: Int64
+- multiplier: Double
+
+// Non-sensitive workout context
+- workoutType: String - QUERYABLE
+- workoutDuration: Int64 (seconds)
+- workoutSource: String ("watch", "iphone", "manual")
+- dayOfWeek: Int64 (1-7)
+- timeOfDay: String ("morning", "afternoon", "evening", "night")
+
+// Calculation factors (JSON string)
+- calculationFactors: String
+```
+
+#### Implementation Plan
+
+**Day 1-2: Core Infrastructure**
+- [ ] Create XPTransaction model with CloudKit support
+- [ ] Add XPTransaction record type to CloudKit schema
+- [ ] Create XPTransactionService with:
+  - [ ] Save transaction method
+  - [ ] Fetch transactions by user/workout
+  - [ ] Bulk fetch for analytics
+- [ ] Update XPCalculator to return detailed calculation data
+
+**Day 3: Integration with Workout Flow**
+- [ ] Modify WorkoutSyncManager to create XPTransaction after XP calculation
+- [ ] Update CloudKitManager.addXP to save transaction record
+- [ ] Add transaction creation to achievement XP awards
+- [ ] Ensure all XP sources create audit records
+
+**Day 4: Calculation Factors Structure**
+- [ ] Design CalculationFactors model:
+  ```swift
+  struct XPCalculationFactors: Codable {
+      // Time-based
+      let durationMinutes: Int
+      let durationMultiplier: Double
+      let timeOfDayBonus: Int
+      let weekendBonus: Int
+      
+      // Workout-based
+      let workoutTypeBase: Int
+      let workoutTypeMultiplier: Double
+      let intensityCategory: String // "light", "moderate", "vigorous"
+      
+      // Consistency
+      let currentStreak: Int
+      let streakBonus: Int
+      let weeklyWorkoutCount: Int
+      let consistencyBonus: Int
+      
+      // Social
+      let groupWorkoutBonus: Int
+      let challengeBonus: Int
+      
+      // Achievements
+      let firstWorkoutOfTypeBonus: Int
+      let personalRecordBonus: Int
+      let milestoneBonus: Int
+      
+      // Level-based
+      let userLevel: Int
+      let levelMultiplier: Double
+  }
+  ```
+
+**Day 5: Privacy-Safe Intensity Calculation**
+- [ ] Create intensity categorization without exposing health data:
+  ```swift
+  func categorizeIntensity(
+      workoutType: String,
+      duration: TimeInterval,
+      // Never pass HR, calories, etc.
+  ) -> String {
+      switch workoutType {
+      case "High Intensity Interval Training", "CrossFit":
+          return "vigorous"
+      case "Yoga", "Walking", "Cooldown":
+          return "light"
+      case "Running", "Cycling":
+          // Use duration as proxy for intensity
+          if duration > 3600 { // >1 hour
+              return "vigorous"
+          } else if duration > 1800 { // >30 min
+              return "moderate"
+          } else {
+              return "light"
+          }
+      default:
+          return "moderate"
+      }
+  }
+  ```
+
+**Day 6-7: UI Integration**
+- [ ] Create XPBreakdownView for displaying calculation details
+- [ ] Add "View XP Details" button to workout history items
+- [ ] Show XP breakdown in workout completion screen
+- [ ] Add XP history section to user profile
+
+#### Privacy Compliance
+
+**Data We Store:**
+- Workout type and duration ✅
+- Time of day and day of week ✅
+- Calculated intensity category ✅
+- XP calculation factors ✅
+- User level and streaks ✅
+
+**Data We DON'T Store:**
+- Heart rate data ❌
+- Calorie counts ❌
+- Distance/speed ❌
+- GPS coordinates ❌
+- Weight/BMI ❌
+- Any health metrics ❌
+
+#### Analytics Benefits
+
+With this audit system, we can:
+- Debug "Why did I get 45 XP?" questions
+- Analyze XP distribution patterns
+- Identify popular workout types
+- Track engagement by time of day
+- Monitor streak effectiveness
+- Balance the XP economy
+- Detect and prevent gaming
+
+#### Success Metrics
+- 100% of XP awards have audit records
+- <500ms to generate transaction record
+- Users can view their last 100 transactions
+- Support can debug any XP issue
+- Zero health data exposure
+
+**✅ Completed (2025-07-30): Automatic Activity Sharing Foundation**
+
+- [x] **Activity Sharing Infrastructure**
+  - [x] Created comprehensive ActivitySharingSettings model with presets
+  - [x] Implemented ActivitySharingSettingsService with CloudKit backend
+  - [x] Modified WorkoutObserver to auto-post workouts based on settings
+  - [x] Added sharing delay and privacy controls per activity type
+  - [x] Created granular workout type filtering
+  - [x] Added source app filtering (share from specific apps only)
+
+- [x] **User Interface**
+  - [x] Built ActivitySharingSettingsView with preset options
+  - [x] Created ActivitySharingMigrationView for existing users
+  - [x] Added ActivitySharingOnboardingView for new users
+  - [x] Integrated settings into MainView menu
+  - [x] Added visual workout type selector with icons
+
+- [x] **Migration & Flow**
+  - [x] Removed old WorkoutSharingPromptView from all flows
+  - [x] Implemented one-time migration prompt for existing users
+  - [x] Updated onboarding to include sharing preferences
+  - [x] Made protocols class-bound for weak references
+  - [x] Added workoutShared notification type
 
 **Key Features to Implement:**
 
 1. **Internal Sharing Enhancement** 🎨
    
    **Rich Visual Workout Cards**
+   - [x] Automatic activity sharing based on user preferences (completed)
    - [ ] Dynamic hero backgrounds based on workout type
      - [ ] Running: Track/road imagery with motion blur
      - [ ] Cycling: Scenic route backgrounds
@@ -1357,6 +2026,8 @@ Transform workouts into shareable content that drives growth both within the app
    - [ ] Challenge UI components
    - [ ] Challenge discovery and matchmaking
    - [ ] Leaderboards for challenges
+   - [ ] **Update**: Require at least one friend for invite-only challenges
+   - [ ] **Update**: Match group workout patterns (public OR invite-only)
 
 2. **Achievements & Badges**
    - [ ] Achievement system expansion
@@ -1367,6 +2038,47 @@ Transform workouts into shareable content that drives growth both within the app
    - [ ] Weekly/monthly competitions
    - [ ] Tournament brackets
    - [ ] Prize/reward system
+
+### 🛡️ Anti-Cheat Provisions for XP Gamification
+
+**Priority**: High - Essential for system integrity
+**Impact**: Critical - Protects game economy
+
+**Detection Mechanisms**:
+1. **Workout Validation**
+   - Heart rate consistency checks
+   - GPS data validation for outdoor workouts
+   - Duration vs. calories burned ratios
+   - Impossible speed/pace detection
+   - Multiple workouts overlap detection
+   
+2. **Pattern Analysis**
+   - Unusual XP gain velocity
+   - Repetitive identical workouts
+   - Device/app switching patterns
+   - Time zone impossibilities
+   - Statistical outlier detection
+   
+3. **Technical Safeguards**
+   - Server-side XP calculation only
+   - Encrypted workout data transmission
+   - Device fingerprinting
+   - HealthKit data source verification
+   - Jailbreak/root detection
+   
+4. **Enforcement Actions**
+   - Suspicious workout flagging
+   - Manual review queue
+   - XP adjustment/rollback
+   - Temporary XP earning suspension
+   - Account restrictions for repeat offenders
+   
+5. **Fair Play Incentives**
+   - Verified workout badges
+   - Clean play streak bonuses
+   - Trusted user privileges
+   - Community reporting system
+   - Transparency reports
 
 **Status**: Planning  
 **Duration**: 4-5 weeks  
@@ -1631,7 +2343,7 @@ Implement a comprehensive secondary currency system that complements XP with spe
 
 **Architecture Improvements:**
 - Added comments button to feed items with counts
-- Integrated WorkoutCommentsView modal
+- Integrated ActivityCommentsView modal
 - Added group workouts tab to main navigation
 - Added challenges tab to main navigation (5 tabs total)
 - Implemented CloudKit subscription system for real-time updates

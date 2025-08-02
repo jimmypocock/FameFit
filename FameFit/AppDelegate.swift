@@ -11,7 +11,14 @@ import UIKit
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    var dependencyContainer: DependencyContainer?
+    var dependencyContainer: DependencyContainer? {
+        didSet {
+            // Configure background processor when container is set
+            if let container = dependencyContainer {
+                BackgroundWorkoutProcessor.shared.configure(with: container)
+            }
+        }
+    }
 
     func application(
         _: UIApplication,
@@ -30,6 +37,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Schedule background sync if needed
         scheduleBackgroundSync()
+        
+        // Schedule background workout processing
+        BackgroundWorkoutProcessor.shared.scheduleNextBackgroundTask()
         
         // Initialize WatchConnectivity
         _ = WatchConnectivityManager.shared
@@ -56,6 +66,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Schedule background sync for later
         scheduleBackgroundSync()
+        
+        // Trigger background workout processing
+        BackgroundWorkoutProcessor.shared.triggerBackgroundProcessing()
+        
+        // Schedule next background workout processing
+        BackgroundWorkoutProcessor.shared.scheduleNextBackgroundTask()
     }
 
     // MARK: - Background Tasks
@@ -67,6 +83,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             using: nil
         ) { task in
             self.handleBackgroundSync(task: task as! BGProcessingTask)
+        }
+        
+        // Register workout processing task
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: BackgroundWorkoutProcessor.taskIdentifier,
+            using: nil
+        ) { task in
+            BackgroundWorkoutProcessor.shared.handleBackgroundTask(task)
         }
 
         FameFitLogger.info("Background tasks registered", category: FameFitLogger.app)

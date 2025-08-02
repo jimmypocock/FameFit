@@ -116,8 +116,8 @@ final class WorkoutChallengeTests: XCTestCase {
         // Given
         var challenge = createChallenge(targetValue: 100)
         challenge.participants = [
-            ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 30),
-            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 50)
+            ChallengeParticipant(id: "1", username: "User1", profileImageURL: nil, progress: 30),
+            ChallengeParticipant(id: "2", username: "User2", profileImageURL: nil, progress: 50)
         ]
 
         // Then - Average progress is 40%
@@ -128,8 +128,8 @@ final class WorkoutChallengeTests: XCTestCase {
         // Given
         var challenge = createChallenge(targetValue: 50)
         challenge.participants = [
-            ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 60),
-            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 80)
+            ChallengeParticipant(id: "1", username: "User1", profileImageURL: nil, progress: 60),
+            ChallengeParticipant(id: "2", username: "User2", profileImageURL: nil, progress: 80)
         ]
 
         // Then - Should be capped at 100%
@@ -140,9 +140,9 @@ final class WorkoutChallengeTests: XCTestCase {
         // Given
         var challenge = createChallenge()
         challenge.participants = [
-            ChallengeParticipant(id: "1", displayName: "User 1", profileImageURL: nil, progress: 30),
-            ChallengeParticipant(id: "2", displayName: "User 2", profileImageURL: nil, progress: 50),
-            ChallengeParticipant(id: "3", displayName: "User 3", profileImageURL: nil, progress: 45)
+            ChallengeParticipant(id: "1", username: "User1", profileImageURL: nil, progress: 30),
+            ChallengeParticipant(id: "2", username: "User2", profileImageURL: nil, progress: 50),
+            ChallengeParticipant(id: "3", username: "User3", profileImageURL: nil, progress: 45)
         ]
 
         // Then
@@ -233,14 +233,16 @@ final class WorkoutChallengeTests: XCTestCase {
         endDate: Date = Date().addingTimeInterval(7 * 24 * 3_600),
         xpStake: Int = 0,
         winnerTakesAll: Bool = false,
-        isPublic: Bool = true
+        isPublic: Bool = true,
+        maxParticipants: Int = 10,
+        joinCode: String? = nil
     ) -> WorkoutChallenge {
         WorkoutChallenge(
             id: id,
             creatorId: creatorId,
             participants: [
-                ChallengeParticipant(id: creatorId, displayName: "Creator", profileImageURL: nil),
-                ChallengeParticipant(id: "participant-2", displayName: "Participant 2", profileImageURL: nil)
+                ChallengeParticipant(id: creatorId, username: "Creator", profileImageURL: nil),
+                ChallengeParticipant(id: "participant-2", username: "Participant2", profileImageURL: nil)
             ],
             type: type,
             targetValue: targetValue,
@@ -249,12 +251,14 @@ final class WorkoutChallengeTests: XCTestCase {
             description: "Test challenge",
             startDate: startDate,
             endDate: endDate,
-            createdAt: Date(),
+            createdTimestamp: Date(),
             status: status,
             winnerId: nil,
             xpStake: xpStake,
             winnerTakesAll: winnerTakesAll,
-            isPublic: isPublic
+            isPublic: isPublic,
+            maxParticipants: maxParticipants,
+            joinCode: joinCode
         )
     }
 }

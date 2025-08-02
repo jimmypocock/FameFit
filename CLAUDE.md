@@ -248,7 +248,7 @@ When creating new CloudKit record types, follow these steps:
    - Despite the error mentioning 'recordName', you must make 'recordID' queryable
 5. **Deploy Changes**: Always deploy schema changes to Production
 
-### Example: WorkoutHistory Record Type
+### Example: Workouts Record Type
 Fields configuration:
 - `workoutId` (String) - Queryable, Sortable
 - `workoutType` (String) - Queryable, Sortable  

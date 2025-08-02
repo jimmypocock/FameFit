@@ -114,7 +114,7 @@ class WorkoutKudosServiceTests: XCTestCase {
         XCTAssertEqual(kudos.userID, userId)
         XCTAssertEqual(kudos.workoutOwnerId, ownerId)
         XCTAssertNotNil(kudos.id)
-        XCTAssertNotNil(kudos.createdAt)
+        XCTAssertNotNil(kudos.createdTimestamp)
     }
 
     func testWorkoutKudosSummaryInitialization() {

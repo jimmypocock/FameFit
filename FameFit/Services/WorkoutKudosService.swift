@@ -196,7 +196,6 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 recentUsers.append(WorkoutKudosSummary.KudosUser(
                     userID: profile.id,
                     username: profile.username,
-                    displayName: profile.displayName,
                     profileImageURL: profile.profileImageURL
                 ))
             }

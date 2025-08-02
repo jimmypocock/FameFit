@@ -7,7 +7,6 @@ enum CloudKitSchema {
     }
 
     enum UserProfiles {
-        static let displayName = "displayName"
         static let followerCount = "followerCount"
         static let totalWorkouts = "totalWorkouts"
         static let currentStreak = "currentStreak"
@@ -17,18 +16,15 @@ enum CloudKitSchema {
 }
 
 extension CKRecord {
-    convenience init(userWithDisplayName displayName: String) {
+    convenience init(user: Void) {
         self.init(recordType: CloudKitSchema.RecordType.userProfiles)
-        self[CloudKitSchema.UserProfiles.displayName] = displayName
         self[CloudKitSchema.UserProfiles.followerCount] = 0
         self[CloudKitSchema.UserProfiles.totalWorkouts] = 0
         self[CloudKitSchema.UserProfiles.currentStreak] = 0
         self[CloudKitSchema.UserProfiles.joinTimestamp] = Date()
     }
 
-    var displayName: String? {
-        self[CloudKitSchema.UserProfiles.displayName] as? String
-    }
+    // Display name removed - using username instead
 
     var followerCount: Int {
         self[CloudKitSchema.UserProfiles.followerCount] as? Int ?? 0

@@ -54,11 +54,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Evening Yoga",
             description: "Relaxing yoga session",
             workoutType: .yoga,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "host-456",
-                    displayName: "Host User",
+                    username: "HostUser",
                     profileImageURL: nil
                 )
             ],
@@ -88,16 +88,16 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Morning Ride",
             description: "Cycling together",
             workoutType: .cycling,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "host-456",
-                    displayName: "Host User",
+                    username: "HostUser",
                     profileImageURL: nil
                 ),
                 GroupWorkoutParticipant(
                     userId: "test-user-123", // Already joined
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 )
             ],
@@ -123,10 +123,10 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Full Session",
             description: "No more space",
             workoutType: .running,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
-                GroupWorkoutParticipant(userId: "user-1", displayName: "User 1", profileImageURL: nil),
-                GroupWorkoutParticipant(userId: "user-2", displayName: "User 2", profileImageURL: nil)
+                GroupWorkoutParticipant(userId: "user-1", username: "User1", profileImageURL: nil),
+                GroupWorkoutParticipant(userId: "user-2", username: "User2", profileImageURL: nil)
             ],
             maxParticipants: 2, // Already at capacity
             scheduledStart: Date().addingTimeInterval(3_600),
@@ -153,7 +153,7 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Cancelled Session",
             description: "This was cancelled",
             workoutType: .running,
-            hostId: "host-456",
+            hostID: "host-456",
             maxParticipants: 10,
             scheduledStart: Date().addingTimeInterval(3_600),
             scheduledEnd: Date().addingTimeInterval(7_200),
@@ -181,11 +181,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Private Session",
             description: "Join with code only",
             workoutType: .running,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "host-456",
-                    displayName: "Host User",
+                    username: "HostUser",
                     profileImageURL: nil
                 )
             ],
@@ -228,16 +228,16 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Ready to Start",
             description: "Let's begin",
             workoutType: .running,
-            hostId: "test-user-123", // Current user is host
+            hostID: "test-user-123", // Current user is host
             participants: [
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 ),
                 GroupWorkoutParticipant(
                     userId: "participant-456",
-                    displayName: "Other User",
+                    username: "OtherUser",
                     profileImageURL: nil
                 )
             ],
@@ -267,16 +267,16 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Participant Start",
             description: "Starting as participant",
             workoutType: .running,
-            hostId: "host-789",
+            hostID: "host-789",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "host-789",
-                    displayName: "Host User",
+                    username: "HostUser",
                     profileImageURL: nil
                 ),
                 GroupWorkoutParticipant(
                     userId: "test-user-123", // Current user is participant
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 )
             ],
@@ -302,11 +302,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Not My Workout",
             description: "Cannot start",
             workoutType: .running,
-            hostId: "other-host",
+            hostID: "other-host",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "other-host",
-                    displayName: "Other User",
+                    username: "OtherUser",
                     profileImageURL: nil
                 )
             ],
@@ -337,11 +337,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Active Workout",
             description: "In progress",
             workoutType: .running,
-            hostId: "test-user-123",
+            hostID: "test-user-123",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil,
                     status: .active,
                     workoutData: GroupWorkoutData(
@@ -378,16 +378,16 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Leave Test",
             description: "Testing leave",
             workoutType: .running,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "host-456",
-                    displayName: "Host User",
+                    username: "HostUser",
                     profileImageURL: nil
                 ),
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 )
             ],
@@ -414,11 +414,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Host Cannot Leave",
             description: "Must cancel instead",
             workoutType: .running,
-            hostId: "test-user-123", // Current user is host
+            hostID: "test-user-123", // Current user is host
             participants: [
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil
                 )
             ],
@@ -449,11 +449,11 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
             name: "Active Session",
             description: "In progress",
             workoutType: .running,
-            hostId: "host-456",
+            hostID: "host-456",
             participants: [
                 GroupWorkoutParticipant(
                     userId: "test-user-123",
-                    displayName: "Test User",
+                    username: "TestUser",
                     profileImageURL: nil,
                     status: .active
                 )

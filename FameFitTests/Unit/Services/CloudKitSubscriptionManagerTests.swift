@@ -50,7 +50,7 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
     func testSubscriptionTypes_ContainExpectedValues() {
         // Given
         let expectedTypes: [SubscriptionType] = [
-            .workoutHistory,
+            .workouts,
             .userProfile,
             .socialFollowing,
             .workoutKudos,
@@ -72,8 +72,8 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
 
     func testSubscriptionType_PropertiesAreCorrect() {
         // Test a few key subscription types
-        XCTAssertEqual(SubscriptionType.workoutHistory.recordType, "WorkoutHistory")
-        XCTAssertEqual(SubscriptionType.workoutHistory.subscriptionID, "workout-history-subscription")
+        XCTAssertEqual(SubscriptionType.workouts.recordType, "Workouts")
+        XCTAssertEqual(SubscriptionType.workouts.subscriptionID, "workouts-subscription")
 
         XCTAssertEqual(SubscriptionType.workoutChallenges.recordType, "WorkoutChallenges")
         XCTAssertEqual(SubscriptionType.workoutChallenges.subscriptionID, "workout-challenges-subscription")

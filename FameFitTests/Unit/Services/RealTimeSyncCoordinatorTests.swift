@@ -33,7 +33,6 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
                 socialFollowingService: MockSocialFollowingService(),
                 userProfileService: mockUserProfileService,
                 workoutKudosService: MockWorkoutKudosService(),
-                workoutCommentsService: MockWorkoutCommentsService(),
                 workoutChallengesService: mockWorkoutChallengesService,
                 groupWorkoutService: MockGroupWorkoutService(),
                 activityFeedService: ActivityFeedService(
@@ -256,11 +255,11 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
     }
 
     @MainActor
-    func testHandleWorkoutHistoryChange_PublishesFeedUpdate() async {
+    func testHandleWorkoutsChange_PublishesFeedUpdate() async {
         // Given
         let expectation = XCTestExpectation(description: "Feed update published")
         let notification = CloudKitNotificationInfo(
-            recordType: SubscriptionType.workoutHistory.recordType,
+            recordType: SubscriptionType.workouts.recordType,
             recordID: CKRecord.ID(recordName: "workout-123"),
             changeType: "recordCreated",
             userInfo: [:]
@@ -300,12 +299,12 @@ class MockCloudKitSubscriptionManager: CloudKitSubscriptionManaging {
         removeAllSubscriptionsCallCount += 1
     }
 
-    func handleNotification(_ notification: CKQueryNotification) async {
+    func handleFameFitNotification(_ notification: CKQueryNotification) async {
         handledNotifications.append(notification)
     }
 
     // Test helper to simulate notifications
-    func simulateNotification(_ info: CloudKitNotificationInfo) {
+    func simulateFameFitNotification(_ info: CloudKitNotificationInfo) {
         notificationSubject.send(info)
     }
 }

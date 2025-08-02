@@ -133,7 +133,7 @@ struct KudosListView: View {
                             profileImage(for: user)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(user.displayName)
+                                Text(user.username)
                                     .font(.system(size: 14, weight: .medium))
 
                                 Text("@\(user.username)")
@@ -172,7 +172,7 @@ struct KudosListView: View {
             Circle()
                 .fill(Color.gray.opacity(0.3))
                 .overlay(
-                    Text(String(user.displayName.prefix(1)))
+                    Text(String(user.username.prefix(1)))
                         .font(.system(size: 16, weight: .medium))
                 )
         }

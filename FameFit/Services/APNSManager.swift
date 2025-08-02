@@ -76,7 +76,7 @@ struct DeviceTokenRecord {
     let osVersion: String
     let environment: String // "development" or "production"
     let createdTimestamp: Date
-    let lastUpdated: Date
+    let modifiedTimestamp: Date
     let isActive: Bool
 }
 
@@ -192,17 +192,17 @@ class APNSManager: NSObject, APNSManaging {
         // Handle different notification types
         switch notificationType {
         case "newFollower":
-            await handleNewFollowerNotification(userInfo)
+            await handleNewFollowerFameFitNotification(userInfo)
         case "workoutKudos":
-            await handleWorkoutKudosNotification(userInfo)
+            await handleWorkoutKudosFameFitNotification(userInfo)
         case "followRequest":
-            await handleFollowRequestNotification(userInfo)
+            await handleFollowRequestFameFitNotification(userInfo)
         case "workoutCompleted":
-            await handleWorkoutCompletedNotification(userInfo)
+            await handleWorkoutCompletedFameFitNotification(userInfo)
         case "achievementUnlocked", "unlockAchieved":
-            await handleAchievementNotification(userInfo)
+            await handleAchievementFameFitNotification(userInfo)
         case "levelUp":
-            await handleLevelUpNotification(userInfo)
+            await handleLevelUpFameFitNotification(userInfo)
         default:
             print("Unknown notification type: \(notificationType)")
         }
@@ -252,7 +252,7 @@ class APNSManager: NSObject, APNSManaging {
         record["appVersion"] = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         record["osVersion"] = await MainActor.run { UIDevice.current.systemVersion }
         record["environment"] = getAPNSEnvironment()
-        record["lastUpdated"] = Date()
+        // modifiedTimestamp is managed by CloudKit automatically
         record["isActive"] = 1
 
         do {
@@ -276,7 +276,7 @@ class APNSManager: NSObject, APNSManaging {
             for (recordID, _) in records.matchResults {
                 if let record = try? await cloudKitContainer.privateCloudDatabase.record(for: recordID) {
                     record["isActive"] = 0
-                    record["lastUpdated"] = Date()
+                    // modifiedTimestamp is managed by CloudKit automatically
                     try await cloudKitContainer.privateCloudDatabase.save(record)
                 }
             }
@@ -301,32 +301,32 @@ class APNSManager: NSObject, APNSManaging {
 
     // MARK: - Notification Handlers
 
-    private func handleNewFollowerNotification(_: [AnyHashable: Any]) async {
+    private func handleNewFollowerFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling new follower notification")
         // Navigate to followers list or profile
     }
 
-    private func handleWorkoutKudosNotification(_: [AnyHashable: Any]) async {
+    private func handleWorkoutKudosFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling workout kudos notification")
         // Navigate to workout details
     }
 
-    private func handleFollowRequestNotification(_: [AnyHashable: Any]) async {
+    private func handleFollowRequestFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling follow request notification")
         // Navigate to follow requests
     }
 
-    private func handleWorkoutCompletedNotification(_: [AnyHashable: Any]) async {
+    private func handleWorkoutCompletedFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling workout completed notification")
         // Show workout summary
     }
 
-    private func handleAchievementNotification(_: [AnyHashable: Any]) async {
+    private func handleAchievementFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling achievement notification")
         // Show achievement details
     }
 
-    private func handleLevelUpNotification(_: [AnyHashable: Any]) async {
+    private func handleLevelUpFameFitNotification(_: [AnyHashable: Any]) async {
         print("Handling level up notification")
         // Show level up celebration
     }

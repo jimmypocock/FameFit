@@ -11,8 +11,8 @@ import UserNotifications
 // MARK: - Notification Scheduler Protocol
 
 protocol NotificationScheduling {
-    func scheduleNotification(_ notification: NotificationRequest) async throws
-    func cancelNotification(withId id: String) async
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws
+    func cancelFameFitNotification(withId id: String) async
     func cancelAllNotifications() async
     func getPendingNotifications() async -> [NotificationRequest]
     func updatePreferences(_ preferences: NotificationPreferences)
@@ -86,7 +86,7 @@ final class NotificationScheduler: NotificationScheduling {
 
     // MARK: - Public Methods
 
-    func scheduleNotification(_ notification: NotificationRequest) async throws {
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws {
         // Check if notifications are enabled
         guard preferences.isEnabled(for: notification.type) else {
             print("Notifications disabled for type: \(notification.type)")
@@ -107,7 +107,7 @@ final class NotificationScheduler: NotificationScheduling {
                 groupId: notification.groupId,
                 deliveryDate: delayedDate
             )
-            try await scheduleLocalNotification(delayedNotification)
+            try await scheduleLocalFameFitNotification(delayedNotification)
             return
         }
 
@@ -124,10 +124,10 @@ final class NotificationScheduler: NotificationScheduling {
         }
 
         // Schedule immediately
-        try await deliverNotification(notification)
+        try await deliverFameFitNotification(notification)
     }
 
-    func cancelNotification(withId id: String) async {
+    func cancelFameFitNotification(withId id: String) async {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [id])
         notificationCenter.removeDeliveredNotifications(withIdentifiers: [id])
     }
@@ -252,16 +252,16 @@ final class NotificationScheduler: NotificationScheduling {
         guard !notifications.isEmpty else { return }
 
         // Create grouped notification
-        let groupedNotification = createGroupedNotification(from: notifications, type: type)
+        let groupedNotification = createGroupedFameFitNotification(from: notifications, type: type)
 
         do {
-            try await deliverNotification(groupedNotification)
+            try await deliverFameFitNotification(groupedNotification)
         } catch {
             print("Failed to deliver batched notification: \(error)")
         }
     }
 
-    private func createGroupedNotification(
+    private func createGroupedFameFitNotification(
         from notifications: [NotificationRequest],
         type: NotificationType
     ) -> NotificationRequest {
@@ -301,7 +301,7 @@ final class NotificationScheduler: NotificationScheduling {
         )
     }
 
-    private func deliverNotification(_ notification: NotificationRequest) async throws {
+    private func deliverFameFitNotification(_ notification: NotificationRequest) async throws {
         // Record for rate limiting
         await withCheckedContinuation { continuation in
             recentNotificationsLock.lock()
@@ -311,7 +311,7 @@ final class NotificationScheduler: NotificationScheduling {
         }
 
         // Add to notification store (in-app)
-        let item = NotificationItem(
+        let item = FameFitNotification(
             type: notification.type,
             title: notification.title,
             body: notification.body,
@@ -320,16 +320,16 @@ final class NotificationScheduler: NotificationScheduling {
             groupId: notification.groupId
         )
         Task { @MainActor in
-            notificationStore.addNotification(item)
+            notificationStore.addFameFitNotification(item)
         }
 
         // Schedule push notification if enabled
         if preferences.pushNotificationsEnabled {
-            try await scheduleLocalNotification(notification)
+            try await scheduleLocalFameFitNotification(notification)
         }
     }
 
-    private func scheduleLocalNotification(_ notification: NotificationRequest) async throws {
+    private func scheduleLocalFameFitNotification(_ notification: NotificationRequest) async throws {
         let content = UNMutableNotificationContent()
         content.title = notification.title
         content.body = notification.body
@@ -386,14 +386,14 @@ final class MockNotificationScheduler: NotificationScheduling {
     var preferences = NotificationPreferences()
     var shouldFailScheduling = false
 
-    func scheduleNotification(_ notification: NotificationRequest) async throws {
+    func scheduleFameFitNotification(_ notification: NotificationRequest) async throws {
         if shouldFailScheduling {
             throw NSError(domain: "MockError", code: 1, userInfo: nil)
         }
         scheduledNotifications.append(notification)
     }
 
-    func cancelNotification(withId id: String) async {
+    func cancelFameFitNotification(withId id: String) async {
         scheduledNotifications.removeAll { $0.id == id }
     }
 

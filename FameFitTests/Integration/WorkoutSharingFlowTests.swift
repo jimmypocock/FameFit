@@ -60,7 +60,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
             .store(in: &cancellables)
 
         // When - Simulate workout completion
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "running",
             startDate: Date().addingTimeInterval(-1_800),
@@ -277,8 +277,8 @@ final class WorkoutSharingFlowTests: XCTestCase {
         workoutType: String = "running",
         duration: TimeInterval = 1_800,
         followersEarned: Int = 25
-    ) -> WorkoutHistoryItem {
-        WorkoutHistoryItem(
+    ) -> WorkoutItem {
+        WorkoutItem(
             id: UUID(),
             workoutType: workoutType,
             startDate: Date().addingTimeInterval(-duration),

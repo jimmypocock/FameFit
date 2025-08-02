@@ -132,7 +132,7 @@ enum NotificationMetadataContainer: Codable {
 
 // MARK: - Convenience Extensions
 
-extension NotificationItem {
+extension FameFitNotification {
     var workoutMetadata: WorkoutNotificationMetadata? {
         guard let container = metadata,
               case let .workout(meta) = container else { return nil }

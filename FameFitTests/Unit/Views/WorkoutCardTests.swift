@@ -12,7 +12,7 @@ import XCTest
 class WorkoutCardTests: XCTestCase {
     func testWorkoutCardInitialization() {
         // Given
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),
@@ -70,7 +70,7 @@ class WorkoutCardTests: XCTestCase {
         let startDate = Date()
         let endDate = startDate.addingTimeInterval(3_600) // 1 hour
 
-        let workout = WorkoutHistoryItem(
+        let workout = WorkoutItem(
             id: UUID(),
             workoutType: "Cycling",
             startDate: startDate,
@@ -104,7 +104,7 @@ class WorkoutCardTests: XCTestCase {
         ]
 
         for workoutType in workoutTypes {
-            let workout = WorkoutHistoryItem(
+            let workout = WorkoutItem(
                 id: UUID(),
                 workoutType: workoutType,
                 startDate: Date(),
@@ -133,8 +133,8 @@ class WorkoutCardTests: XCTestCase {
 
     // MARK: - Helper Methods
 
-    private func createMockWorkout() -> WorkoutHistoryItem {
-        WorkoutHistoryItem(
+    private func createMockWorkout() -> WorkoutItem {
+        WorkoutItem(
             id: UUID(),
             workoutType: "Running",
             startDate: Date(),

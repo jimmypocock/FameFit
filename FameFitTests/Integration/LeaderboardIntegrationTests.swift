@@ -27,12 +27,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "test-user",
             userID: "test-user",
             username: "testuser",
-            displayName: "Test User",
             bio: "Test bio",
             workoutCount: 10,
             totalXP: 500,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -45,7 +44,6 @@ final class LeaderboardIntegrationTests: XCTestCase {
                 id: "user-\(index)",
                 userID: "user-\(index)",
                 username: "user\(index)",
-                displayName: "User \(index)",
                 bio: "Bio \(index)",
                 workoutCount: index * 5,
                 totalXP: index * 1_000,
@@ -126,12 +124,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "updated-user",
             userID: "updated-user",
             username: "updateduser",
-            displayName: "Updated User",
             bio: "",
             workoutCount: 100,
             totalXP: 99_999, // Make them #1
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -156,12 +153,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "friend1",
             userID: "friend1",
             username: "friend1",
-            displayName: "Friend 1",
             bio: "",
             workoutCount: 50,
             totalXP: 2_500,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -170,12 +166,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "friend2",
             userID: "friend2",
             username: "friend2",
-            displayName: "Friend 2",
             bio: "",
             workoutCount: 30,
             totalXP: 1_500,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -192,12 +187,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "test-user",
             userID: "test-user",
             username: "testuser",
-            displayName: "Test User",
             bio: "",
             workoutCount: 20,
             totalXP: 1_000,
-            joinedDate: Date().addingTimeInterval(-30 * 24 * 3_600), // 30 days ago
-            lastUpdated: Date(),
+            createdTimestamp: Date().addingTimeInterval(-30 * 24 * 3_600), // 30 days ago
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -222,12 +216,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
             id: "friend3",
             userID: "friend3",
             username: "friend3",
-            displayName: "Friend 3",
             bio: "",
             workoutCount: 80,
             totalXP: 4_000,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil
@@ -265,12 +258,11 @@ final class LeaderboardIntegrationTests: XCTestCase {
                 id: "user-\(index)",
                 userID: "user-\(index)",
                 username: "user\(index)",
-                displayName: "User \(index)",
                 bio: "",
                 workoutCount: index,
                 totalXP: Int.random(in: 100 ... 10_000),
-                joinedDate: Date().addingTimeInterval(-Double(index) * 24 * 3_600),
-                lastUpdated: Date(),
+                createdTimestamp: Date().addingTimeInterval(-Double(index) * 24 * 3_600),
+                modifiedTimestamp: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
@@ -314,28 +306,28 @@ final class LeaderboardIntegrationTests: XCTestCase {
         // Today's active user
         let todayUser = createProfileWithDate(
             id: "today-user",
-            lastUpdated: Date(),
+            modifiedTimestamp: Date(),
             xp: 1_000
         )
 
         // This week's active user
         let weekUser = createProfileWithDate(
             id: "week-user",
-            lastUpdated: Date().addingTimeInterval(-3 * 24 * 3_600),
+            modifiedTimestamp: Date().addingTimeInterval(-3 * 24 * 3_600),
             xp: 2_000
         )
 
         // Last month's active user
         let monthUser = createProfileWithDate(
             id: "month-user",
-            lastUpdated: Date().addingTimeInterval(-15 * 24 * 3_600),
+            modifiedTimestamp: Date().addingTimeInterval(-15 * 24 * 3_600),
             xp: 3_000
         )
 
         // Old user
         let oldUser = createProfileWithDate(
             id: "old-user",
-            lastUpdated: Date().addingTimeInterval(-60 * 24 * 3_600),
+            modifiedTimestamp: Date().addingTimeInterval(-60 * 24 * 3_600),
             xp: 4_000
         )
 
@@ -407,19 +399,18 @@ final class LeaderboardIntegrationTests: XCTestCase {
 
     private func createProfileWithDate(
         id: String,
-        lastUpdated: Date,
+        modifiedTimestamp: Date,
         xp: Int
     ) -> UserProfile {
         UserProfile(
             id: id,
             userID: id,
             username: "user_\(id)",
-            displayName: "User \(id)",
             bio: "",
             workoutCount: xp / 100,
             totalXP: xp,
-            joinedDate: Date().addingTimeInterval(-365 * 24 * 3_600),
-            lastUpdated: lastUpdated,
+            createdTimestamp: Date().addingTimeInterval(-365 * 24 * 3_600),
+            modifiedTimestamp: modifiedTimestamp,
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil

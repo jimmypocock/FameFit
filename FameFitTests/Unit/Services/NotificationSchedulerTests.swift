@@ -43,7 +43,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 1)
@@ -63,7 +63,7 @@ class NotificationSchedulerTests: XCTestCase {
                 title: "Test \(index)",
                 body: "Test notification"
             )
-            try? await sut.scheduleNotification(request)
+            try? await sut.scheduleFameFitNotification(request)
         }
 
         // When/Then - Third notification should be rate limited
@@ -74,7 +74,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         do {
-            try await sut.scheduleNotification(rateLimitedRequest)
+            try await sut.scheduleFameFitNotification(rateLimitedRequest)
             XCTFail("Expected rate limit error")
         } catch {
             XCTAssertEqual(sut.addedRequests.count, 2)
@@ -92,7 +92,7 @@ class NotificationSchedulerTests: XCTestCase {
             title: "Normal",
             body: "Normal notification"
         )
-        try await sut.scheduleNotification(normalRequest)
+        try await sut.scheduleFameFitNotification(normalRequest)
 
         // When - Send immediate priority notification
         let immediateRequest = NotificationRequest(
@@ -101,7 +101,7 @@ class NotificationSchedulerTests: XCTestCase {
             body: "Important notification",
             priority: .immediate
         )
-        try await sut.scheduleNotification(immediateRequest)
+        try await sut.scheduleFameFitNotification(immediateRequest)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 2)
@@ -129,7 +129,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 1)
@@ -162,7 +162,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 1)
@@ -185,7 +185,7 @@ class NotificationSchedulerTests: XCTestCase {
                 body: "User \(index) cheered",
                 groupId: "kudos_\(workoutId)"
             )
-            try await sut.scheduleNotification(request)
+            try await sut.scheduleFameFitNotification(request)
         }
 
         // Simulate batch window passing
@@ -206,14 +206,14 @@ class NotificationSchedulerTests: XCTestCase {
             title: "Kudos",
             body: "Someone cheered"
         )
-        try await sut.scheduleNotification(kudosRequest)
+        try await sut.scheduleFameFitNotification(kudosRequest)
 
         let commentRequest = NotificationRequest(
             type: .workoutComment,
             title: "Comment",
             body: "Someone commented"
         )
-        try await sut.scheduleNotification(commentRequest)
+        try await sut.scheduleFameFitNotification(commentRequest)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 2)
@@ -230,7 +230,7 @@ class NotificationSchedulerTests: XCTestCase {
 
         // Send first notification
         let request1 = NotificationRequest(type: .workoutCompleted, title: "Test 1", body: "Body 1")
-        try await sut.scheduleNotification(request1)
+        try await sut.scheduleFameFitNotification(request1)
 
         // Update preferences to allow more
         preferences.maxNotificationsPerHour = 10
@@ -239,7 +239,7 @@ class NotificationSchedulerTests: XCTestCase {
 
         // When - Send second notification
         let request2 = NotificationRequest(type: .workoutCompleted, title: "Test 2", body: "Body 2")
-        try await sut.scheduleNotification(request2)
+        try await sut.scheduleFameFitNotification(request2)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 2)
@@ -258,7 +258,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 0)
@@ -288,7 +288,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 1)
@@ -312,7 +312,7 @@ class NotificationSchedulerTests: XCTestCase {
         )
 
         // When
-        try await sut.scheduleNotification(request)
+        try await sut.scheduleFameFitNotification(request)
 
         // Then
         XCTAssertEqual(sut.addedRequests.count, 1)
@@ -342,7 +342,7 @@ class TestableNotificationScheduler: NotificationScheduling {
         self.notificationStore = notificationStore
     }
 
-    func scheduleNotification(_ notification: NotificationRequest) async throws {
+    func scheduleFameFitNotification(_ notification: FameFitNotificationRequest) async throws {
         // Check preferences
         guard preferences.isNotificationTypeEnabled(notification.type) else {
             return
@@ -384,7 +384,7 @@ class TestableNotificationScheduler: NotificationScheduling {
         addedRequests.append(notification)
 
         // Also add to notification store
-        let item = NotificationItem(
+        let item = FameFitNotification(
             type: notification.type,
             title: notification.title,
             body: notification.body,
@@ -392,10 +392,10 @@ class TestableNotificationScheduler: NotificationScheduling {
             actions: notification.actions,
             groupId: notification.groupId
         )
-        notificationStore.addNotification(item)
+        notificationStore.addFameFitNotification(item)
     }
 
-    func cancelNotification(withId id: String) async {
+    func cancelFameFitNotification(withId id: String) async {
         addedRequests.removeAll { $0.id == id }
     }
 

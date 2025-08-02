@@ -5,6 +5,7 @@
 //  Created by Jimmy Pocock on 2025/07/02.
 //
 
+#if os(watchOS)
 import HealthKit
 import SwiftUI
 
@@ -86,3 +87,4 @@ struct WatchStartView_Previews: PreviewProvider {
         WatchStartView()
     }
 }
+#endif

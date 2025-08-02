@@ -83,4 +83,9 @@ enum FameFitCharacter: String, CaseIterable, Codable {
             FameFitCharacter.allCases.randomElement()!
         }
     }
+    
+    /// Default character used when no specific character is needed
+    static var defaultCharacter: FameFitCharacter {
+        .sierra
+    }
 }

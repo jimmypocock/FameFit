@@ -41,10 +41,9 @@ final class LeaderboardViewTests: XCTestCase {
         let scopes = LeaderboardScope.allCases
 
         // Then
-        XCTAssertEqual(scopes.count, 3)
+        XCTAssertEqual(scopes.count, 2)
         XCTAssertTrue(scopes.contains(.global))
         XCTAssertTrue(scopes.contains(.friends))
-        XCTAssertTrue(scopes.contains(.nearby))
     }
 
     // MARK: - Date Range Tests

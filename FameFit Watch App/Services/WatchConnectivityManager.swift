@@ -5,6 +5,7 @@
 //  Handles communication from iPhone
 //
 
+#if os(watchOS)
 import Foundation
 import WatchConnectivity
 import SwiftUI
@@ -45,6 +46,10 @@ extension WatchConnectivityManager: WCSessionDelegate {
         replyHandler(["status": "received"])
     }
     
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        print("WCSession reachability changed: \(session.isReachable)")
+    }
+    
     private func handleMessage(_ message: [String: Any]) {
         guard let command = message["command"] as? String else { return }
         
@@ -66,3 +71,4 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
     }
 }
+#endif

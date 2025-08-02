@@ -61,7 +61,7 @@ final class MockWorkoutChallengesService: WorkoutChallengesServicing {
             description: "Reach \(Int(targetValue)) \(type.unit)",
             startDate: startDate,
             endDate: endDate,
-            createdAt: Date(),
+            createdTimestamp: Date(),
             status: status,
             winnerId: nil,
             xpStake: 100,

@@ -19,8 +19,8 @@ final class UserProfileTests: XCTestCase {
         let bio = "Love working out!"
         let workoutCount = 42
         let totalXP = 12_500
-        let joinedDate = Date()
-        let lastUpdated = Date()
+        let createdTimestamp = Date()
+        let modifiedTimestamp = Date()
         let isVerified = true
         let privacyLevel = ProfilePrivacyLevel.publicProfile
 
@@ -33,8 +33,8 @@ final class UserProfileTests: XCTestCase {
             bio: bio,
             workoutCount: workoutCount,
             totalXP: totalXP,
-            joinedDate: joinedDate,
-            lastUpdated: lastUpdated,
+            createdTimestamp: createdTimestamp,
+            modifiedTimestamp: modifiedTimestamp,
             isVerified: isVerified,
             privacyLevel: privacyLevel,
             profileImageURL: nil,
@@ -48,8 +48,8 @@ final class UserProfileTests: XCTestCase {
         XCTAssertEqual(profile.bio, bio)
         XCTAssertEqual(profile.workoutCount, workoutCount)
         XCTAssertEqual(profile.totalXP, totalXP)
-        XCTAssertEqual(profile.joinedDate, joinedDate)
-        XCTAssertEqual(profile.lastUpdated, lastUpdated)
+        XCTAssertEqual(profile.createdTimestamp, createdTimestamp)
+        XCTAssertEqual(profile.modifiedTimestamp, modifiedTimestamp)
         XCTAssertEqual(profile.isVerified, isVerified)
         XCTAssertEqual(profile.privacyLevel, privacyLevel)
         XCTAssertNil(profile.profileImageURL)
@@ -66,8 +66,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -82,8 +82,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -98,8 +98,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date(),
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -116,8 +116,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date().addingTimeInterval(-3 * 24 * 60 * 60), // 3 days ago
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date().addingTimeInterval(-3 * 24 * 60 * 60), // 3 days ago
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -132,8 +132,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: Date(),
-            lastUpdated: Date().addingTimeInterval(-10 * 24 * 60 * 60), // 10 days ago
+            createdTimestamp: Date(),
+            modifiedTimestamp: Date().addingTimeInterval(-10 * 24 * 60 * 60), // 10 days ago
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -195,8 +195,8 @@ final class UserProfileTests: XCTestCase {
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            joinedDate: date,
-            lastUpdated: Date(),
+            createdTimestamp: date,
+            modifiedTimestamp: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )

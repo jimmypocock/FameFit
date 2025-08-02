@@ -79,7 +79,7 @@ final class MockSocialFollowingService: SocialFollowingServicing {
             requesterProfile: nil,
             targetId: userId,
             status: "pending",
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(604_800),
             message: message
         )
@@ -254,6 +254,26 @@ final class MockSocialFollowingService: SocialFollowingServicing {
 
     func preloadRelationships(for _: [String]) async {
         // Mock implementation - no-op
+    }
+    
+    func refreshCounts(for userId: String) async throws -> (followers: Int, following: Int) {
+        if shouldFail { throw mockError }
+        
+        // Calculate counts directly from relationships
+        var followers = 0
+        var following = 0
+        
+        // Count following (users this userId follows)
+        following = relationships[userId]?.count ?? 0
+        
+        // Count followers (users who follow this userId)
+        for (_, followingSet) in relationships {
+            if followingSet.contains(userId) {
+                followers += 1
+            }
+        }
+        
+        return (followers, following)
     }
 
     // Test helpers

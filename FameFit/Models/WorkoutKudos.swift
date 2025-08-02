@@ -43,7 +43,6 @@ struct WorkoutKudosSummary: Codable, Equatable {
     struct KudosUser: Codable, Equatable {
         let userID: String
         let username: String
-        let displayName: String
         let profileImageURL: String?
     }
 }

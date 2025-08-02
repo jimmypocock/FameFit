@@ -100,6 +100,18 @@ class MockMainViewModel: MainViewModeling {
 
         // Profile is already set in initialization
     }
+    
+    func refreshUserProfile() {
+        loadUserProfileCalled = true
+
+        if shouldFailLoadProfile {
+            // Simulate no profile
+            userProfile = nil
+            return
+        }
+
+        // Profile is already set in initialization
+    }
 
     // MARK: - Test Helpers
 
@@ -110,7 +122,7 @@ class MockMainViewModel: MainViewModeling {
         lastWorkoutDate = Date()
     }
 
-    func simulateNewNotification() {
+    func simulateNewFameFitNotification() {
         hasUnreadNotifications = true
         unreadNotificationCount += 1
     }

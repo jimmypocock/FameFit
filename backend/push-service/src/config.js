@@ -13,7 +13,7 @@ module.exports = {
     apiToken: process.env.CLOUDKIT_API_TOKEN,
     environment: process.env.CLOUDKIT_ENVIRONMENT || 'development',
     subscriptions: [
-      'WorkoutHistory',
+      'Workouts',
       'UserRelationships', 
       'WorkoutComments',
       'WorkoutKudos',

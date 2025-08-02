@@ -17,7 +17,7 @@ This document outlines the comprehensive testing strategy for FameFit, including
 
 #### Core Components
 - **Models**: All data models should have comprehensive tests
-  - `WorkoutHistoryItem`: Serialization, XP calculations
+  - `WorkoutsItem`: Serialization, XP calculations
   - `UserProfile`: Privacy settings, data validation
   - `NotificationItem`: Type handling, metadata
   - `GroupWorkout`: State transitions, participant management

@@ -47,7 +47,7 @@ class PushNotificationService {
 
   async setupCloudKitSubscriptions() {
     const subscriptions = [
-      { recordType: 'WorkoutHistory', handler: this.handleWorkoutChange.bind(this) },
+      { recordType: 'Workouts', handler: this.handleWorkoutChange.bind(this) },
       { recordType: 'UserRelationships', handler: this.handleRelationshipChange.bind(this) },
       { recordType: 'WorkoutComments', handler: this.handleCommentChange.bind(this) },
       { recordType: 'WorkoutKudos', handler: this.handleKudosChange.bind(this) },
