@@ -7,7 +7,7 @@ import UserNotifications
 class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     private let healthKitService: HealthKitService
     private var observerQuery: HKObserverQuery?
-    private weak var cloudKitManager: CloudKitManager?
+    weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
     weak var apnsManager: (any APNSManaging)?
     private var preferences: NotificationPreferences = .load()

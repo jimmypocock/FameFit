@@ -381,9 +381,12 @@ class CloudKitSchemaManager {
                 // Create minimal group workout
                 let dummyParticipants = [
                     GroupWorkoutParticipant(
+                        id: UUID().uuidString,
+                        groupWorkoutId: UUID().uuidString,
                         userId: "dummy1",
                         username: "DummyUser",
-                        profileImageURL: nil
+                        profileImageURL: nil,
+                        status: .joined
                     )
                 ]
 

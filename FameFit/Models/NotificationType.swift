@@ -73,7 +73,7 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .securityAlert, .mentioned, .followRequest:
             .immediate
-        case .workoutCompleted, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted:
+        case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted:
             .high
         case .newFollower, .workoutComment, .streakMaintained, .unlockAchieved:
             .medium

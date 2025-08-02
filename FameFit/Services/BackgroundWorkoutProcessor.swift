@@ -87,15 +87,6 @@ final class BackgroundWorkoutProcessor {
             ascending: true
         )
         
-        let query = HKSampleQuery(
-            sampleType: workoutType,
-            predicate: predicate,
-            limit: 10,
-            sortDescriptors: [sortDescriptor]
-        ) { _, samples, error in
-            // This is handled in the async continuation below
-        }
-        
         // Execute query asynchronously
         let workouts = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKWorkout], Error>) in
             let query = HKSampleQuery(
@@ -160,7 +151,7 @@ final class BackgroundWorkoutProcessor {
     // MARK: - Notifications
     
     private func sendBackgroundShareNotification(for workout: Workout, container: DependencyContainer) async {
-        let workoutType = HKWorkoutActivityType(rawValue: UInt(workout.workoutTypeRaw))?.displayName ?? "Workout"
+        let workoutType = workout.workoutType
         
         let notification = FameFitNotification(
             title: "Background Share 🌙",
@@ -168,13 +159,7 @@ final class BackgroundWorkoutProcessor {
             character: FameFitCharacter.defaultCharacter,
             workoutDuration: Int(workout.duration / 60),
             calories: Int(workout.totalEnergyBurned),
-            followersEarned: workout.xpEarned ?? 0,
-            timestamp: Date(),
-            metadata: [
-                "workoutId": workout.id,
-                "source": "background",
-                "notificationType": NotificationType.workoutShared.rawValue
-            ]
+            followersEarned: workout.xpEarned ?? 0
         )
         
         container.notificationStore.addFameFitNotification(notification)

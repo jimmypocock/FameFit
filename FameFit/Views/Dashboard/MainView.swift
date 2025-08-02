@@ -2,6 +2,17 @@ import Combine
 import os.log
 import SwiftUI
 
+// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
+private extension Date {
+    var workoutDisplayDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.timeZone = .current
+        return formatter.string(from: self)
+    }
+}
+
 struct MainView: View {
     @StateObject private var viewModel: MainViewModel
     @State private var showingNotifications = false

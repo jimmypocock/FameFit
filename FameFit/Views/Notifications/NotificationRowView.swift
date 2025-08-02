@@ -118,6 +118,8 @@ struct NotificationRowView: View {
         switch notification.type {
         case .workoutCompleted:
             "figure.run"
+        case .workoutShared:
+            "square.and.arrow.up"
         case .unlockAchieved:
             "trophy.fill"
         case .levelUp:
@@ -161,7 +163,7 @@ struct NotificationRowView: View {
 
     private var iconColor: Color {
         switch notification.type {
-        case .workoutCompleted, .xpMilestone:
+        case .workoutCompleted, .workoutShared, .xpMilestone:
             .blue
         case .unlockAchieved:
             .yellow
@@ -200,6 +202,10 @@ struct NotificationRowView: View {
     private var typeSpecificContent: some View {
         switch notification.type {
         case .workoutCompleted:
+            if let workoutMetadata = notification.workoutMetadata {
+                workoutDetails(workoutMetadata)
+            }
+        case .workoutShared:
             if let workoutMetadata = notification.workoutMetadata {
                 workoutDetails(workoutMetadata)
             }

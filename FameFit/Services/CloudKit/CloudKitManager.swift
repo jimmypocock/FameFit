@@ -990,11 +990,67 @@ class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     // MARK: - Additional CloudKit Operations
     
     func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord] {
-        let (records, _) = try await privateDatabase.records(matching: query, inZoneWith: zoneID)
-        return Array(records.values)
+        let (matchResults, _) = try await privateDatabase.records(matching: query, inZoneWith: zoneID)
+        return matchResults.compactMap { _, result in
+            switch result {
+            case .success(let record):
+                return record
+            case .failure:
+                return nil
+            }
+        }
     }
     
     var database: CKDatabase {
         privateDatabase
+    }
+    
+    func getCurrentUserID() async throws -> String {
+        guard let currentUserID = currentUserID else {
+            throw FameFitError.cloudKitUserNotFound
+        }
+        return currentUserID
+    }
+    
+    func save(_ record: CKRecord) async throws -> CKRecord {
+        try await privateDatabase.save(record)
+    }
+    
+    func delete(withRecordID recordID: CKRecord.ID) async throws {
+        try await privateDatabase.deleteRecord(withID: recordID)
+    }
+    
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate?, sortDescriptors: [NSSortDescriptor]?, limit: Int?) async throws -> [CKRecord] {
+        let query = CKQuery(recordType: recordType, predicate: predicate ?? NSPredicate(value: true))
+        query.sortDescriptors = sortDescriptors
+        
+        let operation = CKQueryOperation(query: query)
+        if let limit = limit {
+            operation.resultsLimit = limit
+        }
+        
+        var records: [CKRecord] = []
+        
+        operation.recordMatchedBlock = { _, result in
+            switch result {
+            case .success(let record):
+                records.append(record)
+            case .failure(let error):
+                print("Error fetching record: \(error)")
+            }
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success:
+                    continuation.resume(returning: records)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+            
+            privateDatabase.add(operation)
+        }
     }
 }

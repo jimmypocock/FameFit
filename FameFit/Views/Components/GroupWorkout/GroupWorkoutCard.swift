@@ -33,6 +33,7 @@ struct GroupWorkoutCard: View {
             // Participants preview
             GroupWorkoutParticipants(
                 groupWorkout: groupWorkout,
+                participants: [], // TODO: Fetch participants from CloudKit
                 showParticipants: $showParticipants
             )
 
@@ -72,6 +73,7 @@ struct GroupWorkoutCard: View {
 
 // MARK: - Preview
 
+/*
 #Preview {
     ScrollView {
         VStack(spacing: 16) {
@@ -150,3 +152,4 @@ struct GroupWorkoutCard: View {
         .padding()
     }
 }
+*/

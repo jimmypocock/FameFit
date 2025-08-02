@@ -19,7 +19,6 @@ protocol RealTimeSyncCoordinating {
 
 // MARK: - Implementation
 
-@MainActor
 final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     // MARK: - Properties
 

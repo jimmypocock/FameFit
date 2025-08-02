@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct BulkPrivacyUpdateView: View {
     @StateObject private var viewModel: BulkPrivacyUpdateViewModel

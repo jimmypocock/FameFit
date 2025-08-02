@@ -22,7 +22,7 @@ struct GroupWorkoutDetails: View {
             // Participants count
             GroupWorkoutDetailPill(
                 icon: "person.2",
-                value: "\(groupWorkout.participants.count)/\(groupWorkout.maxParticipants)",
+                value: "\(groupWorkout.participantCount)/\(groupWorkout.maxParticipants)",
                 color: .blue
             )
 

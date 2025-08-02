@@ -1,0 +1,378 @@
+//
+//  DependencyContainer.swift
+//  FameFit
+//
+//  Manages dependency injection for the app using modern Swift patterns
+//
+
+import Foundation
+import HealthKit
+import SwiftUI
+
+/// Main dependency container following modern Swift patterns and security best practices
+final class DependencyContainer: ObservableObject {
+    // MARK: - Properties
+    
+    let authenticationManager: AuthenticationManager
+    let cloudKitManager: CloudKitManager
+    let workoutObserver: WorkoutObserver
+    let healthKitService: HealthKitService
+    let workoutSyncManager: WorkoutSyncManager
+    let workoutSyncQueue: WorkoutSyncQueue
+    let notificationStore: NotificationStore
+    let unlockNotificationService: UnlockNotificationService
+    let unlockStorageService: UnlockStorageService
+    let userProfileService: UserProfileServicing
+    let rateLimitingService: RateLimitingServicing
+    let socialFollowingService: SocialFollowingServicing
+    let activityFeedService: ActivityFeedServicing
+    let notificationScheduler: NotificationScheduling
+    let notificationManager: NotificationManaging
+    let messageProvider: MessageProviding
+    let workoutKudosService: WorkoutKudosServicing
+    let apnsManager: APNSManaging
+    let groupWorkoutService: GroupWorkoutServicing
+    let workoutChallengesService: WorkoutChallengesServicing
+    let subscriptionManager: CloudKitSubscriptionManaging
+    let realTimeSyncCoordinator: RealTimeSyncCoordinating
+    let activityCommentsService: ActivityFeedCommentsServicing
+    let bulkPrivacyUpdateService: BulkPrivacyUpdateServicing
+    let activitySharingSettingsService: ActivityFeedSettingsServicing
+    let workoutAutoShareService: WorkoutAutoShareServicing
+    let xpTransactionService: XPTransactionService
+    let groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing
+    
+    // MARK: - Initialization
+    
+    /// Initialize container with a dependency factory
+    /// - Parameter factory: Factory to create dependencies (defaults to production)
+    init(factory: DependencyFactory = ProductionDependencyFactory()) {
+        // Phase 1: Core Services
+        let cloudKitManager = factory.createCloudKitManager()
+        let authenticationManager = factory.createAuthenticationManager(cloudKitManager: cloudKitManager)
+        let healthKitService = factory.createHealthKitService()
+        let notificationStore = factory.createNotificationStore()
+        let unlockStorageService = factory.createUnlockStorageService()
+        
+        self.cloudKitManager = cloudKitManager
+        self.authenticationManager = authenticationManager
+        self.healthKitService = healthKitService
+        self.notificationStore = notificationStore
+        self.unlockStorageService = unlockStorageService
+        
+        // Phase 2: Workout Services
+        self.workoutObserver = factory.createWorkoutObserver(
+            cloudKitManager: cloudKitManager,
+            healthKitService: healthKitService
+        )
+        
+        self.workoutSyncManager = factory.createWorkoutSyncManager(
+            cloudKitManager: cloudKitManager,
+            healthKitService: healthKitService
+        )
+        
+        self.workoutSyncQueue = factory.createWorkoutSyncQueue(
+            cloudKitManager: cloudKitManager
+        )
+        
+        // Phase 3: Notification Services
+        self.unlockNotificationService = factory.createUnlockNotificationService(
+            notificationStore: notificationStore,
+            unlockStorage: unlockStorageService
+        )
+        
+        self.messageProvider = factory.createMessageProvider()
+        
+        self.notificationScheduler = factory.createNotificationScheduler()
+        
+        self.apnsManager = factory.createAPNSManager()
+        
+        self.notificationManager = factory.createNotificationManager(
+            notificationStore: notificationStore,
+            scheduler: notificationScheduler
+        )
+        
+        // Phase 4: User & Social Services
+        self.userProfileService = factory.createUserProfileService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        self.rateLimitingService = factory.createRateLimitingService()
+        
+        self.socialFollowingService = factory.createSocialFollowingService(
+            cloudKitManager: cloudKitManager,
+            rateLimiter: rateLimitingService,
+            profileService: userProfileService
+        )
+        
+        // Phase 5: Activity Feed Services
+        self.activityFeedService = factory.createActivityFeedService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        self.activityCommentsService = factory.createActivityCommentsService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        self.workoutKudosService = factory.createWorkoutKudosService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        // Phase 6: Privacy & Settings Services
+        self.bulkPrivacyUpdateService = factory.createBulkPrivacyUpdateService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService
+        )
+        
+        self.activitySharingSettingsService = factory.createActivitySharingSettingsService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        // Phase 7: Challenge & Group Workout Services
+        self.workoutChallengesService = factory.createWorkoutChallengesService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        self.groupWorkoutService = factory.createGroupWorkoutService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager
+        )
+        
+        self.groupWorkoutSchedulingService = factory.createGroupWorkoutSchedulingService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            notificationManager: notificationManager
+        )
+        
+        // Phase 8: Subscription & Real-time Services
+        self.subscriptionManager = factory.createSubscriptionManager(
+            cloudKitManager: cloudKitManager
+        )
+        
+        let pushNotificationService = factory.createPushNotificationService(
+            cloudKitManager: cloudKitManager,
+            subscriptionManager: subscriptionManager
+        )
+        
+        // Phase 9: Transaction & Auto-share Services
+        self.xpTransactionService = factory.createXPTransactionService(
+            container: cloudKitManager.container
+        )
+        
+        self.workoutAutoShareService = factory.createWorkoutAutoShareService(
+            activityFeedService: activityFeedService,
+            settingsService: activitySharingSettingsService,
+            notificationManager: notificationManager
+        )
+        
+        // Phase 10: Real-time Sync Coordinator
+        self.realTimeSyncCoordinator = factory.createRealTimeSyncCoordinator(
+            subscriptionManager: subscriptionManager,
+            cloudKitManager: cloudKitManager,
+            socialFollowingService: socialFollowingService,
+            userProfileService: userProfileService,
+            workoutKudosService: workoutKudosService,
+            activityCommentsService: activityCommentsService,
+            workoutChallengesService: workoutChallengesService,
+            groupWorkoutService: groupWorkoutService,
+            activityFeedService: activityFeedService
+        )
+        
+        // Phase 11: Wire up circular dependencies (after all services are created)
+        cloudKitManager.authenticationManager = authenticationManager
+        cloudKitManager.xpTransactionService = xpTransactionService
+        workoutObserver.cloudKitManager = cloudKitManager
+        workoutSyncManager.notificationStore = notificationStore
+        workoutSyncManager.notificationManager = notificationManager
+    }
+    
+    // MARK: - Test Initialization
+    
+    /// Initialize container with mock services for testing
+    init(
+        authenticationManager: AuthenticationManager,
+        cloudKitManager: CloudKitManager,
+        workoutObserver: WorkoutObserver,
+        healthKitService: HealthKitService? = nil,
+        workoutSyncManager: WorkoutSyncManager? = nil,
+        workoutSyncQueue: WorkoutSyncQueue? = nil,
+        notificationStore: NotificationStore? = nil,
+        unlockNotificationService: UnlockNotificationService? = nil,
+        unlockStorageService: UnlockStorageService? = nil,
+        userProfileService: UserProfileServicing? = nil,
+        rateLimitingService: RateLimitingServicing? = nil,
+        socialFollowingService: SocialFollowingServicing? = nil,
+        activityFeedService: ActivityFeedServicing? = nil,
+        notificationScheduler: NotificationScheduling? = nil,
+        notificationManager: NotificationManaging? = nil,
+        messageProvider: MessageProviding? = nil,
+        workoutKudosService: WorkoutKudosServicing? = nil,
+        apnsManager: APNSManaging? = nil,
+        groupWorkoutService: GroupWorkoutServicing? = nil,
+        workoutChallengesService: WorkoutChallengesServicing? = nil,
+        subscriptionManager: CloudKitSubscriptionManaging? = nil,
+        realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
+        activityCommentsService: ActivityFeedCommentsServicing? = nil,
+        activitySharingSettingsService: ActivityFeedSettingsServicing? = nil,
+        bulkPrivacyUpdateService: BulkPrivacyUpdateServicing? = nil,
+        workoutAutoShareService: WorkoutAutoShareServicing? = nil,
+        xpTransactionService: XPTransactionService? = nil,
+        groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing? = nil
+    ) {
+        // Store required dependencies
+        self.authenticationManager = authenticationManager
+        self.cloudKitManager = cloudKitManager
+        self.workoutObserver = workoutObserver
+        
+        // Create default instances for optional dependencies
+        self.healthKitService = healthKitService ?? RealHealthKitService()
+        self.workoutSyncManager = workoutSyncManager ?? WorkoutSyncManager(
+            cloudKitManager: cloudKitManager,
+            healthKitService: self.healthKitService
+        )
+        self.workoutSyncQueue = workoutSyncQueue ?? WorkoutSyncQueue(
+            cloudKitManager: cloudKitManager
+        )
+        self.notificationStore = notificationStore ?? NotificationStore()
+        self.unlockStorageService = unlockStorageService ?? UnlockStorageService()
+        self.unlockNotificationService = unlockNotificationService ?? UnlockNotificationService(
+            notificationStore: self.notificationStore,
+            unlockStorage: self.unlockStorageService
+        )
+        self.messageProvider = messageProvider ?? FameFitMessageProvider()
+        self.notificationScheduler = notificationScheduler ?? NotificationScheduler(
+            notificationStore: self.notificationStore
+        )
+        self.apnsManager = apnsManager ?? APNSManager(cloudKitManager: cloudKitManager)
+        
+        // Create notification manager with dependencies
+        self.notificationManager = notificationManager ?? NotificationManager(
+            scheduler: self.notificationScheduler,
+            notificationStore: self.notificationStore,
+            unlockService: self.unlockNotificationService,
+            messageProvider: self.messageProvider
+        )
+        
+        // Create user and social services
+        self.userProfileService = userProfileService ?? UserProfileService(
+            cloudKitManager: cloudKitManager
+        )
+        self.rateLimitingService = rateLimitingService ?? RateLimitingService()
+        self.socialFollowingService = socialFollowingService ?? CachedSocialFollowingService(
+            cloudKitManager: cloudKitManager,
+            rateLimiter: self.rateLimitingService,
+            profileService: self.userProfileService
+        )
+        
+        // Create activity feed services
+        let privacySettings = WorkoutPrivacySettings()
+        self.activityFeedService = activityFeedService ?? ActivityFeedService(
+            cloudKitManager: cloudKitManager,
+            privacySettings: privacySettings
+        )
+        
+        self.activityCommentsService = activityCommentsService ?? ActivityFeedCommentsService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        self.workoutKudosService = workoutKudosService ?? WorkoutKudosService(
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        // Create bulk privacy and settings services
+        self.bulkPrivacyUpdateService = bulkPrivacyUpdateService ?? BulkPrivacyUpdateService(
+            cloudKitManager: cloudKitManager,
+            activityFeedService: self.activityFeedService
+        )
+        
+        self.activitySharingSettingsService = activitySharingSettingsService ?? ActivityFeedSettingsService(
+            cloudKitManager: cloudKitManager
+        )
+        
+        // Create challenge and group workout services
+        self.workoutChallengesService = workoutChallengesService ?? WorkoutChallengesService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager,
+            rateLimiter: self.rateLimitingService
+        )
+        
+        self.groupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager
+        )
+        
+        self.groupWorkoutSchedulingService = groupWorkoutSchedulingService ?? GroupWorkoutSchedulingService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: self.userProfileService,
+            notificationManager: self.notificationManager
+        )
+        
+        // Create subscription and push notification services
+        self.subscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
+        
+        // Create transaction and auto-share services
+        self.xpTransactionService = xpTransactionService ?? XPTransactionService(
+            container: cloudKitManager.container
+        )
+        
+        self.workoutAutoShareService = workoutAutoShareService ?? WorkoutAutoShareService(
+            workoutObserver: self.workoutObserver,
+            activityFeedService: self.activityFeedService,
+            activityFeedSettingsService: self.activitySharingSettingsService,
+            notificationManager: self.notificationManager,
+            notificationStore: self.notificationStore
+        )
+        
+        // Create real-time sync coordinator
+        self.realTimeSyncCoordinator = realTimeSyncCoordinator ?? RealTimeSyncCoordinator(
+            subscriptionManager: self.subscriptionManager,
+            cloudKitManager: cloudKitManager,
+            socialFollowingService: self.socialFollowingService,
+            userProfileService: self.userProfileService,
+            workoutKudosService: self.workoutKudosService,
+            activityCommentsService: self.activityCommentsService,
+            workoutChallengesService: self.workoutChallengesService,
+            groupWorkoutService: self.groupWorkoutService,
+            activityFeedService: self.activityFeedService
+        )
+        
+        // Wire up circular dependencies
+        cloudKitManager.authenticationManager = authenticationManager
+        cloudKitManager.xpTransactionService = self.xpTransactionService
+        workoutObserver.cloudKitManager = cloudKitManager
+        self.workoutSyncManager.notificationStore = self.notificationStore
+        self.workoutSyncManager.notificationManager = self.notificationManager
+    }
+}
+
+// MARK: - Environment Key
+
+private struct DependencyContainerKey: EnvironmentKey {
+    static let defaultValue = DependencyContainer()
+}
+
+// MARK: - Environment Values Extension
+
+extension EnvironmentValues {
+    var dependencyContainer: DependencyContainer {
+        get { self[DependencyContainerKey.self] }
+        set { self[DependencyContainerKey.self] = newValue }
+    }
+}
+
+// MARK: - Security & Best Practices Notes
+// 1. All services are created through a factory pattern for testability
+// 2. Dependencies are explicitly declared and injected
+// 3. No singletons are used directly - everything goes through DI
+// 4. Circular dependencies are wired up after initialization
+// 5. Test initializer allows for easy mocking
+// 6. Container is immutable after initialization (all properties are let)
+// 7. Modern Swift concurrency patterns are supported throughout

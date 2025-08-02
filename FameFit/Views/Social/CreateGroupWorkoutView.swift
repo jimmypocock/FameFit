@@ -7,6 +7,7 @@
 
 import SwiftUI
 import EventKit
+import HealthKit
 
 struct CreateGroupWorkoutView: View {
     @EnvironmentObject private var container: DependencyContainer
@@ -196,20 +197,24 @@ struct CreateGroupWorkoutView: View {
         Task {
             do {
                 // Get current user ID
-                let currentUserId = try await container.cloudKitManager.getCurrentUserID()
+                let currentUserId = container.cloudKitManager.currentUserID ?? "unknown"
                 
                 // Create the workout
+                let workoutType = HKWorkoutActivityType(rawValue: UInt(selectedWorkoutType)) ?? .running
+                let scheduledEnd = scheduledDate.addingTimeInterval(3600) // Default 1 hour duration
+                
                 let workout = GroupWorkout(
-                    title: title,
-                    workoutType: String(selectedWorkoutType),
-                    scheduledDate: scheduledDate,
-                    timeZone: selectedTimeZone.identifier,
-                    location: location.isEmpty ? nil : location,
-                    notes: notes.isEmpty ? nil : notes,
+                    name: title,
+                    description: notes.isEmpty ? "Group workout session" : notes,
+                    workoutType: workoutType,
+                    hostId: currentUserId,
                     maxParticipants: maxParticipants,
-                    createdBy: currentUserId,
+                    scheduledStart: scheduledDate,
+                    scheduledEnd: scheduledEnd,
                     isPublic: isPublic,
-                    tags: tags
+                    tags: tags,
+                    location: location.isEmpty ? nil : location,
+                    notes: notes.isEmpty ? nil : notes
                 )
                 
                 let createdWorkout = try await container.groupWorkoutSchedulingService.createGroupWorkout(workout)

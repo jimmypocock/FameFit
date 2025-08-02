@@ -8,7 +8,7 @@
 import Foundation
 
 /// A wrapper for cached values with expiration support
-struct CacheEntry<T: Equatable>: Equatable {
+struct CacheEntry<T> {
     let value: T
     let timestamp: Date
     let ttl: TimeInterval
@@ -48,12 +48,3 @@ extension CacheEntry: Codable where T: Codable {
     }
 }
 
-// MARK: - Equatable Support
-
-extension CacheEntry {
-    static func == (lhs: CacheEntry<T>, rhs: CacheEntry<T>) -> Bool {
-        lhs.value == rhs.value &&
-        lhs.timestamp == rhs.timestamp &&
-        lhs.ttl == rhs.ttl
-    }
-}

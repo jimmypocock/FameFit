@@ -23,6 +23,7 @@ enum SocialServiceError: Error, LocalizedError {
     case networkError(Error)
     case invalidRequest
     case unauthorized
+    case authenticationRequired
 
     var errorDescription: String? {
         switch self {
@@ -50,6 +51,8 @@ enum SocialServiceError: Error, LocalizedError {
             return "Invalid request. Please try again."
         case .unauthorized:
             return "You are not authorized to perform this action."
+        case .authenticationRequired:
+            return "Authentication is required to perform this action."
         }
     }
 }

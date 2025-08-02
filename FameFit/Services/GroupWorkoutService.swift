@@ -96,18 +96,9 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         // Validate workout
         try validateWorkout(workout)
 
-        // Create the workout with the host as first participant
-        let hostProfile = try await userProfileService.fetchProfile(userId: userId)
-        let hostParticipant = GroupWorkoutParticipant(
-            userId: userId,
-            username: hostProfile.username,
-            profileImageURL: hostProfile.profileImageURL
-        )
-
+        // Create the workout
         var newWorkout = workout
-        if !newWorkout.participants.contains(where: { $0.userId == userId }) {
-            newWorkout.participants.append(hostParticipant)
-        }
+        newWorkout.participantCount = 1 // Host is the first participant
 
         // Save to CloudKit
         let record = newWorkout.toCKRecord()
@@ -117,6 +108,19 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             guard let savedWorkout = GroupWorkout(from: savedRecord) else {
                 throw GroupWorkoutError.saveFailed
             }
+
+            // Create the host as first participant
+            let hostProfile = try await userProfileService.fetchProfile(userId: userId)
+            let hostParticipant = GroupWorkoutParticipant(
+                groupWorkoutId: savedWorkout.id,
+                userId: userId,
+                username: hostProfile.username,
+                profileImageURL: hostProfile.profileImageURL
+            )
+            
+            // Save participant record separately
+            let participantRecord = hostParticipant.toCKRecord()
+            _ = try await publicDatabase.save(participantRecord)
 
             // Record action for rate limiting
             await rateLimiter.recordAction(.workoutPost, userId: userId)
@@ -200,7 +204,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         var workout = try await fetchWorkout(workoutId: workoutId)
 
         // Verify user is host or participant
-        guard workout.hostId == userId || workout.participantIds.contains(userId) else {
+        let participants = try await fetchParticipants(for: workoutId)
+        guard workout.hostId == userId || participants.contains(where: { $0.userId == userId }) else {
             throw GroupWorkoutError.notParticipant
         }
 
@@ -209,13 +214,18 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         workout.modifiedTimestamp = Date()
 
         // Update participant status
-        if let index = workout.participants.firstIndex(where: { $0.userId == userId }) {
-            workout.participants[index].status = .active
-            workout.participants[index].workoutData = GroupWorkoutData(
+        if let participant = participants.first(where: { $0.userId == userId }) {
+            var updatedParticipant = participant
+            updatedParticipant.status = .active
+            updatedParticipant.workoutData = GroupWorkoutData(
                 startTime: Date(),
                 totalEnergyBurned: 0,
                 lastUpdated: Date()
             )
+            
+            // Update participant record
+            let participantRecord = updatedParticipant.toCKRecord()
+            _ = try await publicDatabase.save(participantRecord)
         }
 
         // Save update
@@ -226,7 +236,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             workoutId: workoutId,
             participantId: userId,
             updateType: .started,
-            data: workout.participants.first(where: { $0.userId == userId })?.workoutData,
+            data: participants.first(where: { $0.userId == userId })?.workoutData,
             timestamp: Date()
         )
         activeWorkoutUpdatesSubject.send(update)
@@ -243,18 +253,25 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         }
 
         var workout = try await fetchWorkout(workoutId: workoutId)
+        let participants = try await fetchParticipants(for: workoutId)
 
         // Update participant status
-        if let index = workout.participants.firstIndex(where: { $0.userId == userId }) {
-            workout.participants[index].status = .completed
-            if var workoutData = workout.participants[index].workoutData {
+        if let participant = participants.first(where: { $0.userId == userId }) {
+            var updatedParticipant = participant
+            updatedParticipant.status = .completed
+            if var workoutData = updatedParticipant.workoutData {
                 workoutData.endTime = Date()
-                workout.participants[index].workoutData = workoutData
+                updatedParticipant.workoutData = workoutData
+                
+                // Update participant record
+                let participantRecord = updatedParticipant.toCKRecord()
+                _ = try await publicDatabase.save(participantRecord)
             }
         }
 
         // Check if all participants completed
-        let allCompleted = workout.participants.allSatisfy {
+        let allParticipants = try await fetchParticipants(for: workoutId)
+        let allCompleted = allParticipants.allSatisfy {
             $0.status == .completed || $0.status == .dropped
         }
 
@@ -272,7 +289,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             workoutId: workoutId,
             participantId: userId,
             updateType: .completed,
-            data: workout.participants.first(where: { $0.userId == userId })?.workoutData,
+            data: participants.first(where: { $0.userId == userId })?.workoutData,
             timestamp: Date()
         )
         activeWorkoutUpdatesSubject.send(update)
@@ -293,7 +310,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         var workout = try await fetchWorkout(workoutId: workoutId)
 
         // Check if already joined
-        guard !workout.participantIds.contains(userId) else {
+        let participants = try await fetchParticipants(for: workoutId)
+        guard !participants.contains(where: { $0.userId == userId }) else {
             return workout
         }
 
@@ -313,12 +331,18 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         // Add participant
         let userProfile = try await userProfileService.fetchProfile(userId: userId)
         let participant = GroupWorkoutParticipant(
+            groupWorkoutId: workoutId,
             userId: userId,
             username: userProfile.username,
             profileImageURL: userProfile.profileImageURL
         )
 
-        workout.participants.append(participant)
+        // Save participant record
+        let participantRecord = participant.toCKRecord()
+        _ = try await publicDatabase.save(participantRecord)
+        
+        // Update workout participant count
+        workout.participantCount += 1
         workout.modifiedTimestamp = Date()
 
         // Save update
@@ -367,10 +391,11 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             throw GroupWorkoutError.notAuthenticated
         }
 
-        var workout = try await fetchWorkout(workoutId: workoutId)
+        let workout = try await fetchWorkout(workoutId: workoutId)
+        let participants = try await fetchParticipants(for: workoutId)
 
-        // Find and update participant
-        guard let index = workout.participants.firstIndex(where: { $0.userId == userId }) else {
+        // Find participant
+        guard let participant = participants.first(where: { $0.userId == userId }) else {
             throw GroupWorkoutError.notParticipant
         }
 
@@ -379,12 +404,19 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             throw GroupWorkoutError.hostCannotLeave
         }
 
-        // Update status
-        workout.participants[index].status = .dropped
-        workout.modifiedTimestamp = Date()
-
-        // Save update
-        _ = try await updateGroupWorkout(workout)
+        // Update participant status
+        var updatedParticipant = participant
+        updatedParticipant.status = .dropped
+        
+        // Update participant record
+        let participantRecord = updatedParticipant.toCKRecord()
+        _ = try await publicDatabase.save(participantRecord)
+        
+        // Update workout participant count
+        var updatedWorkout = workout
+        updatedWorkout.participantCount = max(0, updatedWorkout.participantCount - 1)
+        updatedWorkout.modifiedTimestamp = Date()
+        _ = try await updateGroupWorkout(updatedWorkout)
 
         // Send real-time update
         let update = GroupWorkoutUpdate(
@@ -402,20 +434,23 @@ final class GroupWorkoutService: GroupWorkoutServicing {
             throw GroupWorkoutError.notAuthenticated
         }
 
-        var workout = try await fetchWorkout(workoutId: workoutId)
+        _ = try await fetchWorkout(workoutId: workoutId)
+        let participants = try await fetchParticipants(for: workoutId)
 
         // Find participant
-        guard let index = workout.participants.firstIndex(where: { $0.userId == userId }) else {
+        guard let participant = participants.first(where: { $0.userId == userId }) else {
             throw GroupWorkoutError.notParticipant
         }
 
-        // Update data
-        workout.participants[index].workoutData = data
-        workout.modifiedTimestamp = Date()
-
+        // Update participant data
+        var updatedParticipant = participant
+        updatedParticipant.workoutData = data
+        
         // Save update (with rate limiting for frequent updates)
         if shouldUpdateCloudKit(for: workoutId) {
-            _ = try await updateGroupWorkout(workout)
+            // Update participant record
+            let participantRecord = updatedParticipant.toCKRecord()
+            _ = try await publicDatabase.save(participantRecord)
         }
 
         // Always send real-time update
@@ -503,6 +538,22 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         return try await fetchWorkouts(with: predicate)
     }
 
+    // MARK: - Participant Fetching
+    
+    private func fetchParticipants(for groupWorkoutId: String) async throws -> [GroupWorkoutParticipant] {
+        let predicate = NSPredicate(format: "groupWorkoutId == %@", groupWorkoutId)
+        let query = CKQuery(recordType: "GroupWorkoutParticipant", predicate: predicate)
+        
+        do {
+            let results = try await publicDatabase.records(matching: query)
+            return results.matchResults.compactMap { _, result in
+                try? result.get()
+            }.compactMap { GroupWorkoutParticipant(from: $0) }
+        } catch {
+            throw GroupWorkoutError.fetchFailed
+        }
+    }
+    
     // MARK: - Private Methods
 
     private func fetchWorkouts(with predicate: NSPredicate, limit: Int = 50) async throws -> [GroupWorkout] {
@@ -596,7 +647,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // For now, send immediate notifications to participants
         // TODO: Add scheduled notification support
-        for _ in workout.participants {
+        let participants = try? await fetchParticipants(for: workout.id)
+        for _ in participants ?? [] {
             await notificationManager.notifyFeatureAnnouncement(
                 feature: "Group Workout Reminder",
                 description: "\(workout.name) starts in 15 minutes! Get ready to crush it! 🏃‍♂️"
@@ -606,7 +658,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
     private func notifyParticipantsOfUpdate(_ workout: GroupWorkout) async {
         // Notify all participants except host
-        for participant in workout.participants where participant.userId != workout.hostId {
+        let participants = try? await fetchParticipants(for: workout.id)
+        for participant in participants ?? [] where participant.userId != workout.hostId {
             await notificationManager.notifyFeatureAnnouncement(
                 feature: "Workout Update",
                 description: "\(workout.name) has been updated. Check the details!"
@@ -616,7 +669,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
     private func notifyParticipantsOfCancellation(_ workout: GroupWorkout) async {
         // Notify all participants except host about cancellation
-        for participant in workout.participants where participant.userId != workout.hostId {
+        let participants = try? await fetchParticipants(for: workout.id)
+        for participant in participants ?? [] where participant.userId != workout.hostId {
             await notificationManager.notifyFeatureAnnouncement(
                 feature: "Workout Cancelled",
                 description: "Unfortunately, \(workout.name) has been cancelled."
@@ -628,7 +682,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         guard let starter = try? await userProfileService.fetchProfile(userId: userId) else { return }
 
         // Notify other participants that the workout has started
-        for participant in workout.participants where participant.userId != userId {
+        let participants = try? await fetchParticipants(for: workout.id)
+        for participant in participants ?? [] where participant.userId != userId {
             await notificationManager.notifyFeatureAnnouncement(
                 feature: "Workout Started! 🚀",
                 description: "\(starter.username) just started \(workout.name). Join now!"
@@ -651,7 +706,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     private func awardGroupWorkoutXP(_ workout: GroupWorkout, for _: String) async {
         // Award bonus XP for group workouts
         let baseXP = 20 // Base XP for completing group workout
-        let bonusXP = min(workout.participants.count * 5, 50) // Up to 50 bonus XP
+        let bonusXP = min(workout.participantCount * 5, 50) // Up to 50 bonus XP
         _ = baseXP + bonusXP
 
         // Award XP through CloudKit manager

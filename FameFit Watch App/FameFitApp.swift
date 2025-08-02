@@ -5,6 +5,7 @@
 //  Created by Jimmy Pocock on 6/27/25.
 //
 
+#if os(watchOS)
 import SwiftUI
 
 @main
@@ -26,3 +27,4 @@ struct FameFitApp: App {
         }
     }
 }
+#endif

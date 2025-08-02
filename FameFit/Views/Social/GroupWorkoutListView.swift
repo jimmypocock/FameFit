@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct GroupWorkoutListView: View {
     @EnvironmentObject private var container: DependencyContainer
@@ -56,7 +57,7 @@ struct GroupWorkoutListView: View {
                         emptyStateView
                     } else {
                         ForEach(viewModel.workouts) { workout in
-                            GroupWorkoutCard(workout: workout)
+                            GroupWorkoutListCard(workout: workout)
                                 .onTapGesture {
                                     selectedWorkout = workout
                                 }
@@ -203,7 +204,7 @@ struct GroupWorkoutListView: View {
 
 // MARK: - Group Workout Card
 
-struct GroupWorkoutCard: View {
+struct GroupWorkoutListCard: View {
     let workout: GroupWorkout
     @EnvironmentObject private var container: DependencyContainer
     @State private var participantCount: Int = 0
@@ -281,24 +282,16 @@ struct GroupWorkoutCard: View {
     }
     
     private var workoutTypeName: String {
-        if let type = Int(workout.workoutType),
-           let activityType = HKWorkoutActivityType(rawValue: UInt(type)) {
-            return activityType.displayName
-        }
-        return "Workout"
+        workout.workoutType.displayName
     }
     
     private var workoutTypeIcon: String {
-        if let type = Int(workout.workoutType),
-           let activityType = HKWorkoutActivityType(rawValue: UInt(type)) {
-            return activityType.iconName
-        }
-        return "figure.run"
+        workout.workoutType.iconName
     }
     
     private var dayText: String {
         let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: workout.timeZone) ?? .current
+        formatter.timeZone = .current
         
         let calendar = Calendar.current
         if calendar.isDateInToday(workout.scheduledDate) {
@@ -313,7 +306,7 @@ struct GroupWorkoutCard: View {
     
     private var timeText: String {
         let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: workout.timeZone) ?? .current
+        formatter.timeZone = .current
         formatter.timeStyle = .short
         return formatter.string(from: workout.scheduledDate)
     }
@@ -323,7 +316,7 @@ struct GroupWorkoutCard: View {
             do {
                 let participants = try await container.groupWorkoutSchedulingService.getParticipants(workout.id)
                 await MainActor.run {
-                    participantCount = participants.filter { $0.status == .accepted }.count
+                    participantCount = participants.filter { $0.status == .joined }.count
                 }
             } catch {
                 print("Failed to load participant count: \(error)")
@@ -395,7 +388,7 @@ class GroupWorkoutListViewModel: ObservableObject {
         do {
             // For now, we'll fetch all my workouts and filter for past ones
             let allWorkouts = try await service.fetchMyWorkouts()
-            workouts = allWorkouts.filter { $0.isPast }
+            workouts = allWorkouts.filter { $0.scheduledEnd < Date() }
             error = nil
         } catch {
             self.error = error

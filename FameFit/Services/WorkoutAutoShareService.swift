@@ -19,17 +19,17 @@ protocol WorkoutAutoShareServicing: AnyObject {
 // MARK: - Implementation
 
 final class WorkoutAutoShareService: WorkoutAutoShareServicing {
-    private let workoutObserver: WorkoutObserving
+    private let workoutObserver: any WorkoutObserving
     private let activityFeedService: ActivityFeedServicing
     private let activityFeedSettingsService: ActivityFeedSettingsServicing
     private let notificationManager: NotificationManaging
-    private let notificationStore: NotificationStoring
+    private let notificationStore: any NotificationStoring
     
     private var cancellables = Set<AnyCancellable>()
     private var currentSettings: ActivityFeedSettings?
     
     init(
-        workoutObserver: WorkoutObserving,
+        workoutObserver: any WorkoutObserving,
         activityFeedService: ActivityFeedServicing,
         activityFeedSettingsService: ActivityFeedSettingsServicing,
         notificationManager: NotificationManaging,
@@ -87,17 +87,8 @@ final class WorkoutAutoShareService: WorkoutAutoShareServicing {
             return
         }
         
-        // Convert workout type for checking
-        guard let hkWorkoutType = HKWorkoutActivityType.fromDisplayName(workout.workoutType) else {
-            print("Invalid workout type")
-            return
-        }
-        
-        // Create a mock HKWorkout for the settings check (not ideal but works with current API)
-        // In production, we'd refactor shouldShareWorkout to work with our Workout model
-        let mockWorkout = createMockHKWorkout(from: workout, type: hkWorkoutType)
-        
-        guard settings.shouldShareWorkout(mockWorkout) else {
+        // Check if this workout should be shared based on settings
+        guard settings.shouldShareWorkout(workout) else {
             print("Workout doesn't meet sharing criteria")
             return
         }
@@ -135,23 +126,6 @@ final class WorkoutAutoShareService: WorkoutAutoShareServicing {
         } catch {
             print("Failed to auto-share workout: \(error)")
         }
-    }
-    
-    private func createMockHKWorkout(from workout: Workout, type: HKWorkoutActivityType) -> HKWorkout {
-        // This is a workaround since we can't create real HKWorkout objects
-        // In production, we'd refactor ActivityFeedSettings.shouldShareWorkout to accept our Workout model
-        let mockWorkout = HKWorkout(
-            activityType: type,
-            start: workout.startDate,
-            end: workout.endDate,
-            duration: workout.duration,
-            totalEnergyBurned: workout.totalEnergyBurned > 0 ? 
-                HKQuantity(unit: .kilocalorie(), doubleValue: workout.totalEnergyBurned) : nil,
-            totalDistance: (workout.totalDistance ?? 0) > 0 ? 
-                HKQuantity(unit: .meter(), doubleValue: workout.totalDistance ?? 0) : nil,
-            metadata: nil
-        )
-        return mockWorkout
     }
     
     private func sendAutoShareNotification(for workout: Workout, privacy: WorkoutPrivacy) async {

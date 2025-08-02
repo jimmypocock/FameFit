@@ -7,18 +7,7 @@
 
 import Foundation
 import Combine
-
-// MARK: - Cache Entry
-
-struct CacheEntry<T> {
-    let value: T
-    let timestamp: Date
-    let ttl: TimeInterval
-    
-    var isExpired: Bool {
-        Date().timeIntervalSince(timestamp) > ttl
-    }
-}
+import UIKit
 
 // MARK: - Following Cache Manager
 
@@ -209,7 +198,7 @@ final class FollowingCacheManager {
     
     private func setValue<T>(_ value: T, for key: String, ttl: TimeInterval) {
         queue.async(flags: .barrier) {
-            let entry = CacheEntry(value: value, timestamp: Date(), ttl: ttl)
+            let entry = CacheEntry(value: value, ttl: ttl)
             self.cache.setObject(entry as AnyObject, forKey: key as NSString)
         }
     }

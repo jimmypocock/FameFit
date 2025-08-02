@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HealthKit
 
 struct GroupWorkoutDetailView: View {
     let workout: GroupWorkout
@@ -22,11 +23,11 @@ struct GroupWorkoutDetailView: View {
     @State private var isCalendarAdded = false
     
     private var isCreator: Bool {
-        workout.createdBy == container.cloudKitManager.userRecordID?.recordName
+        workout.hostId == container.cloudKitManager.currentUserID
     }
     
     private var acceptedCount: Int {
-        participants.filter { $0.status == .accepted }.count
+        participants.filter { $0.status == .joined }.count
     }
     
     var body: some View {
@@ -130,11 +131,6 @@ struct GroupWorkoutDetailView: View {
                 Label(dateTimeText, systemImage: "calendar")
                     .font(.subheadline)
                 
-                if workout.timeZone != TimeZone.current.identifier {
-                    Text("Time Zone: \(workout.timeZone.replacingOccurrences(of: "_", with: " "))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
         }
         .padding()
@@ -144,37 +140,67 @@ struct GroupWorkoutDetailView: View {
     
     private var quickActionsSection: some View {
         HStack(spacing: 12) {
-            if myParticipation == nil {
-                // Join buttons
-                Button(action: { joinWorkout(.accepted) }) {
-                    Label("Join", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Button(action: { joinWorkout(.maybe) }) {
-                    Label("Maybe", systemImage: "questionmark.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-            } else if let participation = myParticipation, participation.status != .declined {
-                // Update status buttons
-                ForEach(GroupWorkoutParticipant.ParticipantStatus.allCases.filter { $0 != .pending }, id: \.self) { status in
-                    Button(action: { updateStatus(status) }) {
-                        Text(status.displayName)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(participation.status == status ? .borderedProminent : .bordered)
-                }
-            } else {
-                // Declined - show rejoin option
-                Button(action: { joinWorkout(.accepted) }) {
-                    Label("Join Workout", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-            }
+            quickActionButtons
         }
+    }
+    
+    @ViewBuilder
+    private var quickActionButtons: some View {
+        if myParticipation == nil {
+            joinButtons
+        } else if let participation = myParticipation, participation.status != .declined {
+            statusUpdateButtons(for: participation)
+        } else {
+            rejoinButton
+        }
+    }
+    
+    @ViewBuilder
+    private var joinButtons: some View {
+        Button(action: { joinWorkout(.joined) }) {
+            Label("Join", systemImage: "checkmark.circle.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(BorderedProminentButtonStyle())
+        
+        Button(action: { joinWorkout(.maybe) }) {
+            Label("Maybe", systemImage: "questionmark.circle")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(BorderedButtonStyle())
+    }
+    
+    @ViewBuilder
+    private func statusUpdateButtons(for participation: GroupWorkoutParticipant) -> some View {
+        ForEach(ParticipantStatus.allCases.filter { $0 != .pending }, id: \.self) { status in
+            statusButton(for: status, currentStatus: participation.status)
+        }
+    }
+    
+    @ViewBuilder
+    private func statusButton(for status: ParticipantStatus, currentStatus: ParticipantStatus) -> some View {
+        if currentStatus == status {
+            Button(action: { updateStatus(status) }) {
+                Text(status.displayName)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(BorderedProminentButtonStyle())
+        } else {
+            Button(action: { updateStatus(status) }) {
+                Text(status.displayName)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(BorderedButtonStyle())
+        }
+    }
+    
+    @ViewBuilder
+    private var rejoinButton: some View {
+        Button(action: { joinWorkout(.joined) }) {
+            Label("Join Workout", systemImage: "arrow.clockwise")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(BorderedProminentButtonStyle())
     }
     
     private var detailsSection: some View {
@@ -254,7 +280,7 @@ struct GroupWorkoutDetailView: View {
                         Label("Invite", systemImage: "person.badge.plus")
                             .font(.caption)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(BorderedButtonStyle())
                     .controlSize(.small)
                 }
             }
@@ -271,7 +297,7 @@ struct GroupWorkoutDetailView: View {
                     .padding()
             } else {
                 ForEach(participants.sorted(by: { $0.joinedAt < $1.joinedAt })) { participant in
-                    if let profile = participantProfiles[participant.userProfileId] {
+                    if let profile = participantProfiles[participant.userId] {
                         ParticipantRow(participant: participant, profile: profile, isCreator: isCreator)
                     }
                 }
@@ -288,7 +314,7 @@ struct GroupWorkoutDetailView: View {
                 Label("Share Workout", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(BorderedButtonStyle())
             
             Button(action: toggleCalendar) {
                 Label(
@@ -297,13 +323,13 @@ struct GroupWorkoutDetailView: View {
                 )
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(BorderedButtonStyle())
         }
     }
     
     // MARK: - Helper Views
     
-    private func statusBadge(_ status: GroupWorkoutParticipant.ParticipantStatus) -> some View {
+    private func statusBadge(_ status: ParticipantStatus) -> some View {
         Text(status.displayName)
             .font(.caption)
             .fontWeight(.medium)
@@ -314,39 +340,34 @@ struct GroupWorkoutDetailView: View {
             .cornerRadius(6)
     }
     
-    private func statusColor(_ status: GroupWorkoutParticipant.ParticipantStatus) -> Color {
+    private func statusColor(_ status: ParticipantStatus) -> Color {
         switch status {
-        case .accepted: return .green
+        case .joined: return .green
         case .declined: return .red
         case .maybe: return .orange
         case .pending: return .gray
+        case .active: return .blue
+        case .completed: return .purple
+        case .dropped: return .red.opacity(0.6)
         }
     }
     
     // MARK: - Computed Properties
     
     private var workoutTypeName: String {
-        if let type = Int(workout.workoutType),
-           let activityType = HKWorkoutActivityType(rawValue: UInt(type)) {
-            return activityType.displayName
-        }
-        return "Workout"
+        workout.workoutType.displayName
     }
     
     private var workoutTypeIcon: String {
-        if let type = Int(workout.workoutType),
-           let activityType = HKWorkoutActivityType(rawValue: UInt(type)) {
-            return activityType.iconName
-        }
-        return "figure.run"
+        workout.workoutType.iconName
     }
     
     private var dateTimeText: String {
         let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: workout.timeZone) ?? .current
+        formatter.timeZone = .current
         formatter.dateStyle = .full
         formatter.timeStyle = .short
-        return formatter.string(from: workout.scheduledDate)
+        return formatter.string(from: workout.scheduledStart)
     }
     
     // MARK: - Actions
@@ -365,8 +386,8 @@ struct GroupWorkoutDetailView: View {
             // Load profiles for participants
             var profiles: [String: UserProfile] = [:]
             for participant in loadedParticipants {
-                if let profile = try? await container.userProfileService.fetchProfileByUserID(participant.userProfileId) {
-                    profiles[participant.userProfileId] = profile
+                if let profile = try? await container.userProfileService.fetchProfileByUserID(participant.userId) {
+                    profiles[participant.userId] = profile
                 }
             }
             
@@ -389,7 +410,7 @@ struct GroupWorkoutDetailView: View {
         }
     }
     
-    private func joinWorkout(_ status: GroupWorkoutParticipant.ParticipantStatus) {
+    private func joinWorkout(_ status: ParticipantStatus) {
         Task {
             do {
                 try await container.groupWorkoutSchedulingService.joinGroupWorkout(workout.id, status: status)
@@ -400,7 +421,7 @@ struct GroupWorkoutDetailView: View {
         }
     }
     
-    private func updateStatus(_ status: GroupWorkoutParticipant.ParticipantStatus) {
+    private func updateStatus(_ status: ParticipantStatus) {
         Task {
             do {
                 try await container.groupWorkoutSchedulingService.updateParticipantStatus(workout.id, status: status)
@@ -464,7 +485,7 @@ struct ParticipantRow: View {
     var body: some View {
         HStack {
             // Avatar
-            if let avatarURL = profile.avatarURL, let url = URL(string: avatarURL) {
+            if let avatarURL = profile.profileImageURL, let url = URL(string: avatarURL) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -484,7 +505,7 @@ struct ParticipantRow: View {
             // Name and status
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(profile.displayName)
+                    Text(profile.username)
                         .font(.subheadline)
                     
                     if profile.isVerified {
@@ -502,7 +523,7 @@ struct ParticipantRow: View {
             Spacer()
             
             // Creator badge
-            if participant.userId == profile.cloudKitUserID && isCreator {
+            if participant.userId == profile.userID && isCreator {
                 Text("Organizer")
                     .font(.caption2)
                     .fontWeight(.medium)

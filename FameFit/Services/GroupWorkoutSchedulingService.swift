@@ -10,6 +10,9 @@ import Combine
 import EventKit
 import Foundation
 
+// MARK: - Type Aliases
+// Use the shared GroupWorkoutInvite struct directly
+
 // MARK: - Group Workout Scheduling Service Protocol
 
 protocol GroupWorkoutSchedulingServicing: AnyObject {
@@ -19,9 +22,9 @@ protocol GroupWorkoutSchedulingServicing: AnyObject {
     func deleteGroupWorkout(_ workoutId: String) async throws
     
     // Participants
-    func joinGroupWorkout(_ workoutId: String, status: GroupWorkoutParticipant.ParticipantStatus) async throws
+    func joinGroupWorkout(_ workoutId: String, status: ParticipantStatus) async throws
     func leaveGroupWorkout(_ workoutId: String) async throws
-    func updateParticipantStatus(_ workoutId: String, status: GroupWorkoutParticipant.ParticipantStatus) async throws
+    func updateParticipantStatus(_ workoutId: String, status: ParticipantStatus) async throws
     func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant]
     
     // Discovery
@@ -60,7 +63,7 @@ struct WorkoutFilters {
 // MARK: - Implementation
 
 final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
-    private let cloudKitManager: CloudKitManaging
+    private let cloudKitManager: any CloudKitManaging
     private let userProfileService: UserProfileServicing
     private let notificationManager: NotificationManaging
     private let eventStore = EKEventStore()
@@ -73,7 +76,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     private var subscriptions: [CKSubscription] = []
     
     init(
-        cloudKitManager: CloudKitManaging,
+        cloudKitManager: any CloudKitManaging,
         userProfileService: UserProfileServicing,
         notificationManager: NotificationManaging
     ) {
@@ -98,40 +101,51 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         
         // Automatically add creator as participant
         let currentUserId = try await cloudKitManager.getCurrentUserID()
-        let currentProfile = try await userProfileService.loadProfile()
+        let currentProfile = try await userProfileService.fetchCurrentUserProfile()
         
         let participant = GroupWorkoutParticipant(
+            id: UUID().uuidString,
             groupWorkoutId: savedWorkout.id,
             userId: currentUserId,
-            userProfileId: currentProfile.id,
-            status: .accepted
+            username: currentProfile.username,
+            profileImageURL: currentProfile.profileImageURL,
+            status: .joined
         )
         
         let participantRecord = participant.toCKRecord()
         _ = try await cloudKitManager.save(participantRecord)
         
-        workoutUpdatesSubject.send(savedWorkout)
+        // Update participant count on the workout
+        var workoutWithUpdatedCount = savedWorkout
+        workoutWithUpdatedCount.participantCount += 1
+        let updatedWorkoutRecord = workoutWithUpdatedCount.toCKRecord()
+        _ = try await cloudKitManager.save(updatedWorkoutRecord)
         
-        return savedWorkout
+        workoutUpdatesSubject.send(workoutWithUpdatedCount)
+        
+        return workoutWithUpdatedCount
     }
     
     func updateGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
-        var updatedWorkout = workout
-        updatedWorkout = GroupWorkout(
+        // Create updated workout with new timestamp
+        let updatedWorkout = GroupWorkout(
             id: workout.id,
-            title: workout.title,
+            name: workout.name,
+            description: workout.description,
             workoutType: workout.workoutType,
-            scheduledDate: workout.scheduledDate,
-            timeZone: workout.timeZone,
-            location: workout.location,
-            notes: workout.notes,
+            hostId: workout.hostId,
+            participantCount: workout.participantCount,
             maxParticipants: workout.maxParticipants,
-            createdBy: workout.createdBy,
-            createdAt: workout.createdAt,
-            updatedAt: Date(),
+            scheduledStart: workout.scheduledStart,
+            scheduledEnd: workout.scheduledEnd,
+            status: workout.status,
+            createdTimestamp: workout.createdTimestamp,
+            modifiedTimestamp: Date(),
             isPublic: workout.isPublic,
+            joinCode: workout.joinCode,
             tags: workout.tags,
-            recordID: workout.recordID
+            location: workout.location,
+            notes: workout.notes
         )
         
         let record = updatedWorkout.toCKRecord()
@@ -165,7 +179,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         
         // Check if current user is the creator
         let currentUserId = try await cloudKitManager.getCurrentUserID()
-        guard record["createdBy"] as? String == currentUserId else {
+        guard record["hostId"] as? String == currentUserId else {
             throw GroupWorkoutSchedulingError.unauthorized
         }
         
@@ -201,9 +215,9 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     
     // MARK: - Participants
     
-    func joinGroupWorkout(_ workoutId: String, status: GroupWorkoutParticipant.ParticipantStatus) async throws {
+    func joinGroupWorkout(_ workoutId: String, status: ParticipantStatus) async throws {
         let currentUserId = try await cloudKitManager.getCurrentUserID()
-        let currentProfile = try await userProfileService.loadProfile()
+        let currentProfile = try await userProfileService.fetchCurrentUserProfile()
         
         // Check if already a participant
         let predicate = NSPredicate(
@@ -226,10 +240,12 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         } else {
             // Create new participant
             let participant = GroupWorkoutParticipant(
+                id: UUID().uuidString,
                 groupWorkoutId: workoutId,
                 userId: currentUserId,
-                userProfileId: currentProfile.id,
-                status: status
+                username: currentProfile.username,
+                profileImageURL: currentProfile.profileImageURL,
+                status: .joined
             )
             
             let record = participant.toCKRecord()
@@ -261,7 +277,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         }
     }
     
-    func updateParticipantStatus(_ workoutId: String, status: GroupWorkoutParticipant.ParticipantStatus) async throws {
+    func updateParticipantStatus(_ workoutId: String, status: ParticipantStatus) async throws {
         try await joinGroupWorkout(workoutId, status: status)
     }
     
@@ -427,7 +443,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         
         // If accepted, join the workout
         if accept {
-            try await joinGroupWorkout(invite.groupWorkoutId, status: .accepted)
+            try await joinGroupWorkout(invite.groupWorkoutId, status: .joined)
         }
     }
     
@@ -546,7 +562,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         }
     }
     
-    private func sendJoinNotification(workoutId: String, status: GroupWorkoutParticipant.ParticipantStatus) async {
+    private func sendJoinNotification(workoutId: String, status: ParticipantStatus) async {
         // Implementation for sending join notifications
     }
     

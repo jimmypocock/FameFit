@@ -8,6 +8,23 @@
 import HealthKit
 import SwiftUI
 
+// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
+private extension Date {
+    var relativeDisplayString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: self, relativeTo: Date())
+    }
+    
+    var workoutDisplayTime: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = .current
+        return formatter.string(from: self)
+    }
+}
+
 struct WorkoutCard: View {
     let workout: Workout
     let userProfile: UserProfile?

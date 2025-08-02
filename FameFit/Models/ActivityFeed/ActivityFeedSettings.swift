@@ -147,6 +147,28 @@ struct ActivityFeedSettings: Codable, Equatable {
         return true
     }
     
+    /// Check if a FameFit workout should be shared
+    func shouldShareWorkout(_ workout: Workout) -> Bool {
+        guard shareActivitiesToFeed && shareWorkouts else { return false }
+        
+        // Check duration
+        guard workout.duration >= minimumWorkoutDuration else { return false }
+        
+        // Check workout type by converting from display name
+        guard let hkWorkoutType = HKWorkoutActivityType.fromDisplayName(workout.workoutType),
+              workoutTypesToShare.contains(hkWorkoutType) else { return false }
+        
+        // Check source
+        if !shareFromAllSources && !allowedSources.contains(workout.source) {
+            return false
+        }
+        if blockedSources.contains(workout.source) {
+            return false
+        }
+        
+        return true
+    }
+    
     /// Get privacy level for a specific activity type
     func privacyLevel(for activityType: String) -> WorkoutPrivacy {
         switch activityType {

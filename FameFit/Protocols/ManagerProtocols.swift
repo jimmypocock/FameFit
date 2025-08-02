@@ -72,6 +72,10 @@ protocol CloudKitManaging: ObservableObject {
     
     // Additional CloudKit operations
     func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord]
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate?, sortDescriptors: [NSSortDescriptor]?, limit: Int?) async throws -> [CKRecord]
+    func save(_ record: CKRecord) async throws -> CKRecord
+    func delete(withRecordID recordID: CKRecord.ID) async throws
+    func getCurrentUserID() async throws -> String
     var database: CKDatabase { get }
 }
 

@@ -90,9 +90,11 @@ struct GroupWorkoutActions: View {
         .padding(.top, 12)
     }
 
+    // Note: This should be determined by querying participant records
+    // For now, we'll need to pass this as a parameter or fetch it
     private var isParticipant: Bool {
-        guard let currentUserId else { return false }
-        return groupWorkout.participantIds.contains(currentUserId)
+        // TODO: Implement proper participant check
+        false
     }
 
     private var isHost: Bool {
