@@ -248,6 +248,13 @@ When creating new CloudKit record types, follow these steps:
    - Despite the error mentioning 'recordName', you must make 'recordID' queryable
 5. **Deploy Changes**: Always deploy schema changes to Production
 
+### CloudKit Field Naming Convention
+**IMPORTANT**: Always use uppercase "ID" for CloudKit field names, not lowercase "Id":
+- ✅ `userID`, `workoutID`, `hostID`, `creatorID` (correct)
+- ❌ `userId`, `workoutId`, `hostId`, `creatorId` (incorrect)
+
+This follows Apple's CloudKit naming conventions and ensures consistency across the codebase.
+
 ### Example: Workouts Record Type
 Fields configuration:
 - `workoutId` (String) - Queryable, Sortable

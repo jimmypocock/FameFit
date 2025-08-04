@@ -81,19 +81,25 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     // MARK: - Host Operations
 
     func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
+        FameFitLogger.info("Creating group workout: \(workout.name)", category: FameFitLogger.social)
+        
         guard let userId = cloudKitManager.currentUserID else {
+            FameFitLogger.error("Create workout failed: Not authenticated", category: FameFitLogger.social)
             throw GroupWorkoutError.notAuthenticated
         }
 
         // Verify user is the host
         guard workout.hostId == userId else {
+            FameFitLogger.error("Create workout failed: Not authorized (host: \(workout.hostId), user: \(userId))", category: FameFitLogger.social)
             throw GroupWorkoutError.notAuthorized
         }
 
         // Check rate limiting
+        FameFitLogger.debug("Checking rate limit for workout creation", category: FameFitLogger.social)
         _ = try await rateLimiter.checkLimit(for: .workoutPost, userId: userId)
 
         // Validate workout
+        FameFitLogger.debug("Validating workout", category: FameFitLogger.social)
         try validateWorkout(workout)
 
         // Create the workout
@@ -102,10 +108,14 @@ final class GroupWorkoutService: GroupWorkoutServicing {
 
         // Save to CloudKit
         let record = newWorkout.toCKRecord()
+        FameFitLogger.debug("Saving workout to CloudKit", category: FameFitLogger.cloudKit)
 
         do {
             let savedRecord = try await publicDatabase.save(record)
+            FameFitLogger.info("Workout saved successfully", category: FameFitLogger.cloudKit)
+            
             guard let savedWorkout = GroupWorkout(from: savedRecord) else {
+                FameFitLogger.error("Failed to parse saved workout record", category: FameFitLogger.cloudKit)
                 throw GroupWorkoutError.saveFailed
             }
 
@@ -541,8 +551,8 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     // MARK: - Participant Fetching
     
     private func fetchParticipants(for groupWorkoutId: String) async throws -> [GroupWorkoutParticipant] {
-        let predicate = NSPredicate(format: "groupWorkoutId == %@", groupWorkoutId)
-        let query = CKQuery(recordType: "GroupWorkoutParticipant", predicate: predicate)
+        let predicate = NSPredicate(format: "groupWorkoutID == %@", groupWorkoutId)
+        let query = CKQuery(recordType: "GroupWorkoutParticipants", predicate: predicate)
         
         do {
             let results = try await publicDatabase.records(matching: query)
@@ -550,6 +560,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
                 try? result.get()
             }.compactMap { GroupWorkoutParticipant(from: $0) }
         } catch {
+            FameFitLogger.error("Failed to fetch group workouts", error: error, category: FameFitLogger.cloudKit)
             throw GroupWorkoutError.fetchFailed
         }
     }
@@ -566,6 +577,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
                 try? result.get()
             }.compactMap { GroupWorkout(from: $0) }
         } catch {
+            FameFitLogger.error("Failed to fetch group workouts", error: error, category: FameFitLogger.cloudKit)
             throw GroupWorkoutError.fetchFailed
         }
     }

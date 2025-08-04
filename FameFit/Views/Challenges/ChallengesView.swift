@@ -53,10 +53,12 @@ struct ChallengesView: View {
         }
         .sheet(isPresented: $showingCreateChallenge) {
             CreateChallengeView()
+                .environment(\.dependencyContainer, container)
         }
         .sheet(isPresented: $showingChallengeDetails) {
             if let challenge = selectedChallenge {
                 ChallengeDetailView(challenge: challenge)
+                    .environment(\.dependencyContainer, container)
             }
         }
         .task {

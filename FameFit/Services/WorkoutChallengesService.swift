@@ -66,7 +66,10 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
     // MARK: - Challenge Management
 
     func createChallenge(_ challenge: WorkoutChallenge) async throws -> WorkoutChallenge {
+        FameFitLogger.info("Creating challenge: \(challenge.name)", category: FameFitLogger.social)
+        
         guard let userId = cloudKitManager.currentUserID else {
+            FameFitLogger.error("Create challenge failed: Not authenticated", category: FameFitLogger.auth)
             throw ChallengeError.notAuthenticated
         }
 
@@ -76,6 +79,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
             targetValue: challenge.targetValue,
             duration: challenge.endDate.timeIntervalSince(challenge.startDate)
         ) else {
+            FameFitLogger.error("Create challenge failed: Invalid challenge parameters", category: FameFitLogger.social)
             throw ChallengeError.invalidChallenge
         }
 
@@ -98,10 +102,14 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
         // Save to CloudKit
         let record = newChallenge.toCKRecord()
+        FameFitLogger.debug("Saving challenge to CloudKit", category: FameFitLogger.cloudKit)
 
         do {
             let savedRecord = try await publicDatabase.save(record)
+            FameFitLogger.info("Challenge saved successfully", category: FameFitLogger.cloudKit)
+            
             guard let savedChallenge = WorkoutChallenge(from: savedRecord) else {
+                FameFitLogger.error("Failed to parse saved challenge record", category: FameFitLogger.cloudKit)
                 throw ChallengeError.saveFailed
             }
 
@@ -115,6 +123,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
             return savedChallenge
         } catch {
+            FameFitLogger.error("Failed to save challenge to CloudKit", error: error, category: FameFitLogger.cloudKit)
             throw ChallengeError.saveFailed
         }
     }
@@ -390,6 +399,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
                 try? result.get()
             }.compactMap { WorkoutChallenge(from: $0) }
         } catch {
+            FameFitLogger.error("Failed to fetch challenges", error: error, category: FameFitLogger.cloudKit)
             throw ChallengeError.fetchFailed
         }
     }

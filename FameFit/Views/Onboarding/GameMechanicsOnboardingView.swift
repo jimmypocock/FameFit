@@ -137,6 +137,11 @@ struct GameMechanicsOnboardingView: View {
                 print("🎮 GameMechanics: Profile verified, completing onboarding...")
                 await MainActor.run {
                     authManager.completeOnboarding()
+                    
+                    // Now that onboarding is complete, start health services
+                    container.workoutSyncManager.startReliableSync()
+                    container.workoutAutoShareService.setupAutoSharing()
+                    
                     isCompletingOnboarding = false
                 }
             } catch {

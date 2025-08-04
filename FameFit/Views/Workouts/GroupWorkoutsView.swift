@@ -68,6 +68,7 @@ struct GroupWorkoutsView: View {
         }
         .sheet(isPresented: $showingCreateWorkout) {
             CreateGroupWorkoutView()
+                .environmentObject(container)
         }
         .alert("Join Workout", isPresented: $showingJoinCodeInput) {
             TextField("Enter join code", text: $joinCode)

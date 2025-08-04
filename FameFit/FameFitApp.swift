@@ -65,22 +65,22 @@ struct FameFitApp: App {
                 .environmentObject(dependencyContainer.notificationStore)
                 .environment(\.dependencyContainer, dependencyContainer)
                 .onAppear {
-                    // Configure background tasks (replaces AppDelegate registration)
-                    BackgroundTaskManager.shared.configure(with: dependencyContainer)
-                    
                     // Share container with AppDelegate if it doesn't have one
                     if appDelegate.dependencyContainer == nil {
                         appDelegate.dependencyContainer = dependencyContainer
-
-                        // Start the reliable sync manager using HKAnchoredObjectQuery
-                        // This provides more reliable workout tracking than observer queries
-                        dependencyContainer.workoutSyncManager.startReliableSync()
                         
-                        // Start auto-sharing service for workouts
-                        dependencyContainer.workoutAutoShareService.setupAutoSharing()
+                        // Configure BackgroundWorkoutProcessor first (done via AppDelegate.didSet)
+                        // Then configure BackgroundTaskManager
+                        BackgroundTaskManager.shared.configure(with: dependencyContainer)
 
-                        // Request APNS permissions if user has completed onboarding
+                        // Only start health-related services if user has completed onboarding
                         if dependencyContainer.authenticationManager.hasCompletedOnboarding {
+                            // Start the reliable sync manager using HKAnchoredObjectQuery
+                            // This provides more reliable workout tracking than observer queries
+                            dependencyContainer.workoutSyncManager.startReliableSync()
+                            
+                            // Start auto-sharing service for workouts
+                            dependencyContainer.workoutAutoShareService.setupAutoSharing()
                             Task {
                                 do {
                                     let granted = try await dependencyContainer.apnsManager

@@ -105,7 +105,7 @@ struct GroupWorkout: Identifiable, Equatable {
               let description = record["description"] as? String,
               let workoutTypeRaw = record["workoutType"] as? Int,
               let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)),
-              let hostId = record["hostId"] as? String,
+              let hostId = record["hostID"] as? String,
               let maxParticipants = record["maxParticipants"] as? Int64,
               let scheduledStart = record["scheduledStart"] as? Date,
               let scheduledEnd = record["scheduledEnd"] as? Date,
@@ -155,7 +155,7 @@ struct GroupWorkout: Identifiable, Equatable {
         record["name"] = name
         record["description"] = description
         record["workoutType"] = Int64(workoutType.rawValue)
-        record["hostId"] = hostId
+        record["hostID"] = hostId
         record["participantCount"] = Int64(participantCount)
         record["maxParticipants"] = Int64(maxParticipants)
         record["scheduledStart"] = scheduledStart
@@ -283,10 +283,10 @@ extension GroupWorkoutParticipant {
     init?(from record: CKRecord) {
         guard
             let id = record["id"] as? String,
-            let groupWorkoutId = record["groupWorkoutId"] as? String,
-            let userId = record["userId"] as? String,
+            let groupWorkoutRef = record["groupWorkoutID"] as? CKRecord.Reference,
+            let userId = record["userID"] as? String,
             let username = record["username"] as? String,
-            let joinedAt = record["joinedAt"] as? Date,
+            let joinedAt = record["joinedTimestamp"] as? Date,
             let statusRaw = record["status"] as? String,
             let status = ParticipantStatus(rawValue: statusRaw)
         else {
@@ -294,7 +294,7 @@ extension GroupWorkoutParticipant {
         }
         
         self.id = id
-        self.groupWorkoutId = groupWorkoutId
+        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
         self.userId = userId
         self.username = username
         self.profileImageURL = record["profileImageURL"] as? String
@@ -310,14 +310,14 @@ extension GroupWorkoutParticipant {
     }
     
     func toCKRecord() -> CKRecord {
-        let record = CKRecord(recordType: "GroupWorkoutParticipant", recordID: CKRecord.ID(recordName: id))
+        let record = CKRecord(recordType: "GroupWorkoutParticipants", recordID: CKRecord.ID(recordName: id))
         
         record["id"] = id
-        record["groupWorkoutId"] = groupWorkoutId
-        record["userId"] = userId
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
+        record["userID"] = userId
         record["username"] = username
         record["profileImageURL"] = profileImageURL
-        record["joinedAt"] = joinedAt
+        record["joinedTimestamp"] = joinedAt
         record["status"] = status.rawValue
         
         if let workoutData = workoutData {
@@ -446,32 +446,31 @@ extension GroupWorkoutInvite {
     init?(from record: CKRecord) {
         guard
             let id = record["id"] as? String,
-            let groupWorkoutId = record["groupWorkoutId"] as? String,
-            let invitedBy = record["invitedBy"] as? String,
-            let invitedUser = record["invitedUser"] as? String,
-            let invitedAt = record["invitedAt"] as? Date,
-            let expiresAt = record["expiresAt"] as? Date
+            let groupWorkoutRef = record["groupWorkoutID"] as? CKRecord.Reference,
+            let invitedBy = record["invitedByID"] as? String,
+            let invitedUser = record["invitedUserID"] as? String,
+            let expiresAt = record["expiresTimestamp"] as? Date
         else {
             return nil
         }
         
         self.id = id
-        self.groupWorkoutId = groupWorkoutId
+        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
         self.invitedBy = invitedBy
         self.invitedUser = invitedUser
-        self.invitedAt = invitedAt
+        self.invitedAt = record.creationDate ?? Date()
         self.expiresAt = expiresAt
     }
     
     func toCKRecord() -> CKRecord {
-        let record = CKRecord(recordType: "GroupWorkoutInvite", recordID: CKRecord.ID(recordName: id))
+        let record = CKRecord(recordType: "GroupWorkoutInvites", recordID: CKRecord.ID(recordName: id))
         
         record["id"] = id
-        record["groupWorkoutId"] = groupWorkoutId
-        record["invitedBy"] = invitedBy
-        record["invitedUser"] = invitedUser
-        record["invitedAt"] = invitedAt
-        record["expiresAt"] = expiresAt
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
+        record["invitedByID"] = invitedBy
+        record["invitedUserID"] = invitedUser
+        // invitedAt is stored in system createdTimestamp field
+        record["expiresTimestamp"] = expiresAt
         
         return record
     }

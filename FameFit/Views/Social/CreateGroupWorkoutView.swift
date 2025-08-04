@@ -193,11 +193,13 @@ struct CreateGroupWorkoutView: View {
         guard !title.isEmpty else { return }
         
         isCreating = true
+        FameFitLogger.info("Starting group workout creation: \(title)", category: FameFitLogger.social)
         
         Task {
             do {
                 // Get current user ID
                 let currentUserId = container.cloudKitManager.currentUserID ?? "unknown"
+                FameFitLogger.debug("Creating workout with userId: \(currentUserId)", category: FameFitLogger.social)
                 
                 // Create the workout
                 let workoutType = HKWorkoutActivityType(rawValue: UInt(selectedWorkoutType)) ?? .running
@@ -225,7 +227,7 @@ struct CreateGroupWorkoutView: View {
                         try await container.groupWorkoutSchedulingService.addToCalendar(createdWorkout)
                     } catch {
                         // Calendar addition failed, but workout was created
-                        print("Failed to add to calendar: \(error)")
+                        FameFitLogger.warning("Failed to add workout to calendar", category: FameFitLogger.general)
                     }
                 }
                 
@@ -233,6 +235,7 @@ struct CreateGroupWorkoutView: View {
                     dismiss()
                 }
             } catch {
+                FameFitLogger.error("Failed to create group workout", error: error, category: FameFitLogger.social)
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                     showError = true

@@ -167,7 +167,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         // Find the workout record
         let predicate = NSPredicate(format: "id == %@", workoutId)
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkout",
+            ofType: "GroupWorkouts",
             predicate: predicate,
             sortDescriptors: nil,
             limit: 1
@@ -187,9 +187,9 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         try await cloudKitManager.delete(withRecordID: record.recordID)
         
         // Delete all participants
-        let participantPredicate = NSPredicate(format: "groupWorkoutId == %@", workoutId)
+        let participantPredicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
         let participantRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipant",
+            ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
             sortDescriptors: nil,
             limit: 100
@@ -200,9 +200,9 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         }
         
         // Delete all invites
-        let invitePredicate = NSPredicate(format: "groupWorkoutId == %@", workoutId)
+        let invitePredicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
         let inviteRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutInvite",
+            ofType: "GroupWorkoutInvites",
             predicate: invitePredicate,
             sortDescriptors: nil,
             limit: 100
@@ -227,7 +227,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         )
         
         let existingRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipant",
+            ofType: "GroupWorkoutParticipants",
             predicate: predicate,
             sortDescriptors: nil,
             limit: 1
@@ -266,7 +266,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         )
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipant",
+            ofType: "GroupWorkoutParticipants",
             predicate: predicate,
             sortDescriptors: nil,
             limit: 1
@@ -282,11 +282,11 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     }
     
     func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant] {
-        let predicate = NSPredicate(format: "groupWorkoutId == %@", workoutId)
+        let predicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
         let sortDescriptors = [NSSortDescriptor(key: "joinedAt", ascending: true)]
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipant",
+            ofType: "GroupWorkoutParticipants",
             predicate: predicate,
             sortDescriptors: sortDescriptors,
             limit: 100
@@ -303,7 +303,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         // First get all workouts I'm participating in
         let participantPredicate = NSPredicate(format: "userId == %@", currentUserId)
         let participantRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipant",
+            ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
             sortDescriptors: nil,
             limit: 100
@@ -323,7 +323,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
         
         let workoutRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkout",
+            ofType: "GroupWorkouts",
             predicate: workoutPredicate,
             sortDescriptors: sortDescriptors,
             limit: limit
@@ -339,7 +339,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkout",
+            ofType: "GroupWorkouts",
             predicate: predicate,
             sortDescriptors: sortDescriptors,
             limit: 100
@@ -361,7 +361,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkout",
+            ofType: "GroupWorkouts",
             predicate: predicate,
             sortDescriptors: sortDescriptors,
             limit: limit
@@ -396,7 +396,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkout",
+            ofType: "GroupWorkouts",
             predicate: predicate,
             sortDescriptors: sortDescriptors,
             limit: 50
@@ -427,7 +427,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         // Find the invite
         let predicate = NSPredicate(format: "id == %@", inviteId)
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutInvite",
+            ofType: "GroupWorkoutInvites",
             predicate: predicate,
             sortDescriptors: nil,
             limit: 1
@@ -459,7 +459,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         let sortDescriptors = [NSSortDescriptor(key: "invitedAt", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutInvite",
+            ofType: "GroupWorkoutInvites",
             predicate: predicate,
             sortDescriptors: sortDescriptors,
             limit: 50
@@ -544,7 +544,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         // Subscribe to group workout updates
         let predicate = NSPredicate(value: true)
         let subscription = CKQuerySubscription(
-            recordType: "GroupWorkout",
+            recordType: "GroupWorkouts",
             predicate: predicate,
             subscriptionID: "GroupWorkoutUpdates",
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]

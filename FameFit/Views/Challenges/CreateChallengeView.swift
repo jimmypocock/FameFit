@@ -236,6 +236,7 @@ struct CreateChallengeView: View {
 
         isCreating = true
         error = nil
+        FameFitLogger.info("Creating challenge: \(challengeName)", category: FameFitLogger.social)
 
         Task {
             do {
@@ -285,12 +286,15 @@ struct CreateChallengeView: View {
                     joinCode: isPublic ? nil : WorkoutChallenge.generateJoinCode()
                 )
 
+                FameFitLogger.debug("Saving challenge to CloudKit", category: FameFitLogger.cloudKit)
                 _ = try await container.workoutChallengesService.createChallenge(challenge)
+                FameFitLogger.info("Challenge created successfully", category: FameFitLogger.social)
 
                 await MainActor.run {
                     dismiss()
                 }
             } catch {
+                FameFitLogger.error("Failed to create challenge", error: error, category: FameFitLogger.social)
                 await MainActor.run {
                     self.error = error.localizedDescription
                     isCreating = false

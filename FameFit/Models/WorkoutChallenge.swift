@@ -192,7 +192,7 @@ struct WorkoutChallenge: Identifiable, Codable {
 
 extension WorkoutChallenge {
     init?(from record: CKRecord) {
-        guard let creatorId = record["creatorId"] as? String,
+        guard let creatorId = record["creatorID"] as? String,
               let participantsData = record["participants"] as? Data,
               let participants = try? JSONDecoder().decode([ChallengeParticipant].self, from: participantsData),
               let typeString = record["type"] as? String,
@@ -200,8 +200,8 @@ extension WorkoutChallenge {
               let targetValue = record["targetValue"] as? Double,
               let name = record["name"] as? String,
               let description = record["description"] as? String,
-              let startDate = record["startDate"] as? Date,
-              let endDate = record["endDate"] as? Date,
+              let startDate = record["startTimestamp"] as? Date,
+              let endDate = record["endTimestamp"] as? Date,
               let createdTimestamp = record["createdTimestamp"] as? Date,
               let statusString = record["status"] as? String,
               let status = ChallengeStatus(rawValue: statusString)
@@ -221,7 +221,7 @@ extension WorkoutChallenge {
         self.endDate = endDate
         self.createdTimestamp = createdTimestamp
         self.status = status
-        winnerId = record["winnerId"] as? String
+        winnerId = record["winnerID"] as? String
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
         winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
         isPublic = (record["isPublic"] as? Int64) == 1
@@ -239,7 +239,7 @@ extension WorkoutChallenge {
             record = CKRecord(recordType: "WorkoutChallenges", recordID: challengeRecordID)
         }
 
-        record["creatorId"] = creatorId
+        record["creatorID"] = creatorId
         record["participants"] = try? JSONEncoder().encode(participants)
         record["type"] = type.rawValue
         record["targetValue"] = targetValue
@@ -250,13 +250,13 @@ extension WorkoutChallenge {
 
         record["name"] = name
         record["description"] = description
-        record["startDate"] = startDate
-        record["endDate"] = endDate
+        record["startTimestamp"] = startDate
+        record["endTimestamp"] = endDate
         record["createdTimestamp"] = createdTimestamp
         record["status"] = status.rawValue
 
         if let winnerId {
-            record["winnerId"] = winnerId
+            record["winnerID"] = winnerId
         }
 
         record["xpStake"] = Int64(xpStake)

@@ -386,6 +386,7 @@ struct GameMechanicsView: View {
     @State private var displayedMessages: [ConversationMessage] = []
     @State private var conversationComplete = false
     @EnvironmentObject var authManager: AuthenticationManager
+    @Environment(\.dependencyContainer) var container
 
     let dialogues = [
         ("Chad", "💪", "Perfect. Now, here's the deal: Every workout you crush earns you Influencer XP.", Color.red),
@@ -477,6 +478,10 @@ struct GameMechanicsView: View {
                 Button(action: {
                     // Complete onboarding
                     authManager.completeOnboarding()
+                    
+                    // Now that onboarding is complete, start health services
+                    container.workoutSyncManager.startReliableSync()
+                    container.workoutAutoShareService.setupAutoSharing()
                 }, label: {
                     Text("Let's Get Started!")
                         .font(.headline)

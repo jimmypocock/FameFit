@@ -32,7 +32,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Register notification categories
         APNSManager.registerNotificationCategories()
 
-        // Background tasks are now registered in FameFitApp via BackgroundTaskManager
+        // Register background tasks BEFORE didFinishLaunching returns (iOS requirement)
+        registerBackgroundTasks()
         
         // Initialize WatchConnectivity
         _ = WatchConnectivityManager.shared
@@ -57,18 +58,34 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidEnterBackground(_: UIApplication) {
         FameFitLogger.info("App entered background", category: FameFitLogger.app)
 
-        // Schedule background sync for later
-        scheduleBackgroundSync()
+        // Background tasks are now handled by BackgroundTaskManager
+        BackgroundTaskManager.shared.scheduleBackgroundTasks()
         
         // Trigger background workout processing
         BackgroundWorkoutProcessor.shared.triggerBackgroundProcessing()
-        
-        // Schedule next background workout processing
-        BackgroundWorkoutProcessor.shared.scheduleNextBackgroundTask()
     }
 
     // MARK: - Background Tasks
-    // Background tasks are now handled by BackgroundTaskManager
+    
+    private func registerBackgroundTasks() {
+        // Register sync task
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: "com.jimmypocock.FameFit.sync",
+            using: nil
+        ) { task in
+            BackgroundTaskManager.shared.handleBackgroundSyncTask(task as! BGProcessingTask)
+        }
+        
+        // Register workout processing task
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: "com.jimmypocock.FameFit.workout-processing",
+            using: nil
+        ) { task in
+            BackgroundWorkoutProcessor.shared.handleBackgroundTask(task)
+        }
+        
+        FameFitLogger.info("Background tasks registered", category: FameFitLogger.app)
+    }
 
     // MARK: - Push Notifications
 

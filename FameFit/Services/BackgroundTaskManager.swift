@@ -15,29 +15,9 @@ final class BackgroundTaskManager: ObservableObject {
     
     func configure(with container: DependencyContainer) {
         self.dependencyContainer = container
-        registerBackgroundTasks()
+        // Registration happens in AppDelegate to meet iOS requirements
+        // Just schedule the tasks here
         scheduleBackgroundTasks()
-    }
-    
-    private func registerBackgroundTasks() {
-        // Register sync task
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: syncTaskIdentifier,
-            using: nil
-        ) { [weak self] task in
-            self?.handleBackgroundSync(task: task as! BGProcessingTask)
-        }
-        
-        // Register workout processing task
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: workoutTaskIdentifier,
-            using: nil
-        ) { [weak self] task in
-            guard let self = self else { return }
-            BackgroundWorkoutProcessor.shared.handleBackgroundTask(task)
-        }
-        
-        FameFitLogger.info("Background tasks registered", category: FameFitLogger.app)
     }
     
     func scheduleBackgroundTasks() {
@@ -65,7 +45,7 @@ final class BackgroundTaskManager: ObservableObject {
         }
     }
     
-    private func handleBackgroundSync(task: BGProcessingTask) {
+    func handleBackgroundSyncTask(_ task: BGProcessingTask) {
         // Schedule next sync
         scheduleBackgroundSync()
         
@@ -80,8 +60,11 @@ final class BackgroundTaskManager: ObservableObject {
                     throw NSError(domain: "BackgroundSync", code: 0, userInfo: [NSLocalizedDescriptionKey: "No dependency container"])
                 }
                 
-                let syncManager = container.syncManager
-                try await syncManager.performSync()
+                // Process any queued workouts
+                container.workoutSyncQueue.processQueue()
+                
+                // Wait a moment for processing to complete
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 
                 FameFitLogger.info("Background sync completed successfully", category: FameFitLogger.app)
                 task.setTaskCompleted(success: true)
