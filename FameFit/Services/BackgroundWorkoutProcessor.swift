@@ -25,14 +25,7 @@ final class BackgroundWorkoutProcessor {
     
     func configure(with container: DependencyContainer) {
         self.dependencyContainer = container
-        
-        // Register background task
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: Self.taskIdentifier,
-            using: nil
-        ) { task in
-            self.handleBackgroundTask(task)
-        }
+        // Background task registration is handled in AppDelegate
     }
     
     // MARK: - Background Task Handling

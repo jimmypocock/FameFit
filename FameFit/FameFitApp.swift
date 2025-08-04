@@ -65,6 +65,9 @@ struct FameFitApp: App {
                 .environmentObject(dependencyContainer.notificationStore)
                 .environment(\.dependencyContainer, dependencyContainer)
                 .onAppear {
+                    // Configure background tasks (replaces AppDelegate registration)
+                    BackgroundTaskManager.shared.configure(with: dependencyContainer)
+                    
                     // Share container with AppDelegate if it doesn't have one
                     if appDelegate.dependencyContainer == nil {
                         appDelegate.dependencyContainer = dependencyContainer
