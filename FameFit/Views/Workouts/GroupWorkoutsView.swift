@@ -71,8 +71,15 @@ struct GroupWorkoutsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Tab bar
-            tabBar
+            // Tab selector
+            Picker("Workout Type", selection: $selectedTab) {
+                ForEach(WorkoutTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
 
             // Content
             TabView(selection: $selectedTab) {
@@ -126,47 +133,6 @@ struct GroupWorkoutsView: View {
         } message: {
             Text("Enter the 6-character join code shared by the workout host")
         }
-    }
-
-    // MARK: - Tab Bar
-
-    private var tabBar: some View {
-        HStack {
-            ForEach(WorkoutTab.allCases, id: \.self) { tab in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = tab
-                    }
-                }) {
-                    VStack(spacing: 4) {
-                        HStack(spacing: 6) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 16))
-
-                            Text(tab.rawValue)
-                                .font(.system(size: 16, weight: .medium))
-                        }
-                        .foregroundColor(selectedTab == tab ? .blue : .secondary)
-
-                        // Active indicator
-                        Rectangle()
-                            .frame(height: 2)
-                            .foregroundColor(selectedTab == tab ? .blue : .clear)
-                            .animation(.easeInOut(duration: 0.2), value: selectedTab)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(Color(.separator)),
-            alignment: .bottom
-        )
     }
 
     // MARK: - Workout Lists
