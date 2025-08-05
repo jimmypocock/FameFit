@@ -60,8 +60,7 @@ final class DependencyContainer: ObservableObject {
     // MARK: - Challenge & Group Services
     
     let workoutChallengesService: WorkoutChallengesServicing
-    let groupWorkoutService: GroupWorkoutServicing
-    let groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing
+    let groupWorkoutService: GroupWorkoutServiceProtocol
     
     // MARK: - Sync & Real-time Services
     
@@ -97,7 +96,7 @@ final class DependencyContainer: ObservableObject {
         messageProvider: MessageProviding,
         workoutKudosService: WorkoutKudosServicing,
         apnsManager: APNSManaging,
-        groupWorkoutService: GroupWorkoutServicing,
+        groupWorkoutService: GroupWorkoutServiceProtocol,
         workoutChallengesService: WorkoutChallengesServicing,
         subscriptionManager: CloudKitSubscriptionManaging,
         realTimeSyncCoordinator: RealTimeSyncCoordinating,
@@ -105,8 +104,7 @@ final class DependencyContainer: ObservableObject {
         activitySharingSettingsService: ActivityFeedSettingsServicing,
         bulkPrivacyUpdateService: BulkPrivacyUpdateServicing,
         workoutAutoShareService: WorkoutAutoShareServicing,
-        xpTransactionService: XPTransactionService,
-        groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing
+        xpTransactionService: XPTransactionService
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
@@ -137,7 +135,6 @@ final class DependencyContainer: ObservableObject {
         self.bulkPrivacyUpdateService = bulkPrivacyUpdateService
         self.workoutAutoShareService = workoutAutoShareService
         self.xpTransactionService = xpTransactionService
-        self.groupWorkoutSchedulingService = groupWorkoutSchedulingService
     }
 }
 

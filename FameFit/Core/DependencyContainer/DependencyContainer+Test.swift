@@ -35,7 +35,7 @@ extension DependencyContainer {
         messageProvider: MessageProviding? = nil,
         workoutKudosService: WorkoutKudosServicing? = nil,
         apnsManager: APNSManaging? = nil,
-        groupWorkoutService: GroupWorkoutServicing? = nil,
+        groupWorkoutService: GroupWorkoutServiceProtocol? = nil,
         workoutChallengesService: WorkoutChallengesServicing? = nil,
         subscriptionManager: CloudKitSubscriptionManaging? = nil,
         realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
@@ -43,8 +43,7 @@ extension DependencyContainer {
         activitySharingSettingsService: ActivityFeedSettingsServicing? = nil,
         bulkPrivacyUpdateService: BulkPrivacyUpdateServicing? = nil,
         workoutAutoShareService: WorkoutAutoShareServicing? = nil,
-        xpTransactionService: XPTransactionService? = nil,
-        groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing? = nil
+        xpTransactionService: XPTransactionService? = nil
     ) {
         // Create default instances for optional dependencies
         let finalHealthKitService = healthKitService ?? RealHealthKitService()
@@ -135,12 +134,6 @@ extension DependencyContainer {
             rateLimiter: finalRateLimitingService
         )
         
-        let finalGroupWorkoutSchedulingService = groupWorkoutSchedulingService ?? GroupWorkoutSchedulingService(
-            cloudKitManager: cloudKitManager,
-            userProfileService: finalUserProfileService,
-            notificationManager: finalNotificationManager
-        )
-        
         // Create subscription and push notification services
         let finalSubscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
         
@@ -200,8 +193,7 @@ extension DependencyContainer {
             activitySharingSettingsService: finalActivitySharingSettingsService,
             bulkPrivacyUpdateService: finalBulkPrivacyUpdateService,
             workoutAutoShareService: finalWorkoutAutoShareService,
-            xpTransactionService: finalXpTransactionService,
-            groupWorkoutSchedulingService: finalGroupWorkoutSchedulingService
+            xpTransactionService: finalXpTransactionService
         )
     }
 }

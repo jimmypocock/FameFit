@@ -210,7 +210,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         try await cloudKitManager.delete(withRecordID: record.recordID)
         
         // Delete all participants
-        let participantPredicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
+        let participantPredicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutId: workoutId)
         let participantRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
@@ -223,7 +223,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         }
         
         // Delete all invites
-        let invitePredicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
+        let invitePredicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutId: workoutId)
         let inviteRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",
             predicate: invitePredicate,
@@ -250,10 +250,9 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         FameFitLogger.debug("🏃‍♂️ Current user profile: \(currentProfile.username)", category: FameFitLogger.social)
         
         // Check if already a participant
-        let predicate = NSPredicate(
-            format: "groupWorkoutId == %@ AND userId == %@",
-            workoutId,
-            currentUserId
+        let predicate = GroupWorkoutQueryBuilder.participantInWorkoutQuery(
+            workoutId: workoutId,
+            userId: currentUserId
         )
         
         FameFitLogger.debug("🏃‍♂️ Checking for existing participant record", category: FameFitLogger.social)
@@ -324,8 +323,8 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         FameFitLogger.info("👥 GroupWorkoutSchedulingService.getParticipants called", category: FameFitLogger.social)
         FameFitLogger.debug("  - workoutId: \(workoutId)", category: FameFitLogger.social)
         
-        let predicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
-        let sortDescriptors = [NSSortDescriptor(key: "joinedAt", ascending: true)]
+        let predicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutId: workoutId)
+        let sortDescriptors = [GroupWorkoutQueryBuilder.joinedAtAscending]
         
         FameFitLogger.debug("👥 Fetching participant records from CloudKit", category: FameFitLogger.social)
         let records = try await cloudKitManager.fetchRecords(
@@ -359,12 +358,12 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         var allWorkoutRecords: [CKRecord] = []
         var workoutIds = Set<String>() // For deduplication
         
-        // 1. Get all public upcoming workouts
-        let publicPredicate = NSPredicate(format: "isPublic == 1 AND scheduledStart > %@", now as NSDate)
+        // 1. Get all public upcoming workouts (including those that have started but not ended)
+        let publicPredicate = GroupWorkoutQueryBuilder.publicUpcomingWorkoutsQuery(now: now)
         let publicWorkouts = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkouts",
             predicate: publicPredicate,
-            sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+            sortDescriptors: [GroupWorkoutQueryBuilder.scheduledStartAscending],
             limit: limit
         )
         
@@ -378,12 +377,12 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             }
         }
         
-        // 2. Get private workouts where user is the host
-        let hostPredicate = NSPredicate(format: "hostID == %@ AND scheduledStart > %@ AND (isPublic == 0 OR isPublic == NULL)", currentUserId, now as NSDate)
+        // 2. Get private workouts where user is the host (including those that have started but not ended)
+        let hostPredicate = GroupWorkoutQueryBuilder.privateHostWorkoutsQuery(userId: currentUserId, now: now)
         let hostWorkouts = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkouts",
             predicate: hostPredicate,
-            sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+            sortDescriptors: [GroupWorkoutQueryBuilder.scheduledStartAscending],
             limit: limit
         )
         
@@ -399,7 +398,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         
         // 3. Get private workouts where user is a participant
         // First get all participant records for the user
-        let participantPredicate = NSPredicate(format: "userID == %@", currentUserId)
+        let participantPredicate = GroupWorkoutQueryBuilder.participantRecordsForUserQuery(userId: currentUserId)
         let participantRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
@@ -422,11 +421,11 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             FameFitLogger.debug("📅 User is participant in \(participantWorkoutIds.count) workouts", category: FameFitLogger.social)
             
             // Fetch upcoming private workouts and filter by participant IDs
-            let privatePredicate = NSPredicate(format: "scheduledStart > %@ AND (isPublic == 0 OR isPublic == NULL)", now as NSDate)
+            let privatePredicate = GroupWorkoutQueryBuilder.privateUpcomingWorkoutsQuery(now: now)
             let privateWorkouts = try await cloudKitManager.fetchRecords(
                 ofType: "GroupWorkouts",
                 predicate: privatePredicate,
-                sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+                sortDescriptors: [GroupWorkoutQueryBuilder.scheduledStartAscending],
                 limit: 500 // Fetch more to ensure we get all participant workouts
             )
             

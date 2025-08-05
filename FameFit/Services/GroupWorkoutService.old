@@ -519,7 +519,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     }
 
     func fetchActiveWorkouts() async throws -> [GroupWorkout] {
-        let predicate = NSPredicate(format: "status == %@", GroupWorkoutStatus.active.rawValue)
+        let predicate = GroupWorkoutQueryBuilder.activeWorkoutsQuery()
         return try await fetchWorkouts(with: predicate)
     }
 
@@ -583,7 +583,7 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     // MARK: - Participant Fetching
     
     private func fetchParticipants(for groupWorkoutId: String) async throws -> [GroupWorkoutParticipant] {
-        let predicate = NSPredicate(format: "groupWorkoutID == %@", groupWorkoutId)
+        let predicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutId: groupWorkoutId)
         let query = CKQuery(recordType: "GroupWorkoutParticipants", predicate: predicate)
         
         do {

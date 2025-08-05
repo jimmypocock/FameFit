@@ -220,7 +220,7 @@ struct MainView: View {
         .sheet(isPresented: $showingGroupWorkouts) {
             NavigationView {
                 GroupWorkoutListView()
-                    .environmentObject(container)
+                    .environment(\.dependencyContainer, container)
             }
         }
         .onAppear {

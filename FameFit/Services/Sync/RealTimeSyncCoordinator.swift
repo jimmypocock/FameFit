@@ -29,7 +29,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     private let workoutKudosService: WorkoutKudosServicing?
     private let activityCommentsService: ActivityFeedCommentsServicing?
     private let workoutChallengesService: WorkoutChallengesServicing?
-    private let groupWorkoutService: GroupWorkoutServicing?
+    private let groupWorkoutService: GroupWorkoutServiceProtocol?
     private let activityFeedService: ActivityFeedServicing?
 
     private var cancellables = Set<AnyCancellable>()
@@ -52,7 +52,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         workoutKudosService: WorkoutKudosServicing? = nil,
         activityCommentsService: ActivityFeedCommentsServicing? = nil,
         workoutChallengesService: WorkoutChallengesServicing? = nil,
-        groupWorkoutService: GroupWorkoutServicing? = nil,
+        groupWorkoutService: GroupWorkoutServiceProtocol? = nil,
         activityFeedService: ActivityFeedServicing? = nil
     ) {
         self.subscriptionManager = subscriptionManager

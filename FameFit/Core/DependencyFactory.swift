@@ -43,9 +43,8 @@ protocol DependencyFactory: AnyObject {
     func createActivitySharingSettingsService(cloudKitManager: CloudKitManager) -> ActivityFeedSettingsServicing
     func createWorkoutAutoShareService(activityFeedService: ActivityFeedServicing, settingsService: ActivityFeedSettingsServicing, notificationManager: NotificationManaging) -> WorkoutAutoShareServicing
     func createXPTransactionService(container: CKContainer) -> XPTransactionService
-    func createGroupWorkoutService(cloudKitManager: CloudKitManager, userProfileService: UserProfileServicing, notificationManager: NotificationManaging) -> GroupWorkoutServicing
-    func createGroupWorkoutSchedulingService(cloudKitManager: CloudKitManager, userProfileService: UserProfileServicing, notificationManager: NotificationManaging) -> GroupWorkoutSchedulingServicing
-    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionManaging, cloudKitManager: CloudKitManager, socialFollowingService: SocialFollowingServicing, userProfileService: UserProfileServicing, workoutKudosService: WorkoutKudosServicing, activityCommentsService: ActivityFeedCommentsServicing, workoutChallengesService: WorkoutChallengesServicing, groupWorkoutService: GroupWorkoutServicing, activityFeedService: ActivityFeedServicing) -> RealTimeSyncCoordinating
+    func createGroupWorkoutService(cloudKitManager: CloudKitManager, userProfileService: UserProfileServicing, notificationManager: NotificationManaging) -> GroupWorkoutServiceProtocol
+    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionManaging, cloudKitManager: CloudKitManager, socialFollowingService: SocialFollowingServicing, userProfileService: UserProfileServicing, workoutKudosService: WorkoutKudosServicing, activityCommentsService: ActivityFeedCommentsServicing, workoutChallengesService: WorkoutChallengesServicing, groupWorkoutService: GroupWorkoutServiceProtocol, activityFeedService: ActivityFeedServicing) -> RealTimeSyncCoordinating
     
     // Utilities
     func createMessageProvider() -> MessageProviding
@@ -261,25 +260,13 @@ class ProductionDependencyFactory: DependencyFactory {
         cloudKitManager: CloudKitManager,
         userProfileService: UserProfileServicing,
         notificationManager: NotificationManaging
-    ) -> GroupWorkoutServicing {
+    ) -> GroupWorkoutServiceProtocol {
         let rateLimiter = createRateLimitingService()
         return GroupWorkoutService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
             notificationManager: notificationManager,
             rateLimiter: rateLimiter
-        )
-    }
-    
-    func createGroupWorkoutSchedulingService(
-        cloudKitManager: CloudKitManager,
-        userProfileService: UserProfileServicing,
-        notificationManager: NotificationManaging
-    ) -> GroupWorkoutSchedulingServicing {
-        GroupWorkoutSchedulingService(
-            cloudKitManager: cloudKitManager,
-            userProfileService: userProfileService,
-            notificationManager: notificationManager
         )
     }
     
@@ -291,7 +278,7 @@ class ProductionDependencyFactory: DependencyFactory {
         workoutKudosService: WorkoutKudosServicing,
         activityCommentsService: ActivityFeedCommentsServicing,
         workoutChallengesService: WorkoutChallengesServicing,
-        groupWorkoutService: GroupWorkoutServicing,
+        groupWorkoutService: GroupWorkoutServiceProtocol,
         activityFeedService: ActivityFeedServicing
     ) -> RealTimeSyncCoordinating {
         RealTimeSyncCoordinator(

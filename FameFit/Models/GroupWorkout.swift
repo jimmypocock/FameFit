@@ -50,6 +50,24 @@ struct GroupWorkout: Identifiable, Equatable {
     var hasSpace: Bool {
         participantCount < maxParticipants
     }
+    
+    var isJoinable: Bool {
+        // Allow joining if workout starts within 5 minutes or has already started (but not ended)
+        let fiveMinutesFromNow = Date().addingTimeInterval(5 * 60)
+        let canJoinByTime = scheduledStart <= fiveMinutesFromNow && scheduledEnd > Date()
+        return canJoinByTime && status.canJoin && hasSpace
+    }
+    
+    var timeUntilJoinable: TimeInterval? {
+        // If already joinable, return nil
+        if isJoinable { return nil }
+        
+        // Calculate time until 5 minutes before start
+        let joinableTime = scheduledStart.addingTimeInterval(-5 * 60)
+        let timeUntil = joinableTime.timeIntervalSince(Date())
+        
+        return timeUntil > 0 ? timeUntil : nil
+    }
 
     // Note: Participants are stored as separate CKRecords for scalability
     
@@ -505,20 +523,3 @@ extension GroupWorkoutInvite {
     }
 }
 
-// MARK: - Group Workout Update
-
-struct GroupWorkoutUpdate {
-    let workoutId: String
-    let participantId: String
-    let updateType: UpdateType
-    let data: GroupWorkoutData?
-    let timestamp: Date
-
-    enum UpdateType: String {
-        case joined
-        case started
-        case progress
-        case completed
-        case dropped
-    }
-}

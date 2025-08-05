@@ -9,7 +9,7 @@ import SwiftUI
 import HealthKit
 
 struct GroupWorkoutListView: View {
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @StateObject private var viewModel = GroupWorkoutListViewModel()
     
     @State private var selectedFilter: WorkoutFilter = .upcoming
@@ -91,7 +91,7 @@ struct GroupWorkoutListView: View {
         }
         .sheet(isPresented: $showCreateWorkout) {
             CreateGroupWorkoutView()
-                .environmentObject(container)
+                .environment(\.dependencyContainer, container)
                 .onDisappear {
                     // Switch to My Workouts tab after creating
                     selectedFilter = .myWorkouts
@@ -102,7 +102,7 @@ struct GroupWorkoutListView: View {
         }
         .sheet(item: $selectedWorkout) { workout in
             GroupWorkoutDetailView(workout: workout)
-                .environmentObject(container)
+                .environment(\.dependencyContainer, container)
         }
         .onAppear {
             viewModel.configure(with: container)
@@ -214,7 +214,7 @@ struct GroupWorkoutListView: View {
 
 struct GroupWorkoutListCard: View {
     let workout: GroupWorkout
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @State private var participantCount: Int = 0
     
     var body: some View {
@@ -322,7 +322,7 @@ struct GroupWorkoutListCard: View {
     private func loadParticipantCount() {
         Task {
             do {
-                let participants = try await container.groupWorkoutSchedulingService.getParticipants(workout.id)
+                let participants = try await container.groupWorkoutService.getParticipants(workout.id)
                 await MainActor.run {
                     participantCount = participants.filter { $0.status == .joined }.count
                 }
@@ -341,10 +341,10 @@ class GroupWorkoutListViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: Error?
     
-    private var service: GroupWorkoutSchedulingServicing?
+    private var service: GroupWorkoutServiceProtocol?
     
     func configure(with container: DependencyContainer) {
-        self.service = container.groupWorkoutSchedulingService
+        self.service = container.groupWorkoutService
     }
     
     func loadUpcomingWorkouts() async {

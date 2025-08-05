@@ -100,12 +100,6 @@ extension DependencyContainer {
             notificationManager: notificationManager
         )
         
-        let groupWorkoutSchedulingService = factory.createGroupWorkoutSchedulingService(
-            cloudKitManager: cloudKitManager,
-            userProfileService: userProfileService,
-            notificationManager: notificationManager
-        )
-        
         // Phase 8: Subscription & Real-time Services
         let subscriptionManager = factory.createSubscriptionManager(
             cloudKitManager: cloudKitManager
@@ -170,8 +164,7 @@ extension DependencyContainer {
             activitySharingSettingsService: activitySharingSettingsService,
             bulkPrivacyUpdateService: bulkPrivacyUpdateService,
             workoutAutoShareService: workoutAutoShareService,
-            xpTransactionService: xpTransactionService,
-            groupWorkoutSchedulingService: groupWorkoutSchedulingService
+            xpTransactionService: xpTransactionService
         )
         
         // Phase 11: Wire up circular dependencies (after all services are created)

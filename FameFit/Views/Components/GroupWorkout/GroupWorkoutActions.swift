@@ -14,6 +14,8 @@ struct GroupWorkoutActions: View {
     let onLeave: () -> Void
     let onStart: () -> Void
 
+    @State private var showNotStartedAlert = false
+
     var body: some View {
         HStack(spacing: 12) {
             if isParticipant {
@@ -54,7 +56,13 @@ struct GroupWorkoutActions: View {
                 }
             } else if groupWorkout.status.canJoin, groupWorkout.hasSpace {
                 // Join button
-                Button(action: onJoin) {
+                Button(action: {
+                    if groupWorkout.isJoinable {
+                        onJoin()
+                    } else {
+                        showNotStartedAlert = true
+                    }
+                }) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
                             .font(.system(size: 14))
@@ -66,9 +74,10 @@ struct GroupWorkoutActions: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.blue)
+                            .fill(groupWorkout.isJoinable ? Color.blue : Color.gray)
                     )
                 }
+                .disabled(!groupWorkout.isJoinable)
             }
 
             Spacer()
@@ -88,6 +97,11 @@ struct GroupWorkoutActions: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .padding(.top, 12)
+        .alert("Workout Not Started", isPresented: $showNotStartedAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The group workout '\(groupWorkout.name)' has not yet started. You can join 5 minutes before the scheduled start time.")
+        }
     }
 
     // Note: This should be determined by querying participant records

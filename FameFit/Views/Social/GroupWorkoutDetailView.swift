@@ -10,7 +10,7 @@ import HealthKit
 
 struct GroupWorkoutDetailView: View {
     let workout: GroupWorkout
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
     @State private var participants: [GroupWorkoutParticipant] = []
@@ -76,11 +76,11 @@ struct GroupWorkoutDetailView: View {
             }
             .sheet(isPresented: $showInviteSheet) {
                 InviteFriendsView(workout: workout)
-                    .environmentObject(container)
+                    .environment(\.dependencyContainer, container)
             }
             .sheet(isPresented: $showEditSheet) {
                 EditGroupWorkoutView(workout: workout)
-                    .environmentObject(container)
+                    .environment(\.dependencyContainer, container)
             }
             .alert("Delete Workout", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -377,7 +377,7 @@ struct GroupWorkoutDetailView: View {
         
         do {
             // Load participants
-            let loadedParticipants = try await container.groupWorkoutSchedulingService.getParticipants(workout.id)
+            let loadedParticipants = try await container.groupWorkoutService.getParticipants(workout.id)
             
             // Find my participation
             let currentUserId = try await container.cloudKitManager.getCurrentUserID()
@@ -413,7 +413,7 @@ struct GroupWorkoutDetailView: View {
     private func joinWorkout(_ status: ParticipantStatus) {
         Task {
             do {
-                try await container.groupWorkoutSchedulingService.joinGroupWorkout(workout.id, status: status)
+                try await container.groupWorkoutService.updateParticipantStatus(workout.id, status: status)
                 await loadData()
             } catch {
                 print("Failed to join workout: \(error)")
@@ -424,7 +424,7 @@ struct GroupWorkoutDetailView: View {
     private func updateStatus(_ status: ParticipantStatus) {
         Task {
             do {
-                try await container.groupWorkoutSchedulingService.updateParticipantStatus(workout.id, status: status)
+                try await container.groupWorkoutService.updateParticipantStatus(workout.id, status: status)
                 await loadData()
             } catch {
                 print("Failed to update status: \(error)")
@@ -435,7 +435,7 @@ struct GroupWorkoutDetailView: View {
     private func deleteWorkout() {
         Task {
             do {
-                try await container.groupWorkoutSchedulingService.deleteGroupWorkout(workout.id)
+                try await container.groupWorkoutService.deleteGroupWorkout(workout.id)
                 await MainActor.run {
                     dismiss()
                 }
@@ -460,9 +460,9 @@ struct GroupWorkoutDetailView: View {
         Task {
             do {
                 if isCalendarAdded {
-                    try await container.groupWorkoutSchedulingService.removeFromCalendar(workout)
+                    try await container.groupWorkoutService.removeFromCalendar(workout)
                 } else {
-                    try await container.groupWorkoutSchedulingService.addToCalendar(workout)
+                    try await container.groupWorkoutService.addToCalendar(workout)
                 }
                 
                 await MainActor.run {
@@ -542,28 +542,236 @@ struct ParticipantRow: View {
 
 struct InviteFriendsView: View {
     let workout: GroupWorkout
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var searchText = ""
+    @State private var selectedUsers: Set<String> = []
+    @State private var isLoading = false
+    @State private var followers: [UserProfile] = []
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
-            Text("Invite Friends - Coming Soon")
-                .navigationTitle("Invite Friends")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") {
-                            dismiss()
-                        }
+            VStack(spacing: 0) {
+                if workout.joinCode != nil {
+                    joinCodeSection
+                }
+                
+                searchBar
+                
+                // Followers list
+                followersContent
+            }
+            .navigationTitle("Invite Friends")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
                     }
                 }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Send") {
+                        sendInvites()
+                    }
+                    .disabled(selectedUsers.isEmpty)
+                    .fontWeight(.semibold)
+                }
+            }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
+            .task {
+                await loadFollowers()
+            }
+        }
+    }
+    
+    private var filteredFollowers: [UserProfile] {
+        if searchText.isEmpty {
+            return followers
+        }
+        return followers.filter { user in
+            user.username.localizedCaseInsensitiveContains(searchText) ||
+            user.bio.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+    
+    private func loadFollowers() async {
+        isLoading = true
+        do {
+            // Get current user's followers
+            if let userId = container.cloudKitManager.currentUserID {
+                followers = try await container.socialFollowingService.getFollowers(for: userId, limit: 50)
+            }
+        } catch {
+            errorMessage = "Failed to load followers"
+            showingError = true
+        }
+        isLoading = false
+    }
+    
+    private func sendInvites() {
+        // TODO: Implement invite sending via notifications
+        // For now, just dismiss
+        dismiss()
+    }
+    
+    // MARK: - View Components
+    
+    private var joinCodeSection: some View {
+        VStack(spacing: 12) {
+            Text("Share Join Code")
+                .font(.headline)
+            
+            Text(workout.joinCode ?? "")
+                .font(.system(.largeTitle, design: .monospaced))
+                .fontWeight(.bold)
+                .foregroundColor(.blue)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.1))
+                )
+            
+            Button(action: {
+                UIPasteboard.general.string = workout.joinCode
+                // TODO: Show toast/confirmation
+            }) {
+                Label("Copy Code", systemImage: "doc.on.doc")
+                    .font(.system(size: 16, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            
+            Divider()
+                .padding(.vertical)
+        }
+        .padding()
+    }
+    
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            TextField("Search followers", text: $searchText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+        }
+        .padding()
+    }
+    
+    @ViewBuilder
+    private var followersContent: some View {
+        if isLoading {
+            ProgressView("Loading followers...")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if filteredFollowers.isEmpty {
+            emptyFollowersView
+        } else {
+            followersList
+        }
+    }
+    
+    private var emptyFollowersView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "person.2.slash")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            Text("No followers found")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var followersList: some View {
+        List {
+            ForEach(filteredFollowers) { user in
+                InviteFollowerRow(
+                    user: user,
+                    isSelected: selectedUsers.contains(user.id),
+                    onTap: {
+                        if selectedUsers.contains(user.id) {
+                            selectedUsers.remove(user.id)
+                        } else {
+                            selectedUsers.insert(user.id)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Invite Follower Row Component
+
+private struct InviteFollowerRow: View {
+    let user: UserProfile
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        HStack {
+            // Profile image
+            profileImage
+            
+            // User info
+            userInfo
+            
+            Spacer()
+            
+            // Selection checkmark
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 24))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+    }
+    
+    @ViewBuilder
+    private var profileImage: some View {
+        if let imageURL = user.profileImageURL {
+            AsyncImage(url: URL(string: imageURL)) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                Image(systemName: "person.circle.fill")
+                    .foregroundColor(.gray)
+            }
+            .frame(width: 40, height: 40)
+            .clipShape(Circle())
+        } else {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
+        }
+    }
+    
+    private var userInfo: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(user.username)
+                .font(.system(size: 16, weight: .medium))
+            if !user.bio.isEmpty {
+                Text(user.bio)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
         }
     }
 }
 
 struct EditGroupWorkoutView: View {
     let workout: GroupWorkout
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {

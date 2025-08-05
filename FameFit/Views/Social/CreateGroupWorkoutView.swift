@@ -10,12 +10,12 @@ import EventKit
 import HealthKit
 
 struct CreateGroupWorkoutView: View {
-    @EnvironmentObject private var container: DependencyContainer
+    @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
     @State private var title = ""
     @State private var selectedWorkoutType: Int = 37 // Running
-    @State private var scheduledDate = Date().addingTimeInterval(86400) // Tomorrow
+    @State private var scheduledDate = Date().addingTimeInterval(300) // 5 minutes from now
     @State private var location = ""
     @State private var notes = ""
     @State private var maxParticipants = 10
@@ -102,14 +102,33 @@ struct CreateGroupWorkoutView: View {
                 
                 // Settings
                 Section {
-                    Stepper("Max Participants: \(maxParticipants)", value: $maxParticipants, in: 2...50)
-                        .onChange(of: maxParticipants) { oldValue, newValue in
-                            FameFitLogger.debug("📝 Max participants changed to: \(newValue)", category: FameFitLogger.ui)
-                        }
-                    
                     Toggle("Make Public", isOn: $isPublic)
                     
                     if isPublic {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Max Participants")
+                                Spacer()
+                                TextField("", value: $maxParticipants, format: .number)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 80)
+                                    .multilineTextAlignment(.trailing)
+                                    .keyboardType(.numberPad)
+                                    .onChange(of: maxParticipants) { oldValue, newValue in
+                                        // Enforce limits
+                                        if newValue < 2 {
+                                            maxParticipants = 2
+                                        } else if newValue > 100 {
+                                            maxParticipants = 100
+                                        }
+                                        FameFitLogger.debug("📝 Max participants changed to: \(maxParticipants)", category: FameFitLogger.ui)
+                                    }
+                            }
+                            Text("Max participants must be between 2-100.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Tags")
                                 .font(.caption)
@@ -266,7 +285,7 @@ struct CreateGroupWorkoutView: View {
                     notes: notes.isEmpty ? nil : notes
                 )
                 
-                let createdWorkout = try await container.groupWorkoutSchedulingService.createGroupWorkout(workout)
+                let createdWorkout = try await container.groupWorkoutService.createGroupWorkout(workout)
                 
                 FameFitLogger.info("✅ Group workout created successfully: \(createdWorkout.id)", category: FameFitLogger.social)
                 
@@ -274,7 +293,7 @@ struct CreateGroupWorkoutView: View {
                 var calendarMessage = ""
                 if addToCalendar {
                     do {
-                        try await container.groupWorkoutSchedulingService.addToCalendar(createdWorkout)
+                        try await container.groupWorkoutService.addToCalendar(createdWorkout)
                         FameFitLogger.info("✅ Added workout to calendar", category: FameFitLogger.social)
                     } catch {
                         // Calendar addition failed, but workout was created

@@ -111,13 +111,12 @@ struct GroupWorkoutsView: View {
             FameFitLogger.info("🏋️ GroupWorkoutsView appeared", category: FameFitLogger.ui)
             viewModel.setup(
                 groupWorkoutService: container.groupWorkoutService,
-                groupWorkoutSchedulingService: container.groupWorkoutSchedulingService,
                 currentUserId: container.cloudKitManager.currentUserID
             )
         }
         .sheet(isPresented: $showingCreateWorkout) {
             CreateGroupWorkoutView()
-                .environmentObject(container)
+                .environment(\.dependencyContainer, container)
         }
         .alert("Join Workout", isPresented: $showingJoinCodeInput) {
             TextField("Enter join code", text: $joinCode)
@@ -273,17 +272,15 @@ class GroupWorkoutsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private var groupWorkoutService: GroupWorkoutServicing?
-    private var groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing?
+    private var groupWorkoutService: GroupWorkoutServiceProtocol?
     var currentUserId: String?
 
     private var hasMoreUpcoming = true
     private var hasMoreActive = true
     private var hasMoreMyWorkouts = true
 
-    func setup(groupWorkoutService: GroupWorkoutServicing, groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing?, currentUserId: String?) {
+    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserId: String?) {
         self.groupWorkoutService = groupWorkoutService
-        self.groupWorkoutSchedulingService = groupWorkoutSchedulingService
         self.currentUserId = currentUserId
     }
 
@@ -321,13 +318,9 @@ class GroupWorkoutsViewModel: ObservableObject {
                 hasMoreActive = newWorkouts.count == 20
                 
             case .myWorkouts:
-                if let schedulingService = groupWorkoutSchedulingService {
-                    newWorkouts = try await schedulingService.fetchMyWorkouts()
-                    myWorkouts = newWorkouts
-                    hasMoreMyWorkouts = false // No pagination for my workouts yet
-                } else {
-                    newWorkouts = []
-                }
+                newWorkouts = try await service.fetchMyWorkouts()
+                myWorkouts = newWorkouts
+                hasMoreMyWorkouts = false // No pagination for my workouts yet
             }
         } catch {
             FameFitLogger.error("🏋️ Failed to load workouts for tab \(tab.rawValue)", error: error, category: FameFitLogger.ui)
@@ -381,15 +374,19 @@ class GroupWorkoutsViewModel: ObservableObject {
     }
 
     func joinWorkout(_ workoutId: String) async {
-        guard let service = groupWorkoutService else { return }
+        guard let service = groupWorkoutService else { 
+            errorMessage = "Service not available"
+            return 
+        }
 
         do {
-            _ = try await service.joinGroupWorkout(workoutId: workoutId)
+            try await service.joinGroupWorkout(workoutId)
 
             // Refresh relevant lists
             await refreshWorkouts()
         } catch {
             errorMessage = error.localizedDescription
+            FameFitLogger.error("🏋️ Failed to join workout", error: error, category: FameFitLogger.ui)
         }
     }
 
@@ -397,7 +394,7 @@ class GroupWorkoutsViewModel: ObservableObject {
         guard let service = groupWorkoutService else { return }
 
         do {
-            try await service.leaveGroupWorkout(workoutId: workoutId)
+            try await service.leaveGroupWorkout(workoutId)
 
             // Remove from local lists
             upcomingWorkouts.removeAll { $0.id == workoutId }
@@ -409,10 +406,13 @@ class GroupWorkoutsViewModel: ObservableObject {
     }
 
     func startWorkout(_ workoutId: String) async {
-        guard let service = groupWorkoutService else { return }
+        guard let service = groupWorkoutService else { 
+            errorMessage = "Service not available"
+            return 
+        }
 
         do {
-            _ = try await service.startGroupWorkout(workoutId: workoutId)
+            _ = try await service.startGroupWorkout(workoutId)
 
             // Move workout to active list
             if let workout = upcomingWorkouts.first(where: { $0.id == workoutId }) {
@@ -461,4 +461,5 @@ class GroupWorkoutsViewModel: ObservableObject {
 
 #Preview {
     GroupWorkoutsView()
+        .environment(\.dependencyContainer, DependencyContainer())
 }
