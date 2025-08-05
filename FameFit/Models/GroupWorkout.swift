@@ -100,23 +100,52 @@ struct GroupWorkout: Identifiable, Equatable {
     // MARK: - CloudKit Integration
 
     init?(from record: CKRecord) {
-        guard record.recordType == "GroupWorkouts",
-              let name = record["name"] as? String,
-              let description = record["description"] as? String,
-              let workoutTypeRaw = record["workoutType"] as? Int,
-              let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)),
-              let hostId = record["hostID"] as? String,
-              let maxParticipants = record["maxParticipants"] as? Int64,
-              let scheduledStart = record["scheduledStart"] as? Date,
-              let scheduledEnd = record["scheduledEnd"] as? Date,
-              let statusRaw = record["status"] as? String,
-              let status = GroupWorkoutStatus(rawValue: statusRaw),
-              let createdTimestamp = record["createdTimestamp"] as? Date,
-              let modifiedTimestamp = record["modifiedTimestamp"] as? Date,
-              let isPublic = record["isPublic"] as? Int64
-        else {
+        guard record.recordType == "GroupWorkouts" else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: wrong record type \(record.recordType)", category: FameFitLogger.social)
             return nil
         }
+        
+        guard let name = record["name"] as? String else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid name", category: FameFitLogger.social)
+            return nil
+        }
+        
+        let description = record["description"] as? String ?? "Group workout session"
+        
+        guard let workoutTypeRaw = record["workoutType"] as? Int64 else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid workoutType. Value: \(record["workoutType"] ?? "nil")", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)) else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: invalid workoutType value \(workoutTypeRaw)", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let hostId = record["hostID"] as? String else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid hostID", category: FameFitLogger.social)
+            return nil
+        }
+        
+        let maxParticipants = record["maxParticipants"] as? Int64 ?? 10 // Default to 10 participants
+        
+        guard let scheduledStart = record["scheduledStart"] as? Date else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid scheduledStart", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let scheduledEnd = record["scheduledEnd"] as? Date else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid scheduledEnd", category: FameFitLogger.social)
+            return nil
+        }
+        
+        let statusRaw = record["status"] as? String ?? "scheduled"
+        let status = GroupWorkoutStatus(rawValue: statusRaw) ?? .scheduled
+        
+        let createdTimestamp = record["createdTimestamp"] as? Date ?? record.creationDate ?? Date()
+        let modifiedTimestamp = record["modifiedTimestamp"] as? Date ?? record.modificationDate ?? Date()
+        
+        let isPublic = record["isPublic"] as? Int64 ?? 0 // Default to private
 
         // Participants are now stored as separate records
         let participantCount = record["participantCount"] as? Int64 ?? 0

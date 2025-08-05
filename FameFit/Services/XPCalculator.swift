@@ -276,6 +276,11 @@ class XPCalculator {
     static func calculateProgress(currentXP: Int, toNextLevel: Int) -> Double {
         let levelInfo = getLevel(for: currentXP)
         
+        FameFitLogger.debug("📊 XPCalculator.calculateProgress called", category: FameFitLogger.general)
+        FameFitLogger.debug("  - currentXP: \(currentXP)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - toNextLevel: \(toNextLevel)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - levelInfo.level: \(levelInfo.level)", category: FameFitLogger.general)
+        
         // Find current level threshold
         var currentLevelThreshold = 0
         if levelInfo.level > 1 {
@@ -285,10 +290,30 @@ class XPCalculator {
             }
         }
         
+        FameFitLogger.debug("  - currentLevelThreshold: \(currentLevelThreshold)", category: FameFitLogger.general)
+        
         let xpInCurrentLevel = currentXP - currentLevelThreshold
         let xpNeededForLevel = toNextLevel - currentLevelThreshold
         
-        return Double(xpInCurrentLevel) / Double(xpNeededForLevel)
+        FameFitLogger.debug("  - xpInCurrentLevel: \(xpInCurrentLevel)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - xpNeededForLevel: \(xpNeededForLevel)", category: FameFitLogger.general)
+        
+        // Prevent division by zero
+        guard xpNeededForLevel > 0 else {
+            FameFitLogger.warning("📊 XPCalculator.calculateProgress: xpNeededForLevel is \(xpNeededForLevel), returning 0.0 to prevent NaN", category: FameFitLogger.general)
+            return 0.0
+        }
+        
+        let progress = Double(xpInCurrentLevel) / Double(xpNeededForLevel)
+        FameFitLogger.debug("  - calculated progress: \(progress)", category: FameFitLogger.general)
+        
+        // Clamp progress between 0 and 1
+        let clampedProgress = max(0.0, min(1.0, progress))
+        if clampedProgress != progress {
+            FameFitLogger.warning("📊 XPCalculator.calculateProgress: clamped progress from \(progress) to \(clampedProgress)", category: FameFitLogger.general)
+        }
+        
+        return clampedProgress
     }
     
     // MARK: - Special Bonuses (preserved from original)

@@ -20,11 +20,51 @@ struct GroupWorkoutsView: View {
     enum WorkoutTab: String, CaseIterable {
         case upcoming = "Upcoming"
         case active = "Live"
+        case myWorkouts = "My Workouts"
 
         var icon: String {
             switch self {
             case .upcoming: "calendar"
             case .active: "dot.radiowaves.left.and.right"
+            case .myWorkouts: "person.fill"
+            }
+        }
+        
+        var emptyStateIcon: String {
+            switch self {
+            case .upcoming: "calendar.badge.plus"
+            case .active: "dot.radiowaves.left.and.right"
+            case .myWorkouts: "person.circle"
+            }
+        }
+        
+        var emptyStateTitle: String {
+            switch self {
+            case .upcoming: "No Upcoming Workouts"
+            case .active: "No Live Workouts"
+            case .myWorkouts: "No Workouts Created"
+            }
+        }
+        
+        var emptyStateMessage: String {
+            switch self {
+            case .upcoming: "Join existing workouts or create your own to get started with group fitness!"
+            case .active: "No workouts are currently in progress. Check back later or start one yourself!"
+            case .myWorkouts: "Create a group workout to invite friends and train together!"
+            }
+        }
+        
+        var showsCreateButton: Bool {
+            switch self {
+            case .upcoming, .myWorkouts: true
+            case .active: false
+            }
+        }
+        
+        var showsJoinButton: Bool {
+            switch self {
+            case .upcoming: true
+            case .active, .myWorkouts: false
             }
         }
     }
@@ -61,8 +101,10 @@ struct GroupWorkoutsView: View {
             await viewModel.refreshWorkouts()
         }
         .onAppear {
+            FameFitLogger.info("🏋️ GroupWorkoutsView appeared", category: FameFitLogger.ui)
             viewModel.setup(
                 groupWorkoutService: container.groupWorkoutService,
+                groupWorkoutSchedulingService: container.groupWorkoutSchedulingService,
                 currentUserId: container.cloudKitManager.currentUserID
             )
         }
@@ -203,24 +245,39 @@ struct GroupWorkoutsView: View {
 
     private func emptyStateView(for tab: WorkoutTab) -> some View {
         VStack(spacing: 20) {
-            Image(systemName: emptyStateIcon(for: tab))
+            Image(systemName: tab.emptyStateIcon)
                 .font(.system(size: 64))
                 .foregroundColor(.gray.opacity(0.5))
 
             VStack(spacing: 8) {
-                Text(emptyStateTitle(for: tab))
+                Text(tab.emptyStateTitle)
                     .font(.title3)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
 
-                Text(emptyStateMessage(for: tab))
+                Text(tab.emptyStateMessage)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
 
-            emptyStateAction(for: tab)
+            // Action buttons
+            VStack(spacing: 12) {
+                if tab.showsCreateButton {
+                    Button("Create Workout") {
+                        showingCreateWorkout = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                
+                if tab.showsJoinButton {
+                    Button("Join with Code") {
+                        showingJoinCodeInput = true
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
@@ -234,48 +291,8 @@ struct GroupWorkoutsView: View {
             viewModel.upcomingWorkouts
         case .active:
             viewModel.activeWorkouts
-        }
-    }
-
-    private func emptyStateIcon(for tab: WorkoutTab) -> String {
-        switch tab {
-        case .upcoming: "calendar.badge.plus"
-        case .active: "dot.radiowaves.left.and.right"
-        }
-    }
-
-    private func emptyStateTitle(for tab: WorkoutTab) -> String {
-        switch tab {
-        case .upcoming: "No Upcoming Workouts"
-        case .active: "No Live Workouts"
-        }
-    }
-
-    private func emptyStateMessage(for tab: WorkoutTab) -> String {
-        switch tab {
-        case .upcoming: "Join existing workouts or create your own to get started with group fitness!"
-        case .active: "No workouts are currently in progress. Check back later or start one yourself!"
-        }
-    }
-
-    @ViewBuilder
-    private func emptyStateAction(for tab: WorkoutTab) -> some View {
-        switch tab {
-        case .upcoming:
-            VStack(spacing: 12) {
-                Button("Create Workout") {
-                    showingCreateWorkout = true
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("Join with Code") {
-                    showingJoinCodeInput = true
-                }
-                .buttonStyle(.bordered)
-            }
-
-        case .active:
-            EmptyView()
+        case .myWorkouts:
+            viewModel.myWorkouts
         }
     }
 }
@@ -286,26 +303,38 @@ struct GroupWorkoutsView: View {
 class GroupWorkoutsViewModel: ObservableObject {
     @Published var upcomingWorkouts: [GroupWorkout] = []
     @Published var activeWorkouts: [GroupWorkout] = []
+    @Published var myWorkouts: [GroupWorkout] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
     private var groupWorkoutService: GroupWorkoutServicing?
+    private var groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing?
     var currentUserId: String?
 
     private var hasMoreUpcoming = true
     private var hasMoreActive = true
+    private var hasMoreMyWorkouts = true
 
-    func setup(groupWorkoutService: GroupWorkoutServicing, currentUserId: String?) {
+    func setup(groupWorkoutService: GroupWorkoutServicing, groupWorkoutSchedulingService: GroupWorkoutSchedulingServicing?, currentUserId: String?) {
         self.groupWorkoutService = groupWorkoutService
+        self.groupWorkoutSchedulingService = groupWorkoutSchedulingService
         self.currentUserId = currentUserId
     }
 
     func loadWorkouts(for tab: GroupWorkoutsView.WorkoutTab) async {
-        guard let service = groupWorkoutService else { return }
+        FameFitLogger.info("🏋️ GroupWorkoutsViewModel loading workouts for tab: \(tab.rawValue)", category: FameFitLogger.ui)
+        
+        guard let service = groupWorkoutService else { 
+            FameFitLogger.warning("🏋️ No groupWorkoutService configured", category: FameFitLogger.ui)
+            return 
+        }
 
         // Don't reload if already loaded
         let workouts = getWorkouts(for: tab)
-        guard workouts.isEmpty else { return }
+        guard workouts.isEmpty else { 
+            FameFitLogger.debug("🏋️ Workouts already loaded for tab: \(tab.rawValue), count: \(workouts.count)", category: FameFitLogger.ui)
+            return 
+        }
 
         isLoading = true
 
@@ -314,7 +343,9 @@ class GroupWorkoutsViewModel: ObservableObject {
 
             switch tab {
             case .upcoming:
+                FameFitLogger.debug("🏋️ Fetching upcoming workouts via service", category: FameFitLogger.ui)
                 newWorkouts = try await service.fetchUpcomingWorkouts(limit: 20)
+                FameFitLogger.debug("🏋️ Received \(newWorkouts.count) upcoming workouts", category: FameFitLogger.ui)
                 upcomingWorkouts = newWorkouts
                 hasMoreUpcoming = newWorkouts.count == 20
 
@@ -322,8 +353,18 @@ class GroupWorkoutsViewModel: ObservableObject {
                 newWorkouts = try await service.fetchActiveWorkouts()
                 activeWorkouts = newWorkouts
                 hasMoreActive = newWorkouts.count == 20
+                
+            case .myWorkouts:
+                if let schedulingService = groupWorkoutSchedulingService {
+                    newWorkouts = try await schedulingService.fetchMyWorkouts()
+                    myWorkouts = newWorkouts
+                    hasMoreMyWorkouts = false // No pagination for my workouts yet
+                } else {
+                    newWorkouts = []
+                }
             }
         } catch {
+            FameFitLogger.error("🏋️ Failed to load workouts for tab \(tab.rawValue)", error: error, category: FameFitLogger.ui)
             errorMessage = error.localizedDescription
         }
 
@@ -346,6 +387,11 @@ class GroupWorkoutsViewModel: ObservableObject {
                 newWorkouts = try await service.fetchActiveWorkouts()
                 activeWorkouts.append(contentsOf: newWorkouts)
                 hasMoreActive = newWorkouts.count == 20
+                
+            case .myWorkouts:
+                // My workouts doesn't have pagination yet
+                newWorkouts = []
+                hasMoreMyWorkouts = false
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -358,11 +404,13 @@ class GroupWorkoutsViewModel: ObservableObject {
         // Clear existing data
         upcomingWorkouts = []
         activeWorkouts = []
+        myWorkouts = []
 
         // Reload all tabs
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadWorkouts(for: .upcoming) }
             group.addTask { await self.loadWorkouts(for: .active) }
+            group.addTask { await self.loadWorkouts(for: .myWorkouts) }
         }
     }
 
@@ -388,6 +436,7 @@ class GroupWorkoutsViewModel: ObservableObject {
             // Remove from local lists
             upcomingWorkouts.removeAll { $0.id == workoutId }
             activeWorkouts.removeAll { $0.id == workoutId }
+            myWorkouts.removeAll { $0.id == workoutId }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -429,6 +478,7 @@ class GroupWorkoutsViewModel: ObservableObject {
         switch tab {
         case .upcoming: hasMoreUpcoming
         case .active: hasMoreActive
+        case .myWorkouts: hasMoreMyWorkouts
         }
     }
 
@@ -436,6 +486,7 @@ class GroupWorkoutsViewModel: ObservableObject {
         switch tab {
         case .upcoming: upcomingWorkouts
         case .active: activeWorkouts
+        case .myWorkouts: myWorkouts
         }
     }
 }

@@ -183,7 +183,14 @@ struct ChallengeDetailView: View {
                                 endPoint: .trailing
                             ))
                             .frame(
-                                width: geometry.size.width * (challenge.progressPercentage / 100),
+                                width: {
+                                    let width = geometry.size.width * (challenge.progressPercentage / 100)
+                                    if width.isNaN || width.isInfinite {
+                                        FameFitLogger.warning("🎯 ChallengeDetailView: NaN/Infinite width detected in overall progress! geometry.size.width=\(geometry.size.width), progressPercentage=\(challenge.progressPercentage)", category: FameFitLogger.ui)
+                                        return 0
+                                    }
+                                    return width
+                                }(),
                                 height: 12
                             )
                             .animation(.easeInOut(duration: 0.5), value: challenge.progressPercentage)
@@ -216,10 +223,15 @@ struct ChallengeDetailView: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color.accentColor)
                                 .frame(
-                                    width: geometry.size.width * min(
-                                        1.0,
-                                        myParticipant.progress / challenge.targetValue
-                                    ),
+                                    width: {
+                                        let progressRatio = challenge.targetValue > 0 ? myParticipant.progress / challenge.targetValue : 0
+                                        let width = geometry.size.width * min(1.0, progressRatio)
+                                        if width.isNaN || width.isInfinite {
+                                            FameFitLogger.warning("🎯 ChallengeDetailView: NaN/Infinite width detected in my progress! geometry.size.width=\(geometry.size.width), progress=\(myParticipant.progress), targetValue=\(challenge.targetValue)", category: FameFitLogger.ui)
+                                            return 0
+                                        }
+                                        return width
+                                    }(),
                                     height: 8
                                 )
                         }

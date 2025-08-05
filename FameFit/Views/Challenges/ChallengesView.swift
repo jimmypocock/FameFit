@@ -281,10 +281,15 @@ struct ChallengeCard: View {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(progressColor)
                                     .frame(
-                                        width: geometry.size.width * min(
-                                            1.0,
-                                            myProgress.progress / challenge.targetValue
-                                        ),
+                                        width: {
+                                            let progressRatio = challenge.targetValue > 0 ? myProgress.progress / challenge.targetValue : 0
+                                            let width = geometry.size.width * min(1.0, progressRatio)
+                                            if width.isNaN || width.isInfinite {
+                                                FameFitLogger.warning("🎯 ChallengesView: NaN/Infinite width detected! geometry.size.width=\(geometry.size.width), progress=\(myProgress.progress), targetValue=\(challenge.targetValue)", category: FameFitLogger.ui)
+                                                return 0
+                                            }
+                                            return width
+                                        }(),
                                         height: 8
                                     )
                                     .animation(.easeInOut(duration: 0.3), value: myProgress.progress)

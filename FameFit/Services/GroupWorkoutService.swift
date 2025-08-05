@@ -106,13 +106,14 @@ final class GroupWorkoutService: GroupWorkoutServicing {
         var newWorkout = workout
         newWorkout.participantCount = 1 // Host is the first participant
 
-        // Save to CloudKit
+        // Save to CloudKit - use appropriate database based on visibility
         let record = newWorkout.toCKRecord()
-        FameFitLogger.debug("Saving workout to CloudKit", category: FameFitLogger.cloudKit)
+        let database = newWorkout.isPublic ? publicDatabase : privateDatabase
+        FameFitLogger.debug("Saving workout to \(newWorkout.isPublic ? "public" : "private") CloudKit database", category: FameFitLogger.cloudKit)
 
         do {
-            let savedRecord = try await publicDatabase.save(record)
-            FameFitLogger.info("Workout saved successfully", category: FameFitLogger.cloudKit)
+            let savedRecord = try await database.save(record)
+            FameFitLogger.info("Workout saved successfully to \(newWorkout.isPublic ? "public" : "private") database", category: FameFitLogger.cloudKit)
             
             guard let savedWorkout = GroupWorkout(from: savedRecord) else {
                 FameFitLogger.error("Failed to parse saved workout record", category: FameFitLogger.cloudKit)
@@ -128,9 +129,9 @@ final class GroupWorkoutService: GroupWorkoutServicing {
                 profileImageURL: hostProfile.profileImageURL
             )
             
-            // Save participant record separately
+            // Save participant record to the same database as the workout
             let participantRecord = hostParticipant.toCKRecord()
-            _ = try await publicDatabase.save(participantRecord)
+            _ = try await database.save(participantRecord)
 
             // Record action for rate limiting
             await rateLimiter.recordAction(.workoutPost, userId: userId)
@@ -477,13 +478,44 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     // MARK: - Fetching
 
     func fetchUpcomingWorkouts(limit: Int = 20) async throws -> [GroupWorkout] {
-        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            NSPredicate(format: "status == %@", GroupWorkoutStatus.scheduled.rawValue),
-            NSPredicate(format: "scheduledStart > %@", Date() as NSDate),
-            NSPredicate(format: "isPublic == %@", NSNumber(value: true))
-        ])
-
-        return try await fetchWorkouts(with: predicate, limit: limit)
+        FameFitLogger.info("📅 GroupWorkoutService.fetchUpcomingWorkouts called", category: FameFitLogger.social)
+        
+        let now = Date()
+        
+        // For now, let's simplify and just fetch all upcoming workouts from CloudKit
+        // using the cloudKitManager which handles database selection internally
+        let predicate = NSPredicate(format: "scheduledStart > %@", now as NSDate)
+        let sortDescriptors = [NSSortDescriptor(key: "scheduledStart", ascending: true)]
+        
+        FameFitLogger.debug("📅 Fetching all upcoming workouts from CloudKit", category: FameFitLogger.social)
+        
+        do {
+            let records = try await cloudKitManager.fetchRecords(
+                ofType: "GroupWorkouts",
+                predicate: predicate,
+                sortDescriptors: sortDescriptors,
+                limit: limit
+            )
+            
+            FameFitLogger.debug("📅 Found \(records.count) workout records", category: FameFitLogger.social)
+            
+            let workouts = records.compactMap { record -> GroupWorkout? in
+                if let workout = GroupWorkout(from: record) {
+                    FameFitLogger.debug("📅 Parsed workout: \(workout.name), scheduledStart: \(workout.scheduledStart), isPublic: \(workout.isPublic)", category: FameFitLogger.social)
+                    return workout
+                } else {
+                    FameFitLogger.warning("📅 Failed to parse workout record", category: FameFitLogger.social)
+                    return nil
+                }
+            }
+            
+            FameFitLogger.info("📅 Returning \(workouts.count) upcoming workouts", category: FameFitLogger.social)
+            
+            return workouts
+        } catch {
+            FameFitLogger.error("📅 Failed to fetch upcoming workouts", error: error, category: FameFitLogger.social)
+            throw GroupWorkoutError.fetchFailed
+        }
     }
 
     func fetchActiveWorkouts() async throws -> [GroupWorkout] {
@@ -567,17 +599,23 @@ final class GroupWorkoutService: GroupWorkoutServicing {
     
     // MARK: - Private Methods
 
-    private func fetchWorkouts(with predicate: NSPredicate, limit: Int = 50) async throws -> [GroupWorkout] {
+    private func fetchWorkouts(with predicate: NSPredicate, limit: Int = 50, usePrivateDatabase: Bool = false) async throws -> [GroupWorkout] {
         let query = CKQuery(recordType: "GroupWorkouts", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "scheduledStart", ascending: true)]
 
+        let database = usePrivateDatabase ? privateDatabase : publicDatabase
+        FameFitLogger.debug("📅 Fetching workouts from \(usePrivateDatabase ? "private" : "public") database with predicate: \(predicate)", category: FameFitLogger.cloudKit)
+
         do {
-            let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
-            return results.matchResults.compactMap { _, result in
+            let results = try await database.records(matching: query, resultsLimit: limit)
+            let workouts = results.matchResults.compactMap { _, result in
                 try? result.get()
             }.compactMap { GroupWorkout(from: $0) }
+            
+            FameFitLogger.debug("📅 Found \(workouts.count) workouts in \(usePrivateDatabase ? "private" : "public") database", category: FameFitLogger.cloudKit)
+            return workouts
         } catch {
-            FameFitLogger.error("Failed to fetch group workouts", error: error, category: FameFitLogger.cloudKit)
+            FameFitLogger.error("Failed to fetch group workouts from \(usePrivateDatabase ? "private" : "public") database", error: error, category: FameFitLogger.cloudKit)
             throw GroupWorkoutError.fetchFailed
         }
     }

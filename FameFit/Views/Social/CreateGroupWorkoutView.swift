@@ -22,15 +22,21 @@ struct CreateGroupWorkoutView: View {
     @State private var isPublic = false
     @State private var tagInput = ""
     @State private var tags: [String] = []
-    @State private var addToCalendar = true
+    @State private var addToCalendar = false
     
     @State private var isCreating = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showSuccess = false
+    @State private var successMessage = "Group workout created successfully!"
     
     // Timezone handling
     @State private var selectedTimeZone = TimeZone.current
     @State private var showTimeZonePicker = false
+    
+    init() {
+        FameFitLogger.debug("📝 CreateGroupWorkoutView initialized", category: FameFitLogger.ui)
+    }
     
     private let workoutTypes: [(id: Int, name: String, icon: String)] = [
         (37, "Running", "figure.run"),
@@ -46,7 +52,8 @@ struct CreateGroupWorkoutView: View {
     ]
     
     var body: some View {
-        NavigationView {
+        let _ = FameFitLogger.debug("📝 CreateGroupWorkoutView body rendering", category: FameFitLogger.ui)
+        return NavigationView {
             Form {
                 // Basic Info
                 Section {
@@ -84,12 +91,21 @@ struct CreateGroupWorkoutView: View {
                             .foregroundColor(.secondary)
                         TextEditor(text: $notes)
                             .frame(minHeight: 60)
+                            .onAppear {
+                                FameFitLogger.debug("📝 TextEditor appeared with minHeight: 60", category: FameFitLogger.ui)
+                            }
+                            .onChange(of: notes) { oldValue, newValue in
+                                FameFitLogger.debug("📝 Notes changed, length: \(newValue.count)", category: FameFitLogger.ui)
+                            }
                     }
                 }
                 
                 // Settings
                 Section {
                     Stepper("Max Participants: \(maxParticipants)", value: $maxParticipants, in: 2...50)
+                        .onChange(of: maxParticipants) { oldValue, newValue in
+                            FameFitLogger.debug("📝 Max participants changed to: \(newValue)", category: FameFitLogger.ui)
+                        }
                     
                     Toggle("Make Public", isOn: $isPublic)
                     
@@ -132,7 +148,14 @@ struct CreateGroupWorkoutView: View {
                         }
                     }
                     
-                    Toggle("Add to Calendar", isOn: $addToCalendar)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("Add to Calendar", isOn: $addToCalendar)
+                        if addToCalendar {
+                            Text("Will add to your device calendar with a 30-minute reminder")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             .navigationTitle("Create Group Workout")
@@ -159,9 +182,17 @@ struct CreateGroupWorkoutView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("Success", isPresented: $showSuccess) {
+                Button("OK") {
+                    dismiss()
+                }
+            } message: {
+                Text(successMessage)
+            }
             .disabled(isCreating)
             .overlay {
                 if isCreating {
+                    let _ = FameFitLogger.debug("📝 Showing loading overlay", category: FameFitLogger.ui)
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
                         .overlay {
@@ -169,6 +200,9 @@ struct CreateGroupWorkoutView: View {
                                 .padding()
                                 .background(Color(.systemBackground))
                                 .cornerRadius(12)
+                                .onAppear {
+                                    FameFitLogger.debug("📝 ProgressView appeared", category: FameFitLogger.ui)
+                                }
                         }
                 }
             }
@@ -190,7 +224,20 @@ struct CreateGroupWorkoutView: View {
     }
     
     private func createWorkout() {
-        guard !title.isEmpty else { return }
+        guard !title.isEmpty else { 
+            FameFitLogger.warning("📝 Attempted to create workout with empty title", category: FameFitLogger.ui)
+            return 
+        }
+        
+        FameFitLogger.debug("📝 createWorkout called with state:", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - title: \(title)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - selectedWorkoutType: \(selectedWorkoutType)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - scheduledDate: \(scheduledDate)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - maxParticipants: \(maxParticipants)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - isPublic: \(isPublic)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - tags: \(tags)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - location: \(location)", category: FameFitLogger.ui)
+        FameFitLogger.debug("  - notes length: \(notes.count)", category: FameFitLogger.ui)
         
         isCreating = true
         FameFitLogger.info("Starting group workout creation: \(title)", category: FameFitLogger.social)
@@ -221,18 +268,35 @@ struct CreateGroupWorkoutView: View {
                 
                 let createdWorkout = try await container.groupWorkoutSchedulingService.createGroupWorkout(workout)
                 
+                FameFitLogger.info("✅ Group workout created successfully: \(createdWorkout.id)", category: FameFitLogger.social)
+                
                 // Add to calendar if requested
+                var calendarMessage = ""
                 if addToCalendar {
                     do {
                         try await container.groupWorkoutSchedulingService.addToCalendar(createdWorkout)
+                        FameFitLogger.info("✅ Added workout to calendar", category: FameFitLogger.social)
                     } catch {
                         // Calendar addition failed, but workout was created
-                        FameFitLogger.warning("Failed to add workout to calendar", category: FameFitLogger.general)
+                        FameFitLogger.warning("Failed to add workout to calendar: \(error.localizedDescription)", category: FameFitLogger.general)
+                        if error.localizedDescription.contains("access denied") {
+                            calendarMessage = "\n\nNote: Calendar event not added. Grant calendar access in Settings to use this feature."
+                        } else {
+                            calendarMessage = "\n\nNote: Could not add to calendar."
+                        }
                     }
                 }
                 
                 await MainActor.run {
-                    dismiss()
+                    FameFitLogger.debug("📝 Dismissing CreateGroupWorkoutView after successful creation", category: FameFitLogger.ui)
+                    isCreating = false
+                    successMessage = "Group workout created successfully!" + calendarMessage
+                    showSuccess = true
+                    
+                    // Dismiss after a short delay to ensure UI updates
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        dismiss()
+                    }
                 }
             } catch {
                 FameFitLogger.error("Failed to create group workout", error: error, category: FameFitLogger.social)

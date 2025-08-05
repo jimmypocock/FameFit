@@ -92,6 +92,13 @@ struct GroupWorkoutListView: View {
         .sheet(isPresented: $showCreateWorkout) {
             CreateGroupWorkoutView()
                 .environmentObject(container)
+                .onDisappear {
+                    // Switch to My Workouts tab after creating
+                    selectedFilter = .myWorkouts
+                    Task {
+                        await refreshWorkouts()
+                    }
+                }
         }
         .sheet(item: $selectedWorkout) { workout in
             GroupWorkoutDetailView(workout: workout)
@@ -189,6 +196,7 @@ struct GroupWorkoutListView: View {
     // MARK: - Actions
     
     private func refreshWorkouts() async {
+        FameFitLogger.info("🔄 GroupWorkoutListView refreshing workouts for filter: \(selectedFilter.rawValue)", category: FameFitLogger.ui)
         switch selectedFilter {
         case .upcoming:
             await viewModel.loadUpcomingWorkouts()
@@ -340,29 +348,39 @@ class GroupWorkoutListViewModel: ObservableObject {
     }
     
     func loadUpcomingWorkouts() async {
-        guard let service = service else { return }
+        guard let service = service else { 
+            FameFitLogger.warning("📋 GroupWorkoutListViewModel: No service configured", category: FameFitLogger.ui)
+            return 
+        }
         
+        FameFitLogger.info("📋 GroupWorkoutListViewModel loading upcoming workouts", category: FameFitLogger.ui)
         isLoading = true
         do {
             workouts = try await service.fetchUpcomingWorkouts(limit: 50)
+            FameFitLogger.info("📋 GroupWorkoutListViewModel loaded \(workouts.count) upcoming workouts", category: FameFitLogger.ui)
             error = nil
         } catch {
             self.error = error
-            print("Failed to load upcoming workouts: \(error)")
+            FameFitLogger.error("Failed to load upcoming workouts", error: error, category: FameFitLogger.ui)
         }
         isLoading = false
     }
     
     func loadMyWorkouts() async {
-        guard let service = service else { return }
+        guard let service = service else { 
+            FameFitLogger.warning("📋 GroupWorkoutListViewModel: No service configured", category: FameFitLogger.ui)
+            return 
+        }
         
+        FameFitLogger.info("📋 GroupWorkoutListViewModel loading my workouts", category: FameFitLogger.ui)
         isLoading = true
         do {
             workouts = try await service.fetchMyWorkouts()
+            FameFitLogger.info("📋 GroupWorkoutListViewModel loaded \(workouts.count) my workouts", category: FameFitLogger.ui)
             error = nil
         } catch {
             self.error = error
-            print("Failed to load my workouts: \(error)")
+            FameFitLogger.error("Failed to load my workouts", error: error, category: FameFitLogger.ui)
         }
         isLoading = false
     }

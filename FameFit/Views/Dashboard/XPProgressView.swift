@@ -99,7 +99,14 @@ struct XPProgressView: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: geometry.size.width * progressToNextLevel, height: 12)
+                    .frame(width: {
+                        let width = geometry.size.width * progressToNextLevel
+                        if width.isNaN || width.isInfinite {
+                            FameFitLogger.warning("📊 XPProgressView: NaN/Infinite width detected! geometry.size.width=\(geometry.size.width), progressToNextLevel=\(progressToNextLevel)", category: FameFitLogger.ui)
+                            return 0
+                        }
+                        return width
+                    }(), height: 12)
                     .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progressToNextLevel)
             }
         }

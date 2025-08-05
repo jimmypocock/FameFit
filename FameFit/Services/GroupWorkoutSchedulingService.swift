@@ -92,16 +92,31 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     // MARK: - Create & Update
     
     func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
+        FameFitLogger.info("🏃‍♂️ GroupWorkoutSchedulingService.createGroupWorkout called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.id: \(workout.id)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.name: \(workout.name)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.maxParticipants: \(workout.maxParticipants)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.scheduledStart: \(workout.scheduledStart)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.isPublic: \(workout.isPublic)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.tags: \(workout.tags)", category: FameFitLogger.social)
+        
         let record = workout.toCKRecord()
+        FameFitLogger.debug("🏃‍♂️ Saving workout record to CloudKit", category: FameFitLogger.social)
         let savedRecord = try await cloudKitManager.save(record)
         
         guard let savedWorkout = GroupWorkout(from: savedRecord) else {
+            FameFitLogger.error("🏃‍♂️ Failed to parse saved workout record", category: FameFitLogger.social)
             throw GroupWorkoutSchedulingError.invalidData
         }
         
+        FameFitLogger.debug("🏃‍♂️ Workout saved successfully, adding creator as participant", category: FameFitLogger.social)
+        
         // Automatically add creator as participant
         let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.debug("🏃‍♂️ Current user ID: \(currentUserId)", category: FameFitLogger.social)
+        
         let currentProfile = try await userProfileService.fetchCurrentUserProfile()
+        FameFitLogger.debug("🏃‍♂️ Current user profile: \(currentProfile.username)", category: FameFitLogger.social)
         
         let participant = GroupWorkoutParticipant(
             id: UUID().uuidString,
@@ -116,10 +131,10 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         _ = try await cloudKitManager.save(participantRecord)
         
         // Update participant count on the workout
+        // Note: We'll skip updating the count here since it's already handled
+        // when participants are fetched. This avoids the "record already exists" error.
         var workoutWithUpdatedCount = savedWorkout
-        workoutWithUpdatedCount.participantCount += 1
-        let updatedWorkoutRecord = workoutWithUpdatedCount.toCKRecord()
-        _ = try await cloudKitManager.save(updatedWorkoutRecord)
+        workoutWithUpdatedCount.participantCount = 1 // Creator is the first participant
         
         workoutUpdatesSubject.send(workoutWithUpdatedCount)
         
@@ -127,6 +142,11 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     }
     
     func updateGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
+        FameFitLogger.info("🏃‍♂️ GroupWorkoutSchedulingService.updateGroupWorkout called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.id: \(workout.id)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.name: \(workout.name)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.status: \(workout.status)", category: FameFitLogger.social)
+        
         // Create updated workout with new timestamp
         let updatedWorkout = GroupWorkout(
             id: workout.id,
@@ -148,13 +168,16 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             notes: workout.notes
         )
         
+        FameFitLogger.debug("🏃‍♂️ Saving updated workout record", category: FameFitLogger.social)
         let record = updatedWorkout.toCKRecord()
         let savedRecord = try await cloudKitManager.save(record)
         
         guard let savedWorkout = GroupWorkout(from: savedRecord) else {
+            FameFitLogger.error("🏃‍♂️ Failed to parse updated workout record", category: FameFitLogger.social)
             throw GroupWorkoutSchedulingError.invalidData
         }
         
+        FameFitLogger.debug("🏃‍♂️ Workout updated successfully, sending update notification", category: FameFitLogger.social)
         workoutUpdatesSubject.send(savedWorkout)
         
         // Notify participants of update
@@ -216,8 +239,15 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     // MARK: - Participants
     
     func joinGroupWorkout(_ workoutId: String, status: ParticipantStatus) async throws {
+        FameFitLogger.info("🏃‍♂️ GroupWorkoutSchedulingService.joinGroupWorkout called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workoutId: \(workoutId)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - status: \(status.rawValue)", category: FameFitLogger.social)
+        
         let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.debug("🏃‍♂️ Current user ID: \(currentUserId)", category: FameFitLogger.social)
+        
         let currentProfile = try await userProfileService.fetchCurrentUserProfile()
+        FameFitLogger.debug("🏃‍♂️ Current user profile: \(currentProfile.username)", category: FameFitLogger.social)
         
         // Check if already a participant
         let predicate = NSPredicate(
@@ -226,6 +256,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             currentUserId
         )
         
+        FameFitLogger.debug("🏃‍♂️ Checking for existing participant record", category: FameFitLogger.social)
         let existingRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: predicate,
@@ -234,10 +265,12 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         )
         
         if let existingRecord = existingRecords.first {
+            FameFitLogger.debug("🏃‍♂️ Found existing participant record, updating status", category: FameFitLogger.social)
             // Update status
             existingRecord["status"] = status.rawValue
             _ = try await cloudKitManager.save(existingRecord)
         } else {
+            FameFitLogger.debug("🏃‍♂️ Creating new participant record", category: FameFitLogger.social)
             // Create new participant
             let participant = GroupWorkoutParticipant(
                 id: UUID().uuidString,
@@ -248,10 +281,16 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
                 status: .joined
             )
             
+            FameFitLogger.debug("🏃‍♂️ Participant details:", category: FameFitLogger.social)
+            FameFitLogger.debug("  - id: \(participant.id)", category: FameFitLogger.social)
+            FameFitLogger.debug("  - username: \(participant.username)", category: FameFitLogger.social)
+            FameFitLogger.debug("  - status: \(participant.status.rawValue)", category: FameFitLogger.social)
+            
             let record = participant.toCKRecord()
             _ = try await cloudKitManager.save(record)
         }
         
+        FameFitLogger.debug("🏃‍♂️ Sending join notification", category: FameFitLogger.social)
         // Send notification
         await sendJoinNotification(workoutId: workoutId, status: status)
     }
@@ -282,9 +321,13 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     }
     
     func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant] {
+        FameFitLogger.info("👥 GroupWorkoutSchedulingService.getParticipants called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workoutId: \(workoutId)", category: FameFitLogger.social)
+        
         let predicate = NSPredicate(format: "groupWorkoutID == %@", workoutId)
         let sortDescriptors = [NSSortDescriptor(key: "joinedAt", ascending: true)]
         
+        FameFitLogger.debug("👥 Fetching participant records from CloudKit", category: FameFitLogger.social)
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: predicate,
@@ -292,51 +335,141 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             limit: 100
         )
         
-        return records.compactMap { GroupWorkoutParticipant(from: $0) }
+        FameFitLogger.debug("👥 Found \(records.count) participant records", category: FameFitLogger.social)
+        
+        let participants = records.compactMap { GroupWorkoutParticipant(from: $0) }
+        FameFitLogger.debug("👥 Parsed \(participants.count) participants", category: FameFitLogger.social)
+        
+        for (index, participant) in participants.enumerated() {
+            FameFitLogger.debug("  - Participant \(index + 1): \(participant.username) (\(participant.status.rawValue))", category: FameFitLogger.social)
+        }
+        
+        return participants
     }
     
     // MARK: - Discovery
     
     func fetchUpcomingWorkouts(limit: Int) async throws -> [GroupWorkout] {
-        let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.info("📅 GroupWorkoutSchedulingService.fetchUpcomingWorkouts called", category: FameFitLogger.social)
         
-        // First get all workouts I'm participating in
-        let participantPredicate = NSPredicate(format: "userId == %@", currentUserId)
+        let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.debug("📅 Current user ID: \(currentUserId)", category: FameFitLogger.social)
+        
+        let now = Date()
+        var allWorkoutRecords: [CKRecord] = []
+        var workoutIds = Set<String>() // For deduplication
+        
+        // 1. Get all public upcoming workouts
+        let publicPredicate = NSPredicate(format: "isPublic == 1 AND scheduledStart > %@", now as NSDate)
+        let publicWorkouts = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkouts",
+            predicate: publicPredicate,
+            sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+            limit: limit
+        )
+        
+        FameFitLogger.debug("📅 Found \(publicWorkouts.count) upcoming public workouts", category: FameFitLogger.social)
+        
+        for workout in publicWorkouts {
+            let workoutId = workout.recordID.recordName
+            if !workoutIds.contains(workoutId) {
+                workoutIds.insert(workoutId)
+                allWorkoutRecords.append(workout)
+            }
+        }
+        
+        // 2. Get private workouts where user is the host
+        let hostPredicate = NSPredicate(format: "hostID == %@ AND scheduledStart > %@ AND (isPublic == 0 OR isPublic == NULL)", currentUserId, now as NSDate)
+        let hostWorkouts = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkouts",
+            predicate: hostPredicate,
+            sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+            limit: limit
+        )
+        
+        FameFitLogger.debug("📅 Found \(hostWorkouts.count) upcoming private workouts where user is host", category: FameFitLogger.social)
+        
+        for workout in hostWorkouts {
+            let workoutId = workout.recordID.recordName
+            if !workoutIds.contains(workoutId) {
+                workoutIds.insert(workoutId)
+                allWorkoutRecords.append(workout)
+            }
+        }
+        
+        // 3. Get private workouts where user is a participant
+        // First get all participant records for the user
+        let participantPredicate = NSPredicate(format: "userID == %@", currentUserId)
         let participantRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
             sortDescriptors: nil,
-            limit: 100
+            limit: 200 // Increase limit to get more participant records
         )
         
-        let workoutIds = participantRecords.compactMap { $0["groupWorkoutId"] as? String }
+        FameFitLogger.debug("📅 Found \(participantRecords.count) participant records for user", category: FameFitLogger.social)
         
-        guard !workoutIds.isEmpty else { return [] }
+        if !participantRecords.isEmpty {
+            // Get the workout IDs from participant records
+            let participantWorkoutIds = participantRecords.compactMap { record -> String? in
+                if let reference = record["groupWorkoutID"] as? CKRecord.Reference {
+                    return reference.recordID.recordName
+                }
+                // Also try as string in case it's stored differently
+                return record["groupWorkoutID"] as? String
+            }
+            
+            FameFitLogger.debug("📅 User is participant in \(participantWorkoutIds.count) workouts", category: FameFitLogger.social)
+            
+            // Fetch upcoming private workouts and filter by participant IDs
+            let privatePredicate = NSPredicate(format: "scheduledStart > %@ AND (isPublic == 0 OR isPublic == NULL)", now as NSDate)
+            let privateWorkouts = try await cloudKitManager.fetchRecords(
+                ofType: "GroupWorkouts",
+                predicate: privatePredicate,
+                sortDescriptors: [NSSortDescriptor(key: "scheduledStart", ascending: true)],
+                limit: 500 // Fetch more to ensure we get all participant workouts
+            )
+            
+            FameFitLogger.debug("📅 Found \(privateWorkouts.count) total upcoming private workouts", category: FameFitLogger.social)
+            
+            // Filter for workouts where user is a participant
+            let participantWorkouts = privateWorkouts.filter { workout in
+                participantWorkoutIds.contains(workout.recordID.recordName)
+            }
+            
+            FameFitLogger.debug("📅 Found \(participantWorkouts.count) upcoming private workouts where user is participant", category: FameFitLogger.social)
+            
+            for workout in participantWorkouts {
+                let workoutId = workout.recordID.recordName
+                if !workoutIds.contains(workoutId) {
+                    workoutIds.insert(workoutId)
+                    allWorkoutRecords.append(workout)
+                }
+            }
+        }
         
-        // Fetch the actual workouts
-        let workoutPredicate = NSPredicate(
-            format: "id IN %@ AND scheduledDate > %@",
-            workoutIds,
-            Date() as NSDate
-        )
+        // Sort all workouts by scheduled start date and limit
+        let sortedWorkouts = allWorkoutRecords
+            .sorted { ($0["scheduledStart"] as? Date ?? Date()) < ($1["scheduledStart"] as? Date ?? Date()) }
+            .prefix(limit)
         
-        let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
+        let workouts = Array(sortedWorkouts).compactMap { GroupWorkout(from: $0) }
         
-        let workoutRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkouts",
-            predicate: workoutPredicate,
-            sortDescriptors: sortDescriptors,
-            limit: limit
-        )
+        FameFitLogger.info("📅 Returning \(workouts.count) upcoming workouts (public: \(publicWorkouts.count), host: \(hostWorkouts.count), participant: \(allWorkoutRecords.count - publicWorkouts.count - hostWorkouts.count))", category: FameFitLogger.social)
         
-        return workoutRecords.compactMap { GroupWorkout(from: $0) }
+        return workouts
     }
     
     func fetchMyWorkouts() async throws -> [GroupWorkout] {
-        let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.info("📋 GroupWorkoutSchedulingService.fetchMyWorkouts called", category: FameFitLogger.social)
         
-        let predicate = NSPredicate(format: "createdBy == %@", currentUserId)
-        let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: false)]
+        let currentUserId = try await cloudKitManager.getCurrentUserID()
+        FameFitLogger.debug("📋 Current user ID: \(currentUserId)", category: FameFitLogger.social)
+        
+        let predicate = NSPredicate(format: "hostID == %@", currentUserId)
+        let sortDescriptors = [NSSortDescriptor(key: "scheduledStart", ascending: false)]
+        
+        FameFitLogger.debug("📋 Fetching workouts with hostID == \(currentUserId)", category: FameFitLogger.social)
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkouts",
@@ -345,21 +478,49 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             limit: 100
         )
         
-        return records.compactMap { GroupWorkout(from: $0) }
+        FameFitLogger.debug("📋 Found \(records.count) workout records where user is host", category: FameFitLogger.social)
+        
+        // Debug log the records
+        for (index, record) in records.enumerated() {
+            FameFitLogger.debug("📋 Record \(index):", category: FameFitLogger.social)
+            FameFitLogger.debug("  - recordName: \(record.recordID.recordName)", category: FameFitLogger.social)
+            FameFitLogger.debug("  - name: \(record["name"] ?? "nil")", category: FameFitLogger.social)
+            FameFitLogger.debug("  - hostID: \(record["hostID"] ?? "nil")", category: FameFitLogger.social)
+            FameFitLogger.debug("  - scheduledStart: \(record["scheduledStart"] ?? "nil")", category: FameFitLogger.social)
+            FameFitLogger.debug("  - isPublic: \(record["isPublic"] ?? "nil")", category: FameFitLogger.social)
+        }
+        
+        let workouts = records.compactMap { record -> GroupWorkout? in
+            if let workout = GroupWorkout(from: record) {
+                return workout
+            } else {
+                FameFitLogger.warning("📋 Failed to parse workout record: \(record.recordID.recordName)", category: FameFitLogger.social)
+                return nil
+            }
+        }
+        FameFitLogger.info("📋 Parsed \(workouts.count) workouts for My Workouts", category: FameFitLogger.social)
+        
+        return workouts
     }
     
     func fetchPublicWorkouts(tags: [String]?, limit: Int) async throws -> [GroupWorkout] {
-        var predicateFormat = "isPublic == 1 AND scheduledDate > %@"
+        FameFitLogger.info("🔍 GroupWorkoutSchedulingService.fetchPublicWorkouts called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - tags: \(tags ?? [])", category: FameFitLogger.social)
+        FameFitLogger.debug("  - limit: \(limit)", category: FameFitLogger.social)
+        
+        var predicateFormat = "isPublic == 1 AND scheduledStart > %@"
         var args: [Any] = [Date() as NSDate]
         
         if let tags = tags, !tags.isEmpty {
             predicateFormat += " AND ANY tags IN %@"
             args.append(tags)
+            FameFitLogger.debug("🔍 Filtering by tags: \(tags)", category: FameFitLogger.social)
         }
         
         let predicate = NSPredicate(format: predicateFormat, argumentArray: args)
-        let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
+        let sortDescriptors = [NSSortDescriptor(key: "scheduledStart", ascending: true)]
         
+        FameFitLogger.debug("🔍 Fetching public workouts from CloudKit", category: FameFitLogger.social)
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkouts",
             predicate: predicate,
@@ -367,11 +528,16 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             limit: limit
         )
         
-        return records.compactMap { GroupWorkout(from: $0) }
+        FameFitLogger.debug("🔍 Found \(records.count) public workout records", category: FameFitLogger.social)
+        
+        let workouts = records.compactMap { GroupWorkout(from: $0) }
+        FameFitLogger.debug("🔍 Parsed \(workouts.count) public workouts", category: FameFitLogger.social)
+        
+        return workouts
     }
     
     func searchWorkouts(query: String, filters: WorkoutFilters?) async throws -> [GroupWorkout] {
-        var predicateFormat = "(title CONTAINS[cd] %@ OR notes CONTAINS[cd] %@ OR location CONTAINS[cd] %@)"
+        var predicateFormat = "(name CONTAINS[cd] %@ OR notes CONTAINS[cd] %@ OR location CONTAINS[cd] %@)"
         var args: [Any] = [query, query, query]
         
         if let filters = filters {
@@ -381,7 +547,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
             }
             
             if let dateRange = filters.dateRange {
-                predicateFormat += " AND scheduledDate >= %@ AND scheduledDate <= %@"
+                predicateFormat += " AND scheduledStart >= %@ AND scheduledStart <= %@"
                 args.append(dateRange.start as NSDate)
                 args.append(dateRange.end as NSDate)
             }
@@ -393,7 +559,7 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         }
         
         let predicate = NSPredicate(format: predicateFormat, argumentArray: args)
-        let sortDescriptors = [NSSortDescriptor(key: "scheduledDate", ascending: true)]
+        let sortDescriptors = [NSSortDescriptor(key: "scheduledStart", ascending: true)]
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkouts",
@@ -471,8 +637,16 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
     // MARK: - Calendar Integration
     
     func addToCalendar(_ workout: GroupWorkout) async throws {
+        FameFitLogger.info("📅 GroupWorkoutSchedulingService.addToCalendar called", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.id: \(workout.id)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.name: \(workout.name)", category: FameFitLogger.social)
+        FameFitLogger.debug("  - workout.scheduledStart: \(workout.scheduledStart)", category: FameFitLogger.social)
+        
         let status = await requestCalendarAccess()
+        FameFitLogger.debug("📅 Calendar access status: \(status)", category: FameFitLogger.social)
+        
         guard status == .fullAccess else {
+            FameFitLogger.error("📅 Calendar access denied", category: FameFitLogger.social)
             throw GroupWorkoutSchedulingError.calendarAccessDenied
         }
         
@@ -484,16 +658,27 @@ final class GroupWorkoutSchedulingService: GroupWorkoutSchedulingServicing {
         event.notes = workout.notes
         event.calendar = eventStore.defaultCalendarForNewEvents
         
+        FameFitLogger.debug("📅 Event details:", category: FameFitLogger.social)
+        FameFitLogger.debug("  - title: \(event.title ?? "nil")", category: FameFitLogger.social)
+        FameFitLogger.debug("  - startDate: \(event.startDate ?? Date())", category: FameFitLogger.social)
+        FameFitLogger.debug("  - endDate: \(event.endDate ?? Date())", category: FameFitLogger.social)
+        FameFitLogger.debug("  - location: \(event.location ?? "nil")", category: FameFitLogger.social)
+        FameFitLogger.debug("  - calendar: \(event.calendar?.title ?? "nil")", category: FameFitLogger.social)
+        
         // Add alarm 30 minutes before
         let alarm = EKAlarm(relativeOffset: -1800) // 30 minutes
         event.addAlarm(alarm)
+        FameFitLogger.debug("📅 Added 30-minute alarm", category: FameFitLogger.social)
         
         do {
             try eventStore.save(event, span: .thisEvent)
+            FameFitLogger.debug("📅 Event saved to calendar successfully", category: FameFitLogger.social)
             
             // Save event identifier to user defaults
             UserDefaults.standard.set(event.eventIdentifier, forKey: "calendar_\(workout.id)")
+            FameFitLogger.debug("📅 Saved event identifier: \(event.eventIdentifier ?? "nil")", category: FameFitLogger.social)
         } catch {
+            FameFitLogger.error("📅 Failed to save event to calendar", error: error, category: FameFitLogger.social)
             throw GroupWorkoutSchedulingError.calendarSaveFailed
         }
     }
