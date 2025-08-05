@@ -13,11 +13,14 @@ import CloudKit
 extension DependencyContainer {
     /// Initialize container with mock services for testing
     /// All parameters are optional to allow partial mocking
+    @MainActor
     convenience init(
         authenticationManager: AuthenticationManager,
         cloudKitManager: CloudKitManager,
         workoutObserver: WorkoutObserver,
         healthKitService: HealthKitService? = nil,
+        modernHealthKitService: ModernHealthKitServicing? = nil,
+        watchConnectivityManager: WatchConnectivityManaging? = nil,
         workoutSyncManager: WorkoutSyncManager? = nil,
         workoutSyncQueue: WorkoutSyncQueue? = nil,
         notificationStore: NotificationStore? = nil,
@@ -45,6 +48,8 @@ extension DependencyContainer {
     ) {
         // Create default instances for optional dependencies
         let finalHealthKitService = healthKitService ?? RealHealthKitService()
+        let finalModernHealthKitService = modernHealthKitService ?? ModernHealthKitService()
+        let finalWatchConnectivityManager: WatchConnectivityManaging = watchConnectivityManager ?? WatchConnectivitySingleton.shared
         let finalNotificationStore = notificationStore ?? NotificationStore()
         let finalUnlockStorageService = unlockStorageService ?? UnlockStorageService()
         let finalMessageProvider = messageProvider ?? FameFitMessageProvider()
@@ -171,6 +176,8 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager,
             workoutObserver: workoutObserver,
             healthKitService: finalHealthKitService,
+            modernHealthKitService: finalModernHealthKitService,
+            watchConnectivityManager: finalWatchConnectivityManager,
             workoutSyncManager: finalWorkoutSyncManager,
             workoutSyncQueue: finalWorkoutSyncQueue,
             notificationStore: finalNotificationStore,

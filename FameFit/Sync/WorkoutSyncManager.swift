@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import CloudKit
 import os.log
 import UserNotifications
 
@@ -14,73 +15,132 @@ import UserNotifications
 private let kWorkoutSyncAnchorKey = "FameFitWorkoutSyncAnchor"
 
 /// Manages workout synchronization with HealthKit using anchored queries for reliability
+@MainActor
 class WorkoutSyncManager: ObservableObject {
+    // MARK: - Properties
+    
     private let healthKitService: HealthKitService
     private weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
     weak var notificationManager: (any NotificationManaging)?
     private var anchoredQuery: HKAnchoredObjectQuery?
-
+    
     @Published var isSyncing = false
     @Published var lastSyncDate: Date?
     @Published var syncError: FameFitError?
-
+    
+    // MARK: - Initialization
+    
     init(cloudKitManager: CloudKitManager, healthKitService: HealthKitService? = nil) {
         self.cloudKitManager = cloudKitManager
         self.healthKitService = healthKitService ?? RealHealthKitService()
     }
-
+    
+    // MARK: - Public Methods
+    
     /// Start monitoring workouts using HKAnchoredObjectQuery for reliable incremental updates
     func startReliableSync() {
         FameFitLogger.info("🏃 Starting WorkoutSyncManager reliable sync", category: FameFitLogger.workout)
-
+        
         // Request notification permissions
         requestNotificationPermissions()
-
+        
+        Task {
+            await startReliableSyncAsync()
+        }
+    }
+    
+    /// Stop monitoring workouts
+    func stopSync() {
+        if let query = anchoredQuery {
+            healthKitService.stop(query)
+            anchoredQuery = nil
+            FameFitLogger.info("Stopped workout sync", category: FameFitLogger.workout)
+        }
+    }
+    
+    /// Force a manual sync
+    func performManualSync() async {
+        FameFitLogger.info("Performing manual workout sync", category: FameFitLogger.workout)
+        
+        isSyncing = true
+        syncError = nil
+        
+        do {
+            // Get recent workouts
+            let workouts = try await fetchRecentWorkouts()
+            
+            if !workouts.isEmpty {
+                FameFitLogger.info("Found \(workouts.count) workouts to sync", category: FameFitLogger.workout)
+                await processWorkouts(workouts)
+            } else {
+                FameFitLogger.info("No new workouts to sync", category: FameFitLogger.workout)
+            }
+            
+            lastSyncDate = Date()
+            isSyncing = false
+            
+        } catch {
+            FameFitLogger.error("Manual sync failed", error: error, category: FameFitLogger.workout)
+            syncError = error.fameFitError
+            isSyncing = false
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func startReliableSyncAsync() async {
         guard healthKitService.isHealthDataAvailable else {
             FameFitLogger.error("HealthKit not available", category: FameFitLogger.workout)
-            DispatchQueue.main.async {
-                self.syncError = .healthKitNotAvailable
-            }
+            syncError = .healthKitNotAvailable
             return
         }
-
+        
         // Check if we have authorization
         let workoutType = HKObjectType.workoutType()
         let authStatus = healthKitService.authorizationStatus(for: workoutType)
-
-        if authStatus == .notDetermined {
-            FameFitLogger.info(
-                "🔐 HealthKit authorization not determined, requesting...",
-                category: FameFitLogger.workout
-            )
-            healthKitService.requestAuthorization { [weak self] success, error in
+        
+        switch authStatus {
+        case .notDetermined:
+            FameFitLogger.info("🔐 HealthKit authorization not determined, requesting...", category: FameFitLogger.workout)
+            
+            do {
+                let success = try await requestHealthKitAuthorization()
                 if success {
                     FameFitLogger.info("✅ HealthKit authorization granted", category: FameFitLogger.workout)
-                    self?.startReliableSync() // Retry after authorization
+                    await startReliableSyncAsync() // Retry after authorization
                 } else {
-                    FameFitLogger.error(
-                        "❌ HealthKit authorization failed",
-                        error: error,
-                        category: FameFitLogger.workout
-                    )
-                    DispatchQueue.main.async {
-                        self?.syncError = .healthKitAuthorizationDenied
-                    }
+                    FameFitLogger.error("❌ HealthKit authorization denied", category: FameFitLogger.workout)
+                    syncError = .healthKitAuthorizationDenied
+                }
+            } catch {
+                FameFitLogger.error("❌ HealthKit authorization failed", error: error, category: FameFitLogger.workout)
+                syncError = .healthKitAuthorizationDenied
+            }
+            
+        case .sharingAuthorized:
+            // We have authorization, proceed with sync
+            await setupAnchoredQuery()
+            
+        default:
+            FameFitLogger.error("❌ HealthKit not authorized (status: \(authStatus.rawValue))", category: FameFitLogger.workout)
+            syncError = .healthKitAuthorizationDenied
+        }
+    }
+    
+    private func requestHealthKitAuthorization() async throws -> Bool {
+        try await withCheckedThrowingContinuation { continuation in
+            healthKitService.requestAuthorization { success, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: success)
                 }
             }
-            return
-        } else if authStatus != .sharingAuthorized {
-            FameFitLogger.error(
-                "❌ HealthKit not authorized (status: \(authStatus.rawValue))",
-                category: FameFitLogger.workout
-            )
-            DispatchQueue.main.async {
-                self.syncError = .healthKitAuthorizationDenied
-            }
-            return
         }
-
+    }
+    
+    private func setupAnchoredQuery() async {
         // Get the last anchor from UserDefaults
         var anchor: HKQueryAnchor?
         if let anchorData = UserDefaults.standard.data(forKey: kWorkoutSyncAnchorKey) {
@@ -91,387 +151,276 @@ class WorkoutSyncManager: ObservableObject {
                 FameFitLogger.error("Failed to decode anchor", error: error, category: FameFitLogger.workout)
             }
         }
-
+        
         // Create and execute the anchored object query using the service
         anchoredQuery = healthKitService.executeAnchoredQuery(
             anchor: anchor,
             initialHandler: { [weak self] _, samples, deletedObjects, newAnchor, error in
-                self?.handleInitialResults(
-                    samples: samples,
-                    deletedObjects: deletedObjects,
-                    anchor: newAnchor,
-                    error: error
-                )
+                Task { @MainActor [weak self] in
+                    await self?.handleInitialResults(
+                        samples: samples,
+                        deletedObjects: deletedObjects,
+                        anchor: newAnchor,
+                        error: error
+                    )
+                }
             },
             updateHandler: { [weak self] _, samples, deletedObjects, newAnchor, error in
-                self?.handleIncrementalResults(
-                    samples: samples,
-                    deletedObjects: deletedObjects,
-                    anchor: newAnchor,
-                    error: error
-                )
+                Task { @MainActor [weak self] in
+                    await self?.handleIncrementalResults(
+                        samples: samples,
+                        deletedObjects: deletedObjects,
+                        anchor: newAnchor,
+                        error: error
+                    )
+                }
             }
         )
-
+        
         FameFitLogger.info("Started reliable workout sync with HKAnchoredObjectQuery", category: FameFitLogger.workout)
     }
-
-    /// Stop monitoring workouts
-    func stopSync() {
-        if let query = anchoredQuery {
-            healthKitService.stop(query)
-            anchoredQuery = nil
-            FameFitLogger.info("Stopped workout sync", category: FameFitLogger.workout)
-        }
-    }
-
+    
     /// Handle initial query results
     private func handleInitialResults(
         samples: [HKSample]?,
         deletedObjects _: [HKDeletedObject]?,
         anchor: HKQueryAnchor?,
         error: Error?
-    ) {
-        DispatchQueue.main.async {
-            self.isSyncing = true
-        }
-
+    ) async {
+        isSyncing = true
+        
         if let error {
             FameFitLogger.error("Initial sync error", error: error, category: FameFitLogger.workout)
-            DispatchQueue.main.async {
-                self.syncError = error.fameFitError
-                self.isSyncing = false
-            }
+            syncError = error.fameFitError
+            isSyncing = false
             return
         }
-
+        
         guard let workouts = samples as? [HKWorkout] else {
-            DispatchQueue.main.async {
-                self.isSyncing = false
-            }
+            isSyncing = false
             return
         }
-
+        
         FameFitLogger.info("🏋️ Initial sync found \(workouts.count) workouts", category: FameFitLogger.workout)
-
-        // Log details about each workout found
-        for workout in workouts {
-            let duration = Int(workout.duration / 60)
-            FameFitLogger.info(
-                "📊 Found workout: \(workout.workoutActivityType.displayName) - Duration: \(duration) min - Date: \(workout.endDate)",
-                category: FameFitLogger.workout
-            )
-        }
-
+        
         // Process workouts
-        processWorkouts(workouts, isInitialSync: true)
-
+        await processWorkouts(workouts)
+        
         // Save the anchor
         if let anchor {
             saveAnchor(anchor)
         }
-
-        DispatchQueue.main.async {
-            self.isSyncing = false
-            self.lastSyncDate = Date()
-            self.syncError = nil
-        }
+        
+        lastSyncDate = Date()
+        isSyncing = false
     }
-
-    /// Handle incremental updates
+    
+    /// Handle incremental updates from the anchored query
     private func handleIncrementalResults(
         samples: [HKSample]?,
         deletedObjects _: [HKDeletedObject]?,
         anchor: HKQueryAnchor?,
         error: Error?
-    ) {
+    ) async {
         if let error {
             FameFitLogger.error("Incremental sync error", error: error, category: FameFitLogger.workout)
-            DispatchQueue.main.async {
-                self.syncError = error.fameFitError
-            }
+            syncError = error.fameFitError
             return
         }
-
+        
         guard let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
             return
         }
-
-        FameFitLogger.info("🆕 Incremental sync found \(workouts.count) new workout(s)", category: FameFitLogger.workout)
-
+        
+        FameFitLogger.info("🔄 Incremental sync found \(workouts.count) new workout(s)", category: FameFitLogger.workout)
+        
+        isSyncing = true
+        
         // Process new workouts
-        processWorkouts(workouts, isInitialSync: false)
-
+        await processWorkouts(workouts)
+        
         // Save the new anchor
         if let anchor {
             saveAnchor(anchor)
         }
-
-        DispatchQueue.main.async {
-            self.lastSyncDate = Date()
-            self.syncError = nil
-        }
+        
+        lastSyncDate = Date()
+        isSyncing = false
     }
-
-    /// Process workouts and update follower count
-    private func processWorkouts(_ workouts: [HKWorkout], isInitialSync: Bool) {
-        // Get app install date to avoid counting pre-install workouts
-        let appInstallDateKey = UserDefaultsKeys.appInstallDate
-        if UserDefaults.standard.object(forKey: appInstallDateKey) == nil {
-            UserDefaults.standard.set(Date(), forKey: appInstallDateKey)
+    
+    /// Process workouts by saving to CloudKit and updating user stats
+    private func processWorkouts(_ workouts: [HKWorkout]) async {
+        guard let cloudKitManager = cloudKitManager else {
+            FameFitLogger.error("CloudKitManager not available", category: FameFitLogger.workout)
+            return
         }
-        let appInstallDate = UserDefaults.standard.object(forKey: appInstallDateKey) as? Date ?? Date()
-
-        FameFitLogger.info("📅 App install date: \(appInstallDate)", category: FameFitLogger.workout)
-        FameFitLogger.info("📅 Current date: \(Date())", category: FameFitLogger.workout)
-
-        var processedWorkouts: [Workout] = []
-
+        
+        var processedCount = 0
+        
         for workout in workouts {
-            // Skip workouts before app install
-            guard workout.endDate > appInstallDate else {
+            // Skip future workouts (sometimes happens with manual entries)
+            guard workout.endDate <= Date() else {
+                FameFitLogger.warning("Skipping future workout", category: FameFitLogger.workout)
+                continue
+            }
+            
+            // Get app install date
+            let appInstallDate = UserDefaults.standard.object(forKey: "AppInstallDate") as? Date ?? Date()
+            
+            FameFitLogger.info("📅 App install date: \(appInstallDate)", category: FameFitLogger.workout)
+            FameFitLogger.info("📅 Current date: \(Date())", category: FameFitLogger.workout)
+            
+            // Only process workouts after app install
+            guard workout.endDate >= appInstallDate else {
                 FameFitLogger.info(
-                    "⏭️ Skipping pre-install workout: \(workout.workoutActivityType.displayName) - Date: \(workout.endDate)",
+                    "⏩ Skipping pre-install workout from \(workout.endDate)",
                     category: FameFitLogger.workout
                 )
                 continue
             }
-
-            // Validate workout data
-            guard workout.duration > 0,
-                  workout.duration < 86_400, // Less than 24 hours
-                  workout.endDate > workout.startDate
-            else {
-                FameFitLogger.notice("Invalid workout data detected, skipping", category: FameFitLogger.workout)
+            
+            // Check if workout already synced
+            if isWorkoutAlreadySynced(workout) {
+                FameFitLogger.debug("Workout already synced: \(workout.uuid)", category: FameFitLogger.workout)
                 continue
             }
-
-            // Log workout info
-            let duration = workout.duration / 60
-            FameFitLogger.info(
-                "🔄 Processing workout: \(workout.workoutActivityType.displayName) - Duration: \(Int(duration)) min - Date: \(workout.endDate)",
-                category: FameFitLogger.workout
-            )
-            FameFitLogger.info(
-                "📍 Workout source: \(workout.sourceRevision.source.name) - Bundle: \(workout.sourceRevision.source.bundleIdentifier)",
-                category: FameFitLogger.workout
-            )
-
-            // Calculate XP for this workout
-            let workoutModel = Workout(from: workout, followersEarned: 0, xpEarned: 0)
-            let calculatedXP = XPCalculator.calculateXP(
-                for: workoutModel,
-                currentStreak: cloudKitManager?.currentStreak ?? 0
-            )
-
-            // Check for special bonuses
-            let workoutNumber = cloudKitManager?.totalWorkouts ?? 0 + 1
-            let specialBonus = XPCalculator.calculateSpecialBonus(
-                workoutNumber: workoutNumber,
-                isPersonalRecord: false // TODO: Implement PR detection
-            )
-
-            let totalXP = calculatedXP + specialBonus
-
-            FameFitLogger.info(
-                "🎯 Calculated XP: \(calculatedXP) + bonus: \(specialBonus) = \(totalXP) total",
-                category: FameFitLogger.workout
-            )
-
-            // Create workout history item with calculated XP
-            let historyItem = Workout(from: workout, followersEarned: totalXP, xpEarned: totalXP)
-            processedWorkouts.append(historyItem)
-
-            // For initial sync, we might want to batch process
-            // For incremental updates, process immediately
-            if !isInitialSync {
-                // Add XP for the workout
-                cloudKitManager?.addXP(totalXP)
-
-                // Save workout history to CloudKit
-                FameFitLogger.info(
-                    "💾 Saving workout to CloudKit: \(historyItem.workoutType) with \(totalXP) XP",
-                    category: FameFitLogger.workout
-                )
-                cloudKitManager?.saveWorkout(historyItem)
-
-                // Send notifications using both systems for now
-                sendWorkoutFameFitNotification(for: workout) // Legacy system
-
-                // Send modern notification asynchronously
-                Task { @MainActor in
-                    await self.sendModernWorkoutFameFitNotification(for: historyItem)
+            
+            // Calculate followers/XP earned (10 XP per workout)
+            let xpEarned = 10
+            
+            // Save workout to CloudKit
+            if await saveWorkoutToCloudKit(workout, xpEarned: xpEarned) {
+                processedCount += 1
+                
+                // Add XP to user's total
+                await cloudKitManager.addXPAsync(xpEarned)
+                
+                // Send local notification for XP milestone
+                if let notificationManager = notificationManager {
+                    await notificationManager.notifyXPMilestone(previousXP: cloudKitManager.totalXP - xpEarned, currentXP: cloudKitManager.totalXP)
                 }
             }
         }
-
-        // For initial sync, we might want to calculate total followers differently
-        if isInitialSync, !workouts.isEmpty {
-            FameFitLogger.info(
-                "Initial sync complete. Found \(processedWorkouts.count) workouts since install",
-                category: FameFitLogger.workout
-            )
-            // Batch save workout history for initial sync
-            for historyItem in processedWorkouts {
-                cloudKitManager?.saveWorkout(historyItem)
-            }
+        
+        if processedCount > 0 {
+            FameFitLogger.info("✅ Processed \(processedCount) new workout(s)", category: FameFitLogger.workout)
         }
     }
-
-    /// Save the sync anchor to UserDefaults
+    
+    /// Check if a workout has already been synced
+    private func isWorkoutAlreadySynced(_ workout: HKWorkout) -> Bool {
+        let syncedWorkoutIDs = UserDefaults.standard.array(forKey: "SyncedWorkoutIDs") as? [String] ?? []
+        return syncedWorkoutIDs.contains(workout.uuid.uuidString)
+    }
+    
+    /// Save workout to CloudKit
+    private func saveWorkoutToCloudKit(_ workout: HKWorkout, xpEarned: Int) async -> Bool {
+        guard let cloudKitManager = cloudKitManager else { return false }
+        
+        do {
+            // Create workout record
+            let record = CKRecord(recordType: "Workouts")
+            record["workoutId"] = workout.uuid.uuidString
+            record["workoutType"] = workout.workoutActivityType.storageKey
+            record["startDate"] = workout.startDate
+            record["endDate"] = workout.endDate
+            record["duration"] = workout.duration
+            let energyBurnedQuantity = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
+            record["totalEnergyBurned"] = energyBurnedQuantity?.doubleValue(for: .kilocalorie()) ?? 0
+            record["totalDistance"] = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
+            record["averageHeartRate"] = 0 // Would need to fetch from samples
+            record["followersEarned"] = xpEarned // Legacy field
+            record["xpEarned"] = xpEarned
+            record["source"] = workout.sourceRevision.source.name
+            
+            // Save to CloudKit
+            _ = try await cloudKitManager.save(record)
+            
+            // Mark as synced
+            var syncedIDs = UserDefaults.standard.array(forKey: "SyncedWorkoutIDs") as? [String] ?? []
+            syncedIDs.append(workout.uuid.uuidString)
+            
+            // Keep only last 1000 IDs to prevent unbounded growth
+            if syncedIDs.count > 1000 {
+                syncedIDs = Array(syncedIDs.suffix(1000))
+            }
+            
+            UserDefaults.standard.set(syncedIDs, forKey: "SyncedWorkoutIDs")
+            
+            FameFitLogger.info(
+                "💾 Saved workout: \(workout.workoutActivityType.storageKey) +\(xpEarned) XP",
+                category: FameFitLogger.workout
+            )
+            
+            return true
+            
+        } catch {
+            FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.workout)
+            return false
+        }
+    }
+    
+    /// Save anchor to UserDefaults
     private func saveAnchor(_ anchor: HKQueryAnchor) {
         do {
             let data = try NSKeyedArchiver.archivedData(withRootObject: anchor, requiringSecureCoding: true)
             UserDefaults.standard.set(data, forKey: kWorkoutSyncAnchorKey)
             FameFitLogger.debug("Saved sync anchor", category: FameFitLogger.workout)
         } catch {
-            FameFitLogger.error("Failed to save anchor", error: error, category: FameFitLogger.workout)
+            FameFitLogger.error("Failed to save sync anchor", error: error, category: FameFitLogger.workout)
         }
     }
-
-    /// Send notification using modern NotificationManager for completed workout
-    @MainActor
-    private func sendModernWorkoutFameFitNotification(for workout: Workout) async {
-        guard let notificationManager else {
-            FameFitLogger.debug(
-                "NotificationManager not available, skipping modern notification",
-                category: FameFitLogger.workout
-            )
-            return
-        }
-
-        FameFitLogger.info(
-            "🔔 Sending workout notification via NotificationManager: \(workout.workoutType) with \(workout.xpEarned ?? 0) XP",
-            category: FameFitLogger.workout
+    
+    /// Fetch recent workouts (for manual sync)
+    private func fetchRecentWorkouts() async throws -> [HKWorkout] {
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
         )
-
-        // Send workout completed notification
-        await notificationManager.notifyWorkoutCompleted(workout)
-
-        // Check for XP milestones
-        let previousXP = (cloudKitManager?.totalXP ?? 0) - (workout.xpEarned ?? 0)
-        let currentXP = cloudKitManager?.totalXP ?? 0
-        await notificationManager.notifyXPMilestone(previousXP: previousXP, currentXP: currentXP)
-
-        // Check for streak updates
-        let currentStreak = cloudKitManager?.currentStreak ?? 0
-        if currentStreak > 0 {
-            await notificationManager.notifyStreakUpdate(streak: currentStreak, isAtRisk: false)
-        }
-
-        FameFitLogger.debug("✅ Modern workout notification sent successfully", category: FameFitLogger.workout)
-    }
-
-    // MARK: - Testing Support
-
-    #if DEBUG
-        /// Test helper method to simulate workout processing
-        func processWorkoutsForTesting(_ workouts: [HKWorkout], isInitialSync: Bool) async {
-            await MainActor.run {
-                processWorkouts(workouts, isInitialSync: isInitialSync)
-            }
-            // Wait a bit for all async tasks to complete
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds per workout
-        }
-    #endif
-
-    /// Send notification for completed workout (legacy system)
-    private func sendWorkoutFameFitNotification(for workout: HKWorkout) {
-        let character = FameFitCharacter.characterForWorkoutType(workout.workoutActivityType)
-        let duration = Int(workout.duration / 60)
-
-        // Get calories if available
-        var calories = 0
-        if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity()
-            calories = Int(energyBurned?.doubleValue(for: .kilocalorie()) ?? 0)
-        }
-
-        // Fallback for test workouts - use statistics API
-        if calories == 0 {
-            // Try active energy burned statistics one more time with a different approach
-            if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-               let statistics = workout.statistics(for: energyBurnedType),
-               let sumQuantity = statistics.sumQuantity() {
-                calories = Int(sumQuantity.doubleValue(for: .kilocalorie()))
-            }
-        }
-
-        let title = "\(character.emoji) \(character.fullName)"
-
-        // Calculate XP for notification
-        let calculatedXP = XPCalculator.calculateXP(
-            for: Workout(from: workout, followersEarned: 0, xpEarned: 0),
-            currentStreak: cloudKitManager?.currentStreak ?? 0
-        )
-
-        let body = character.workoutCompletionMessage(followers: calculatedXP)
-
-        // Add to notification store
-        let notificationItem = FameFitNotification(
-            title: title,
-            body: body,
-            character: character,
-            workoutDuration: duration,
-            calories: calories,
-            followersEarned: calculatedXP
-        )
-
-        DispatchQueue.main.async { [weak self] in
-            self?.notificationStore?.addFameFitNotification(notificationItem)
-        }
-
-        // Also send push notification
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        content.badge = NSNumber(value: notificationStore?.unreadCount ?? 0)
-
-        content.userInfo = [
-            "character": character.rawValue,
-            "duration": duration,
-            "calories": calories,
-            "newFollowers": 5
-        ]
-
-        // Use workout-specific identifier to prevent duplicates
-        let notificationId = "workout-\(character.rawValue)-\(workout.endDate.timeIntervalSince1970)"
-        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: nil)
-
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error {
-                FameFitLogger.error("Failed to send notification", error: error, category: FameFitLogger.workout)
-            } else {
-                FameFitLogger.debug("Push notification sent successfully", category: FameFitLogger.workout)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            healthKitService.fetchWorkoutsWithPredicate(
+                predicate,
+                limit: 100,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]
+            ) { samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    let workouts = (samples as? [HKWorkout]) ?? []
+                    continuation.resume(returning: workouts)
+                }
             }
         }
     }
-
-    /// Request notification permissions if not already granted
+    
+    /// Request notification permissions
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             if settings.authorizationStatus == .notDetermined {
-                UNUserNotificationCenter.current().requestAuthorization(options: [
-                    .alert,
-                    .sound,
-                    .badge
-                ]) { granted, error in
-                    if let error {
-                        FameFitLogger.error(
-                            "Failed to request notification permissions",
-                            error: error,
-                            category: FameFitLogger.app
-                        )
-                    } else if granted {
-                        FameFitLogger.info("✅ Notification permissions granted", category: FameFitLogger.app)
-                    } else {
-                        FameFitLogger.notice("❌ Notification permissions denied", category: FameFitLogger.app)
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if granted {
+                        FameFitLogger.info("Notification permissions granted", category: FameFitLogger.notifications)
+                    } else if let error {
+                        FameFitLogger.error("Notification permissions error", error: error, category: FameFitLogger.notifications)
                     }
                 }
             } else if settings.authorizationStatus == .authorized {
-                FameFitLogger.debug("Notification permissions already granted", category: FameFitLogger.app)
+                FameFitLogger.info("Notification permissions already granted", category: FameFitLogger.notifications)
             }
         }
+    }
+}
+
+// MARK: - CloudKit Extensions
+
+private extension CKRecord {
+    convenience init(recordType: String) {
+        self.init(recordType: recordType, recordID: CKRecord.ID(recordName: UUID().uuidString))
     }
 }

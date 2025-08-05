@@ -11,7 +11,6 @@ import WatchConnectivity
 
 struct WorkoutStartView: View {
     @Environment(\.dependencyContainer) var container
-    @StateObject private var watchManager = WatchConnectivityManager.shared
     @State private var isCheckingWatchConnection = false
     @State private var showWatchNotConnectedAlert = false
     @State private var selectedWorkoutType: HKWorkoutActivityType?
@@ -90,7 +89,7 @@ struct WorkoutStartView: View {
     }
     
     private var isWatchConnected: Bool {
-        watchManager.isReachable
+        container.watchConnectivityManager.isReachable
     }
     
     // MARK: - Actions
@@ -98,7 +97,8 @@ struct WorkoutStartView: View {
     private func checkWatchConnection() {
         isCheckingWatchConnection = true
         
-        watchManager.checkConnection { isConnected in
+        Task {
+            let isConnected = container.watchConnectivityManager.isReachable
             DispatchQueue.main.async {
                 isCheckingWatchConnection = false
                 if !isConnected {
@@ -115,7 +115,9 @@ struct WorkoutStartView: View {
         }
         
         // Send message to watch to start workout
-        watchManager.startWorkout(type: Int(type.rawValue))
+        Task {
+                try await container.watchConnectivityManager.startWorkout(type: Int(type.rawValue))
+            }
     }
 }
 

@@ -89,8 +89,8 @@ final class DataRefreshCoordinator: DataRefreshCoordinating {
     
     func refreshWorkouts() async {
         // Restart workout sync to fetch latest data
-        workoutSyncManager?.stopSync()
-        workoutSyncManager?.startReliableSync()
+        await workoutSyncManager?.stopSync()
+        await workoutSyncManager?.startReliableSync()
     }
     
     func refreshSocialData() async {

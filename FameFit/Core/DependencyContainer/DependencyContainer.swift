@@ -20,6 +20,8 @@ final class DependencyContainer: ObservableObject {
     let authenticationManager: AuthenticationManager
     let cloudKitManager: CloudKitManager
     let healthKitService: HealthKitService
+    let modernHealthKitService: ModernHealthKitServicing
+    let watchConnectivityManager: WatchConnectivityManaging
     
     // MARK: - Workout Services
     
@@ -79,6 +81,8 @@ final class DependencyContainer: ObservableObject {
         cloudKitManager: CloudKitManager,
         workoutObserver: WorkoutObserver,
         healthKitService: HealthKitService,
+        modernHealthKitService: ModernHealthKitServicing,
+        watchConnectivityManager: WatchConnectivityManaging,
         workoutSyncManager: WorkoutSyncManager,
         workoutSyncQueue: WorkoutSyncQueue,
         notificationStore: NotificationStore,
@@ -108,6 +112,8 @@ final class DependencyContainer: ObservableObject {
         self.cloudKitManager = cloudKitManager
         self.workoutObserver = workoutObserver
         self.healthKitService = healthKitService
+        self.modernHealthKitService = modernHealthKitService
+        self.watchConnectivityManager = watchConnectivityManager
         self.workoutSyncManager = workoutSyncManager
         self.workoutSyncQueue = workoutSyncQueue
         self.notificationStore = notificationStore

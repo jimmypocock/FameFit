@@ -35,8 +35,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Register background tasks BEFORE didFinishLaunching returns (iOS requirement)
         registerBackgroundTasks()
         
-        // Initialize WatchConnectivity
-        _ = WatchConnectivityManager.shared
+        // WatchConnectivity is now initialized through DependencyContainer
 
         return true
     }

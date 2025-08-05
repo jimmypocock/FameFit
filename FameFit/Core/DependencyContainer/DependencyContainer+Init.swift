@@ -12,11 +12,14 @@ import Foundation
 extension DependencyContainer {
     /// Initialize container with a dependency factory
     /// - Parameter factory: Factory to create dependencies (defaults to production)
+    @MainActor
     convenience init(factory: DependencyFactory = ProductionDependencyFactory()) {
         // Phase 1: Core Services
         let cloudKitManager = factory.createCloudKitManager()
         let authenticationManager = factory.createAuthenticationManager(cloudKitManager: cloudKitManager)
         let healthKitService = factory.createHealthKitService()
+        let modernHealthKitService = factory.createModernHealthKitService()
+        let watchConnectivityManager = factory.createWatchConnectivityManager()
         let notificationStore = factory.createNotificationStore()
         let unlockStorageService = factory.createUnlockStorageService()
         
@@ -26,7 +29,7 @@ extension DependencyContainer {
             healthKitService: healthKitService
         )
         
-        let workoutSyncManager = factory.createWorkoutSyncManager(
+        let workoutSyncManager = WorkoutSyncManager(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
@@ -43,7 +46,7 @@ extension DependencyContainer {
         
         let messageProvider = factory.createMessageProvider()
         let notificationScheduler = factory.createNotificationScheduler()
-        let apnsManager = factory.createAPNSManager()
+        let apnsManager = factory.createAPNSManager(cloudKitManager: cloudKitManager)
         
         let notificationManager = factory.createNotificationManager(
             notificationStore: notificationStore,
@@ -143,6 +146,8 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager,
             workoutObserver: workoutObserver,
             healthKitService: healthKitService,
+            modernHealthKitService: modernHealthKitService,
+            watchConnectivityManager: watchConnectivityManager,
             workoutSyncManager: workoutSyncManager,
             workoutSyncQueue: workoutSyncQueue,
             notificationStore: notificationStore,
@@ -173,7 +178,12 @@ extension DependencyContainer {
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.xpTransactionService = xpTransactionService
         workoutObserver.cloudKitManager = cloudKitManager
+        
+        // Since we're already on MainActor, we can set these directly
         workoutSyncManager.notificationStore = notificationStore
         workoutSyncManager.notificationManager = notificationManager
+        
+        // Start CloudKit initialization after all dependencies are wired up
+        cloudKitManager.startInitialization()
     }
 }

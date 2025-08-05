@@ -15,11 +15,13 @@ protocol DependencyFactory: AnyObject {
     func createCloudKitManager() -> CloudKitManager
     func createAuthenticationManager(cloudKitManager: CloudKitManager) -> AuthenticationManager
     func createHealthKitService() -> HealthKitService
+    func createModernHealthKitService() -> ModernHealthKitServicing
+    func createWatchConnectivityManager() -> WatchConnectivityManaging
     func createNotificationStore() -> NotificationStore
     func createUnlockStorageService() -> UnlockStorageService
     func createUnlockNotificationService(notificationStore: NotificationStore, unlockStorage: UnlockStorageService) -> UnlockNotificationService
     func createNotificationScheduler() -> NotificationScheduling
-    func createAPNSManager() -> APNSManaging
+    func createAPNSManager(cloudKitManager: CloudKitManager) -> APNSManaging
     
     // Workflow Services
     func createWorkoutObserver(cloudKitManager: CloudKitManager, healthKitService: HealthKitService) -> WorkoutObserver
@@ -67,6 +69,16 @@ class ProductionDependencyFactory: DependencyFactory {
         RealHealthKitService()
     }
     
+    func createModernHealthKitService() -> ModernHealthKitServicing {
+        ModernHealthKitService()
+    }
+    
+    func createWatchConnectivityManager() -> WatchConnectivityManaging {
+        // WatchConnectivity should be a singleton since WCSession is a singleton
+        // We still return it through the factory for consistency and testability
+        return WatchConnectivitySingleton.shared
+    }
+    
     func createNotificationStore() -> NotificationStore {
         NotificationStore()
     }
@@ -86,8 +98,8 @@ class ProductionDependencyFactory: DependencyFactory {
         NotificationScheduler(notificationStore: NotificationStore())
     }
     
-    func createAPNSManager() -> APNSManaging {
-        APNSManager(cloudKitManager: CloudKitManager())
+    func createAPNSManager(cloudKitManager: CloudKitManager) -> APNSManaging {
+        APNSManager(cloudKitManager: cloudKitManager)
     }
     
     // MARK: - Workflow Services
@@ -106,10 +118,9 @@ class ProductionDependencyFactory: DependencyFactory {
         cloudKitManager: CloudKitManager,
         healthKitService: HealthKitService
     ) -> WorkoutSyncManager {
-        WorkoutSyncManager(
-            cloudKitManager: cloudKitManager,
-            healthKitService: healthKitService
-        )
+        // Note: WorkoutSyncManager is @MainActor, so it must be created on the main actor
+        // This factory method is not used anymore - WorkoutSyncManager is created directly in DependencyContainer+Init
+        fatalError("WorkoutSyncManager must be created on MainActor. Use DependencyContainer init instead.")
     }
     
     func createWorkoutSyncQueue(cloudKitManager: CloudKitManager) -> WorkoutSyncQueue {
