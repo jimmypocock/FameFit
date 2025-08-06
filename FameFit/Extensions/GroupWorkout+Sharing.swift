@@ -59,12 +59,8 @@ extension GroupWorkout {
     
     /// Generates activity items for sharing
     var activityItems: [Any] {
-        var items: [Any] = [shareText]
-        
-        if let deepLink = deepLinkURL {
-            items.append(deepLink)
-        }
-        
-        return items
+        // Only include the share text which already contains the link
+        // Adding the URL separately causes it to appear twice
+        return [shareText]
     }
 }
