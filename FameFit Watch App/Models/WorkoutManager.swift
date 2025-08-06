@@ -28,6 +28,15 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     #else
         var builder: AnyObject?
     #endif
+    
+    // MARK: - Group Workout Properties
+    
+    @Published var isGroupWorkout: Bool = false
+    @Published var groupWorkoutID: String?
+    @Published var groupWorkoutName: String?
+    @Published var isGroupWorkoutHost: Bool = false
+    @Published var groupParticipantCount: Int = 0
+    private var groupWorkoutMetadata: [String: Any] = [:]
 
     // MARK: - Workout Control
 
@@ -226,6 +235,44 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         displayTimer = nil
         messageTimer?.invalidate()
         messageTimer = nil
+        // Reset group workout properties
+        isGroupWorkout = false
+        groupWorkoutID = nil
+        groupWorkoutName = nil
+        isGroupWorkoutHost = false
+        groupParticipantCount = 0
+        groupWorkoutMetadata = [:]
+    }
+    
+    // MARK: - Group Workout Methods
+    
+    func startGroupWorkout(workoutType: HKWorkoutActivityType, groupID: String, groupName: String, isHost: Bool, participantCount: Int) {
+        FameFitLogger.info("Starting group workout: \(groupName) (ID: \(groupID))", category: FameFitLogger.workout)
+        
+        // Set group workout properties
+        isGroupWorkout = true
+        groupWorkoutID = groupID
+        groupWorkoutName = groupName
+        isGroupWorkoutHost = isHost
+        groupParticipantCount = participantCount
+        
+        // Prepare metadata for HealthKit
+        groupWorkoutMetadata = [
+            "groupWorkoutID": groupID,
+            "groupWorkoutName": groupName,
+            "isGroupWorkout": true,
+            "isHost": isHost,
+            "participantCount": participantCount,
+            "joinTimestamp": Date()
+        ]
+        
+        // Start regular workout
+        startWorkout(workoutType: workoutType)
+    }
+    
+    func updateGroupParticipantCount(_ count: Int) {
+        groupParticipantCount = count
+        groupWorkoutMetadata["participantCount"] = count
     }
 
     private func startDisplayTimer() {
@@ -352,6 +399,21 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
 
         // Wait for the session to transition states before ending the builder.
         if toState == .ended {
+            // Add group workout metadata if this is a group workout
+            #if os(watchOS)
+            if let builder = builder, isGroupWorkout, !groupWorkoutMetadata.isEmpty {
+                // Add final participant count
+                groupWorkoutMetadata["finalParticipantCount"] = groupParticipantCount
+                
+                // Add metadata to the builder before finishing
+                builder.addMetadata(groupWorkoutMetadata) { success, error in
+                    if !success {
+                        FameFitLogger.warning("Failed to add group workout metadata: \(String(describing: error))", category: FameFitLogger.workout)
+                    }
+                }
+            }
+            #endif
+            
             builder?.endCollection(withEnd: date) { [weak self] _, _ in
                 self?.builder?.finishWorkout { [weak self] workout, _ in
                     DispatchQueue.main.async {

@@ -49,9 +49,7 @@ struct GroupWorkoutDetailView: View {
                     participantsSection
                     
                     // Share & Calendar
-                    if workout.isUpcoming {
-                        shareSection
-                    }
+                    shareSection
                 }
                 .padding()
             }
@@ -151,30 +149,16 @@ struct GroupWorkoutDetailView: View {
     @ViewBuilder
     private var quickActionButtons: some View {
         if isCreator {
-            if workout.isJoinable {
-                // Creator sees start button when workout is joinable
+            if workout.status == .scheduled {
+                // Host can start workout anytime when it's scheduled
                 Button(action: startWorkout) {
                     Label("Start Workout", systemImage: "play.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(BorderedProminentButtonStyle())
                 .tint(.green)
-            } else if let timeUntil = workout.timeUntilJoinable {
-                // Show countdown when workout isn't ready to start
-                VStack(spacing: 8) {
-                    Label("Workout starts in", systemImage: "clock")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(timeRemainingText(timeUntil))
-                        .font(.title3)
-                        .fontWeight(.medium)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color(.tertiarySystemBackground))
-                .cornerRadius(10)
             }
-        } else if myParticipation == nil {
+        } else if myParticipation == nil && workout.isJoinable {
             joinButtons
         } else if let participation = myParticipation, participation.status != .declined {
             statusUpdateButtons(for: participation)
