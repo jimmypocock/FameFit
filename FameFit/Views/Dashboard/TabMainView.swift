@@ -10,7 +10,7 @@ import SwiftUI
 
 struct TabMainView: View {
     @StateObject private var viewModel: MainViewModel
-    @State private var selectedTab = 0
+    @StateObject private var navigationCoordinator = NavigationCoordinator()
     @State private var showingFilters = false
     @State private var activeSheet: SheetType?
     @State private var workoutToShare: Workout?
@@ -23,13 +23,13 @@ struct TabMainView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $navigationCoordinator.selectedTab) {
             // Activity Feed - Primary home screen
-            NavigationView {
+            NavigationStack {
                 SocialFeedView(
                     showingFilters: $showingFilters,
                     onDiscoverTap: {
-                        selectedTab = 1 // Switch to Discover tab
+                        navigationCoordinator.selectedTab = 1 // Switch to Discover tab
                     }
                 )
                     .navigationBarTitleDisplayMode(.inline)
@@ -56,7 +56,7 @@ struct TabMainView: View {
             .tag(0)
 
             // Discover Users
-            NavigationView {
+            NavigationStack {
                 UserSearchView()
                     .navigationBarTitleDisplayMode(.inline)
             }
@@ -66,10 +66,19 @@ struct TabMainView: View {
             .tag(1)
 
             // Workouts
-            NavigationView {
+            NavigationStack(path: $navigationCoordinator.workoutsPath) {
                 WorkoutsContainerView()
                     .navigationTitle("Workouts")
                     .navigationBarTitleDisplayMode(.inline)
+                    .navigationDestination(for: NavigationDestination.self) { destination in
+                        switch destination {
+                        case .workout(let id):
+                            // TODO: Add WorkoutDetailView when implemented
+                            Text("Workout \(id)")
+                        default:
+                            EmptyView()
+                        }
+                    }
             }
             .tabItem {
                 Image(systemName: "figure.run")
@@ -77,9 +86,22 @@ struct TabMainView: View {
             .tag(2)
             
             // Group Workouts
-            NavigationView {
+            NavigationStack(path: $navigationCoordinator.groupWorkoutsPath) {
                 GroupWorkoutsView()
                     .navigationBarTitleDisplayMode(.inline)
+                    .navigationDestination(for: NavigationDestination.self) { destination in
+                        switch destination {
+                        case .groupWorkout(let workout):
+                            GroupWorkoutDetailView(workout: workout)
+                                .environment(\.dependencyContainer, container)
+                        case .groupWorkoutDetail(let id):
+                            // For deep linking - load workout by ID
+                            GroupWorkoutDetailDeepLinkView(workoutId: id)
+                                .environment(\.dependencyContainer, container)
+                        default:
+                            EmptyView()
+                        }
+                    }
             }
             .tabItem {
                 Image(systemName: "person.3")
@@ -87,9 +109,18 @@ struct TabMainView: View {
             .tag(3)
 
             // Challenges
-            NavigationView {
+            NavigationStack(path: $navigationCoordinator.challengesPath) {
                 ChallengesView()
                     .navigationBarTitleDisplayMode(.inline)
+                    .navigationDestination(for: NavigationDestination.self) { destination in
+                        switch destination {
+                        case .challenge(let id):
+                            // TODO: Add ChallengeDetailView when implemented
+                            Text("Challenge \(id)")
+                        default:
+                            EmptyView()
+                        }
+                    }
             }
             .tabItem {
                 Image(systemName: "trophy")
@@ -99,7 +130,7 @@ struct TabMainView: View {
         .sheet(item: $activeSheet) { sheetType in
             switch sheetType {
             case .profile:
-                NavigationView {
+                NavigationStack {
                     if let currentUserId = container.cloudKitManager.currentUserID {
                         ProfileView(userId: currentUserId)
                             .navigationTitle("Profile")
@@ -140,6 +171,10 @@ struct TabMainView: View {
                 DeveloperMenu()
             #endif
             }
+        }
+        .environment(\.navigationCoordinator, navigationCoordinator)
+        .onOpenURL { url in
+            navigationCoordinator.handleDeepLink(url)
         }
         .onAppear {
             viewModel.refreshData()

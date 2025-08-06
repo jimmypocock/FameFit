@@ -38,7 +38,7 @@ struct GroupWorkoutDetailView: View {
                     headerSection
                     
                     // Quick Actions
-                    if workout.isUpcoming {
+                    if workout.status == .scheduled || workout.status == .active {
                         quickActionsSection
                     }
                     
@@ -58,7 +58,11 @@ struct GroupWorkoutDetailView: View {
             .navigationTitle("Workout Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    ShareLink(item: workout.shareText, subject: Text(workout.name)) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    
                     if isCreator && workout.isUpcoming {
                         Menu {
                             Button(action: { showEditSheet = true }) {
@@ -146,7 +150,31 @@ struct GroupWorkoutDetailView: View {
     
     @ViewBuilder
     private var quickActionButtons: some View {
-        if myParticipation == nil {
+        if isCreator {
+            if workout.isJoinable {
+                // Creator sees start button when workout is joinable
+                Button(action: startWorkout) {
+                    Label("Start Workout", systemImage: "play.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(BorderedProminentButtonStyle())
+                .tint(.green)
+            } else if let timeUntil = workout.timeUntilJoinable {
+                // Show countdown when workout isn't ready to start
+                VStack(spacing: 8) {
+                    Label("Workout starts in", systemImage: "clock")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(timeRemainingText(timeUntil))
+                        .font(.title3)
+                        .fontWeight(.medium)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.tertiarySystemBackground))
+                .cornerRadius(10)
+            }
+        } else if myParticipation == nil {
             joinButtons
         } else if let participation = myParticipation, participation.status != .declined {
             statusUpdateButtons(for: participation)
@@ -370,6 +398,17 @@ struct GroupWorkoutDetailView: View {
         return formatter.string(from: workout.scheduledStart)
     }
     
+    private func timeRemainingText(_ timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval / 60)
+        let seconds = Int(timeInterval.truncatingRemainder(dividingBy: 60))
+        
+        if minutes > 0 {
+            return "\(minutes)m \(seconds)s"
+        } else {
+            return "\(seconds)s"
+        }
+    }
+    
     // MARK: - Actions
     
     private func loadData() async {
@@ -428,6 +467,20 @@ struct GroupWorkoutDetailView: View {
                 await loadData()
             } catch {
                 print("Failed to update status: \(error)")
+            }
+        }
+    }
+    
+    private func startWorkout() {
+        Task {
+            do {
+                _ = try await container.groupWorkoutService.startGroupWorkout(workout.id)
+                await loadData()
+                
+                // TODO: Navigate to watch workout view or show active workout UI
+                FameFitLogger.info("🏋️ Started group workout: \(workout.name)", category: FameFitLogger.ui)
+            } catch {
+                FameFitLogger.error("Failed to start workout", error: error, category: FameFitLogger.ui)
             }
         }
     }

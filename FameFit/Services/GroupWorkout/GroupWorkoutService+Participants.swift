@@ -40,7 +40,7 @@ extension GroupWorkoutService {
         _ = try await rateLimiter.checkLimit(for: .followRequest, userId: userId)
         
         // Add participant
-        let userProfile = try await userProfileService.fetchProfile(userId: userId)
+        let userProfile = try await userProfileService.fetchProfileByUserID(userId)
         let participant = GroupWorkoutParticipant(
             id: UUID().uuidString,
             groupWorkoutId: workoutId,
@@ -54,8 +54,11 @@ extension GroupWorkoutService {
         let participantRecord = participant.toCKRecord()
         _ = try await cloudKitManager.save(participantRecord)
         
-        // Update workout participant count
+        // Update workout participant count and participantIDs
         workout.participantCount += 1
+        if !workout.participantIDs.contains(userId) {
+            workout.participantIDs.append(userId)
+        }
         _ = try await updateGroupWorkout(workout)
         
         // Record action
@@ -121,9 +124,10 @@ extension GroupWorkoutService {
             record["status"] = ParticipantStatus.dropped.rawValue
             _ = try await cloudKitManager.save(record)
             
-            // Update workout participant count
+            // Update workout participant count and participantIDs
             var updatedWorkout = workout
             updatedWorkout.participantCount = max(0, updatedWorkout.participantCount - 1)
+            updatedWorkout.participantIDs.removeAll { $0 == userId }
             _ = try await updateGroupWorkout(updatedWorkout)
             
             // Send real-time update
@@ -183,12 +187,12 @@ extension GroupWorkoutService {
         }
         
         // Update workout data
-        record["startTime"] = data.startTime
-        record["endTime"] = data.endTime
+        record["startTimestamp"] = data.startTime
+        record["endTimestamp"] = data.endTime
         record["totalEnergyBurned"] = data.totalEnergyBurned
         record["averageHeartRate"] = data.averageHeartRate
         record["totalDistance"] = data.totalDistance
-        record["lastUpdated"] = data.lastUpdated
+        // Note: modifiedTimestamp is automatically updated by CloudKit
         
         // Save update (with rate limiting for frequent updates)
         if await shouldUpdateCloudKit(for: workoutId) {

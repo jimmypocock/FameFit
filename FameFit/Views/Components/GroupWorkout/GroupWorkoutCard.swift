@@ -10,11 +10,6 @@ import SwiftUI
 
 struct GroupWorkoutCard: View {
     let groupWorkout: GroupWorkout
-    let currentUserId: String?
-    let onJoin: () -> Void
-    let onLeave: () -> Void
-    let onStart: () -> Void
-    let onViewDetails: () -> Void
 
     @State private var showParticipants = false
     @State private var isAnimating = false
@@ -36,15 +31,6 @@ struct GroupWorkoutCard: View {
                 participants: [], // TODO: Fetch participants from CloudKit
                 showParticipants: $showParticipants
             )
-
-            // Action buttons
-            GroupWorkoutActions(
-                groupWorkout: groupWorkout,
-                currentUserId: currentUserId,
-                onJoin: onJoin,
-                onLeave: onLeave,
-                onStart: onStart
-            )
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
@@ -65,9 +51,6 @@ struct GroupWorkoutCard: View {
         )
         .scaleEffect(isAnimating ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAnimating)
-        .onTapGesture {
-            onViewDetails()
-        }
     }
 }
 

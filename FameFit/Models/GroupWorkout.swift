@@ -11,7 +11,7 @@ import HealthKit
 
 // MARK: - Group Workout Model
 
-struct GroupWorkout: Identifiable, Equatable {
+struct GroupWorkout: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let description: String
@@ -29,6 +29,7 @@ struct GroupWorkout: Identifiable, Equatable {
     let tags: [String]
     let location: String? // Optional location
     let notes: String? // Optional notes
+    var participantIDs: [String] = [] // Array of user IDs who have joined (excluding host for cleaner data model)
 
     // Computed Properties
     var duration: TimeInterval {
@@ -94,7 +95,8 @@ struct GroupWorkout: Identifiable, Equatable {
         joinCode: String? = nil,
         tags: [String] = [],
         location: String? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        participantIDs: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -113,6 +115,7 @@ struct GroupWorkout: Identifiable, Equatable {
         self.tags = tags
         self.location = location
         self.notes = notes
+        self.participantIDs = participantIDs
     }
 
     // MARK: - CloudKit Integration
@@ -171,6 +174,7 @@ struct GroupWorkout: Identifiable, Equatable {
         let tags = record["tags"] as? [String] ?? []
         let location = record["location"] as? String
         let notes = record["notes"] as? String
+        let participantIDs = record["participantIDs"] as? [String] ?? []
 
         self.init(
             id: record.recordID.recordName,
@@ -189,7 +193,8 @@ struct GroupWorkout: Identifiable, Equatable {
             joinCode: record["joinCode"] as? String,
             tags: tags,
             location: location,
-            notes: notes
+            notes: notes,
+            participantIDs: participantIDs
         )
     }
 
@@ -215,6 +220,7 @@ struct GroupWorkout: Identifiable, Equatable {
         record["tags"] = tags
         record["location"] = location
         record["notes"] = notes
+        record["participantIDs"] = participantIDs
 
         return record
     }
@@ -227,6 +233,15 @@ struct GroupWorkout: Identifiable, Equatable {
     }
 }
 
+// MARK: - Hashable Conformance
+
+extension GroupWorkout {
+    func hash(into hasher: inout Hasher) {
+        // Since id is unique, we only need to hash the id
+        hasher.combine(id)
+    }
+}
+
 // MARK: - Codable Conformance
 
 extension GroupWorkout: Codable {
@@ -234,7 +249,7 @@ extension GroupWorkout: Codable {
         case id, name, description, workoutType, hostId, participantCount
         case maxParticipants, scheduledStart, scheduledEnd, status
         case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
-        case location, notes
+        case location, notes, participantIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -267,6 +282,7 @@ extension GroupWorkout: Codable {
         tags = try container.decode([String].self, forKey: .tags)
         location = try container.decodeIfPresent(String.self, forKey: .location)
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        participantIDs = try container.decodeIfPresent([String].self, forKey: .participantIDs) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -288,6 +304,7 @@ extension GroupWorkout: Codable {
         try container.encode(tags, forKey: .tags)
         try container.encodeIfPresent(location, forKey: .location)
         try container.encodeIfPresent(notes, forKey: .notes)
+        try container.encode(participantIDs, forKey: .participantIDs)
     }
 }
 

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct GroupWorkoutsView: View {
     @Environment(\.dependencyContainer) private var container
+    @Environment(\.navigationCoordinator) private var navigationCoordinator
     @StateObject private var viewModel = GroupWorkoutsViewModel()
 
     @State private var showingCreateWorkout = false
@@ -105,14 +106,24 @@ struct GroupWorkoutsView: View {
             }
         }
         .refreshable {
-            await viewModel.refreshWorkouts()
+            await viewModel.refreshWorkouts(for: selectedTab)
         }
         .onAppear {
             FameFitLogger.info("🏋️ GroupWorkoutsView appeared", category: FameFitLogger.ui)
-            viewModel.setup(
-                groupWorkoutService: container.groupWorkoutService,
-                currentUserId: container.cloudKitManager.currentUserID
-            )
+            if let navigationCoordinator = navigationCoordinator {
+                viewModel.setup(
+                    groupWorkoutService: container.groupWorkoutService,
+                    currentUserId: container.cloudKitManager.currentUserID,
+                    navigationCoordinator: navigationCoordinator
+                )
+            } else {
+                // Fallback without navigation coordinator (shouldn't happen in practice)
+                viewModel.setup(
+                    groupWorkoutService: container.groupWorkoutService,
+                    currentUserId: container.cloudKitManager.currentUserID,
+                    navigationCoordinator: nil
+                )
+            }
         }
         .sheet(isPresented: $showingCreateWorkout) {
             CreateGroupWorkoutView()
@@ -140,48 +151,17 @@ struct GroupWorkoutsView: View {
         Group {
             if viewModel.isLoading, workouts(for: tab).isEmpty {
                 loadingView
-            } else if workouts(for: tab).isEmpty {
+            } else if tab == .upcoming && viewModel.hostingWorkouts.isEmpty && viewModel.participatingWorkouts.isEmpty && viewModel.publicWorkouts.isEmpty {
+                emptyStateView(for: tab)
+            } else if tab != .upcoming && workouts(for: tab).isEmpty {
                 emptyStateView(for: tab)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(workouts(for: tab), id: \.id) { workout in
-                            GroupWorkoutCard(
-                                groupWorkout: workout,
-                                currentUserId: viewModel.currentUserId,
-                                onJoin: {
-                                    Task {
-                                        await viewModel.joinWorkout(workout.id)
-                                    }
-                                },
-                                onLeave: {
-                                    Task {
-                                        await viewModel.leaveWorkout(workout.id)
-                                    }
-                                },
-                                onStart: {
-                                    Task {
-                                        await viewModel.startWorkout(workout.id)
-                                    }
-                                },
-                                onViewDetails: {
-                                    // Navigate to workout details
-                                }
-                            )
-                        }
-
-                        // Load more button
-                        if viewModel.hasMore(for: tab) {
-                            Button("Load More") {
-                                Task {
-                                    await viewModel.loadMoreWorkouts(for: tab)
-                                }
-                            }
-                            .padding()
-                            .foregroundColor(.blue)
-                        }
-                    }
-                    .padding()
+                if tab == .upcoming {
+                    // Special sectioned view for upcoming workouts
+                    upcomingSectionedList
+                } else {
+                    // Regular list for other tabs
+                    regularWorkoutList(for: tab)
                 }
             }
         }
@@ -190,6 +170,97 @@ struct GroupWorkoutsView: View {
                 await viewModel.loadWorkouts(for: tab)
             }
         }
+    }
+    
+    private var upcomingSectionedList: some View {
+        ScrollView {
+            LazyVStack(spacing: 24) {
+                // Hosting Section
+                if !viewModel.hostingWorkouts.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Hosting")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+                        
+                        ForEach(viewModel.hostingWorkouts, id: \.id) { workout in
+                            workoutCard(for: workout)
+                        }
+                    }
+                }
+                
+                // Participating Section
+                if !viewModel.participatingWorkouts.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Participating")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+                        
+                        ForEach(viewModel.participatingWorkouts, id: \.id) { workout in
+                            workoutCard(for: workout)
+                        }
+                    }
+                }
+                
+                // Public Section
+                if !viewModel.publicWorkouts.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Public")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+                        
+                        ForEach(viewModel.publicWorkouts, id: \.id) { workout in
+                            workoutCard(for: workout)
+                        }
+                    }
+                }
+                
+                // Load more button
+                if viewModel.hasMore(for: .upcoming) {
+                    Button("Load More") {
+                        Task {
+                            await viewModel.loadMoreWorkouts(for: .upcoming)
+                        }
+                    }
+                    .padding()
+                    .foregroundColor(.blue)
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+    
+    private func regularWorkoutList(for tab: WorkoutTab) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(workouts(for: tab), id: \.id) { workout in
+                    workoutCard(for: workout)
+                }
+
+                // Load more button
+                if viewModel.hasMore(for: tab) {
+                    Button("Load More") {
+                        Task {
+                            await viewModel.loadMoreWorkouts(for: tab)
+                        }
+                    }
+                    .padding()
+                    .foregroundColor(.blue)
+                }
+            }
+            .padding()
+        }
+    }
+    
+    private func workoutCard(for workout: GroupWorkout) -> some View {
+        Button {
+            navigationCoordinator?.navigateToGroupWorkout(workout)
+        } label: {
+            GroupWorkoutCard(groupWorkout: workout)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 
     // MARK: - Loading View
@@ -271,17 +342,24 @@ class GroupWorkoutsViewModel: ObservableObject {
     @Published var myWorkouts: [GroupWorkout] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    
+    // Grouped upcoming workouts for sections
+    @Published var hostingWorkouts: [GroupWorkout] = []
+    @Published var participatingWorkouts: [GroupWorkout] = []
+    @Published var publicWorkouts: [GroupWorkout] = []
 
     private var groupWorkoutService: GroupWorkoutServiceProtocol?
     var currentUserId: String?
+    private var navigationCoordinator: NavigationCoordinator?
 
     private var hasMoreUpcoming = true
     private var hasMoreActive = true
     private var hasMoreMyWorkouts = true
 
-    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserId: String?) {
+    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserId: String?, navigationCoordinator: NavigationCoordinator?) {
         self.groupWorkoutService = groupWorkoutService
         self.currentUserId = currentUserId
+        self.navigationCoordinator = navigationCoordinator
     }
 
     func loadWorkouts(for tab: GroupWorkoutsView.WorkoutTab) async {
@@ -308,8 +386,15 @@ class GroupWorkoutsViewModel: ObservableObject {
             case .upcoming:
                 FameFitLogger.debug("🏋️ Fetching upcoming workouts via service", category: FameFitLogger.ui)
                 newWorkouts = try await service.fetchUpcomingWorkouts(limit: 20)
-                FameFitLogger.debug("🏋️ Received \(newWorkouts.count) upcoming workouts", category: FameFitLogger.ui)
+                FameFitLogger.info("🏋️ Received \(newWorkouts.count) upcoming workouts", category: FameFitLogger.ui)
+                
+                // Log each workout for debugging
+                for (index, workout) in newWorkouts.enumerated() {
+                    FameFitLogger.debug("🏋️ Upcoming[\(index)]: \(workout.name) - Status: \(workout.status.rawValue) - End: \(workout.scheduledEnd)", category: FameFitLogger.ui)
+                }
+                
                 upcomingWorkouts = newWorkouts
+                groupUpcomingWorkouts()
                 hasMoreUpcoming = newWorkouts.count == 20
 
             case .active:
@@ -360,80 +445,43 @@ class GroupWorkoutsViewModel: ObservableObject {
     func refreshWorkouts() async {
         guard groupWorkoutService != nil else { return }
 
-        // Clear existing data
-        upcomingWorkouts = []
-        activeWorkouts = []
-        myWorkouts = []
-
-        // Reload all tabs
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.loadWorkouts(for: .upcoming) }
-            group.addTask { await self.loadWorkouts(for: .active) }
-            group.addTask { await self.loadWorkouts(for: .myWorkouts) }
+        // Only refresh the currently selected tab
+        // This is called by pull-to-refresh, so we know which tab is active
+        // For now, default to upcoming since it's the most common
+        await refreshWorkouts(for: .upcoming)
+    }
+    
+    func refreshWorkouts(for tab: GroupWorkoutsView.WorkoutTab) async {
+        guard groupWorkoutService != nil else { return }
+        
+        // Clear only the data for the tab being refreshed
+        switch tab {
+        case .upcoming:
+            upcomingWorkouts = []
+            hostingWorkouts = []
+            participatingWorkouts = []
+            publicWorkouts = []
+        case .active:
+            activeWorkouts = []
+        case .myWorkouts:
+            myWorkouts = []
         }
+        
+        // Reload only the requested tab
+        await loadWorkouts(for: tab)
     }
 
-    func joinWorkout(_ workoutId: String) async {
-        guard let service = groupWorkoutService else { 
-            errorMessage = "Service not available"
-            return 
-        }
-
-        do {
-            try await service.joinGroupWorkout(workoutId)
-
-            // Refresh relevant lists
-            await refreshWorkouts()
-        } catch {
-            errorMessage = error.localizedDescription
-            FameFitLogger.error("🏋️ Failed to join workout", error: error, category: FameFitLogger.ui)
-        }
-    }
-
-    func leaveWorkout(_ workoutId: String) async {
-        guard let service = groupWorkoutService else { return }
-
-        do {
-            try await service.leaveGroupWorkout(workoutId)
-
-            // Remove from local lists
-            upcomingWorkouts.removeAll { $0.id == workoutId }
-            activeWorkouts.removeAll { $0.id == workoutId }
-            myWorkouts.removeAll { $0.id == workoutId }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func startWorkout(_ workoutId: String) async {
-        guard let service = groupWorkoutService else { 
-            errorMessage = "Service not available"
-            return 
-        }
-
-        do {
-            _ = try await service.startGroupWorkout(workoutId)
-
-            // Move workout to active list
-            if let workout = upcomingWorkouts.first(where: { $0.id == workoutId }) {
-                var updatedWorkout = workout
-                updatedWorkout.status = .active
-
-                upcomingWorkouts.removeAll { $0.id == workoutId }
-                activeWorkouts.insert(updatedWorkout, at: 0)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
 
     func joinWithCode(_ code: String) async {
         guard let service = groupWorkoutService else { return }
 
         do {
-            _ = try await service.joinWithCode(code)
+            let joinedWorkout = try await service.joinWithCode(code)
 
-            // Refresh workouts to show the joined workout
+            // Navigate to the joined workout detail view
+            navigationCoordinator?.navigateToGroupWorkout(joinedWorkout)
+            
+            // Refresh workouts to update the list
             await refreshWorkouts()
         } catch {
             errorMessage = error.localizedDescription
@@ -454,6 +502,42 @@ class GroupWorkoutsViewModel: ObservableObject {
         case .active: activeWorkouts
         case .myWorkouts: myWorkouts
         }
+    }
+    
+    // MARK: - Grouping Logic
+    
+    private func groupUpcomingWorkouts() {
+        FameFitLogger.debug("🏋️ Grouping \(upcomingWorkouts.count) upcoming workouts", category: FameFitLogger.ui)
+        
+        guard let userId = currentUserId else {
+            // If no user ID, all workouts are public to view
+            FameFitLogger.debug("🏋️ No user ID - showing all as public", category: FameFitLogger.ui)
+            hostingWorkouts = []
+            participatingWorkouts = []
+            publicWorkouts = upcomingWorkouts.sorted { $0.scheduledStart < $1.scheduledStart }
+            return
+        }
+        
+        // Group workouts by user's relationship
+        let hosting = upcomingWorkouts.filter { $0.hostId == userId }
+            .sorted { $0.scheduledStart < $1.scheduledStart }
+        
+        let participating = upcomingWorkouts.filter { 
+            $0.hostId != userId && $0.participantIDs.contains(userId)
+        }
+            .sorted { $0.scheduledStart < $1.scheduledStart }
+        
+        let publicOnly = upcomingWorkouts.filter { 
+            $0.isPublic && $0.hostId != userId && !$0.participantIDs.contains(userId)
+        }
+            .sorted { $0.scheduledStart < $1.scheduledStart }
+        
+        // Update published properties
+        hostingWorkouts = hosting
+        participatingWorkouts = participating
+        publicWorkouts = publicOnly
+        
+        FameFitLogger.debug("🏋️ Grouped workouts - Hosting: \(hosting.count), Participating: \(participating.count), Public: \(publicOnly.count)", category: FameFitLogger.ui)
     }
 }
 

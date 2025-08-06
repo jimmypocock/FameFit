@@ -18,44 +18,25 @@ struct GroupWorkoutActions: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if isParticipant {
-                // Leave button
-                Button(action: onLeave) {
+            // Start button (if host and scheduled)
+            if isHost, groupWorkout.status == .scheduled {
+                Button(action: onStart) {
                     HStack(spacing: 6) {
-                        Image(systemName: "xmark")
+                        Image(systemName: "play.fill")
                             .font(.system(size: 14))
-                        Text("Leave")
+                        Text("Start")
                             .font(.system(size: 14, weight: .medium))
                     }
-                    .foregroundColor(.red)
+                    .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.red.opacity(0.1))
+                            .fill(Color.green)
                     )
                 }
-
-                // Start button (if host and scheduled)
-                if isHost, groupWorkout.status == .scheduled {
-                    Button(action: onStart) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 14))
-                            Text("Start")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.green)
-                        )
-                    }
-                }
-            } else if groupWorkout.status.canJoin, groupWorkout.hasSpace {
-                // Join button
+            } else if !isParticipant && groupWorkout.status.canJoin && groupWorkout.hasSpace {
+                // Join button (only if not already a participant)
                 Button(action: {
                     if groupWorkout.isJoinable {
                         onJoin()
@@ -104,11 +85,15 @@ struct GroupWorkoutActions: View {
         }
     }
 
-    // Note: This should be determined by querying participant records
-    // For now, we'll need to pass this as a parameter or fetch it
+    // Check if the current user is a participant (including host)
     private var isParticipant: Bool {
-        // TODO: Implement proper participant check
-        false
+        guard let currentUserId else { return false }
+        // Host is always a participant
+        if groupWorkout.hostId == currentUserId {
+            return true
+        }
+        // Check if user is in participantIDs array
+        return groupWorkout.participantIDs.contains(currentUserId)
     }
 
     private var isHost: Bool {

@@ -54,9 +54,18 @@ extension GroupWorkoutService {
         
         // Fetch the invite
         let recordID = CKRecord.ID(recordName: inviteId)
-        let inviteRecord = try await cloudKitManager.database.record(for: recordID)
         
-        guard let invite = GroupWorkoutInvite(from: inviteRecord) else {
+        // Fetch using a query to ensure we use the public database
+        let predicate = NSPredicate(format: "recordID == %@", recordID)
+        let records = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkoutInvites",
+            predicate: predicate,
+            sortDescriptors: nil,
+            limit: 1
+        )
+        
+        guard let inviteRecord = records.first,
+              let invite = GroupWorkoutInvite(from: inviteRecord) else {
             throw GroupWorkoutError.inviteNotFound
         }
         
@@ -89,9 +98,18 @@ extension GroupWorkoutService {
         
         // Fetch the invite
         let recordID = CKRecord.ID(recordName: inviteId)
-        let inviteRecord = try await cloudKitManager.database.record(for: recordID)
         
-        guard let invite = GroupWorkoutInvite(from: inviteRecord) else {
+        // Fetch using a query to ensure we use the public database
+        let predicate = NSPredicate(format: "recordID == %@", recordID)
+        let records = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkoutInvites",
+            predicate: predicate,
+            sortDescriptors: nil,
+            limit: 1
+        )
+        
+        guard let inviteRecord = records.first,
+              let invite = GroupWorkoutInvite(from: inviteRecord) else {
             throw GroupWorkoutError.inviteNotFound
         }
         
@@ -164,9 +182,18 @@ extension GroupWorkoutService {
         
         // Fetch the invite
         let recordID = CKRecord.ID(recordName: inviteId)
-        let inviteRecord = try await cloudKitManager.database.record(for: recordID)
         
-        guard let invite = GroupWorkoutInvite(from: inviteRecord) else {
+        // Fetch using a query to ensure we use the public database
+        let predicate = NSPredicate(format: "recordID == %@", recordID)
+        let records = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkoutInvites",
+            predicate: predicate,
+            sortDescriptors: nil,
+            limit: 1
+        )
+        
+        guard let inviteRecord = records.first,
+              let invite = GroupWorkoutInvite(from: inviteRecord) else {
             throw GroupWorkoutError.inviteNotFound
         }
         

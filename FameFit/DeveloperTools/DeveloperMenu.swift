@@ -12,11 +12,13 @@ import SwiftUI
 enum DeveloperSheetType: Identifiable {
     case personaPicker
     case profilePicker
+    case navigationDebug
     
     var id: String {
         switch self {
         case .personaPicker: return "personaPicker"
         case .profilePicker: return "profilePicker"
+        case .navigationDebug: return "navigationDebug"
         }
     }
 }
@@ -120,6 +122,34 @@ struct DeveloperMenu: View {
                             }
                             
                             Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Navigation Debug
+                    Button(action: { sheetType = .navigationDebug }) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.green)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Navigation Debug")
+                                    .font(.headline)
+                                Text("View navigation paths & test deep links")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -270,6 +300,8 @@ struct DeveloperMenu: View {
                                        sheetType = nil
                                        createNewProfile(with: persona)
                                    })
+            case .navigationDebug:
+                NavigationDebugView()
             }
         }
         .task {

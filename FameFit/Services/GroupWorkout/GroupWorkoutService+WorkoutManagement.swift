@@ -43,7 +43,9 @@ extension GroupWorkoutService {
         }
         
         // Create the host as first participant
-        let hostProfile = try await userProfileService.fetchProfile(userId: userId)
+        FameFitLogger.debug("Fetching profile for userId: \(userId)", category: FameFitLogger.social)
+        let hostProfile = try await userProfileService.fetchProfileByUserID(userId)
+        FameFitLogger.debug("Successfully fetched profile: \(hostProfile.username)", category: FameFitLogger.social)
         let hostParticipant = GroupWorkoutParticipant(
             id: UUID().uuidString,
             groupWorkoutId: savedWorkout.id,

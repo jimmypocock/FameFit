@@ -145,8 +145,17 @@ extension GroupWorkoutService {
         
         Task {
             do {
-                let record = try await cloudKitManager.database.record(for: recordID)
-                if let workout = GroupWorkout(from: record) {
+                // Fetch using a query to ensure we use the public database
+                let predicate = NSPredicate(format: "recordID == %@", recordID)
+                let records = try await cloudKitManager.fetchRecords(
+                    ofType: "GroupWorkouts",
+                    predicate: predicate,
+                    sortDescriptors: nil,
+                    limit: 1
+                )
+                
+                if let record = records.first,
+                   let workout = GroupWorkout(from: record) {
                     await cacheWorkout(workout)
                     sendUpdate(.updated(workout))
                 }
@@ -161,8 +170,17 @@ extension GroupWorkoutService {
         
         Task {
             do {
-                let record = try await cloudKitManager.database.record(for: recordID)
-                if let participant = GroupWorkoutParticipant(from: record) {
+                // Fetch using a query to ensure we use the public database
+                let predicate = NSPredicate(format: "recordID == %@", recordID)
+                let records = try await cloudKitManager.fetchRecords(
+                    ofType: "GroupWorkoutParticipants",
+                    predicate: predicate,
+                    sortDescriptors: nil,
+                    limit: 1
+                )
+                
+                if let record = records.first,
+                   let participant = GroupWorkoutParticipant(from: record) {
                     sendUpdate(.participantDataUpdated(workoutId: participant.groupWorkoutId, participant: participant))
                 }
             } catch {

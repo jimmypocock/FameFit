@@ -14,96 +14,47 @@ extension GroupWorkoutService {
     func fetchUpcomingWorkouts(limit: Int) async throws -> [GroupWorkout] {
         FameFitLogger.info("Fetching upcoming workouts", category: FameFitLogger.social)
         
+        let now = Date()
+        
         guard let currentUserId = try? await cloudKitManager.getCurrentUserID() else {
-            // If not authenticated, only return public workouts
-            let predicate = GroupWorkoutQueryBuilder.publicUpcomingWorkoutsQuery()
+            // Non-authenticated: only show public workouts
+            let predicate = NSPredicate(format: 
+                "isPublic == 1 AND scheduledEnd > %@ AND status == %@",
+                now as NSDate, "scheduled"
+            )
             return try await fetchWorkouts(with: predicate, limit: limit)
         }
         
-        let now = Date()
-        var allWorkouts: [GroupWorkout] = []
-        var workoutIds = Set<String>()
-        
-        // 1. Get all public upcoming workouts
-        let publicPredicate = GroupWorkoutQueryBuilder.publicUpcomingWorkoutsQuery(now: now)
-        let publicWorkouts = try await fetchWorkouts(with: publicPredicate, limit: limit)
-        
-        for workout in publicWorkouts {
-            if !workoutIds.contains(workout.id) {
-                workoutIds.insert(workout.id)
-                allWorkouts.append(workout)
-            }
-        }
-        
-        // 2. Get private workouts where user is the host
-        let hostPredicate = GroupWorkoutQueryBuilder.privateHostWorkoutsQuery(userId: currentUserId, now: now)
-        FameFitLogger.debug("Fetching host workouts with predicate: \(hostPredicate)", category: FameFitLogger.social)
-        
-        do {
-            let hostWorkouts = try await fetchWorkouts(with: hostPredicate, limit: limit)
-            FameFitLogger.debug("Found \(hostWorkouts.count) host workouts", category: FameFitLogger.social)
-            
-            for workout in hostWorkouts {
-                if !workoutIds.contains(workout.id) {
-                    workoutIds.insert(workout.id)
-                    allWorkouts.append(workout)
-                }
-            }
-        } catch {
-            FameFitLogger.error("Failed to fetch host workouts", error: error, category: FameFitLogger.social)
-            // Continue with other queries even if this fails
-        }
-        
-        // 3. Get private workouts where user is a participant
-        let participantPredicate = GroupWorkoutQueryBuilder.participantRecordsForUserQuery(userId: currentUserId)
-        FameFitLogger.debug("Fetching participant records with predicate: \(participantPredicate)", category: FameFitLogger.social)
-        
-        let participantRecords = try await cloudKitManager.fetchRecords(
-            ofType: "GroupWorkoutParticipants",
-            predicate: participantPredicate,
-            sortDescriptors: nil,
-            limit: 200
+        // For authenticated users, we need to fetch all scheduled workouts and filter client-side
+        // because CloudKit doesn't support complex OR predicates
+        let predicate = NSPredicate(format: 
+            "scheduledEnd > %@ AND status == %@",
+            now as NSDate, "scheduled"
         )
         
-        FameFitLogger.debug("Found \(participantRecords.count) participant records for user", category: FameFitLogger.social)
+        FameFitLogger.debug("Fetching all scheduled workouts, will filter client-side", category: FameFitLogger.social)
         
-        if !participantRecords.isEmpty {
-            // Get the workout IDs from participant records
-            let participantWorkoutIds = participantRecords.compactMap { record -> String? in
-                if let reference = record["groupWorkoutID"] as? CKRecord.Reference {
-                    return reference.recordID.recordName
-                }
-                // Also try as string in case it's stored differently
-                return record["groupWorkoutID"] as? String
-            }
-            
-            FameFitLogger.debug("User is participant in \(participantWorkoutIds.count) workouts", category: FameFitLogger.social)
-            
-            // Fetch upcoming private workouts and filter by participant IDs
-            let privatePredicate = GroupWorkoutQueryBuilder.privateUpcomingWorkoutsQuery(now: now)
-            let privateWorkouts = try await fetchWorkouts(with: privatePredicate, limit: 500)
-            
-            FameFitLogger.debug("Found \(privateWorkouts.count) total upcoming private workouts", category: FameFitLogger.social)
-            
-            // Filter for workouts where user is a participant
-            let participantWorkouts = privateWorkouts.filter { workout in
-                participantWorkoutIds.contains(workout.id)
-            }
-            
-            FameFitLogger.debug("Found \(participantWorkouts.count) upcoming private workouts where user is participant", category: FameFitLogger.social)
-            
-            for workout in participantWorkouts {
-                if !workoutIds.contains(workout.id) {
-                    workoutIds.insert(workout.id)
-                    allWorkouts.append(workout)
-                }
-            }
+        // Fetch more workouts since we'll filter client-side
+        let allWorkouts = try await fetchWorkouts(with: predicate, limit: limit * 3)
+        
+        // Filter client-side: show workouts that are public, hosted by user, or user is participant
+        let filteredWorkouts = allWorkouts.filter { workout in
+            workout.isPublic || 
+            workout.hostId == currentUserId || 
+            workout.participantIDs.contains(currentUserId)
         }
         
-        // Sort and limit
-        return Array(allWorkouts
-            .sorted { $0.scheduledStart < $1.scheduledStart }
-            .prefix(limit))
+        // Take only the requested limit after filtering
+        let limitedWorkouts = Array(filteredWorkouts.prefix(limit))
+        
+        FameFitLogger.info("Found \(allWorkouts.count) total, filtered to \(limitedWorkouts.count) relevant workouts", category: FameFitLogger.social)
+        
+        // Log details for debugging
+        for workout in limitedWorkouts {
+            FameFitLogger.debug("Workout: \(workout.name) - Host: \(workout.hostId) - Public: \(workout.isPublic) - Status: \(workout.status.rawValue) - ParticipantIDs: \(workout.participantIDs)", category: FameFitLogger.social)
+        }
+        
+        return limitedWorkouts
     }
     
     func fetchActiveWorkouts() async throws -> [GroupWorkout] {
@@ -136,7 +87,19 @@ extension GroupWorkoutService {
         }
         
         let recordID = CKRecord.ID(recordName: workoutId)
-        let record = try await cloudKitManager.database.record(for: recordID)
+        
+        // Fetch using a query to ensure we use the public database
+        let predicate = NSPredicate(format: "recordID == %@", recordID)
+        let records = try await cloudKitManager.fetchRecords(
+            ofType: "GroupWorkouts",
+            predicate: predicate,
+            sortDescriptors: nil,
+            limit: 1
+        )
+        
+        guard let record = records.first else {
+            throw GroupWorkoutError.workoutNotFound
+        }
         
         guard let workout = GroupWorkout(from: record) else {
             throw GroupWorkoutError.workoutNotFound
