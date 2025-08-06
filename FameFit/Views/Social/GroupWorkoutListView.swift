@@ -220,34 +220,47 @@ struct GroupWorkoutListCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(workout.title)
                         .font(.headline)
+                        .foregroundColor(textColor)
                     
                     HStack(spacing: 8) {
                         Label(workoutTypeName, systemImage: workoutTypeIcon)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(secondaryTextColor)
                         
-                        if workout.isPublic {
-                            Label("Public", systemImage: "globe")
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                        }
+                        // Time display under workout type
+                        Text(statusTimeText)
+                            .font(.caption)
+                            .foregroundColor(statusTimeColor)
                     }
                 }
                 
                 Spacer()
                 
+                // Public/Private indicator with participants count
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(dayText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: workout.isPublic ? "person.2" : "lock")
+                            .font(.system(size: 11))
+                        Text(workout.isPublic ? "Public" : "Private")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(workout.isPublic ? .blue : .orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill((workout.isPublic ? Color.blue : Color.orange).opacity(0.1))
+                    )
                     
-                    Text(timeText)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    // Participants count
+                    Text("\(participantCount)/\(workout.maxParticipants)")
+                        .font(.caption)
+                        .foregroundColor(secondaryTextColor)
                 }
             }
             
@@ -256,33 +269,25 @@ struct GroupWorkoutListCard: View {
                 if let location = workout.location {
                     Label(location, systemImage: "location")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(secondaryTextColor)
                 }
                 
-                HStack {
-                    Label("\(participantCount)/\(workout.maxParticipants)", systemImage: "person.2")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    if !workout.tags.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(workout.tags.prefix(3), id: \.self) { tag in
-                                Text("#\(tag)")
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.accentColor.opacity(0.1))
-                                    .cornerRadius(4)
-                            }
+                if !workout.tags.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(workout.tags.prefix(3), id: \.self) { tag in
+                            Text("#\(tag)")
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.accentColor.opacity(0.1))
+                                .cornerRadius(4)
                         }
                     }
                 }
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
+        .background(backgroundColor)
         .cornerRadius(12)
         .onAppear {
             loadParticipantCount()
@@ -297,26 +302,82 @@ struct GroupWorkoutListCard: View {
         workout.workoutType.iconName
     }
     
-    private var dayText: String {
-        let formatter = DateFormatter()
-        formatter.timeZone = .current
-        
-        let calendar = Calendar.current
-        if calendar.isDateInToday(workout.scheduledDate) {
-            return "Today"
-        } else if calendar.isDateInTomorrow(workout.scheduledDate) {
-            return "Tomorrow"
-        } else {
-            formatter.dateFormat = "MMM d"
-            return formatter.string(from: workout.scheduledDate)
+    // Background color based on status
+    private var backgroundColor: Color {
+        switch workout.status {
+        case .active:
+            return Color.green.opacity(0.05)
+        case .scheduled:
+            return Color(.secondarySystemBackground)
+        case .completed, .cancelled:
+            return Color(.systemGray6)
         }
     }
     
-    private var timeText: String {
-        let formatter = DateFormatter()
-        formatter.timeZone = .current
-        formatter.timeStyle = .short
-        return formatter.string(from: workout.scheduledDate)
+    // Text color for cancelled/ended workouts
+    private var textColor: Color {
+        switch workout.status {
+        case .completed, .cancelled:
+            return .gray
+        default:
+            return .primary
+        }
+    }
+    
+    private var secondaryTextColor: Color {
+        switch workout.status {
+        case .completed, .cancelled:
+            return Color.gray.opacity(0.7)
+        default:
+            return .secondary
+        }
+    }
+    
+    // Time display logic
+    private var statusTimeText: String {
+        switch workout.status {
+        case .active:
+            return "Live"
+        case .completed:
+            return "Ended"
+        case .cancelled:
+            return "Cancelled"
+        case .scheduled:
+            let now = Date()
+            if workout.scheduledDate > now {
+                // Calculate time until start
+                let interval = workout.scheduledDate.timeIntervalSince(now)
+                if interval < 60 {
+                    return "Starting Soon"
+                } else if interval < 3600 {
+                    let minutes = Int(interval / 60)
+                    return "Starts in \(minutes)m"
+                } else if interval < 86400 {
+                    let hours = Int(interval / 3600)
+                    return "Starts in \(hours)h"
+                } else {
+                    let days = Int(interval / 86400)
+                    return "Starts in \(days)d"
+                }
+            } else {
+                return "Starting Soon"
+            }
+        }
+    }
+    
+    private var statusTimeColor: Color {
+        switch workout.status {
+        case .active:
+            return .green
+        case .completed, .cancelled:
+            return Color.gray.opacity(0.7)
+        case .scheduled:
+            let now = Date()
+            if workout.scheduledDate.timeIntervalSince(now) < 60 {
+                return .orange // Starting soon
+            }
+            return .blue
+        }
     }
     
     private func loadParticipantCount() {
