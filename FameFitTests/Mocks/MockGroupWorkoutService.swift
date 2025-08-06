@@ -67,7 +67,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
         var newWorkout = workout
         if newWorkout.participants.isEmpty {
             let hostParticipant = GroupWorkoutParticipant(
-                userId: workout.hostId,
+                userId: workout.hostID,
                 displayName: "Test User",
                 profileImageURL: nil
             )
@@ -94,7 +94,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
         // Update in mock storage
         if let index = mockWorkouts.firstIndex(where: { $0.id == workout.id }) {
             var updatedWorkout = workout
-            updatedWorkout.updatedAt = Date()
+            updatedWorkout.modifiedTimestamp = Date()
             mockWorkouts[index] = updatedWorkout
             return updatedWorkout
         }
@@ -115,7 +115,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
 
         if let index = mockWorkouts.firstIndex(where: { $0.id == workoutId }) {
             mockWorkouts[index].status = .cancelled
-            mockWorkouts[index].updatedAt = Date()
+            mockWorkouts[index].modifiedTimestamp = Date()
         } else {
             throw GroupWorkoutError.workoutNotFound
         }
@@ -145,7 +145,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
 
         // Update workout status
         mockWorkouts[index].status = .active
-        mockWorkouts[index].updatedAt = Date()
+        mockWorkouts[index].modifiedTimestamp = Date()
 
         // Update participant status and data
         if let participantIndex = mockWorkouts[index].participants.firstIndex(where: { $0.userId == "test-user-123" }) {
@@ -183,7 +183,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
 
         // Update workout status
         mockWorkouts[index].status = .completed
-        mockWorkouts[index].updatedAt = Date()
+        mockWorkouts[index].modifiedTimestamp = Date()
 
         // Update participant status and end time
         if let participantIndex = mockWorkouts[index].participants.firstIndex(where: { $0.userId == "test-user-123" }) {
@@ -241,7 +241,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
             // Simulate notification to host
             if let notificationManager {
                 notificationManager.scheduleNotificationCalled = true
-                notificationManager.lastScheduledUserId = workout.hostId
+                notificationManager.lastScheduledUserId = workout.hostID
             }
         }
 
@@ -284,7 +284,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
         let workout = mockWorkouts[index]
 
         // Check if user is the host
-        if workout.hostId == "test-user-123" {
+        if workout.hostID == "test-user-123" {
             throw GroupWorkoutError.hostCannotLeave
         }
 
@@ -358,7 +358,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
         }
 
         return mockWorkouts.filter { workout in
-            workout.hostId == userId || workout.participants.contains(where: { $0.userId == userId })
+            workout.hostID == userId || workout.participants.contains(where: { $0.userId == userId })
         }
     }
 

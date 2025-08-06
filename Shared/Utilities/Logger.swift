@@ -8,53 +8,77 @@
 import Foundation
 import os.log
 
-/// Centralized logging for FameFit
-enum FameFitLogger {
+// MARK: - Simple Logger Implementation for Watch App Compatibility
+
+struct FameFitLogger {
+    
     // MARK: - Log Categories
-
-    /// General app lifecycle and UI events
-    static let app = Logger(subsystem: "com.jimmypocock.FameFit", category: "app")
-
-    /// Workout tracking and HealthKit operations
-    static let workout = Logger(subsystem: "com.jimmypocock.FameFit", category: "workout")
-
-    /// CloudKit and data synchronization
-    static let cloudKit = Logger(subsystem: "com.jimmypocock.FameFit", category: "cloudkit")
-
-    /// Authentication and user management
-    static let auth = Logger(subsystem: "com.jimmypocock.FameFit", category: "auth")
-
-    /// Error logging
-    static let error = Logger(subsystem: "com.jimmypocock.FameFit", category: "error")
-
-    // MARK: - Helper Methods
-
-    /// Log a debug message
-    static func debug(_ message: String, category: Logger = app) {
-        category.debug("\(message)")
+    
+    static let cloudKit = "CloudKit"
+    static let workout = "Workout"
+    static let auth = "Authentication"
+    static let social = "Social"
+    static let notifications = "Notifications"
+    static let sync = "Sync"
+    static let healthKit = "HealthKit"
+    static let ui = "UI"
+    static let app = "App"
+    static let general = "General"
+    
+    // MARK: - OSLog Instances
+    
+    private static let logs: [String: OSLog] = [
+        cloudKit: OSLog(subsystem: "com.jimmypocock.FameFit", category: "CloudKit"),
+        workout: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Workout"),
+        auth: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Authentication"),
+        social: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Social"),
+        notifications: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Notifications"),
+        sync: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Sync"),
+        healthKit: OSLog(subsystem: "com.jimmypocock.FameFit", category: "HealthKit"),
+        ui: OSLog(subsystem: "com.jimmypocock.FameFit", category: "UI"),
+        app: OSLog(subsystem: "com.jimmypocock.FameFit", category: "App"),
+        general: OSLog(subsystem: "com.jimmypocock.FameFit", category: "General")
+    ]
+    
+    // MARK: - Logging Methods
+    
+    static func debug(_ message: String, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        os_log(.debug, log: log, "%{public}@", message)
     }
-
-    /// Log an info message
-    static func info(_ message: String, category: Logger = app) {
-        category.info("\(message)")
+    
+    static func info(_ message: String, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        os_log(.info, log: log, "%{public}@", message)
     }
-
-    /// Log a notice message
-    static func notice(_ message: String, category: Logger = app) {
-        category.notice("\(message)")
+    
+    static func notice(_ message: String, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        os_log(.default, log: log, "%{public}@", message)
     }
-
-    /// Log an error
-    static func error(_ message: String, error: Error? = nil, category: Logger = error) {
-        if let error {
-            category.error("\(message): \(String(describing: error))")
+    
+    static func warning(_ message: String, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        os_log(.error, log: log, "⚠️ %{public}@", message)
+    }
+    
+    static func error(_ message: String, error: Error? = nil, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        
+        if let error = error {
+            os_log(.error, log: log, "❌ %{public}@: %{public}@", message, error.localizedDescription)
         } else {
-            category.error("\(message)")
+            os_log(.error, log: log, "❌ %{public}@", message)
         }
     }
-
-    /// Log a fault (critical error)
-    static func fault(_ message: String, category: Logger = error) {
-        category.fault("\(message)")
+    
+    static func fault(_ message: String, error: Error? = nil, category: String = general) {
+        let log = logs[category] ?? logs[general]!
+        
+        if let error = error {
+            os_log(.fault, log: log, "💥 %{public}@: %{public}@", message, error.localizedDescription)
+        } else {
+            os_log(.fault, log: log, "💥 %{public}@", message)
+        }
     }
 }

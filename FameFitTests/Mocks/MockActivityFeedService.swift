@@ -26,7 +26,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
     }
 
     func postWorkoutActivity(
-        workoutHistory: WorkoutHistoryItem,
+        workoutHistory: WorkoutItem,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
@@ -34,7 +34,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Completed a \(workoutHistory.workoutType) workout",
             subtitle: includeDetails ? "Duration: \(Int(workoutHistory.duration / 60)) minutes" : nil,
             details: includeDetails ? [
@@ -55,7 +55,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             workoutId: workoutHistory.id.uuidString,
             content: contentString,
             visibility: privacy.rawValue,
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: workoutHistory.followersEarned,
             achievementName: nil
@@ -74,7 +74,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Earned the '\(achievementName)' achievement!",
             subtitle: "Unlocked with \(xpEarned) XP",
             details: [
@@ -94,7 +94,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             workoutId: nil,
             content: contentString,
             visibility: privacy.rawValue,
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(90 * 24 * 3_600),
             xpEarned: xpEarned,
             achievementName: achievementName
@@ -113,7 +113,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             throw mockError
         }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Reached Level \(newLevel)!",
             subtitle: newTitle,
             details: ["newLevel": String(newLevel), "newTitle": newTitle]
@@ -129,7 +129,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
             workoutId: nil,
             content: contentString,
             visibility: privacy.rawValue,
-            createdAt: Date(),
+            createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(365 * 24 * 3_600),
             xpEarned: nil,
             achievementName: nil
@@ -162,7 +162,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 let userTimeOffset = baseTimeOffset - Double(index * 3_600) // Space users by 1 hour
 
                 // Workout activity
-                let workoutContent = FeedContent(
+                let workoutContent = ActivityFeedContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Great job on that 30-minute session! 💪",
                     details: [
@@ -182,7 +182,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                         workoutId: UUID().uuidString,
                         content: contentString,
                         visibility: "public",
-                        createdAt: Date().addingTimeInterval(userTimeOffset),
+                        createdTimestamp: Date().addingTimeInterval(userTimeOffset),
                         expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
                         xpEarned: 45,
                         achievementName: nil
@@ -190,7 +190,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 }
 
                 // Achievement activity
-                let achievementContent = FeedContent(
+                let achievementContent = ActivityFeedContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
@@ -208,7 +208,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                         workoutId: nil,
                         content: contentString,
                         visibility: "friends_only",
-                        createdAt: Date().addingTimeInterval(userTimeOffset - 3_600),
+                        createdTimestamp: Date().addingTimeInterval(userTimeOffset - 3_600),
                         expiresAt: Date().addingTimeInterval(90 * 24 * 3_600),
                         xpEarned: 50,
                         achievementName: "Workout Warrior"
@@ -216,7 +216,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 }
 
                 // Level up activity
-                let levelUpContent = FeedContent(
+                let levelUpContent = ActivityFeedContent(
                     title: "Reached Level 5!",
                     subtitle: "Fitness Enthusiast",
                     details: [
@@ -234,7 +234,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                         workoutId: nil,
                         content: contentString,
                         visibility: "public",
-                        createdAt: Date().addingTimeInterval(userTimeOffset - 7_200),
+                        createdTimestamp: Date().addingTimeInterval(userTimeOffset - 7_200),
                         expiresAt: Date().addingTimeInterval(365 * 24 * 3_600),
                         xpEarned: nil,
                         achievementName: nil
@@ -244,15 +244,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
             // Filter by since date if provided
             if let since {
-                mockActivities = mockActivities.filter { $0.createdAt < since }
+                mockActivities = mockActivities.filter { $0.createdTimestamp < since }
             }
 
             // Sort by creation date (newest first) and return limited results
-            return mockActivities.sorted { $0.createdAt > $1.createdAt }.prefix(limit).map { $0 }
+            return mockActivities.sorted { $0.createdTimestamp > $1.createdTimestamp }.prefix(limit).map { $0 }
         }
 
         let filtered = postedActivities.filter { userIds.contains($0.userID) }
-        let sorted = filtered.sorted { $0.createdAt > $1.createdAt }
+        let sorted = filtered.sorted { $0.createdTimestamp > $1.createdTimestamp }
         return Array(sorted.prefix(limit))
     }
 
@@ -278,7 +278,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
                 workoutId: updatedActivity.workoutId,
                 content: updatedActivity.content,
                 visibility: newPrivacy.rawValue,
-                createdAt: updatedActivity.createdAt,
+                createdTimestamp: updatedActivity.createdTimestamp,
                 expiresAt: updatedActivity.expiresAt,
                 xpEarned: updatedActivity.xpEarned,
                 achievementName: updatedActivity.achievementName

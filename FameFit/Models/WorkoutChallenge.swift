@@ -81,7 +81,7 @@ enum ChallengeStatus: String, Codable {
 
 struct ChallengeParticipant: Codable, Identifiable {
     let id: String // User ID
-    let displayName: String
+    let username: String
     let profileImageURL: String?
     var progress: Double = 0
     var lastUpdated: Date = .init()
@@ -110,12 +110,18 @@ struct WorkoutChallenge: Identifiable, Codable {
     var xpStake: Int = 0 // XP each participant puts up
     var winnerTakesAll: Bool = false
 
-    // Privacy
+    // Privacy and Access Control
     var isPublic: Bool = true // Whether challenge shows in public feeds
+    let maxParticipants: Int // Maximum number of participants allowed
+    let joinCode: String? // For private challenges (invite-only)
 
     // Computed properties
     var isExpired: Bool {
         status == .active && Date() > endDate
+    }
+    
+    var hasSpace: Bool {
+        participants.count < maxParticipants
     }
 
     var daysRemaining: Int {
@@ -174,13 +180,19 @@ struct WorkoutChallenge: Identifiable, Codable {
             return targetValue <= 50 // Max 50 specific workouts
         }
     }
+    
+    // Generate a unique join code for private challenges
+    static func generateJoinCode() -> String {
+        let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0 ..< 6).map { _ in letters.randomElement()! })
+    }
 }
 
 // MARK: - CloudKit Extensions
 
 extension WorkoutChallenge {
     init?(from record: CKRecord) {
-        guard let creatorId = record["creatorId"] as? String,
+        guard let creatorId = record["creatorID"] as? String,
               let participantsData = record["participants"] as? Data,
               let participants = try? JSONDecoder().decode([ChallengeParticipant].self, from: participantsData),
               let typeString = record["type"] as? String,
@@ -188,8 +200,8 @@ extension WorkoutChallenge {
               let targetValue = record["targetValue"] as? Double,
               let name = record["name"] as? String,
               let description = record["description"] as? String,
-              let startDate = record["startDate"] as? Date,
-              let endDate = record["endDate"] as? Date,
+              let startDate = record["startTimestamp"] as? Date,
+              let endDate = record["endTimestamp"] as? Date,
               let createdTimestamp = record["createdTimestamp"] as? Date,
               let statusString = record["status"] as? String,
               let status = ChallengeStatus(rawValue: statusString)
@@ -209,10 +221,12 @@ extension WorkoutChallenge {
         self.endDate = endDate
         self.createdTimestamp = createdTimestamp
         self.status = status
-        winnerId = record["winnerId"] as? String
+        winnerId = record["winnerID"] as? String
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
         winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
         isPublic = (record["isPublic"] as? Int64) == 1
+        maxParticipants = Int(record["maxParticipants"] as? Int64 ?? 10)
+        joinCode = record["joinCode"] as? String
     }
 
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
@@ -225,7 +239,7 @@ extension WorkoutChallenge {
             record = CKRecord(recordType: "WorkoutChallenges", recordID: challengeRecordID)
         }
 
-        record["creatorId"] = creatorId
+        record["creatorID"] = creatorId
         record["participants"] = try? JSONEncoder().encode(participants)
         record["type"] = type.rawValue
         record["targetValue"] = targetValue
@@ -236,18 +250,23 @@ extension WorkoutChallenge {
 
         record["name"] = name
         record["description"] = description
-        record["startDate"] = startDate
-        record["endDate"] = endDate
+        record["startTimestamp"] = startDate
+        record["endTimestamp"] = endDate
         record["createdTimestamp"] = createdTimestamp
         record["status"] = status.rawValue
 
         if let winnerId {
-            record["winnerId"] = winnerId
+            record["winnerID"] = winnerId
         }
 
         record["xpStake"] = Int64(xpStake)
         record["winnerTakesAll"] = winnerTakesAll ? Int64(1) : Int64(0)
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
+        record["maxParticipants"] = Int64(maxParticipants)
+        
+        if let joinCode {
+            record["joinCode"] = joinCode
+        }
 
         return record
     }

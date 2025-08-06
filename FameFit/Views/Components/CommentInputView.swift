@@ -11,7 +11,7 @@ struct CommentInputView: View {
     let workoutId: String
     let workoutOwnerId: String
     let parentCommentId: String?
-    let editingComment: WorkoutComment?
+    let editingComment: ActivityFeedComment?
     let currentUser: UserProfile?
     let onSubmit: (String) -> Void
     let onCancel: () -> Void
@@ -42,7 +42,7 @@ struct CommentInputView: View {
                             Circle()
                                 .fill(Color.blue.opacity(0.2))
                                 .overlay(
-                                    Text(user.displayName.prefix(1))
+                                    Text(user.username.prefix(1))
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.blue)
                                 )
@@ -256,18 +256,17 @@ struct CommentInputView: View {
         CommentInputView(
             workoutId: "workout1",
             workoutOwnerId: "owner1",
-            parentCommentId: nil,
-            editingComment: nil,
+            parentCommentId: nil as String?,
+            editingComment: nil as ActivityFeedComment?,
             currentUser: UserProfile(
                 id: "current",
                 userID: "current",
                 username: "currentuser",
-                displayName: "Current User",
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
-                joinedDate: Date().addingTimeInterval(-86_400 * 90),
-                lastUpdated: Date(),
+                createdTimestamp: Date().addingTimeInterval(-86_400 * 90),
+                modifiedTimestamp: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
@@ -288,12 +287,11 @@ struct CommentInputView: View {
                 id: "current",
                 userID: "current",
                 username: "currentuser",
-                displayName: "Current User",
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
-                joinedDate: Date().addingTimeInterval(-86_400 * 90),
-                lastUpdated: Date(),
+                createdTimestamp: Date().addingTimeInterval(-86_400 * 90),
+                modifiedTimestamp: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil

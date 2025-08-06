@@ -40,4 +40,5 @@ protocol MainViewModeling: ObservableObject {
     func signOut()
     func markNotificationsAsRead()
     func loadUserProfile()
+    func refreshUserProfile()
 }

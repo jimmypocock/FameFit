@@ -2,18 +2,23 @@
 //  XPCalculator.swift
 //  FameFit
 //
-//  XP calculation engine for workout rewards
+//  Enhanced XP calculation with detailed audit trail
 //
 
 import Foundation
 import HealthKit
 
-/// Calculates Influencer XP based on workout data and user context
-enum XPCalculator {
+struct XPCalculationResult {
+    let baseXP: Int
+    let finalXP: Int
+    let factors: XPCalculationFactors
+}
+
+class XPCalculator {
+    
     // MARK: - Configuration
-
     private static let baseXPPerMinute: Double = 1.0
-
+    
     private static let workoutMultipliers: [String: Double] = [
         "High Intensity Interval Training": 1.5,
         "Swimming": 1.4,
@@ -39,133 +44,204 @@ enum XPCalculator {
         "Mixed Cardio": 1.1,
         "Other": 1.0
     ]
-
-    // MARK: - Main Calculation
-
+    
+    // MARK: - Calculate XP with Detailed Factors
     static func calculateXP(
-        for workout: WorkoutHistoryItem,
+        for workout: Workout,
+        userStats: UserStats? = nil
+    ) -> XPCalculationResult {
+        // Base XP calculation
+        let baseXP = calculateBaseXP(for: workout)
+        
+        // Get calculation factors
+        let factors = calculateFactors(for: workout, userStats: userStats)
+        
+        // Apply multiplier
+        let finalXP = Int(Double(baseXP) * factors.totalMultiplier)
+        
+        return XPCalculationResult(
+            baseXP: baseXP,
+            finalXP: finalXP,
+            factors: factors
+        )
+    }
+    
+    // MARK: - Legacy method for compatibility
+    static func calculateXP(
+        for workout: Workout,
         currentStreak: Int = 0,
         userMaxHeartRate: Double = 180.0
     ) -> Int {
-        // Base XP from duration
+        let userStats = UserStats(
+            totalWorkouts: 0,
+            currentStreak: currentStreak,
+            recentWorkouts: [],
+            totalXP: 0
+        )
+        
+        let result = calculateXP(for: workout, userStats: userStats)
+        return result.finalXP
+    }
+    
+    // MARK: - Base XP Calculation
+    private static func calculateBaseXP(for workout: Workout) -> Int {
         let minutes = workout.duration / 60.0
         var xp = minutes * baseXPPerMinute
-
+        
         // Apply workout type multiplier
         let workoutMultiplier = workoutMultipliers[workout.workoutType] ?? 1.0
         xp *= workoutMultiplier
-
-        // Apply intensity multiplier if heart rate data available
+        
+        // Round to nearest integer, minimum 5 XP
+        return max(5, Int(round(xp)))
+    }
+    
+    // MARK: - Calculate Factors
+    private static func calculateFactors(
+        for workout: Workout,
+        userStats: UserStats?
+    ) -> XPCalculationFactors {
+        var bonuses: [XPBonus] = []
+        var milestones: [String] = []
+        
+        // Day of week
+        let calendar = Calendar.current
+        let dayOfWeek = calendar.component(.weekday, from: workout.startDate)
+        let dayName = calendar.weekdaySymbols[dayOfWeek - 1]
+        
+        // Time of day
+        let hour = calendar.component(.hour, from: workout.startDate)
+        let timeOfDay: String
+        switch hour {
+        case 5..<9:
+            timeOfDay = "Early Morning"
+            bonuses.append(XPBonus(
+                type: .earlyBird,
+                multiplier: 1.2,
+                description: "Early bird bonus"
+            ))
+        case 9..<12:
+            timeOfDay = "Morning"
+        case 12..<17:
+            timeOfDay = "Afternoon"
+        case 17..<21:
+            timeOfDay = "Evening"
+        case 21..<24:
+            timeOfDay = "Night"
+            bonuses.append(XPBonus(
+                type: .nightOwl,
+                multiplier: 1.1,
+                description: "Night owl bonus"
+            ))
+        default:
+            timeOfDay = "Late Night"
+        }
+        
+        // Weekend warrior
+        if dayOfWeek == 1 || dayOfWeek == 7 {
+            bonuses.append(XPBonus(
+                type: .weekendWarrior,
+                multiplier: 1.15,
+                description: "Weekend warrior bonus"
+            ))
+        }
+        
+        // Consistency streak
+        let streak = userStats?.currentStreak ?? 0
+        if streak >= 3 {
+            let streakMultiplier = min(1.0 + (Double(streak) * 0.05), 1.5)
+            bonuses.append(XPBonus(
+                type: .consistencyStreak,
+                multiplier: streakMultiplier,
+                description: "\(streak) day streak bonus"
+            ))
+        }
+        
+        // First workout of day (simplified check since we don't have recent workouts for Workout)
+        if let stats = userStats, isFirstWorkoutOfDay(workout, userStats: stats) {
+            bonuses.append(XPBonus(
+                type: .firstWorkoutOfDay,
+                multiplier: 1.1,
+                description: "First workout of the day"
+            ))
+        }
+        
+        // Milestone checks
+        if let stats = userStats {
+            let totalWorkouts = stats.totalWorkouts + 1
+            
+            // Workout count milestones
+            let workoutMilestones = [10, 25, 50, 100, 250, 500, 1000]
+            for milestone in workoutMilestones where totalWorkouts == milestone {
+                milestones.append("\(milestone) workouts completed!")
+                bonuses.append(XPBonus(
+                    type: .milestone,
+                    multiplier: 2.0,
+                    description: "\(milestone) workout milestone"
+                ))
+            }
+            
+            // Perfect week check (simplified)
+            if streak >= 7 && streak % 7 == 0 {
+                bonuses.append(XPBonus(
+                    type: .perfectWeek,
+                    multiplier: 1.5,
+                    description: "Perfect week - 7 days in a row!"
+                ))
+                milestones.append("Perfect week achieved!")
+            }
+        }
+        
+        // Intensity bonus from heart rate
         if let avgHeartRate = workout.averageHeartRate {
             let intensityMultiplier = calculateIntensityMultiplier(
                 heartRate: avgHeartRate,
-                maxHeartRate: userMaxHeartRate
+                maxHeartRate: 180.0  // Default max heart rate
             )
-            xp *= intensityMultiplier
+            if intensityMultiplier > 1.0 {
+                bonuses.append(XPBonus(
+                    type: .varietyBonus,  // Using variety as placeholder for intensity
+                    multiplier: intensityMultiplier,
+                    description: "High intensity workout"
+                ))
+            }
         }
-
-        // Apply streak multiplier
-        let streakMultiplier = calculateStreakMultiplier(streak: currentStreak)
-        xp *= streakMultiplier
-
-        // Apply time of day bonus
-        let timeBonus = calculateTimeOfDayBonus(startDate: workout.startDate)
-        xp *= timeBonus
-
-        // Apply weekend bonus
-        if isWeekend(workout.startDate) {
-            xp *= 1.1
-        }
-
-        // Round to nearest integer, minimum 1 XP
-        return max(1, Int(round(xp)))
+        
+        return XPCalculationFactors(
+            workoutType: workout.workoutType,
+            duration: workout.duration,
+            dayOfWeek: dayName,
+            timeOfDay: timeOfDay,
+            consistencyStreak: streak,
+            milestones: milestones,
+            bonuses: bonuses
+        )
     }
-
-    // MARK: - Multiplier Calculations
-
+    
+    // MARK: - Helper Methods
+    private static func isFirstWorkoutOfDay(_ workout: Workout, userStats: UserStats) -> Bool {
+        // Simplified check - in real implementation would check against today's workouts
+        return true
+    }
+    
     private static func calculateIntensityMultiplier(heartRate: Double, maxHeartRate: Double) -> Double {
         let percentage = (heartRate / maxHeartRate) * 100
-
+        
         switch percentage {
-        case 0 ..< 50:
+        case 0..<50:
             return 0.5 // Rest zone
-        case 50 ..< 60:
+        case 50..<60:
             return 0.8 // Easy zone
-        case 60 ..< 70:
+        case 60..<70:
             return 1.0 // Moderate zone
-        case 70 ..< 85:
+        case 70..<85:
             return 1.3 // Hard zone
         default:
             return 1.5 // Maximum zone
         }
     }
-
-    private static func calculateStreakMultiplier(streak: Int) -> Double {
-        // 5% bonus per day, capped at 100% (20 days)
-        let multiplier = 1.0 + (Double(streak) * 0.05)
-        return min(multiplier, 2.0)
-    }
-
-    private static func calculateTimeOfDayBonus(startDate: Date) -> Double {
-        let hour = Calendar.current.component(.hour, from: startDate)
-
-        switch hour {
-        case 5 ..< 9:
-            return 1.2 // Early bird bonus
-        case 9 ..< 22:
-            return 1.0 // Normal hours
-        case 22 ..< 24:
-            return 1.1 // Night owl bonus
-        default:
-            return 0.8 // Late night (discourage unhealthy hours)
-        }
-    }
-
-    private static func isWeekend(_ date: Date) -> Bool {
-        let weekday = Calendar.current.component(.weekday, from: date)
-        return weekday == 1 || weekday == 7 // Sunday = 1, Saturday = 7
-    }
-
-    // MARK: - Special Bonuses
-
-    static func calculateSpecialBonus(
-        workoutNumber: Int,
-        isPersonalRecord: Bool,
-        isHoliday: Bool = false
-    ) -> Int {
-        var bonus = 0
-
-        // Milestone bonuses
-        switch workoutNumber {
-        case 1:
-            bonus += 50 // First workout
-        case 10:
-            bonus += 100 // 10th workout
-        case 50:
-            bonus += 250 // 50th workout
-        case 100:
-            bonus += 500 // 100th workout
-        case 365:
-            bonus += 1_000 // One year of workouts
-        default:
-            break
-        }
-
-        // Personal record bonus
-        if isPersonalRecord {
-            bonus += 25
-        }
-
-        // Holiday bonus (would need holiday calendar integration)
-        if isHoliday {
-            bonus += 50
-        }
-
-        return bonus
-    }
-
-    // MARK: - Level Calculation
-
+    
+    // MARK: - Level Calculation (preserved from original)
     static func getLevel(for totalXP: Int) -> (level: Int, title: String, nextLevelXP: Int) {
         let levels: [(threshold: Int, title: String)] = [
             (0, "Couch Potato"),
@@ -182,25 +258,29 @@ enum XPCalculator {
             (500_000, "Mythical"),
             (1_000_000, "FameFit God")
         ]
-
-        for index in 0 ..< levels.count {
+        
+        for index in 0..<levels.count {
             if index == levels.count - 1 || totalXP < levels[index + 1].threshold {
                 let currentLevel = index + 1
                 let currentTitle = levels[index].title
                 let nextLevelXP = index < levels.count - 1 ? levels[index + 1].threshold : Int.max
-
+                
                 return (level: currentLevel, title: currentTitle, nextLevelXP: nextLevelXP)
             }
         }
-
+        
         return (level: 1, title: "Couch Potato", nextLevelXP: 100)
     }
-
-    // MARK: - Progress Calculation
-
+    
+    // MARK: - Progress Calculation (preserved from original)
     static func calculateProgress(currentXP: Int, toNextLevel: Int) -> Double {
         let levelInfo = getLevel(for: currentXP)
-
+        
+        FameFitLogger.debug("📊 XPCalculator.calculateProgress called", category: FameFitLogger.general)
+        FameFitLogger.debug("  - currentXP: \(currentXP)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - toNextLevel: \(toNextLevel)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - levelInfo.level: \(levelInfo.level)", category: FameFitLogger.general)
+        
         // Find current level threshold
         var currentLevelThreshold = 0
         if levelInfo.level > 1 {
@@ -209,22 +289,86 @@ enum XPCalculator {
                 currentLevelThreshold = levels[levelInfo.level - 1]
             }
         }
-
+        
+        FameFitLogger.debug("  - currentLevelThreshold: \(currentLevelThreshold)", category: FameFitLogger.general)
+        
         let xpInCurrentLevel = currentXP - currentLevelThreshold
         let xpNeededForLevel = toNextLevel - currentLevelThreshold
-
-        return Double(xpInCurrentLevel) / Double(xpNeededForLevel)
+        
+        FameFitLogger.debug("  - xpInCurrentLevel: \(xpInCurrentLevel)", category: FameFitLogger.general)
+        FameFitLogger.debug("  - xpNeededForLevel: \(xpNeededForLevel)", category: FameFitLogger.general)
+        
+        // Prevent division by zero
+        guard xpNeededForLevel > 0 else {
+            FameFitLogger.warning("📊 XPCalculator.calculateProgress: xpNeededForLevel is \(xpNeededForLevel), returning 0.0 to prevent NaN", category: FameFitLogger.general)
+            return 0.0
+        }
+        
+        let progress = Double(xpInCurrentLevel) / Double(xpNeededForLevel)
+        FameFitLogger.debug("  - calculated progress: \(progress)", category: FameFitLogger.general)
+        
+        // Clamp progress between 0 and 1
+        let clampedProgress = max(0.0, min(1.0, progress))
+        if clampedProgress != progress {
+            FameFitLogger.warning("📊 XPCalculator.calculateProgress: clamped progress from \(progress) to \(clampedProgress)", category: FameFitLogger.general)
+        }
+        
+        return clampedProgress
+    }
+    
+    // MARK: - Special Bonuses (preserved from original)
+    static func calculateSpecialBonus(
+        workoutNumber: Int,
+        isPersonalRecord: Bool,
+        isHoliday: Bool = false
+    ) -> Int {
+        var bonus = 0
+        
+        // Milestone bonuses
+        switch workoutNumber {
+        case 1:
+            bonus += 50 // First workout
+        case 10:
+            bonus += 100 // 10th workout
+        case 50:
+            bonus += 250 // 50th workout
+        case 100:
+            bonus += 500 // 100th workout
+        case 365:
+            bonus += 1_000 // One year of workouts
+        default:
+            break
+        }
+        
+        // Personal record bonus
+        if isPersonalRecord {
+            bonus += 25
+        }
+        
+        // Holiday bonus
+        if isHoliday {
+            bonus += 50
+        }
+        
+        return bonus
     }
 }
 
-// MARK: - XP Unlock System
+// MARK: - User Stats for Calculation
+struct UserStats {
+    let totalWorkouts: Int
+    let currentStreak: Int
+    let recentWorkouts: [HKWorkout]
+    let totalXP: Int
+}
 
+// MARK: - XP Unlock System (preserved from original)
 struct XPUnlock {
     let xpRequired: Int
     let name: String
     let description: String
     let category: UnlockCategory
-
+    
     enum UnlockCategory {
         case badge
         case feature
@@ -241,7 +385,7 @@ extension XPCalculator {
         XPUnlock(xpRequired: 2_500, name: "Gold Badge", description: "Workout warrior status", category: .badge),
         XPUnlock(xpRequired: 10_000, name: "Platinum Badge", description: "Rising star achievement", category: .badge),
         XPUnlock(xpRequired: 50_000, name: "Diamond Badge", description: "Verified athlete status", category: .badge),
-
+        
         // Features
         XPUnlock(
             xpRequired: 100,
@@ -268,7 +412,7 @@ extension XPCalculator {
             description: "Special workout types",
             category: .feature
         ),
-
+        
         // Customization
         XPUnlock(
             xpRequired: 500,
@@ -288,7 +432,7 @@ extension XPCalculator {
             description: "Special celebration animations",
             category: .customization
         ),
-
+        
         // Achievements
         XPUnlock(
             xpRequired: 1_000,
@@ -310,11 +454,11 @@ extension XPCalculator {
             category: .achievement
         )
     ]
-
+    
     static func getAvailableUnlocks(for xp: Int) -> [XPUnlock] {
         unlockables.filter { $0.xpRequired <= xp }
     }
-
+    
     static func getNextUnlock(for xp: Int) -> XPUnlock? {
         unlockables
             .filter { $0.xpRequired > xp }

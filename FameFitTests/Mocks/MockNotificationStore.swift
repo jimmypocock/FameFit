@@ -11,10 +11,10 @@ import SwiftUI
 
 /// Mock notification store for testing
 class MockNotificationStore: ObservableObject, NotificationStoring {
-    @Published var notifications: [NotificationItem] = []
+    @Published var notifications: [FameFitNotification] = []
     @Published var unreadCount: Int = 0
 
-    var notificationsPublisher: Published<[NotificationItem]>.Publisher { $notifications }
+    var notificationsPublisher: Published<[FameFitNotification]>.Publisher { $notifications }
     var unreadCountPublisher: Published<Int>.Publisher { $unreadCount }
 
     // Test control properties
@@ -26,17 +26,17 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
     var loadNotificationsCalled = false
     var saveNotificationsCalled = false
 
-    var lastAddedNotification: NotificationItem?
+    var lastAddedNotification: Notification?
     var lastMarkedReadId: String?
     var lastDeletedOffsets: IndexSet?
 
     // Control test behavior
     var shouldFailOperations = false
-    var notificationsToLoad: [NotificationItem] = []
+    var notificationsToLoad: [FameFitNotification] = []
 
     private let maxNotifications = 50
 
-    func addNotification(_ item: NotificationItem) {
+    func addFameFitNotification(_ item: Notification) {
         addNotificationCalled = true
         lastAddedNotification = item
 
@@ -86,7 +86,7 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
         }
     }
 
-    func deleteNotification(at offsets: IndexSet) {
+    func deleteFameFitNotification(at offsets: IndexSet) {
         deleteNotificationCalled = true
         lastDeletedOffsets = offsets
 
@@ -97,7 +97,7 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
         }
     }
 
-    func deleteNotification(_ id: String) {
+    func deleteFameFitNotification(_ id: String) {
         deleteNotificationCalled = true
 
         if !shouldFailOperations {
@@ -154,7 +154,7 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
         notifications.removeAll()
 
         for index in 1 ... count {
-            let notification = NotificationItem(
+            let notification = FameFitNotification(
                 title: "Test Notification \(index)",
                 body: "Body \(index)",
                 character: FameFitCharacter.allCases.randomElement()!,

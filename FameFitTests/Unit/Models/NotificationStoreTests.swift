@@ -7,13 +7,13 @@ class NotificationStoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Clear UserDefaults before each test
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
         sut = NotificationStore()
     }
 
     override func tearDown() {
         sut = nil
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
         super.tearDown()
     }
 
@@ -22,9 +22,9 @@ class NotificationStoreTests: XCTestCase {
         XCTAssertEqual(sut.unreadCount, 0)
     }
 
-    func testAddNotification() {
+    func testAddFameFitNotification() {
         // Given
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Test Title",
             body: "Test Body",
             character: .chad,
@@ -34,7 +34,7 @@ class NotificationStoreTests: XCTestCase {
         )
 
         // When
-        sut.addNotification(notification)
+        sut.addFameFitNotification(notification)
 
         // Then
         XCTAssertEqual(sut.notifications.count, 1)
@@ -45,7 +45,7 @@ class NotificationStoreTests: XCTestCase {
 
     func testMarkAsRead() {
         // Given
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Test",
             body: "Test",
             character: .sierra,
@@ -53,7 +53,7 @@ class NotificationStoreTests: XCTestCase {
             calories: 300,
             followersEarned: 5
         )
-        sut.addNotification(notification)
+        sut.addFameFitNotification(notification)
         XCTAssertEqual(sut.unreadCount, 1)
 
         // When
@@ -67,7 +67,7 @@ class NotificationStoreTests: XCTestCase {
     func testMarkAllAsRead() {
         // Given
         for index in 1 ... 3 {
-            let notification = NotificationItem(
+            let notification = FameFitNotification(
                 title: "Test \(index)",
                 body: "Body \(index)",
                 character: .zen,
@@ -75,7 +75,7 @@ class NotificationStoreTests: XCTestCase {
                 calories: 100 * index,
                 followersEarned: 5
             )
-            sut.addNotification(notification)
+            sut.addFameFitNotification(notification)
         }
         XCTAssertEqual(sut.unreadCount, 3)
 
@@ -87,9 +87,9 @@ class NotificationStoreTests: XCTestCase {
         XCTAssertTrue(sut.notifications.allSatisfy(\.isRead))
     }
 
-    func testDeleteNotification() {
+    func testDeleteFameFitNotification() {
         // Given
-        let notification1 = NotificationItem(
+        let notification1 = FameFitNotification(
             title: "Keep",
             body: "Keep",
             character: .chad,
@@ -97,7 +97,7 @@ class NotificationStoreTests: XCTestCase {
             calories: 200,
             followersEarned: 5
         )
-        let notification2 = NotificationItem(
+        let notification2 = FameFitNotification(
             title: "Delete",
             body: "Delete",
             character: .sierra,
@@ -105,12 +105,12 @@ class NotificationStoreTests: XCTestCase {
             calories: 300,
             followersEarned: 5
         )
-        sut.addNotification(notification1)
-        sut.addNotification(notification2)
+        sut.addFameFitNotification(notification1)
+        sut.addFameFitNotification(notification2)
         XCTAssertEqual(sut.notifications.count, 2)
 
         // When - Delete the first notification (most recent, which is "Delete")
-        sut.deleteNotification(at: IndexSet(integer: 0))
+        sut.deleteFameFitNotification(at: IndexSet(integer: 0))
 
         // Then
         XCTAssertEqual(sut.notifications.count, 1)
@@ -120,7 +120,7 @@ class NotificationStoreTests: XCTestCase {
     func testClearAll() {
         // Given
         for index in 1 ... 5 {
-            let notification = NotificationItem(
+            let notification = FameFitNotification(
                 title: "Test \(index)",
                 body: "Body \(index)",
                 character: .zen,
@@ -128,7 +128,7 @@ class NotificationStoreTests: XCTestCase {
                 calories: 100 * index,
                 followersEarned: 5
             )
-            sut.addNotification(notification)
+            sut.addFameFitNotification(notification)
         }
         XCTAssertEqual(sut.notifications.count, 5)
         XCTAssertEqual(sut.unreadCount, 5)
@@ -144,7 +144,7 @@ class NotificationStoreTests: XCTestCase {
     func testNotificationLimit() {
         // Given - Add more than the limit (50)
         for index in 1 ... 55 {
-            let notification = NotificationItem(
+            let notification = FameFitNotification(
                 title: "Test \(index)",
                 body: "Body \(index)",
                 character: .chad,
@@ -152,7 +152,7 @@ class NotificationStoreTests: XCTestCase {
                 calories: index * 10,
                 followersEarned: 5
             )
-            sut.addNotification(notification)
+            sut.addFameFitNotification(notification)
         }
 
         // Then - Should only keep the most recent 50
@@ -164,7 +164,7 @@ class NotificationStoreTests: XCTestCase {
 
     func testNotificationPersistence() {
         // Given
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Persistent",
             body: "Should persist",
             character: .sierra,
@@ -172,7 +172,7 @@ class NotificationStoreTests: XCTestCase {
             calories: 400,
             followersEarned: 5
         )
-        sut.addNotification(notification)
+        sut.addFameFitNotification(notification)
 
         // When - Create a new store (simulating app restart)
         let newStore = NotificationStore()
@@ -197,7 +197,7 @@ class NotificationStoreTests: XCTestCase {
         }
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Badge Test",
             body: "Badge Test",
             character: .zen,
@@ -205,7 +205,7 @@ class NotificationStoreTests: XCTestCase {
             calories: 200,
             followersEarned: 5
         )
-        sut.addNotification(notification)
+        sut.addFameFitNotification(notification)
 
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -220,7 +220,7 @@ class NotificationStoreTests: XCTestCase {
 
         // When
         for (index, character) in characters.enumerated() {
-            let notification = NotificationItem(
+            let notification = FameFitNotification(
                 title: "\(character.emoji) \(character.fullName)",
                 body: character.workoutCompletionMessage(followers: 5),
                 character: character,
@@ -228,7 +228,7 @@ class NotificationStoreTests: XCTestCase {
                 calories: 200 + (index * 50),
                 followersEarned: 5
             )
-            sut.addNotification(notification)
+            sut.addFameFitNotification(notification)
         }
 
         // Then

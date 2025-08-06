@@ -15,7 +15,7 @@ class NotificationStoreProtocolTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Clear UserDefaults before each test
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
 
         mockStore = MockNotificationStore()
         realStore = NotificationStore()
@@ -24,7 +24,7 @@ class NotificationStoreProtocolTests: XCTestCase {
     override func tearDown() {
         mockStore = nil
         realStore = nil
-        UserDefaults.standard.removeObject(forKey: NotificationItem.storageKey)
+        UserDefaults.standard.removeObject(forKey: Notification.storageKey)
         super.tearDown()
     }
 
@@ -35,7 +35,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         let protocolStore: any NotificationStoring = mockStore
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Test",
             body: "Test",
             character: .chad,
@@ -43,7 +43,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 200,
             followersEarned: 5
         )
-        protocolStore.addNotification(notification)
+        protocolStore.addFameFitNotification(notification)
 
         // Then
         XCTAssertEqual(protocolStore.notifications.count, 1)
@@ -55,7 +55,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         let protocolStore: any NotificationStoring = realStore
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Test",
             body: "Test",
             character: .sierra,
@@ -63,7 +63,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 300,
             followersEarned: 5
         )
-        protocolStore.addNotification(notification)
+        protocolStore.addFameFitNotification(notification)
 
         // Then
         XCTAssertEqual(protocolStore.notifications.count, 1)
@@ -74,7 +74,7 @@ class NotificationStoreProtocolTests: XCTestCase {
 
     func testMockStoreTracksMethodCalls() {
         // Given
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Track",
             body: "Track",
             character: .zen,
@@ -84,10 +84,10 @@ class NotificationStoreProtocolTests: XCTestCase {
         )
 
         // When
-        mockStore.addNotification(notification)
+        mockStore.addFameFitNotification(notification)
         mockStore.markAsRead(notification.id)
         mockStore.markAllAsRead()
-        mockStore.deleteNotification(at: IndexSet(integer: 0))
+        mockStore.deleteFameFitNotification(at: IndexSet(integer: 0))
         mockStore.clearAll()
         mockStore.loadNotifications()
         mockStore.saveNotifications()
@@ -112,7 +112,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         let initialCount = mockStore.notifications.count
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Fail",
             body: "Fail",
             character: .chad,
@@ -120,7 +120,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 200,
             followersEarned: 5
         )
-        mockStore.addNotification(notification)
+        mockStore.addFameFitNotification(notification)
 
         // Then
         XCTAssertTrue(mockStore.addNotificationCalled)
@@ -147,7 +147,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         let anyStore = AnyNotificationStore(mockStore)
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Wrapped",
             body: "Wrapped",
             character: .sierra,
@@ -155,7 +155,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 300,
             followersEarned: 5
         )
-        anyStore.addNotification(notification)
+        anyStore.addFameFitNotification(notification)
 
         // Then
         XCTAssertEqual(anyStore.notifications.count, 1)
@@ -168,7 +168,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         let anyStore = AnyNotificationStore(realStore)
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Wrapped Real",
             body: "Wrapped Real",
             character: .zen,
@@ -176,7 +176,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 400,
             followersEarned: 5
         )
-        anyStore.addNotification(notification)
+        anyStore.addFameFitNotification(notification)
 
         // Then
         XCTAssertEqual(anyStore.notifications.count, 1)
@@ -197,7 +197,7 @@ class NotificationStoreProtocolTests: XCTestCase {
         }
 
         // When
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             title: "Publish",
             body: "Publish",
             character: .chad,
@@ -205,7 +205,7 @@ class NotificationStoreProtocolTests: XCTestCase {
             calories: 200,
             followersEarned: 5
         )
-        anyStore.addNotification(notification)
+        anyStore.addFameFitNotification(notification)
 
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -221,8 +221,8 @@ class NotificationStoreProtocolTests: XCTestCase {
         let store: any NotificationStoring = mockStore
 
         // Simulate a business logic function that uses the protocol
-        func processWorkoutNotification(store: any NotificationStoring, workout: String) {
-            let notification = NotificationItem(
+        func processWorkoutFameFitNotification(store: any NotificationStoring, workout: String) {
+            let notification = FameFitNotification(
                 title: workout,
                 body: "Completed",
                 character: .chad,
@@ -230,11 +230,11 @@ class NotificationStoreProtocolTests: XCTestCase {
                 calories: 200,
                 followersEarned: 5
             )
-            store.addNotification(notification)
+            store.addFameFitNotification(notification)
         }
 
         // When
-        processWorkoutNotification(store: store, workout: "Morning Run")
+        processWorkoutFameFitNotification(store: store, workout: "Morning Run")
 
         // Then
         XCTAssertEqual(store.notifications.count, 1)

@@ -9,6 +9,7 @@ class CloudKitSchemaManager {
     private let container: CKContainer
     private let privateDatabase: CKDatabase
     private let publicDatabase: CKDatabase
+    private var isInitializing = false
 
     init(container: CKContainer) {
         self.container = container
@@ -19,59 +20,101 @@ class CloudKitSchemaManager {
     /// Initialize all required record types by creating dummy records
     /// This ensures the schema exists in CloudKit
     func initializeSchemaIfNeeded() {
+        // Prevent multiple concurrent initialization attempts
+        guard !isInitializing else {
+            FameFitLogger.debug("Schema initialization already in progress", category: FameFitLogger.cloudKit)
+            return
+        }
+        
         FameFitLogger.info("Checking CloudKit schema...", category: FameFitLogger.cloudKit)
 
         // Check if we've already initialized the schema
-        let schemaInitializedKey = "FameFitCloudKitSchemaInitialized"
+        let schemaInitializedKey = "FameFitCloudKitSchemaInitializedV2" // Bumped version to force re-init with new types
         guard !UserDefaults.standard.bool(forKey: schemaInitializedKey) else {
             FameFitLogger.info("CloudKit schema already initialized", category: FameFitLogger.cloudKit)
             return
         }
+        
+        isInitializing = true
 
         // Initialize all record types
         Task {
+            defer {
+                isInitializing = false
+            }
+            
             do {
+                // First check if CloudKit is available
+                let accountStatus = try await container.accountStatus()
+                guard accountStatus == .available else {
+                    FameFitLogger.warning("CloudKit account not available, status: \(accountStatus)", category: FameFitLogger.cloudKit)
+                    return
+                }
+                
                 // Private database types
+                FameFitLogger.debug("Initializing Users record type...", category: FameFitLogger.cloudKit)
                 try await initializeUserRecordType()
                 FameFitLogger.info("User record type initialized", category: FameFitLogger.cloudKit)
 
-                try await initializeWorkoutHistoryRecordType()
+                FameFitLogger.debug("Initializing Workouts record type...", category: FameFitLogger.cloudKit)
+                try await initializeWorkoutsRecordType()
                 FameFitLogger.info(
-                    "WorkoutHistory record type initialized", category: FameFitLogger.cloudKit
+                    "Workouts record type initialized", category: FameFitLogger.cloudKit
                 )
 
+                FameFitLogger.debug("Initializing UserSettings record type...", category: FameFitLogger.cloudKit)
                 try await initializeUserSettingsRecordType()
                 FameFitLogger.info("UserSettings record type initialized", category: FameFitLogger.cloudKit)
 
+                FameFitLogger.debug("Initializing DeviceTokens record type...", category: FameFitLogger.cloudKit)
                 try await initializeDeviceTokensRecordType()
                 FameFitLogger.info("DeviceTokens record type initialized", category: FameFitLogger.cloudKit)
 
                 // Public database types
+                FameFitLogger.debug("Initializing UserProfiles record type...", category: FameFitLogger.cloudKit)
                 try await initializeUserProfilesRecordType()
                 FameFitLogger.info("UserProfiles record type initialized", category: FameFitLogger.cloudKit)
 
+                FameFitLogger.debug("Initializing UserRelationships record type...", category: FameFitLogger.cloudKit)
                 try await initializeUserRelationshipsRecordType()
                 FameFitLogger.info(
                     "UserRelationships record type initialized", category: FameFitLogger.cloudKit
                 )
 
+                FameFitLogger.debug("Initializing ActivityFeedItems record type...", category: FameFitLogger.cloudKit)
                 try await initializeActivityFeedItemsRecordType()
                 FameFitLogger.info(
                     "ActivityFeedItems record type initialized", category: FameFitLogger.cloudKit
                 )
 
+                FameFitLogger.debug("Initializing WorkoutKudos record type...", category: FameFitLogger.cloudKit)
                 try await initializeWorkoutKudosRecordType()
                 FameFitLogger.info("WorkoutKudos record type initialized", category: FameFitLogger.cloudKit)
 
+                FameFitLogger.debug("Initializing WorkoutComments record type...", category: FameFitLogger.cloudKit)
                 try await initializeWorkoutCommentsRecordType()
                 FameFitLogger.info(
                     "WorkoutComments record type initialized", category: FameFitLogger.cloudKit
                 )
 
+                FameFitLogger.debug("Initializing GroupWorkouts record type...", category: FameFitLogger.cloudKit)
                 try await initializeGroupWorkoutsRecordType()
                 FameFitLogger.info(
                     "GroupWorkouts record type initialized", category: FameFitLogger.cloudKit
                 )
+
+                // Initialize new record types for group workouts and challenges
+                FameFitLogger.debug("Initializing GroupWorkoutParticipants record type...", category: FameFitLogger.cloudKit)
+                try await initializeGroupWorkoutParticipantsRecordType()
+                FameFitLogger.info("GroupWorkoutParticipants record type initialized", category: FameFitLogger.cloudKit)
+
+                FameFitLogger.debug("Initializing GroupWorkoutInvites record type...", category: FameFitLogger.cloudKit)
+                try await initializeGroupWorkoutInvitesRecordType()
+                FameFitLogger.info("GroupWorkoutInvites record type initialized", category: FameFitLogger.cloudKit)
+
+                FameFitLogger.debug("Initializing WorkoutChallenges record type...", category: FameFitLogger.cloudKit)
+                try await initializeWorkoutChallengesRecordType()
+                FameFitLogger.info("WorkoutChallenges record type initialized", category: FameFitLogger.cloudKit)
 
                 // Mark schema as initialized
                 UserDefaults.standard.set(true, forKey: schemaInitializedKey)
@@ -79,9 +122,18 @@ class CloudKitSchemaManager {
                     "CloudKit schema initialization complete", category: FameFitLogger.cloudKit
                 )
             } catch {
-                FameFitLogger.error(
-                    "Failed to initialize CloudKit schema", error: error, category: FameFitLogger.cloudKit
-                )
+                if error.localizedDescription.contains("Can't query system types") {
+                    FameFitLogger.info(
+                        "CloudKit not ready for schema initialization, will be handled when records are created", 
+                        category: FameFitLogger.cloudKit
+                    )
+                } else {
+                    FameFitLogger.error(
+                        "Failed to initialize CloudKit schema: \(error.localizedDescription)", 
+                        error: error, 
+                        category: FameFitLogger.cloudKit
+                    )
+                }
             }
         }
     }
@@ -89,12 +141,21 @@ class CloudKitSchemaManager {
     private func initializeUserRecordType() async throws {
         // Check if User record type exists by querying
         let query = CKQuery(recordType: "Users", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying Users record type...", category: FameFitLogger.cloudKit)
 
         do {
             _ = try await privateDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("Users record type already exists", category: FameFitLogger.cloudKit)
             // Record type exists
             return
         } catch {
+            // Check if this is a permission/system error vs missing record type
+            if error.localizedDescription.contains("Can't query system types") {
+                FameFitLogger.debug("CloudKit not ready for schema check, will retry later", category: FameFitLogger.cloudKit)
+                throw error  // Re-throw to stop initialization
+            }
+            
+            FameFitLogger.debug("Users record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
             // Record type doesn't exist, create a dummy record
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
@@ -119,19 +180,22 @@ class CloudKitSchemaManager {
         }
     }
 
-    private func initializeWorkoutHistoryRecordType() async throws {
-        // Check if WorkoutHistory record type exists by querying
-        let query = CKQuery(recordType: "WorkoutHistory", predicate: NSPredicate(value: true))
+    private func initializeWorkoutsRecordType() async throws {
+        // Check if Workouts record type exists by querying
+        let query = CKQuery(recordType: "Workouts", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying Workouts record type...", category: FameFitLogger.cloudKit)
 
         do {
             _ = try await privateDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("Workouts record type already exists", category: FameFitLogger.cloudKit)
             // Record type exists
             return
         } catch {
+            FameFitLogger.debug("Workouts record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
             // Record type doesn't exist, create a dummy record
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
-                let dummyRecord = CKRecord(recordType: "WorkoutHistory")
+                let dummyRecord = CKRecord(recordType: "Workouts")
                 dummyRecord["workoutId"] = UUID().uuidString
                 dummyRecord["workoutType"] = "Running"
                 dummyRecord["startDate"] = Date()
@@ -159,11 +223,14 @@ class CloudKitSchemaManager {
 
     private func initializeUserSettingsRecordType() async throws {
         let query = CKQuery(recordType: "UserSettings", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying UserSettings record type...", category: FameFitLogger.cloudKit)
 
         do {
             _ = try await privateDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("UserSettings record type already exists", category: FameFitLogger.cloudKit)
             return
         } catch {
+            FameFitLogger.debug("UserSettings record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "UserSettings")
@@ -207,7 +274,7 @@ class CloudKitSchemaManager {
                 dummyRecord["appVersion"] = "1.0.0"
                 dummyRecord["osVersion"] = "17.0"
                 dummyRecord["environment"] = "development"
-                dummyRecord["lastUpdated"] = Date()
+                // modifiedTimestamp is managed by CloudKit automatically
                 dummyRecord["isActive"] = Int64(1)
 
                 do {
@@ -238,8 +305,7 @@ class CloudKitSchemaManager {
                 dummyRecord["bio"] = ""
                 dummyRecord["workoutCount"] = Int64(0)
                 dummyRecord["totalXP"] = Int64(0)
-                dummyRecord["joinedDate"] = Date()
-                dummyRecord["lastUpdated"] = Date()
+                // createdTimestamp and modifiedTimestamp are managed by CloudKit automatically
                 dummyRecord["privacyLevel"] = "private"
 
                 do {
@@ -370,29 +436,23 @@ class CloudKitSchemaManager {
 
     private func initializeGroupWorkoutsRecordType() async throws {
         let query = CKQuery(recordType: "GroupWorkouts", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying GroupWorkouts record type...", category: FameFitLogger.cloudKit)
 
         do {
             _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("GroupWorkouts record type already exists", category: FameFitLogger.cloudKit)
             return
         } catch {
+            FameFitLogger.debug("GroupWorkouts record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "GroupWorkouts")
 
-                // Create minimal group workout
-                let dummyParticipants = [
-                    GroupWorkoutParticipant(
-                        userId: "dummy1",
-                        displayName: "Dummy User",
-                        profileImageURL: nil
-                    )
-                ]
-
                 dummyRecord["name"] = "Schema Init Workout"
                 dummyRecord["description"] = "Schema initialization"
                 dummyRecord["workoutType"] = Int64(HKWorkoutActivityType.running.rawValue)
-                dummyRecord["hostId"] = "dummy-host"
-                dummyRecord["participants"] = try? JSONEncoder().encode(dummyParticipants)
+                dummyRecord["hostID"] = "dummy-host"
+                dummyRecord["participantCount"] = Int64(0)
                 dummyRecord["maxParticipants"] = Int64(10)
                 dummyRecord["scheduledStart"] = Date().addingTimeInterval(3_600) // 1 hour from now
                 dummyRecord["scheduledEnd"] = Date().addingTimeInterval(7_200) // 2 hours from now
@@ -401,6 +461,118 @@ class CloudKitSchemaManager {
                 dummyRecord["modifiedTimestamp"] = Date()
                 dummyRecord["isPublic"] = Int64(1)
                 dummyRecord["tags"] = [String]()
+
+                do {
+                    let savedRecord = try await publicDatabase.save(dummyRecord)
+                    try await publicDatabase.deleteRecord(withID: savedRecord.recordID)
+                } catch {
+                    throw error
+                }
+            } else {
+                throw error
+            }
+        }
+    }
+
+    private func initializeGroupWorkoutParticipantsRecordType() async throws {
+        let query = CKQuery(recordType: "GroupWorkoutParticipants", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying GroupWorkoutParticipants record type...", category: FameFitLogger.cloudKit)
+
+        do {
+            _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("GroupWorkoutParticipants record type already exists", category: FameFitLogger.cloudKit)
+            return
+        } catch {
+            FameFitLogger.debug("GroupWorkoutParticipants record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
+            if error.localizedDescription.contains("Record type")
+                || error.localizedDescription.contains("Did not find record type") {
+                let dummyRecord = CKRecord(recordType: "GroupWorkoutParticipants")
+                let groupWorkoutRef = CKRecord.Reference(recordID: CKRecord.ID(recordName: "dummy-workout"), action: .deleteSelf)
+                
+                dummyRecord["id"] = UUID().uuidString
+                dummyRecord["groupWorkoutID"] = groupWorkoutRef
+                dummyRecord["userID"] = "dummy-user"
+                dummyRecord["username"] = "DummyUser"
+                dummyRecord["joinedTimestamp"] = Date()
+                dummyRecord["status"] = "joined"
+
+                do {
+                    let savedRecord = try await publicDatabase.save(dummyRecord)
+                    try await publicDatabase.deleteRecord(withID: savedRecord.recordID)
+                } catch {
+                    throw error
+                }
+            } else {
+                throw error
+            }
+        }
+    }
+
+    private func initializeGroupWorkoutInvitesRecordType() async throws {
+        let query = CKQuery(recordType: "GroupWorkoutInvites", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying GroupWorkoutInvites record type...", category: FameFitLogger.cloudKit)
+
+        do {
+            _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("GroupWorkoutInvites record type already exists", category: FameFitLogger.cloudKit)
+            return
+        } catch {
+            FameFitLogger.debug("GroupWorkoutInvites record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
+            if error.localizedDescription.contains("Record type")
+                || error.localizedDescription.contains("Did not find record type") {
+                let dummyRecord = CKRecord(recordType: "GroupWorkoutInvites")
+                let groupWorkoutRef = CKRecord.Reference(recordID: CKRecord.ID(recordName: "dummy-workout"), action: .deleteSelf)
+                
+                dummyRecord["id"] = UUID().uuidString
+                dummyRecord["groupWorkoutID"] = groupWorkoutRef
+                dummyRecord["invitedByID"] = "dummy-inviter"
+                dummyRecord["invitedUserID"] = "dummy-invitee"
+                dummyRecord["expiresTimestamp"] = Date().addingTimeInterval(7 * 24 * 60 * 60)
+
+                do {
+                    let savedRecord = try await publicDatabase.save(dummyRecord)
+                    try await publicDatabase.deleteRecord(withID: savedRecord.recordID)
+                } catch {
+                    throw error
+                }
+            } else {
+                throw error
+            }
+        }
+    }
+
+    private func initializeWorkoutChallengesRecordType() async throws {
+        let query = CKQuery(recordType: "WorkoutChallenges", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying WorkoutChallenges record type...", category: FameFitLogger.cloudKit)
+
+        do {
+            _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("WorkoutChallenges record type already exists", category: FameFitLogger.cloudKit)
+            return
+        } catch {
+            FameFitLogger.debug("WorkoutChallenges record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
+            if error.localizedDescription.contains("Record type")
+                || error.localizedDescription.contains("Did not find record type") {
+                let dummyRecord = CKRecord(recordType: "WorkoutChallenges")
+                
+                let dummyParticipants = [
+                    ChallengeParticipant(id: "dummy1", username: "User1", profileImageURL: nil)
+                ]
+                
+                dummyRecord["creatorID"] = "dummy-creator"
+                dummyRecord["participants"] = try? JSONEncoder().encode(dummyParticipants)
+                dummyRecord["type"] = "distance"
+                dummyRecord["targetValue"] = 5.0
+                dummyRecord["name"] = "Schema Init Challenge"
+                dummyRecord["description"] = "Schema initialization"
+                dummyRecord["startTimestamp"] = Date()
+                dummyRecord["endTimestamp"] = Date().addingTimeInterval(7 * 24 * 60 * 60)
+                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["status"] = "pending"
+                dummyRecord["xpStake"] = Int64(0)
+                dummyRecord["winnerTakesAll"] = Int64(0)
+                dummyRecord["isPublic"] = Int64(1)
+                dummyRecord["maxParticipants"] = Int64(10)
 
                 do {
                     let savedRecord = try await publicDatabase.save(dummyRecord)

@@ -6,10 +6,27 @@
 	<array>
 		<string>remote-notification</string>
 		<string>healthkit</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.jimmypocock.FameFit.sync</string>
+		<string>com.jimmypocock.FameFit.workout-processing</string>
 	</array>
 	<key>NSHealthShareUsageDescription</key>
 	<string>FameFit needs access to your workout data to track your fitness journey and award you followers for completed workouts.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>FameFit saves workout data to help track your progress and fitness achievements.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>famefit</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.jimmypocock.FameFit</string>
+		</dict>
+	</array>
 </dict>
 </plist>

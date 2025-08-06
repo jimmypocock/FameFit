@@ -168,7 +168,7 @@ class MainViewTests: XCTestCase {
         mockNotificationStore.unreadCount = 0
 
         // When
-        mockNotificationStore.addNotification(NotificationItem(
+        mockNotificationStore.addFameFitNotification(FameFitNotification(
             title: "Test",
             body: "Test notification",
             character: .chad,

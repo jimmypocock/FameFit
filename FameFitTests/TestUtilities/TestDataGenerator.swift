@@ -10,15 +10,22 @@ import Foundation
 import HealthKit
 
 enum TestDataGenerator {
+    struct WorkoutTemplate {
+        let type: HKWorkoutActivityType
+        let name: String
+        let duration: TimeInterval
+        let calories: Double
+    }
+    
     static func generateTestWorkouts(using cloudKitManager: CloudKitManager) async {
-        let workoutTypes: [(type: HKWorkoutActivityType, name: String, duration: TimeInterval, calories: Double)] = [
-            (.running, "Morning Run 🌅", 1_560, 320),
-            (.cycling, "Evening Ride 🚴", 3_600, 580),
-            (.swimming, "Pool Session 🏊", 1_800, 400),
-            (.traditionalStrengthTraining, "Gym Time 💪", 2_700, 350),
-            (.yoga, "Zen Flow 🧘", 2_400, 180),
-            (.running, "5K Personal Record! 🏆", 1_380, 295),
-            (.cycling, "Hill Climb Challenge 🏔️", 5_400, 820)
+        let workoutTypes: [WorkoutTemplate] = [
+            WorkoutTemplate(type: .running, name: "Morning Run 🌅", duration: 1_560, calories: 320),
+            WorkoutTemplate(type: .cycling, name: "Evening Ride 🚴", duration: 3_600, calories: 580),
+            WorkoutTemplate(type: .swimming, name: "Pool Session 🏊", duration: 1_800, calories: 400),
+            WorkoutTemplate(type: .traditionalStrengthTraining, name: "Gym Time 💪", duration: 2_700, calories: 350),
+            WorkoutTemplate(type: .yoga, name: "Zen Flow 🧘", duration: 2_400, calories: 180),
+            WorkoutTemplate(type: .running, name: "5K Personal Record! 🏆", duration: 1_380, calories: 295),
+            WorkoutTemplate(type: .cycling, name: "Hill Climb Challenge 🏔️", duration: 5_400, calories: 820)
         ]
 
         for (index, workout) in workoutTypes.enumerated() {
@@ -26,7 +33,7 @@ enum TestDataGenerator {
             let xpEarned = Int.random(in: 50 ... 150)
             let followersEarned = Int.random(in: 5 ... 25)
 
-            let workoutHistory = WorkoutHistoryItem(
+            let workoutHistory = WorkoutItem(
                 id: workoutId,
                 workoutType: workout.name,
                 startDate: Date().addingTimeInterval(TimeInterval(-index * 3_600)),
@@ -40,7 +47,7 @@ enum TestDataGenerator {
                 source: "com.apple.watch"
             )
 
-            cloudKitManager.saveWorkoutHistory(workoutHistory)
+            cloudKitManager.saveWorkout(workoutHistory)
             print("✅ Generated test workout: \(workout.name)")
         }
     }

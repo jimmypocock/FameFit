@@ -6,6 +6,7 @@
 //
 
 import AuthenticationServices
+import CloudKit
 import Combine
 import Foundation
 import HealthKit
@@ -61,8 +62,21 @@ protocol CloudKitManaging: ObservableObject {
     func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getXPTitle() -> String
-    func saveWorkoutHistory(_ workoutHistory: WorkoutHistoryItem)
-    func fetchWorkoutHistory(completion: @escaping (Result<[WorkoutHistoryItem], Error>) -> Void)
+    func saveWorkout(_ workoutHistory: Workout)
+    func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void)
+    func recalculateStatsIfNeeded() async throws
+    func recalculateUserStats() async throws
+    func clearAllWorkoutsAndResetStats() async throws
+    func debugCloudKitEnvironment() async throws
+    func forceResetStats() async throws
+    
+    // Additional CloudKit operations
+    func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord]
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate?, sortDescriptors: [NSSortDescriptor]?, limit: Int?) async throws -> [CKRecord]
+    func save(_ record: CKRecord) async throws -> CKRecord
+    func delete(withRecordID recordID: CKRecord.ID) async throws
+    func getCurrentUserID() async throws -> String
+    var database: CKDatabase { get }
 }
 
 // MARK: - WorkoutObserver Protocol
@@ -72,6 +86,9 @@ protocol WorkoutObserving: ObservableObject {
     var todaysWorkouts: [HKWorkout] { get }
     var isAuthorized: Bool { get }
     var lastError: FameFitError? { get }
+    
+    // Publisher for workout completion events
+    var workoutCompletedPublisher: AnyPublisher<Workout, Never> { get }
 
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void)
     func startObservingWorkouts()

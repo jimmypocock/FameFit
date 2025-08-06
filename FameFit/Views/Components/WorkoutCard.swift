@@ -8,8 +8,25 @@
 import HealthKit
 import SwiftUI
 
+// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
+private extension Date {
+    var relativeDisplayString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: self, relativeTo: Date())
+    }
+    
+    var workoutDisplayTime: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.timeZone = .current
+        return formatter.string(from: self)
+    }
+}
+
 struct WorkoutCard: View {
-    let workout: WorkoutHistoryItem
+    let workout: Workout
     let userProfile: UserProfile?
     let kudosSummary: WorkoutKudosSummary?
     let onKudosTap: () async -> Void
@@ -33,7 +50,7 @@ struct WorkoutCard: View {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
                             .overlay(
-                                Text(profile.displayName.prefix(1))
+                                Text(profile.username.prefix(1))
                                     .font(.system(size: 18, weight: .medium))
                             )
                     }
@@ -45,7 +62,7 @@ struct WorkoutCard: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(profile.displayName)
+                            Text(profile.username)
                                 .font(.system(size: 16, weight: .semibold))
 
                             if profile.isVerified {
@@ -64,7 +81,7 @@ struct WorkoutCard: View {
 
                     // Workout time
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text(workout.startDate, style: .relative)
+                        Text(workout.startDate.relativeDisplayString)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -135,7 +152,7 @@ struct WorkoutCard: View {
 
                             Spacer()
 
-                            Text(workout.startDate, style: .time)
+                            Text(workout.startDate.workoutDisplayTime)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -147,7 +164,7 @@ struct WorkoutCard: View {
 
                             Spacer()
 
-                            Text(workout.endDate, style: .time)
+                            Text(workout.endDate.workoutDisplayTime)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

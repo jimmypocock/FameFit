@@ -16,7 +16,7 @@ protocol NotificationManaging: AnyObject {
     func checkNotificationPermission() async -> UNAuthorizationStatus
 
     // Workout notifications
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async
+    func notifyWorkoutCompleted(_ workout: Workout) async
     func notifyXPMilestone(previousXP: Int, currentXP: Int) async
     func notifyStreakUpdate(streak: Int, isAtRisk: Bool) async
 
@@ -81,7 +81,7 @@ final class NotificationManager: NotificationManaging {
 
     // MARK: - Workout Notifications
 
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: Workout) async {
         // Get character message
         let message = messageProvider.getWorkoutEndMessage(
             workoutType: workout.workoutType,
@@ -111,7 +111,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule workout notification: \(error)")
         }
@@ -144,7 +144,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule streak notification: \(error)")
         }
@@ -157,7 +157,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: "follower",
                 actionCount: nil
@@ -167,13 +167,13 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .newFollower,
             title: "New Follower! 👥",
-            body: "\(user.displayName) (@\(user.username)) started following you",
+            body: "\(user.username) (@\(user.username)) started following you",
             metadata: metadata,
             actions: [.view]
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule new follower notification: \(error)")
         }
@@ -184,7 +184,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -194,14 +194,14 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .followRequest,
             title: "Follow Request",
-            body: "\(user.displayName) wants to follow your fitness journey",
+            body: "\(user.username) wants to follow your fitness journey",
             metadata: metadata,
             priority: .immediate,
             actions: [.accept, .decline]
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule follow request notification: \(error)")
         }
@@ -212,7 +212,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: "following",
                 actionCount: nil
@@ -222,13 +222,13 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .followAccepted,
             title: "Follow Request Accepted",
-            body: "\(user.displayName) accepted your follow request",
+            body: "\(user.username) accepted your follow request",
             metadata: metadata,
             actions: [.view]
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule follow accepted notification: \(error)")
         }
@@ -239,7 +239,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: 1
@@ -249,14 +249,14 @@ final class NotificationManager: NotificationManaging {
         let request = NotificationRequest(
             type: .workoutKudos,
             title: "Workout Kudos! ❤️",
-            body: "\(user.displayName) cheered your workout",
+            body: "\(user.username) cheered your workout",
             metadata: metadata,
             actions: [.view],
             groupId: "kudos_\(workoutId)"
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule kudos notification: \(error)")
         }
@@ -267,7 +267,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -279,7 +279,7 @@ final class NotificationManager: NotificationManaging {
 
         let request = NotificationRequest(
             type: .workoutComment,
-            title: "\(user.displayName) commented",
+            title: "\(user.username) commented",
             body: truncatedComment,
             metadata: metadata,
             priority: .high,
@@ -287,7 +287,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule comment notification: \(error)")
         }
@@ -298,7 +298,7 @@ final class NotificationManager: NotificationManaging {
             SocialNotificationMetadata(
                 userID: user.userID,
                 username: user.username,
-                displayName: user.displayName,
+                displayName: user.username,
                 profileImageUrl: user.profileImageURL,
                 relationshipType: nil,
                 actionCount: nil
@@ -307,7 +307,7 @@ final class NotificationManager: NotificationManaging {
 
         let request = NotificationRequest(
             type: .mentioned,
-            title: "\(user.displayName) mentioned you",
+            title: "\(user.username) mentioned you",
             body: context,
             metadata: metadata,
             priority: .immediate,
@@ -315,7 +315,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule mention notification: \(error)")
         }
@@ -342,7 +342,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule security alert: \(error)")
         }
@@ -367,7 +367,7 @@ final class NotificationManager: NotificationManaging {
         )
 
         do {
-            try await scheduler.scheduleNotification(request)
+            try await scheduler.scheduleFameFitNotification(request)
         } catch {
             print("Failed to schedule feature announcement: \(error)")
         }
@@ -445,7 +445,7 @@ final class MockNotificationManager: NotificationManaging {
         currentAuthStatus
     }
 
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: Workout) async {
         sentNotifications.append("workout_completed_\(workout.id)")
     }
 

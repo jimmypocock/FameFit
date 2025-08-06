@@ -45,8 +45,8 @@ class MockNotificationManager: NotificationManaging {
     // Additional tracking properties expected by tests
     var scheduleNotificationCalled = false
     var lastScheduledUserId: String?
-    var lastScheduledNotification: NotificationItem?
-    var allScheduledNotifications: [NotificationItem] = []
+    var lastScheduledNotification: Notification?
+    var allScheduledNotifications: [FameFitNotification] = []
 
     // Permission management
     func requestNotificationPermission() async -> Bool {
@@ -60,14 +60,14 @@ class MockNotificationManager: NotificationManaging {
     }
 
     // Workout notifications
-    func notifyWorkoutCompleted(_ workout: WorkoutHistoryItem) async {
+    func notifyWorkoutCompleted(_ workout: WorkoutItem) async {
         notifyWorkoutCompletedCalled = true
         scheduleNotificationCalled = true
         sentNotifications.append("workout_completed")
         lastWorkoutId = workout.id.uuidString
 
         // Create mock notification for tracking
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .workoutCompleted,
             title: "Workout Complete",
             body: "Great job!"
@@ -84,6 +84,21 @@ class MockNotificationManager: NotificationManaging {
     func notifyStreakUpdate(streak _: Int, isAtRisk _: Bool) async {
         notifyStreakUpdateCalled = true
         sentNotifications.append("streak_update")
+    }
+    
+    func notifyWorkoutShared(_ workout: WorkoutItem, privacy: WorkoutPrivacy) async {
+        scheduleNotificationCalled = true
+        sentNotifications.append("workout_shared")
+        lastWorkoutId = workout.id.uuidString
+        
+        // Create mock notification for tracking
+        let notification = FameFitNotification(
+            type: .workoutShared,
+            title: "Workout Shared!",
+            body: "Your workout was shared to your activity feed."
+        )
+        lastScheduledNotification = notification
+        allScheduledNotifications.append(notification)
     }
 
     // Social notifications
@@ -122,7 +137,7 @@ class MockNotificationManager: NotificationManaging {
         lastScheduledUserId = user.id
 
         // Create mock notification for tracking
-        let notification = NotificationItem(
+        let notification = FameFitNotification(
             type: .workoutComment,
             title: "New Comment",
             body: comment

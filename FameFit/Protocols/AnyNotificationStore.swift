@@ -11,13 +11,13 @@ import SwiftUI
 
 /// Type-erased wrapper for NotificationStoring to enable protocol usage in SwiftUI
 final class AnyNotificationStore: ObservableObject, NotificationStoring {
-    @Published var notifications: [NotificationItem] = []
+    @Published var notifications: [FameFitNotification] = []
     @Published var unreadCount: Int = 0
 
-    var notificationsPublisher: Published<[NotificationItem]>.Publisher { $notifications }
+    var notificationsPublisher: Published<[FameFitNotification]>.Publisher { $notifications }
     var unreadCountPublisher: Published<Int>.Publisher { $unreadCount }
 
-    private let _addNotification: (NotificationItem) -> Void
+    private let _addNotification: (FameFitNotification) -> Void
     private let _markAsRead: (String) -> Void
     private let _markAllAsRead: () -> Void
     private let _clearAll: () -> Void
@@ -33,7 +33,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
         where Store.ObjectWillChangePublisher == ObservableObjectPublisher {
         // Initialize closures first
         _addNotification = { [weak store] item in
-            store?.addNotification(item)
+            store?.addFameFitNotification(item)
         }
 
         _markAsRead = { [weak store] id in
@@ -49,11 +49,11 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
         }
 
         _deleteNotification = { [weak store] offsets in
-            store?.deleteNotification(at: offsets)
+            store?.deleteFameFitNotification(at: offsets)
         }
 
         _deleteNotificationById = { [weak store] id in
-            store?.deleteNotification(id)
+            store?.deleteFameFitNotification(id)
         }
 
         _clearAllNotifications = { [weak store] in
@@ -83,7 +83,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
             .store(in: &cancellables)
     }
 
-    func addNotification(_ item: NotificationItem) {
+    func addFameFitNotification(_ item: FameFitNotification) {
         _addNotification(item)
     }
 
@@ -99,7 +99,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
         _clearAll()
     }
 
-    func deleteNotification(at offsets: IndexSet) {
+    func deleteFameFitNotification(at offsets: IndexSet) {
         _deleteNotification(offsets)
     }
 
@@ -107,7 +107,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
         _loadNotifications()
     }
 
-    func deleteNotification(_ id: String) {
+    func deleteFameFitNotification(_ id: String) {
         _deleteNotificationById(id)
     }
 

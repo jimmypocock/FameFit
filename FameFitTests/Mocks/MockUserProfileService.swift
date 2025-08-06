@@ -67,8 +67,45 @@ final class MockUserProfileService: UserProfileServicing {
 
         return profile
     }
+    
+    func fetchProfileByUserID(_ userID: String) async throws -> UserProfile {
+        isLoading = true
+        defer { isLoading = false }
+        
+        // Reduce delay for UI testing
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("UI-Testing")
+        let delay: UInt64 = isUITesting ? 10_000_000 : 100_000_000 // 0.01s for UI tests, 0.1s otherwise
+        
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: delay)
+        
+        if shouldFail {
+            throw ProfileServiceError.profileNotFound
+        }
+        
+        // For mock, search by userID field in profiles
+        guard let profile = profiles.values.first(where: { $0.userID == userID }) else {
+            throw ProfileServiceError.profileNotFound
+        }
+        
+        return profile
+    }
 
     func fetchCurrentUserProfile() async throws -> UserProfile {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Reduce delay for UI testing
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("UI-Testing")
+        let delay: UInt64 = isUITesting ? 10_000_000 : 100_000_000 // 0.01s for UI tests, 0.1s otherwise
+
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: delay)
+        
+        return try await fetchCurrentUserProfileFresh()
+    }
+    
+    func fetchCurrentUserProfileFresh() async throws -> UserProfile {
         isLoading = true
         defer { isLoading = false }
 
@@ -100,9 +137,7 @@ final class MockUserProfileService: UserProfileServicing {
             throw ProfileServiceError.invalidUsername
         }
 
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
-        }
+        // Display name validation no longer needed
 
         guard UserProfile.isValidBio(profile.bio) else {
             throw ProfileServiceError.invalidBio
@@ -133,9 +168,7 @@ final class MockUserProfileService: UserProfileServicing {
         defer { isLoading = false }
 
         // Validate
-        guard UserProfile.isValidDisplayName(profile.displayName) else {
-            throw ProfileServiceError.invalidDisplayName
-        }
+        // Display name validation no longer needed
 
         guard UserProfile.isValidBio(profile.bio) else {
             throw ProfileServiceError.invalidBio
@@ -210,8 +243,7 @@ final class MockUserProfileService: UserProfileServicing {
 
         let lowercaseQuery = query.lowercased()
         let results = profiles.values.filter { profile in
-            profile.username.lowercased().contains(lowercaseQuery) ||
-                profile.displayName.lowercased().contains(lowercaseQuery)
+            profile.username.lowercased().contains(lowercaseQuery)
         }
 
         return Array(results.prefix(limit))
@@ -241,8 +273,8 @@ final class MockUserProfileService: UserProfileServicing {
 
         let publicProfiles = profiles.values.filter { profile in
             profile.privacyLevel == .publicProfile &&
-                profile.lastUpdated >= startDate &&
-                profile.lastUpdated <= endDate
+                profile.modifiedTimestamp >= startDate &&
+                profile.modifiedTimestamp <= endDate
         }
 
         let sorted = publicProfiles.sorted { $0.totalXP > $1.totalXP }
@@ -255,7 +287,7 @@ final class MockUserProfileService: UserProfileServicing {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         let publicProfiles = profiles.values.filter { $0.privacyLevel == .publicProfile }
-        let sorted = publicProfiles.sorted { $0.lastUpdated > $1.lastUpdated }
+        let sorted = publicProfiles.sorted { $0.modifiedTimestamp > $1.modifiedTimestamp }
 
         return Array(sorted.prefix(limit))
     }

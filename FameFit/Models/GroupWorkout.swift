@@ -11,14 +11,14 @@ import HealthKit
 
 // MARK: - Group Workout Model
 
-struct GroupWorkout: Identifiable, Equatable {
+struct GroupWorkout: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let description: String
     let workoutType: HKWorkoutActivityType
     let hostId: String
-    var participants: [GroupWorkoutParticipant]
     let maxParticipants: Int
+    var participantCount: Int = 0  // Cached count for performance
     let scheduledStart: Date
     let scheduledEnd: Date
     var status: GroupWorkoutStatus
@@ -27,6 +27,9 @@ struct GroupWorkout: Identifiable, Equatable {
     let isPublic: Bool
     let joinCode: String? // For private groups
     let tags: [String]
+    let location: String? // Optional location
+    let notes: String? // Optional notes
+    var participantIDs: [String] = [] // Array of user IDs who have joined (excluding host for cleaner data model)
 
     // Computed Properties
     var duration: TimeInterval {
@@ -46,12 +49,32 @@ struct GroupWorkout: Identifiable, Equatable {
     }
 
     var hasSpace: Bool {
-        participants.count < maxParticipants
+        participantCount < maxParticipants
+    }
+    
+    var isJoinable: Bool {
+        // Allow joining if workout starts within 5 minutes or has already started (but not ended)
+        let fiveMinutesFromNow = Date().addingTimeInterval(5 * 60)
+        let canJoinByTime = scheduledStart <= fiveMinutesFromNow && scheduledEnd > Date()
+        return canJoinByTime && status.canJoin && hasSpace
+    }
+    
+    var timeUntilJoinable: TimeInterval? {
+        // If already joinable, return nil
+        if isJoinable { return nil }
+        
+        // Calculate time until 5 minutes before start
+        let joinableTime = scheduledStart.addingTimeInterval(-5 * 60)
+        let timeUntil = joinableTime.timeIntervalSince(Date())
+        
+        return timeUntil > 0 ? timeUntil : nil
     }
 
-    var participantIds: [String] {
-        participants.map(\.userId)
-    }
+    // Note: Participants are stored as separate CKRecords for scalability
+    
+    // Compatibility aliases for different naming conventions
+    var title: String { name }
+    var scheduledDate: Date { scheduledStart }
 
     // MARK: - Initialization
 
@@ -61,7 +84,7 @@ struct GroupWorkout: Identifiable, Equatable {
         description: String,
         workoutType: HKWorkoutActivityType,
         hostId: String,
-        participants: [GroupWorkoutParticipant] = [],
+        participantCount: Int = 0,
         maxParticipants: Int = 10,
         scheduledStart: Date,
         scheduledEnd: Date,
@@ -70,14 +93,17 @@ struct GroupWorkout: Identifiable, Equatable {
         modifiedTimestamp: Date = Date(),
         isPublic: Bool = true,
         joinCode: String? = nil,
-        tags: [String] = []
+        tags: [String] = [],
+        location: String? = nil,
+        notes: String? = nil,
+        participantIDs: [String] = []
     ) {
         self.id = id
         self.name = name
         self.description = description
         self.workoutType = workoutType
         self.hostId = hostId
-        self.participants = participants
+        self.participantCount = participantCount
         self.maxParticipants = maxParticipants
         self.scheduledStart = scheduledStart
         self.scheduledEnd = scheduledEnd
@@ -87,36 +113,68 @@ struct GroupWorkout: Identifiable, Equatable {
         self.isPublic = isPublic
         self.joinCode = joinCode ?? (isPublic ? nil : Self.generateJoinCode())
         self.tags = tags
+        self.location = location
+        self.notes = notes
+        self.participantIDs = participantIDs
     }
 
     // MARK: - CloudKit Integration
 
     init?(from record: CKRecord) {
-        guard record.recordType == "GroupWorkouts",
-              let name = record["name"] as? String,
-              let description = record["description"] as? String,
-              let workoutTypeRaw = record["workoutType"] as? Int,
-              let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)),
-              let hostId = record["hostId"] as? String,
-              let maxParticipants = record["maxParticipants"] as? Int64,
-              let scheduledStart = record["scheduledStart"] as? Date,
-              let scheduledEnd = record["scheduledEnd"] as? Date,
-              let statusRaw = record["status"] as? String,
-              let status = GroupWorkoutStatus(rawValue: statusRaw),
-              let createdTimestamp = record["createdTimestamp"] as? Date,
-              let modifiedTimestamp = record["modifiedTimestamp"] as? Date,
-              let isPublic = record["isPublic"] as? Int64
-        else {
+        guard record.recordType == "GroupWorkouts" else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: wrong record type \(record.recordType)", category: FameFitLogger.social)
             return nil
         }
-
-        // Decode participants from JSON
-        var participants: [GroupWorkoutParticipant] = []
-        if let participantsData = record["participants"] as? Data {
-            participants = (try? JSONDecoder().decode([GroupWorkoutParticipant].self, from: participantsData)) ?? []
+        
+        guard let name = record["name"] as? String else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid name", category: FameFitLogger.social)
+            return nil
         }
+        
+        let description = record["description"] as? String ?? "Group workout session"
+        
+        guard let workoutTypeRaw = record["workoutType"] as? Int64 else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid workoutType. Value: \(record["workoutType"] ?? "nil")", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)) else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: invalid workoutType value \(workoutTypeRaw)", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let hostId = record["hostID"] as? String else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid hostID", category: FameFitLogger.social)
+            return nil
+        }
+        
+        let maxParticipants = record["maxParticipants"] as? Int64 ?? 10 // Default to 10 participants
+        
+        guard let scheduledStart = record["scheduledStart"] as? Date else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid scheduledStart", category: FameFitLogger.social)
+            return nil
+        }
+        
+        guard let scheduledEnd = record["scheduledEnd"] as? Date else {
+            FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid scheduledEnd", category: FameFitLogger.social)
+            return nil
+        }
+        
+        let statusRaw = record["status"] as? String ?? "scheduled"
+        let status = GroupWorkoutStatus(rawValue: statusRaw) ?? .scheduled
+        
+        let createdTimestamp = record["createdTimestamp"] as? Date ?? record.creationDate ?? Date()
+        let modifiedTimestamp = record["modifiedTimestamp"] as? Date ?? record.modificationDate ?? Date()
+        
+        let isPublic = record["isPublic"] as? Int64 ?? 0 // Default to private
+
+        // Participants are now stored as separate records
+        let participantCount = record["participantCount"] as? Int64 ?? 0
 
         let tags = record["tags"] as? [String] ?? []
+        let location = record["location"] as? String
+        let notes = record["notes"] as? String
+        let participantIDs = record["participantIDs"] as? [String] ?? []
 
         self.init(
             id: record.recordID.recordName,
@@ -124,7 +182,7 @@ struct GroupWorkout: Identifiable, Equatable {
             description: description,
             workoutType: workoutType,
             hostId: hostId,
-            participants: participants,
+            participantCount: Int(participantCount),
             maxParticipants: Int(maxParticipants),
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
@@ -133,7 +191,10 @@ struct GroupWorkout: Identifiable, Equatable {
             modifiedTimestamp: modifiedTimestamp,
             isPublic: isPublic != 0,
             joinCode: record["joinCode"] as? String,
-            tags: tags
+            tags: tags,
+            location: location,
+            notes: notes,
+            participantIDs: participantIDs
         )
     }
 
@@ -142,12 +203,18 @@ struct GroupWorkout: Identifiable, Equatable {
             recordType: "GroupWorkouts",
             recordID: recordID ?? CKRecord.ID(recordName: id)
         )
-
+        
+        updateCKRecord(record)
+        return record
+    }
+    
+    /// Updates an existing CKRecord with current values
+    func updateCKRecord(_ record: CKRecord) {
         record["name"] = name
         record["description"] = description
         record["workoutType"] = Int64(workoutType.rawValue)
-        record["hostId"] = hostId
-        record["participants"] = try? JSONEncoder().encode(participants)
+        record["hostID"] = hostId
+        record["participantCount"] = Int64(participantCount)
         record["maxParticipants"] = Int64(maxParticipants)
         record["scheduledStart"] = scheduledStart
         record["scheduledEnd"] = scheduledEnd
@@ -157,8 +224,9 @@ struct GroupWorkout: Identifiable, Equatable {
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
         record["joinCode"] = joinCode
         record["tags"] = tags
-
-        return record
+        record["location"] = location
+        record["notes"] = notes
+        record["participantIDs"] = participantIDs
     }
 
     // MARK: - Helper Methods
@@ -169,13 +237,23 @@ struct GroupWorkout: Identifiable, Equatable {
     }
 }
 
+// MARK: - Hashable Conformance
+
+extension GroupWorkout {
+    func hash(into hasher: inout Hasher) {
+        // Since id is unique, we only need to hash the id
+        hasher.combine(id)
+    }
+}
+
 // MARK: - Codable Conformance
 
 extension GroupWorkout: Codable {
     enum CodingKeys: String, CodingKey {
-        case id, name, description, workoutType, hostId, participants
+        case id, name, description, workoutType, hostId, participantCount
         case maxParticipants, scheduledStart, scheduledEnd, status
         case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
+        case location, notes, participantIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -196,7 +274,7 @@ extension GroupWorkout: Codable {
         workoutType = type
 
         hostId = try container.decode(String.self, forKey: .hostId)
-        participants = try container.decode([GroupWorkoutParticipant].self, forKey: .participants)
+        participantCount = try container.decodeIfPresent(Int.self, forKey: .participantCount) ?? 0
         maxParticipants = try container.decode(Int.self, forKey: .maxParticipants)
         scheduledStart = try container.decode(Date.self, forKey: .scheduledStart)
         scheduledEnd = try container.decode(Date.self, forKey: .scheduledEnd)
@@ -206,6 +284,9 @@ extension GroupWorkout: Codable {
         isPublic = try container.decode(Bool.self, forKey: .isPublic)
         joinCode = try container.decodeIfPresent(String.self, forKey: .joinCode)
         tags = try container.decode([String].self, forKey: .tags)
+        location = try container.decodeIfPresent(String.self, forKey: .location)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        participantIDs = try container.decodeIfPresent([String].self, forKey: .participantIDs) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -215,7 +296,7 @@ extension GroupWorkout: Codable {
         try container.encode(description, forKey: .description)
         try container.encode(workoutType.rawValue, forKey: .workoutType)
         try container.encode(hostId, forKey: .hostId)
-        try container.encode(participants, forKey: .participants)
+        try container.encode(participantCount, forKey: .participantCount)
         try container.encode(maxParticipants, forKey: .maxParticipants)
         try container.encode(scheduledStart, forKey: .scheduledStart)
         try container.encode(scheduledEnd, forKey: .scheduledEnd)
@@ -225,6 +306,9 @@ extension GroupWorkout: Codable {
         try container.encode(isPublic, forKey: .isPublic)
         try container.encodeIfPresent(joinCode, forKey: .joinCode)
         try container.encode(tags, forKey: .tags)
+        try container.encodeIfPresent(location, forKey: .location)
+        try container.encodeIfPresent(notes, forKey: .notes)
+        try container.encode(participantIDs, forKey: .participantIDs)
     }
 }
 
@@ -232,8 +316,9 @@ extension GroupWorkout: Codable {
 
 struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     let id: String
+    let groupWorkoutId: String  // Reference to parent workout
     let userId: String
-    let displayName: String
+    let username: String
     let profileImageURL: String?
     let joinedAt: Date
     var status: ParticipantStatus
@@ -241,20 +326,73 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
 
     init(
         id: String = UUID().uuidString,
+        groupWorkoutId: String,
         userId: String,
-        displayName: String,
+        username: String,
         profileImageURL: String? = nil,
         joinedAt: Date = Date(),
         status: ParticipantStatus = .joined,
         workoutData: GroupWorkoutData? = nil
     ) {
         self.id = id
+        self.groupWorkoutId = groupWorkoutId
         self.userId = userId
-        self.displayName = displayName
+        self.username = username
         self.profileImageURL = profileImageURL
         self.joinedAt = joinedAt
         self.status = status
         self.workoutData = workoutData
+    }
+}
+
+// MARK: - CloudKit Conversion for GroupWorkoutParticipant
+
+extension GroupWorkoutParticipant {
+    init?(from record: CKRecord) {
+        guard
+            let id = record["id"] as? String,
+            let groupWorkoutRef = record["groupWorkoutID"] as? CKRecord.Reference,
+            let userId = record["userID"] as? String,
+            let username = record["username"] as? String,
+            let joinedAt = record["joinedTimestamp"] as? Date,
+            let statusRaw = record["status"] as? String,
+            let status = ParticipantStatus(rawValue: statusRaw)
+        else {
+            return nil
+        }
+        
+        self.id = id
+        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
+        self.userId = userId
+        self.username = username
+        self.profileImageURL = record["profileImageURL"] as? String
+        self.joinedAt = joinedAt
+        self.status = status
+        
+        // Decode workout data if present
+        if let workoutDataJSON = record["workoutData"] as? Data {
+            self.workoutData = try? JSONDecoder().decode(GroupWorkoutData.self, from: workoutDataJSON)
+        } else {
+            self.workoutData = nil
+        }
+    }
+    
+    func toCKRecord() -> CKRecord {
+        let record = CKRecord(recordType: "GroupWorkoutParticipants", recordID: CKRecord.ID(recordName: id))
+        
+        record["id"] = id
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
+        record["userID"] = userId
+        record["username"] = username
+        record["profileImageURL"] = profileImageURL
+        record["joinedTimestamp"] = joinedAt
+        record["status"] = status.rawValue
+        
+        if let workoutData = workoutData {
+            record["workoutData"] = try? JSONEncoder().encode(workoutData)
+        }
+        
+        return record
     }
 }
 
@@ -310,16 +448,25 @@ enum GroupWorkoutStatus: String, Codable, CaseIterable {
     }
 }
 
-enum ParticipantStatus: String, Codable {
+enum ParticipantStatus: String, Codable, CaseIterable {
+    case pending
     case joined
+    case maybe
+    case declined
     case active
     case completed
     case dropped
 
     var displayName: String {
         switch self {
+        case .pending:
+            "Pending"
         case .joined:
             "Ready"
+        case .maybe:
+            "Maybe"
+        case .declined:
+            "Declined"
         case .active:
             "Working Out"
         case .completed:
@@ -330,20 +477,70 @@ enum ParticipantStatus: String, Codable {
     }
 }
 
-// MARK: - Group Workout Update
+// MARK: - Group Workout Invite
 
-struct GroupWorkoutUpdate {
-    let workoutId: String
-    let participantId: String
-    let updateType: UpdateType
-    let data: GroupWorkoutData?
-    let timestamp: Date
-
-    enum UpdateType: String {
-        case joined
-        case started
-        case progress
-        case completed
-        case dropped
+struct GroupWorkoutInvite: Identifiable, Codable {
+    let id: String
+    let groupWorkoutId: String
+    let invitedBy: String // User ID who sent the invite
+    let invitedUser: String // User ID who was invited
+    let invitedAt: Date
+    let expiresAt: Date
+    
+    var isExpired: Bool {
+        expiresAt <= Date()
+    }
+    
+    init(
+        id: String = UUID().uuidString,
+        groupWorkoutId: String,
+        invitedBy: String,
+        invitedUser: String,
+        invitedAt: Date = Date(),
+        expiresAt: Date = Date().addingTimeInterval(7 * 24 * 60 * 60) // 7 days default
+    ) {
+        self.id = id
+        self.groupWorkoutId = groupWorkoutId
+        self.invitedBy = invitedBy
+        self.invitedUser = invitedUser
+        self.invitedAt = invitedAt
+        self.expiresAt = expiresAt
     }
 }
+
+// MARK: - CloudKit Conversion for GroupWorkoutInvite
+
+extension GroupWorkoutInvite {
+    init?(from record: CKRecord) {
+        guard
+            let id = record["id"] as? String,
+            let groupWorkoutRef = record["groupWorkoutID"] as? CKRecord.Reference,
+            let invitedBy = record["invitedByID"] as? String,
+            let invitedUser = record["invitedUserID"] as? String,
+            let expiresAt = record["expiresTimestamp"] as? Date
+        else {
+            return nil
+        }
+        
+        self.id = id
+        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
+        self.invitedBy = invitedBy
+        self.invitedUser = invitedUser
+        self.invitedAt = record.creationDate ?? Date()
+        self.expiresAt = expiresAt
+    }
+    
+    func toCKRecord() -> CKRecord {
+        let record = CKRecord(recordType: "GroupWorkoutInvites", recordID: CKRecord.ID(recordName: id))
+        
+        record["id"] = id
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
+        record["invitedByID"] = invitedBy
+        record["invitedUserID"] = invitedUser
+        // invitedAt is stored in system createdTimestamp field
+        record["expiresTimestamp"] = expiresAt
+        
+        return record
+    }
+}
+

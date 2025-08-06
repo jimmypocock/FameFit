@@ -10,40 +10,11 @@ import Combine
 import Foundation
 import HealthKit
 
-// MARK: - Activity Feed Item Model
-
-struct ActivityFeedItem: Codable, Identifiable, Equatable {
-    let id: String
-    let userID: String
-    let activityType: String
-    let workoutId: String?
-    let content: String // JSON encoded content
-    let visibility: String // "private", "friends_only", "public"
-    let createdTimestamp: Date
-    let expiresAt: Date
-    let xpEarned: Int?
-    let achievementName: String?
-
-    // Computed properties for UI display
-    var privacyLevel: WorkoutPrivacy {
-        WorkoutPrivacy(rawValue: visibility) ?? .private
-    }
-
-    var contentData: FeedContent? {
-        guard let data = content.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(FeedContent.self, from: data)
-    }
-
-    static func == (lhs: ActivityFeedItem, rhs: ActivityFeedItem) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
 // MARK: - Activity Feed Service Protocol
 
 protocol ActivityFeedServicing {
     func postWorkoutActivity(
-        workoutHistory: WorkoutHistoryItem,
+        workoutHistory: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws
@@ -60,12 +31,12 @@ protocol ActivityFeedServicing {
         privacy: WorkoutPrivacy
     ) async throws
 
-    func fetchFeed(for userIds: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedItem]
+    func fetchFeed(for userIds: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedRecord]
     func deleteActivity(_ activityId: String) async throws
     func updateActivityPrivacy(_ activityId: String, newPrivacy: WorkoutPrivacy) async throws
 
     // Publishers for real-time updates
-    var newActivityPublisher: AnyPublisher<ActivityFeedItem, Never> { get }
+    var newActivityPublisher: AnyPublisher<ActivityFeedRecord, Never> { get }
     var privacyUpdatePublisher: AnyPublisher<(String, WorkoutPrivacy), Never> { get }
 }
 
@@ -76,10 +47,10 @@ final class ActivityFeedService: ActivityFeedServicing {
     private let privacySettings: WorkoutPrivacySettings
 
     // Publishers
-    private let newActivitySubject = PassthroughSubject<ActivityFeedItem, Never>()
+    private let newActivitySubject = PassthroughSubject<ActivityFeedRecord, Never>()
     private let privacyUpdateSubject = PassthroughSubject<(String, WorkoutPrivacy), Never>()
 
-    var newActivityPublisher: AnyPublisher<ActivityFeedItem, Never> {
+    var newActivityPublisher: AnyPublisher<ActivityFeedRecord, Never> {
         newActivitySubject.eraseToAnyPublisher()
     }
 
@@ -95,7 +66,7 @@ final class ActivityFeedService: ActivityFeedServicing {
     // MARK: - Post Activity Methods
 
     func postWorkoutActivity(
-        workoutHistory: WorkoutHistoryItem,
+        workoutHistory: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
@@ -122,7 +93,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         }
 
         // Create activity feed item
-        let activityItem = ActivityFeedItem(
+        let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "workout",
@@ -152,7 +123,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Earned the '\(achievementName)' achievement!",
             subtitle: "Unlocked with \(xpEarned) XP",
             details: [
@@ -167,7 +138,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             throw ActivityFeedError.encodingFailed
         }
 
-        let activityItem = ActivityFeedItem(
+        let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "achievement",
@@ -192,7 +163,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = FeedContent(
+        let content = ActivityFeedContent(
             title: "Reached Level \(newLevel)!",
             subtitle: newTitle,
             details: [
@@ -207,7 +178,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             throw ActivityFeedError.encodingFailed
         }
 
-        let activityItem = ActivityFeedItem(
+        let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "level_up",
@@ -226,7 +197,7 @@ final class ActivityFeedService: ActivityFeedServicing {
 
     // MARK: - Fetch Methods
 
-    func fetchFeed(for userIds: Set<String>, since: Date?, limit _: Int) async throws -> [ActivityFeedItem] {
+    func fetchFeed(for userIds: Set<String>, since: Date?, limit _: Int) async throws -> [ActivityFeedRecord] {
         let predicate = if let since {
             NSPredicate(
                 format: "userID IN %@ AND createdTimestamp > %@ AND expiresAt > %@",
@@ -265,7 +236,7 @@ final class ActivityFeedService: ActivityFeedServicing {
 
     // MARK: - Private Helper Methods
 
-    private func createWorkoutContent(from workout: WorkoutHistoryItem, includeDetails: Bool) -> FeedContent {
+    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> ActivityFeedContent {
         var details: [String: String] = [
             "workoutType": workout.workoutType,
             "workoutIcon": "figure.run"
@@ -293,20 +264,20 @@ final class ActivityFeedService: ActivityFeedServicing {
             subtitle = "Great job on that \(minutes)-minute session! 💪"
         }
 
-        return FeedContent(
+        return ActivityFeedContent(
             title: title,
             subtitle: subtitle,
             details: details
         )
     }
 
-    private func saveToCloudKit(_ item: ActivityFeedItem) async throws {
+    private func saveToCloudKit(_ item: ActivityFeedRecord) async throws {
         // CloudKit save would go here
         // For now, this is a placeholder
         print("Would save activity to CloudKit: \(item.activityType) by \(item.userID)")
     }
 
-    private func convertRecordToActivityItem(_ record: CKRecord) -> ActivityFeedItem? {
+    private func convertRecordToActivityItem(_ record: CKRecord) -> ActivityFeedRecord? {
         guard
             let userID = record["userID"] as? String,
             let activityType = record["activityType"] as? String,
@@ -318,7 +289,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             return nil
         }
 
-        return ActivityFeedItem(
+        return ActivityFeedRecord(
             id: record.recordID.recordName,
             userID: userID,
             activityType: activityType,

@@ -1,0 +1,17 @@
+🏗️  FameFit Build Script
+=======================
+
+[1;33mBuilding iOS app...[0m
+** CLEAN SUCCEEDED **
+note: Building targets in dependency order
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:391:23: warning: 'dance' was deprecated in iOS 14.0: Use HKWorkoutActivityTypeSocialDance or HKWorkoutActivityTypeCardioDance
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:392:32: warning: 'danceInspiredTraining' was deprecated in iOS 10.0: Use HKWorkoutActivityTypeSocialDance, HKWorkoutActivityTypeCardioDance, HKWorkoutActivityTypeBarre or HKWorkoutActivityTypePilates
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:416:40: warning: 'mixedMetabolicCardioTraining' was deprecated in iOS 11.0: Use HKWorkoutActivityTypeMixedCardio or HKWorkoutActivityTypeHighIntensityIntervalTraining
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:391:23: warning: 'dance' was deprecated in iOS 14.0: Use HKWorkoutActivityTypeSocialDance or HKWorkoutActivityTypeCardioDance
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:392:32: warning: 'danceInspiredTraining' was deprecated in iOS 10.0: Use HKWorkoutActivityTypeSocialDance, HKWorkoutActivityTypeCardioDance, HKWorkoutActivityTypeBarre or HKWorkoutActivityTypePilates
+/Users/jimmypocock/Projects/Watch/FameFit/Shared/Extensions/HKWorkoutActivityType+Extensions.swift:416:40: warning: 'mixedMetabolicCardioTraining' was deprecated in iOS 11.0: Use HKWorkoutActivityTypeMixedCardio or HKWorkoutActivityTypeHighIntensityIntervalTraining
+ld: warning: Could not parse or use implicit file '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore.tbd': cannot link directly with 'SwiftUICore' because product being built is not an allowed client of it
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+** BUILD FAILED **
+	Building workspace FameFit with scheme FameFit-iOS and configuration Debug
+[0;31m❌ iOS app build failed[0m

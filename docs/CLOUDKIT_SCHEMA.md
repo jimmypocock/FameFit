@@ -51,7 +51,7 @@ Stores user profile information.
 
 **Migration Note**: The `influencerXP` field is deprecated but kept for backward compatibility. The app writes to both `influencerXP` and `totalXP` fields but reads preferentially from `totalXP`.
 
-#### WorkoutHistory
+#### Workouts
 Stores individual workout records.
 
 | Field | Type | Required | Queryable | Indexed | Description |
@@ -98,6 +98,33 @@ Stores follow requests for private profiles.
 | createdAt | Date | Yes | Yes | Yes | Request creation timestamp |
 | message | String | No | No | No | Optional message (max 280 chars) |
 | expiresAt | Date | Yes | Yes | Yes | Request expiration date |
+
+#### ActivitySharingSettings (NEW)
+Stores user preferences for automatic activity sharing to social feed.
+
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| userID | String | Yes | Yes | Yes | Reference to user's record ID |
+| shareActivitiesToFeed | Int64 | Yes | No | No | 1 = enabled, 0 = disabled |
+| shareWorkouts | Int64 | Yes | No | No | 1 = share workouts |
+| shareAchievements | Int64 | Yes | No | No | 1 = share achievements |
+| shareLevelUps | Int64 | Yes | No | No | 1 = share level ups |
+| shareMilestones | Int64 | Yes | No | No | 1 = share milestones |
+| shareStreaks | Int64 | Yes | No | No | 1 = share streaks |
+| workoutTypesToShare | Int List | No | No | No | HKWorkoutActivityType raw values |
+| minimumWorkoutDuration | Double | Yes | No | No | Minimum duration in seconds |
+| shareWorkoutDetails | Int64 | Yes | No | No | 1 = include details |
+| workoutPrivacy | String | Yes | No | No | Default privacy for workouts |
+| achievementPrivacy | String | Yes | No | No | Default privacy for achievements |
+| levelUpPrivacy | String | Yes | No | No | Default privacy for level ups |
+| milestonePrivacy | String | Yes | No | No | Default privacy for milestones |
+| streakPrivacy | String | Yes | No | No | Default privacy for streaks |
+| shareFromAllSources | Int64 | Yes | No | No | 1 = all sources, 0 = specific |
+| allowedSources | String List | No | No | No | Bundle IDs to share from |
+| blockedSources | String List | No | No | No | Bundle IDs to never share from |
+| sharingDelay | Double | Yes | No | No | Delay in seconds before sharing |
+| shareHistoricalWorkouts | Int64 | Yes | No | No | 1 = share past workouts |
+| historicalWorkoutMaxAge | Int64 | Yes | No | No | Max age in days |
 
 #### DeviceTokens (NEW)
 Stores device tokens for Apple Push Notification Service (APNS).
@@ -186,26 +213,40 @@ Stores kudos/cheers (likes) for workouts.
 - workoutOwnerId (for notifications)
 - createdAt (for rate limiting)
 
-#### WorkoutComments (NEW)
-Stores comments on workout activities.
+#### WorkoutComments (DEPRECATED - DO NOT USE)
+**⚠️ DEPRECATED: This table has been replaced by ActivityComments.**
+
+~~This table was originally for workout-specific comments but has been superseded by the more flexible ActivityComments table that supports comments on all activity types (workouts, achievements, level ups, milestones, etc.).~~
+
+**Migration Note**: Since there is no existing data in production, this table can be safely removed from the CloudKit schema.
+
+#### ActivityComments (NEW)
+Stores comments on any activity type (workouts, achievements, level ups, milestones, etc.).
 
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
-| workoutId | String | Yes | Yes | Yes | ID of the workout |
+| activityFeedId | String | Yes | Yes | Yes | ID of the ActivityFeed item |
+| sourceType | String | Yes | Yes | Yes | Type: "workout", "achievement", "level_up", etc. |
+| sourceRecordId | String | Yes | Yes | Yes | ID of the source record (workout ID, achievement ID, etc.) |
 | userId | String | Yes | Yes | Yes | User ID who posted comment |
-| workoutOwnerId | String | Yes | Yes | Yes | User ID who owns the workout |
+| activityOwnerId | String | Yes | Yes | Yes | User ID who owns the activity |
 | content | String | Yes | No | No | Comment content (max 500 chars) |
-| createdAt | Date | Yes | Yes | Yes | When comment was posted |
-| updatedAt | Date | Yes | Yes | No | When comment was last edited |
+| createdTimestamp | Date | Yes | Yes | Yes | When comment was posted |
+| modifiedTimestamp | Date | Yes | Yes | No | When comment was last edited |
 | parentCommentId | String | No | Yes | No | For threaded replies |
-| isEdited | Int64 | Yes | No | No | 1 = edited, 0 = not edited |
-| likeCount | Int64 | Yes | No | No | Number of likes on comment |
+| isEdited | Bool | Yes | No | No | Whether comment has been edited |
+| likeCount | Int | Yes | No | No | Number of likes on comment |
 
 **Required Indexes**:
-- workoutId (for fetching all comments for a workout)
-- userId (for fetching all comments by a user)
-- createdAt (for sorting chronologically)
-- parentCommentId (for threaded comment retrieval)
+- ___recordID (QUERYABLE) - Critical for preventing query errors
+- activityFeedId (QUERYABLE) - For fetching comments on a specific feed item
+- sourceType (QUERYABLE) - For filtering by activity type
+- sourceRecordId (QUERYABLE) - For fetching comments when feed item expires
+- userId (QUERYABLE) - For fetching all comments by a user
+- createdTimestamp (SORTABLE) - For chronological sorting
+- parentCommentId (QUERYABLE) - For threaded comment retrieval
+
+**Dual Reference System**: Comments reference both the ActivityFeed item (which expires after 30 days) and the permanent source record. This ensures comments remain accessible even after the feed item is cleaned up.
 
 #### WorkoutChallenges (NEW)
 Stores workout challenges between users.
@@ -227,12 +268,15 @@ Stores workout challenges between users.
 | xpStake | Int64 | Yes | No | No | XP bet amount |
 | winnerTakesAll | Int64 | Yes | No | No | 1 = winner takes all, 0 = split |
 | isPublic | Int64 | Yes | Yes | No | 1 = public, 0 = private |
+| maxParticipants | Int64 | Yes | No | No | Maximum allowed participants |
+| joinCode | String | No | Yes | Yes | Private challenge join code |
 
 **Required Indexes**:
 - creatorId (for fetching challenges by creator)
 - status (for filtering by challenge state)
 - isPublic (for discovering public challenges)
 - startDate, endDate (for active challenge queries)
+- joinCode (for private challenge joins)
 
 #### GroupWorkouts (NEW)
 Stores group workout sessions for real-time collaboration.
@@ -269,14 +313,14 @@ To avoid runtime errors, configure the following in CloudKit Dashboard:
 1. **Create Record Types**:
    - Go to CloudKit Dashboard > Schema > Record Types
    - Create all record types as defined above:
-     - Private Database: `Users`, `WorkoutHistory`, `UserSettings`, `FollowRequests`, `DeviceTokens`
-     - Public Database: `UserProfiles`, `UserRelationships`, `ActivityFeedItems`, `WorkoutKudos`, `WorkoutComments`, `WorkoutChallenges`, `GroupWorkouts`
+     - Private Database: `Users`, `Workouts`, `UserSettings`, `FollowRequests`, `DeviceTokens`
+     - Public Database: `UserProfiles`, `UserRelationships`, `ActivityFeedItems`, `WorkoutKudos`, `ActivityComments`, `WorkoutChallenges`, `GroupWorkouts`
    - Add all custom fields as defined above
 
 2. **Configure Indexes**:
    - For queries that need custom sorting, mark fields as queryable
    - **REQUIRED**: Add `___recordID` as QUERYABLE index for each record type
-   - For WorkoutHistory: Also mark `endDate` and `startDate` as QUERYABLE + SORTABLE
+   - For Workouts: Also mark `endDate` and `startDate` as QUERYABLE + SORTABLE
 
 3. **Deploy to Production**:
    - After testing in development, deploy schema to production

@@ -41,6 +41,78 @@ final class CloudKitSeeder {
         print("✅ Registered \(userID) as \(persona.displayName)")
     }
     
+    /// Update current user's profile with persona data
+    func updateCurrentUserWithPersona(_ persona: TestAccountPersona) async throws {
+        let userID = try await getCurrentUserID()
+        
+        // Create UserProfile in public database
+        let profile = createProfile(for: persona, userID: userID)
+        let record = profile.toCKRecord(recordID: CKRecord.ID(recordName: userID))
+        
+        _ = try await publicDatabase.save(record)
+        print("✅ Updated profile for \(persona.displayName)")
+    }
+    
+    /// Register a new account as a specific persona (for creating test profiles)
+    func registerAccountAsPersona(_ persona: TestAccountPersona) async throws {
+        // Generate a unique ID for this test profile
+        let testUserID = "test_\(persona.rawValue)_\(UUID().uuidString.prefix(8))"
+        
+        // Save to UserDefaults
+        var registry = UserDefaults.standard.dictionary(forKey: "TestAccountRegistry") ?? [:]
+        registry[persona.rawValue] = testUserID
+        UserDefaults.standard.set(registry, forKey: "TestAccountRegistry")
+        
+        print("✅ Registered test account \(testUserID) as \(persona.displayName)")
+    }
+    
+    /// Setup profile for a specific persona
+    func setupProfileForPersona(_ persona: TestAccountPersona) async throws {
+        guard let userID = getStoredUserID(for: persona) else {
+            throw SeederError.personaNotFound
+        }
+        
+        // Create UserProfile in public database
+        let profile = createProfile(for: persona, userID: userID)
+        let record = profile.toCKRecord(recordID: CKRecord.ID(recordName: userID))
+        
+        _ = try await publicDatabase.save(record)
+        print("✅ Created profile for \(persona.displayName)")
+    }
+    
+    /// Seed workout history for a specific persona
+    func seedWorkoutHistoryForPersona(_ persona: TestAccountPersona) async throws {
+        guard let userID = getStoredUserID(for: persona) else {
+            throw SeederError.personaNotFound
+        }
+        
+        let workouts = createWorkoutHistory(for: persona)
+        
+        for workout in workouts {
+            let record = CKRecord(recordType: "Workouts")
+            record["workoutId"] = workout.id.uuidString
+            record["workoutType"] = workout.workoutType
+            record["startDate"] = workout.startDate
+            record["endDate"] = workout.endDate
+            record["duration"] = workout.duration
+            record["totalEnergyBurned"] = workout.totalEnergyBurned
+            record["totalDistance"] = workout.totalDistance ?? 0
+            record["averageHeartRate"] = workout.averageHeartRate ?? 0
+            record["followersEarned"] = Int64(workout.followersEarned)
+            record["xpEarned"] = Int64(workout.xpEarned ?? workout.followersEarned)
+            record["source"] = workout.source
+            record["userID"] = userID
+            
+            do {
+                _ = try await privateDatabase.save(record)
+            } catch {
+                print("⚠️ Error saving workout: \(error)")
+            }
+        }
+        
+        print("✅ Created \(workouts.count) workouts for \(persona.displayName)")
+    }
+    
     // MARK: - Profile Setup
     
     /// Setup profile for current user based on their persona
@@ -168,12 +240,52 @@ final class CloudKitSeeder {
         }
         
         // Delete from private database
-        let privateTypes = ["WorkoutHistory", "Users"]
+        let privateTypes = ["Workouts"] // Changed from WorkoutHistory to Workouts
         for recordType in privateTypes {
             try await deleteRecords(ofType: recordType, in: privateDatabase, for: userID)
         }
         
+        // Reset user stats fields (instead of deleting the Users record)
+        try await resetUserStats(for: userID)
+        
         print("✅ Cleaned up all data for current user")
+    }
+    
+    /// Reset user stats fields to zero (instead of deleting the Users record)
+    private func resetUserStats(for userID: String) async throws {
+        let predicate = NSPredicate(format: "TRUEPREDICATE") // Get the user record
+        let query = CKQuery(recordType: "Users", predicate: predicate)
+        
+        do {
+            let (results, _) = try await privateDatabase.records(matching: query)
+            
+            for (_, result) in results {
+                switch result {
+                case .success(let record):
+                    // Reset stats to zero
+                    record["totalWorkouts"] = 0
+                    record["totalXP"] = 0
+                    record["currentStreak"] = 0
+                    
+                    // Save the updated record
+                    try await privateDatabase.save(record)
+                    print("✅ Reset user stats to zero")
+                    
+                case .failure(let error):
+                    print("⚠️ Failed to fetch user record: \(error)")
+                }
+            }
+            
+            if results.isEmpty {
+                print("✅ No Users record found (already clean)")
+            }
+        } catch let error as CKError where error.code == .unknownItem {
+            print("✅ No Users records found (already clean)")
+        } catch let error as CKError where error.code == .invalidArguments {
+            print("✅ Users record type not found in schema (already clean)")
+        } catch {
+            print("⚠️ Error resetting user stats: \(error)")
+        }
     }
     
     // MARK: - Helper Methods
@@ -201,12 +313,11 @@ final class CloudKitSeeder {
             id: userID,
             userID: userID,
             username: persona.username,
-            displayName: persona.displayName,
             bio: persona.bio,
             workoutCount: persona.workoutCount,
             totalXP: persona.totalXP,
-            joinedDate: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3600)),
-            lastUpdated: Date(),
+            createdTimestamp: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3600)),
+            modifiedTimestamp: Date(),
             isVerified: persona.isVerified,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -279,8 +390,8 @@ final class CloudKitSeeder {
         }
     }
     
-    private func createWorkoutHistory(for persona: TestAccountPersona) -> [WorkoutHistoryItem] {
-        var workouts: [WorkoutHistoryItem] = []
+    private func createWorkoutHistory(for persona: TestAccountPersona) -> [Workout] {
+        var workouts: [Workout] = []
         let workoutTypes = getWorkoutTypes(for: persona)
         let daysBack = min(persona.joinedDaysAgo, 90) // Last 90 days max
         
@@ -328,14 +439,14 @@ final class CloudKitSeeder {
         }
     }
     
-    private func createWorkout(type: String, date: Date, persona: TestAccountPersona) -> WorkoutHistoryItem {
+    private func createWorkout(type: String, date: Date, persona: TestAccountPersona) -> Workout {
         let duration = getTypicalDuration(for: type, persona: persona)
         let calories = getTypicalCalories(for: type, duration: duration, persona: persona)
         let distance = getTypicalDistance(for: type, duration: duration, persona: persona)
         let heartRate = getTypicalHeartRate(for: type, persona: persona)
         
         // Create workout first to calculate XP
-        let workout = WorkoutHistoryItem(
+        let workout = Workout(
             id: UUID(),
             workoutType: type,
             startDate: date,
@@ -353,7 +464,7 @@ final class CloudKitSeeder {
         let xpEarned = XPCalculator.calculateXP(for: workout, currentStreak: Int.random(in: 0...30))
         
         // Return workout with calculated XP
-        return WorkoutHistoryItem(
+        return Workout(
             id: workout.id,
             workoutType: workout.workoutType,
             startDate: workout.startDate,
@@ -476,13 +587,13 @@ final class CloudKitSeeder {
         return baseHeartRate + fitnessAdjustment + Double.random(in: -10...10)
     }
     
-    private func createActivityFeed(for persona: TestAccountPersona, userID: String) -> [ActivityFeedItem] {
-        var activities: [ActivityFeedItem] = []
+    private func createActivityFeed(for persona: TestAccountPersona, userID: String) -> [ActivityFeedRecord] {
+        var activities: [ActivityFeedRecord] = []
         
         // Recent workout activities
         let recentWorkouts = createWorkoutHistory(for: persona).suffix(5)
         for workout in recentWorkouts {
-            let content = FeedContent(
+            let content = ActivityFeedContent(
                 title: "Completed a \(workout.workoutType) workout!",
                 subtitle: "Duration: \(Int(workout.duration / 60)) min | \(Int(workout.totalEnergyBurned)) cal",
                 details: [
@@ -494,7 +605,7 @@ final class CloudKitSeeder {
             )
             
             let contentData = try! JSONEncoder().encode(content)
-            let activity = ActivityFeedItem(
+            let activity = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "workout",
@@ -512,14 +623,14 @@ final class CloudKitSeeder {
         
         // Add some achievements
         if persona.totalXP > 10_000 {
-            let achievementContent = FeedContent(
+            let achievementContent = ActivityFeedContent(
                 title: "Earned the 'Rising Star' achievement!",
                 subtitle: "Reached 10,000 XP",
                 details: ["achievementName": "Rising Star", "xpRequired": "10000"]
             )
             
             let contentData = try! JSONEncoder().encode(achievementContent)
-            let achievement = ActivityFeedItem(
+            let achievement = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "achievement",
@@ -550,6 +661,12 @@ final class CloudKitSeeder {
             }
             
             print("✅ Deleted \(results.count) \(recordType) records")
+        } catch let error as CKError where error.code == .unknownItem {
+            // Record doesn't exist, that's fine
+            print("✅ No \(recordType) records found (already clean)")
+        } catch let error as CKError where error.code == .invalidArguments {
+            // Record type doesn't exist in schema, that's fine
+            print("✅ \(recordType) record type not found in schema (already clean)")
         } catch {
             print("⚠️ Error deleting \(recordType): \(error)")
         }
