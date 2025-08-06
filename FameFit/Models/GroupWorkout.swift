@@ -85,7 +85,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         workoutType: HKWorkoutActivityType,
         hostId: String,
         participantCount: Int = 0,
-        maxParticipants: Int = 10,
+        maxParticipants: Int = GroupWorkoutConstants.defaultMaxParticipants,
         scheduledStart: Date,
         scheduledEnd: Date,
         status: GroupWorkoutStatus = .scheduled,
@@ -131,7 +131,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             return nil
         }
         
-        let description = record["description"] as? String ?? "Group workout session"
+        let description = record["description"] as? String ?? ""
         
         guard let workoutTypeRaw = record["workoutType"] as? Int64 else {
             FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid workoutType. Value: \(record["workoutType"] ?? "nil")", category: FameFitLogger.social)
@@ -148,7 +148,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             return nil
         }
         
-        let maxParticipants = record["maxParticipants"] as? Int64 ?? 10 // Default to 10 participants
+        let maxParticipants = record["maxParticipants"] as? Int64 ?? Int64(GroupWorkoutConstants.defaultMaxParticipants)
         
         guard let scheduledStart = record["scheduledStart"] as? Date else {
             FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid scheduledStart", category: FameFitLogger.social)

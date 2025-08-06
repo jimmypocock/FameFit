@@ -7,28 +7,14 @@
 
 import SwiftUI
 
-struct GroupWorkoutParticipants: View {
+struct GroupWorkoutCardParticipants: View {
     let groupWorkout: GroupWorkout
     let participants: [GroupWorkoutParticipant] // Now passed separately
     @Binding var showParticipants: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Participants")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                if groupWorkout.participantCount > 3 {
-                    Button("View All (\(groupWorkout.participantCount))") {
-                        showParticipants = true
-                    }
-                    .font(.system(size: 12))
-                    .foregroundColor(.blue)
-                }
-            }
+            // Remove "Participants" text per requirements
 
             // Participant avatars
             HStack(spacing: -8) {

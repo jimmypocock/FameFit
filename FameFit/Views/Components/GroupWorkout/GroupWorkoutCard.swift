@@ -10,27 +10,26 @@ import SwiftUI
 
 struct GroupWorkoutCard: View {
     let groupWorkout: GroupWorkout
-
-    @State private var showParticipants = false
+    
+    @Environment(\.dependencyContainer) private var container
     @State private var isAnimating = false
+    @State private var hostUsername: String = "Loading..."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with workout info
-            GroupWorkoutHeader(
+            GroupWorkoutCardHeader(
                 groupWorkout: groupWorkout,
                 isAnimating: $isAnimating
             )
-
-            // Workout details
-            GroupWorkoutDetails(groupWorkout: groupWorkout)
-
-            // Participants preview
-            GroupWorkoutParticipants(
-                groupWorkout: groupWorkout,
-                participants: [], // TODO: Fetch participants from CloudKit
-                showParticipants: $showParticipants
-            )
+            
+            // Host info at bottom - always show
+            Text("Hosted by: \(hostUsername)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+                .padding(.top, 8)
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
@@ -51,6 +50,29 @@ struct GroupWorkoutCard: View {
         )
         .scaleEffect(isAnimating ? 1.02 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isAnimating)
+        .onAppear {
+            loadHostUsername()
+        }
+    }
+    
+    private func loadHostUsername() {
+        Task {
+            do {
+                print("Loading host username for hostId: \(groupWorkout.hostId)")
+                // Use fetchProfileByUserID for CloudKit user IDs (starting with underscore)
+                let profile = try await container.userProfileService.fetchProfileByUserID(groupWorkout.hostId)
+                await MainActor.run {
+                    hostUsername = profile.username
+                    print("Successfully loaded host username: \(profile.username)")
+                }
+            } catch {
+                print("Failed to load host username for \(groupWorkout.hostId): \(error)")
+                await MainActor.run {
+                    // Show hostId as fallback
+                    hostUsername = "Unknown"
+                }
+            }
+        }
     }
 }
 
@@ -118,7 +140,7 @@ struct GroupWorkoutCard: View {
                             status: .active
                         )
                     ],
-                    maxParticipants: 10,
+                    maxParticipants: GroupWorkoutConstants.defaultMaxParticipants,
                     scheduledStart: Date().addingTimeInterval(-1_800),
                     scheduledEnd: Date().addingTimeInterval(1_800),
                     status: .active,

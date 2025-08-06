@@ -76,24 +76,33 @@ final class NavigationCoordinator: ObservableObject {
         
         // Expected format: famefit://[type]/[id]
         // e.g., famefit://groupworkout/abc123
-        let path = components.path
-        let pathComponents = path.split(separator: "/")
-        guard pathComponents.count >= 2 else { return }
+        // In this format: host = "groupworkout", path = "/abc123"
         
-        let type = String(pathComponents[0])
-        let id = String(pathComponents[1])
+        guard let host = components.host else { 
+            FameFitLogger.warning("Deep link missing host: \(url)", category: FameFitLogger.ui)
+            return 
+        }
         
-        switch type {
+        // Remove leading slash from path and get the ID
+        let pathWithoutSlash = components.path.hasPrefix("/") ? String(components.path.dropFirst()) : components.path
+        guard !pathWithoutSlash.isEmpty else {
+            FameFitLogger.warning("Deep link missing ID: \(url)", category: FameFitLogger.ui)
+            return
+        }
+        
+        FameFitLogger.info("Handling deep link - type: \(host), id: \(pathWithoutSlash)", category: FameFitLogger.ui)
+        
+        switch host {
         case "groupworkout":
-            navigateToGroupWorkoutDetail(id: id)
+            navigateToGroupWorkoutDetail(id: pathWithoutSlash)
         case "profile":
-            navigateToProfile(userId: id)
+            navigateToProfile(userId: pathWithoutSlash)
         case "challenge":
-            navigateToChallenge(id: id)
+            navigateToChallenge(id: pathWithoutSlash)
         case "workout":
-            navigateToWorkout(id: id)
+            navigateToWorkout(id: pathWithoutSlash)
         default:
-            FameFitLogger.warning("Unknown deep link type: \(type)", category: FameFitLogger.ui)
+            FameFitLogger.warning("Unknown deep link type: \(host)", category: FameFitLogger.ui)
         }
     }
     

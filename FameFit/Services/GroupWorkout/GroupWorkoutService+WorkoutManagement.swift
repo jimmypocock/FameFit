@@ -32,7 +32,7 @@ extension GroupWorkoutService {
         
         // Create the workout
         var newWorkout = workout
-        newWorkout.participantCount = 1 // Host is the first participant
+        newWorkout.participantCount = 0 // Don't count host as participant
         
         // Save to CloudKit
         let record = newWorkout.toCKRecord()
@@ -42,21 +42,7 @@ extension GroupWorkoutService {
             throw GroupWorkoutError.saveFailed
         }
         
-        // Create the host as first participant
-        FameFitLogger.debug("Fetching profile for userId: \(userId)", category: FameFitLogger.social)
-        let hostProfile = try await userProfileService.fetchProfileByUserID(userId)
-        FameFitLogger.debug("Successfully fetched profile: \(hostProfile.username)", category: FameFitLogger.social)
-        let hostParticipant = GroupWorkoutParticipant(
-            id: UUID().uuidString,
-            groupWorkoutId: savedWorkout.id,
-            userId: userId,
-            username: hostProfile.username,
-            profileImageURL: hostProfile.profileImageURL,
-            status: .joined
-        )
-        
-        let participantRecord = hostParticipant.toCKRecord()
-        _ = try await cloudKitManager.save(participantRecord)
+        // Don't create host as participant - host is separate from participants
         
         // Record action for rate limiting
         await rateLimiter.recordAction(.workoutPost, userId: userId)

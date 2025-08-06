@@ -12,13 +12,14 @@ import HealthKit
 struct CreateGroupWorkoutView: View {
     @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.navigationCoordinator) private var navigationCoordinator
     
     @State private var title = ""
     @State private var selectedWorkoutType: Int = 37 // Running
     @State private var scheduledDate = Date().addingTimeInterval(300) // 5 minutes from now
     @State private var location = ""
     @State private var notes = ""
-    @State private var maxParticipants = 10
+    @State private var maxParticipants = GroupWorkoutConstants.defaultMaxParticipants
     @State private var isPublic = false
     @State private var tagInput = ""
     @State private var tags: [String] = []
@@ -116,15 +117,15 @@ struct CreateGroupWorkoutView: View {
                                     .keyboardType(.numberPad)
                                     .onChange(of: maxParticipants) { oldValue, newValue in
                                         // Enforce limits
-                                        if newValue < 2 {
-                                            maxParticipants = 2
-                                        } else if newValue > 100 {
-                                            maxParticipants = 100
+                                        if newValue < GroupWorkoutConstants.minParticipants {
+                                            maxParticipants = GroupWorkoutConstants.minParticipants
+                                        } else if newValue > GroupWorkoutConstants.maxParticipantsLimit {
+                                            maxParticipants = GroupWorkoutConstants.maxParticipantsLimit
                                         }
                                         FameFitLogger.debug("📝 Max participants changed to: \(maxParticipants)", category: FameFitLogger.ui)
                                     }
                             }
-                            Text("Max participants must be between 2-100.")
+                            Text("Max participants must be between \(GroupWorkoutConstants.minParticipants)-\(GroupWorkoutConstants.maxParticipantsLimit).")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -273,7 +274,7 @@ struct CreateGroupWorkoutView: View {
                 
                 let workout = GroupWorkout(
                     name: title,
-                    description: notes.isEmpty ? "Group workout session" : notes,
+                    description: notes,
                     workoutType: workoutType,
                     hostId: currentUserId,
                     maxParticipants: maxParticipants,
@@ -290,7 +291,6 @@ struct CreateGroupWorkoutView: View {
                 FameFitLogger.info("✅ Group workout created successfully: \(createdWorkout.id)", category: FameFitLogger.social)
                 
                 // Add to calendar if requested
-                var calendarMessage = ""
                 if addToCalendar {
                     do {
                         try await container.groupWorkoutService.addToCalendar(createdWorkout)
@@ -298,23 +298,20 @@ struct CreateGroupWorkoutView: View {
                     } catch {
                         // Calendar addition failed, but workout was created
                         FameFitLogger.warning("Failed to add workout to calendar: \(error.localizedDescription)", category: FameFitLogger.general)
-                        if error.localizedDescription.contains("access denied") {
-                            calendarMessage = "\n\nNote: Calendar event not added. Grant calendar access in Settings to use this feature."
-                        } else {
-                            calendarMessage = "\n\nNote: Could not add to calendar."
-                        }
                     }
                 }
                 
                 await MainActor.run {
                     FameFitLogger.debug("📝 Dismissing CreateGroupWorkoutView after successful creation", category: FameFitLogger.ui)
                     isCreating = false
-                    successMessage = "Group workout created successfully!" + calendarMessage
-                    showSuccess = true
                     
-                    // Dismiss after a short delay to ensure UI updates
+                    // Dismiss sheet first
+                    dismiss()
+                    
+                    // Navigate after a longer delay to ensure sheet is fully dismissed
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        dismiss()
+                        FameFitLogger.info("Navigating to created workout: \(createdWorkout.id)", category: FameFitLogger.ui)
+                        navigationCoordinator?.navigateToGroupWorkout(createdWorkout)
                     }
                 }
             } catch {

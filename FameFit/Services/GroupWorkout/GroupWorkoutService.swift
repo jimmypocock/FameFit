@@ -84,6 +84,7 @@ enum GroupWorkoutError: LocalizedError {
     case calendarAccessDenied
     case calendarSaveFailed
     case calendarRemoveFailed
+    case calendarEventNotFound
     
     var errorDescription: String? {
         switch self {
@@ -119,6 +120,8 @@ enum GroupWorkoutError: LocalizedError {
             "Failed to save to calendar"
         case .calendarRemoveFailed:
             "Failed to remove from calendar"
+        case .calendarEventNotFound:
+            "Calendar event not found"
         }
     }
 }

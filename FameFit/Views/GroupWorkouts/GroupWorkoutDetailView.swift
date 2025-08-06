@@ -15,15 +15,24 @@ struct GroupWorkoutDetailView: View {
     
     @State private var participants: [GroupWorkoutParticipant] = []
     @State private var participantProfiles: [String: UserProfile] = [:]
+    @State private var hostProfile: UserProfile?
     @State private var myParticipation: GroupWorkoutParticipant?
     @State private var isLoading = true
+    @State private var showHostProfile = false
     @State private var showInviteSheet = false
-    @State private var showEditSheet = false
     @State private var showDeleteAlert = false
     @State private var isCalendarAdded = false
+    @State private var showCalendarDeniedAlert = false
+    @State private var showCalendarSuccessAlert = false
+    @State private var calendarSuccessMessage = ""
+    
+    @State private var currentUserID: String?
     
     private var isCreator: Bool {
-        workout.hostId == container.cloudKitManager.currentUserID
+        guard let currentUserID = currentUserID else { return false }
+        let result = workout.hostId == currentUserID
+        print("isCreator check: hostId=\(workout.hostId), currentUserID=\(currentUserID), isCreator=\(result)")
+        return result
     }
     
     private var acceptedCount: Int {
@@ -31,75 +40,64 @@ struct GroupWorkoutDetailView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header
-                    headerSection
+                    // Workout type and status info
+                    workoutInfoSection
                     
                     // Quick Actions
                     if workout.status == .scheduled || workout.status == .active {
                         quickActionsSection
                     }
                     
-                    // Details
-                    detailsSection
+                    // Details - only show if there's content
+                    if workout.location != nil || workout.notes != nil || !workout.tags.isEmpty {
+                        detailsSection
+                    }
                     
                     // Participants
                     participantsSection
                     
-                    // Share & Calendar
-                    shareSection
+                    // Management actions
+                    if (isCreator && workout.status == .scheduled) || 
+                       (workout.status == .active && (isCreator || myParticipation != nil)) {
+                        shareSection
+                    }
                 }
                 .padding()
-            }
-            .navigationTitle("Workout Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    ShareLink(item: workout.shareText, subject: Text(workout.name)) {
-                        Image(systemName: "square.and.arrow.up")
+        }
+        .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(
+                trailing: Menu {
+                    Button(action: shareWorkout) {
+                        Label("Share Workout", systemImage: "square.and.arrow.up")
                     }
                     
-                    if isCreator && (workout.status == .scheduled || workout.status == .active) {
-                        Menu {
-                            // Only allow editing if workout hasn't started yet
-                            if workout.scheduledStart > Date() {
-                                Button(action: { showEditSheet = true }) {
-                                    Label("Edit Workout", systemImage: "pencil")
-                                }
-                            }
-                            
-                            // Allow canceling scheduled workouts or ending active ones
-                            if workout.status == .scheduled {
-                                Button(role: .destructive, action: { showDeleteAlert = true }) {
-                                    Label("Cancel Workout", systemImage: "xmark.circle")
-                                }
-                            } else if workout.status == .active {
-                                Button(role: .destructive, action: { showDeleteAlert = true }) {
-                                    Label("End Workout", systemImage: "stop.circle")
-                                }
-                            }
-                            
-                            // Always allow deletion for scheduled workouts
-                            if workout.status == .scheduled {
-                                Button(role: .destructive, action: { showDeleteAlert = true }) {
-                                    Label("Delete Workout", systemImage: "trash")
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
+                    if isCalendarAdded {
+                        Button(action: viewInCalendar) {
+                            Label("View in Calendar", systemImage: "calendar")
                         }
                     }
+                    
+                    Button(action: toggleCalendar) {
+                        Label(
+                            isCalendarAdded ? "Remove from Calendar" : "Add to Calendar",
+                            systemImage: isCalendarAdded ? "calendar.badge.minus" : "calendar.badge.plus"
+                        )
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
-            }
+            )
             .sheet(isPresented: $showInviteSheet) {
                 InviteFriendsView(workout: workout)
                     .environment(\.dependencyContainer, container)
             }
-            .sheet(isPresented: $showEditSheet) {
-                EditGroupWorkoutView(workout: workout)
-                    .environment(\.dependencyContainer, container)
+            .sheet(isPresented: $showHostProfile) {
+                if let hostProfile = hostProfile {
+                    ProfileView(userId: hostProfile.userID)
+                        .environment(\.dependencyContainer, container)
+                }
             }
             .alert("Delete Workout", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -109,33 +107,56 @@ struct GroupWorkoutDetailView: View {
             } message: {
                 Text("Are you sure you want to delete this workout? This action cannot be undone.")
             }
+            .alert("Added to Calendar", isPresented: $showCalendarSuccessAlert) {
+                Button("View in Calendar") {
+                    // Open Calendar app to the event date
+                    if let url = URL(string: "calshow:\(Int(workout.scheduledStart.timeIntervalSinceReferenceDate))") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Done", role: .cancel) { }
+            } message: {
+                Text(calendarSuccessMessage)
+            }
+            .alert("Calendar Access Required", isPresented: $showCalendarDeniedAlert) {
+                Button("Not Now", role: .cancel) { }
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } message: {
+                Text("To add workouts to your calendar:\n\n1. Tap 'Open Settings'\n2. Turn on 'Calendars'\n3. Return to FameFit\n\nThis lets you get reminders for upcoming group workouts.")
+            }
             .task {
+                // Get current user ID first
+                do {
+                    currentUserID = try await container.cloudKitManager.getCurrentUserID()
+                } catch {
+                    print("Failed to get current user ID: \(error)")
+                }
                 await loadData()
             }
-        }
     }
     
     // MARK: - Sections
     
-    private var headerSection: some View {
+    private var workoutInfoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(workout.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    HStack(spacing: 12) {
-                        Label(workoutTypeName, systemImage: workoutTypeIcon)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        if workout.isPublic {
-                            Label("Public", systemImage: "globe")
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                        }
-                    }
+            // Title
+            Text(workout.name)
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            HStack(spacing: 12) {
+                Label(workoutTypeName, systemImage: workoutTypeIcon)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                if workout.isPublic {
+                    Label("Public", systemImage: "globe")
+                        .font(.caption)
+                        .foregroundColor(.accentColor)
                 }
                 
                 Spacer()
@@ -145,12 +166,9 @@ struct GroupWorkoutDetailView: View {
                 }
             }
             
-            // Date & Time with timezone
-            VStack(alignment: .leading, spacing: 4) {
-                Label(dateTimeText, systemImage: "calendar")
-                    .font(.subheadline)
-                
-            }
+            // Date & Time
+            Label(dateTimeText, systemImage: "calendar")
+                .font(.subheadline)
         }
         .padding()
         .background(Color(.secondarySystemBackground))
@@ -174,32 +192,11 @@ struct GroupWorkoutDetailView: View {
                 }
                 .buttonStyle(BorderedProminentButtonStyle())
                 .tint(.green)
-            } else if workout.status == .active {
-                // Host can complete or cancel an active workout
-                HStack(spacing: 12) {
-                    Button(action: completeWorkout) {
-                        Label("Complete", systemImage: "checkmark.circle.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(BorderedProminentButtonStyle())
-                    .tint(.green)
-                    
-                    Button(action: cancelWorkout) {
-                        Label("Cancel", systemImage: "xmark.circle.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(BorderedButtonStyle())
-                    .tint(.red)
-                }
             }
+            // For active workouts, Complete button is shown in shareSection at bottom
         } else if workout.status == .active && myParticipation != nil {
-            // Participants can mark themselves as completed during active workout
-            Button(action: completeWorkout) {
-                Label("Mark as Completed", systemImage: "checkmark.circle.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BorderedProminentButtonStyle())
-            .tint(.green)
+            // For active workouts, Complete button is shown in shareSection at bottom
+            EmptyView()
         } else if myParticipation == nil && workout.isJoinable {
             joinButtons
         } else if let participation = myParticipation, participation.status != .declined {
@@ -323,6 +320,68 @@ struct GroupWorkoutDetailView: View {
     
     private var participantsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Host section
+            if let hostProfile = hostProfile {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Host")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                    
+                    Button(action: { showHostProfile = true }) {
+                        HStack {
+                            // Avatar
+                            if let avatarURL = hostProfile.profileImageURL, let url = URL(string: avatarURL) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray)
+                            }
+                            
+                            // Name
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(hostProfile.username)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                    
+                                    if hostProfile.isVerified {
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                                
+                                Text("Organizer")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                
+                Divider()
+                    .padding(.vertical, 8)
+            }
+            
+            // Participants header
             HStack {
                 Text("Participants (\(acceptedCount)/\(workout.maxParticipants))")
                     .font(.headline)
@@ -351,8 +410,10 @@ struct GroupWorkoutDetailView: View {
                     .padding()
             } else {
                 ForEach(participants.sorted(by: { $0.joinedAt < $1.joinedAt })) { participant in
-                    if let profile = participantProfiles[participant.userId] {
-                        ParticipantRow(participant: participant, profile: profile, isCreator: isCreator)
+                    // Skip the host in participants list
+                    if participant.userId != workout.hostId,
+                       let profile = participantProfiles[participant.userId] {
+                        ParticipantRow(participant: participant, profile: profile, isCreator: false)
                     }
                 }
             }
@@ -363,21 +424,26 @@ struct GroupWorkoutDetailView: View {
     }
     
     private var shareSection: some View {
-        VStack(spacing: 12) {
-            Button(action: shareWorkout) {
-                Label("Share Workout", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
+        Group {
+            VStack(spacing: 12) {
+                if workout.status == .active {
+                    // Complete button for active workouts (both host and participants)
+                    Button(action: completeWorkout) {
+                        Label("Complete Workout", systemImage: "checkmark.circle.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedProminentButtonStyle())
+                    .tint(.green)
+                } else if isCreator && workout.status == .scheduled {
+                    // Cancel button only for scheduled workouts
+                    Button(role: .destructive, action: { showDeleteAlert = true }) {
+                        Label("Cancel Workout", systemImage: "xmark.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedButtonStyle())
+                    .tint(.red)
+                }
             }
-            .buttonStyle(BorderedButtonStyle())
-            
-            Button(action: toggleCalendar) {
-                Label(
-                    isCalendarAdded ? "Remove from Calendar" : "Add to Calendar",
-                    systemImage: isCalendarAdded ? "calendar.badge.minus" : "calendar.badge.plus"
-                )
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BorderedButtonStyle())
         }
     }
     
@@ -451,6 +517,9 @@ struct GroupWorkoutDetailView: View {
             let currentUserId = try await container.cloudKitManager.getCurrentUserID()
             let myPart = loadedParticipants.first { $0.userId == currentUserId }
             
+            // Load host profile
+            let hostProf = try? await container.userProfileService.fetchProfileByUserID(workout.hostId)
+            
             // Load profiles for participants
             var profiles: [String: UserProfile] = [:]
             for participant in loadedParticipants {
@@ -460,13 +529,14 @@ struct GroupWorkoutDetailView: View {
             }
             
             // Check calendar status
-            let calendarKey = "calendar_\(workout.id)"
+            let calendarKey = "calendar_event_\(workout.id)"
             let hasCalendarEvent = UserDefaults.standard.string(forKey: calendarKey) != nil
             
             await MainActor.run {
                 self.workout = refreshedWorkout
                 self.participants = loadedParticipants
                 self.participantProfiles = profiles
+                self.hostProfile = hostProf
                 self.myParticipation = myPart
                 self.isCalendarAdded = hasCalendarEvent
                 self.isLoading = false
@@ -534,19 +604,6 @@ struct GroupWorkoutDetailView: View {
         }
     }
     
-    private func cancelWorkout() {
-        Task {
-            do {
-                try await container.groupWorkoutService.cancelGroupWorkout(workout.id)
-                await loadData()
-                
-                FameFitLogger.info("🏋️ Cancelled group workout: \(workout.name)", category: FameFitLogger.ui)
-            } catch {
-                FameFitLogger.error("Failed to cancel workout", error: error, category: FameFitLogger.ui)
-            }
-        }
-    }
-    
     private func deleteWorkout() {
         Task {
             do {
@@ -561,12 +618,24 @@ struct GroupWorkoutDetailView: View {
     }
     
     private func shareWorkout() {
-        let message = "Join me for \(workout.title) on \(dateTimeText)"
-        let activityVC = UIActivityViewController(activityItems: [message], applicationActivities: nil)
+        // Use the workout's built-in sharing functionality which includes the deep link
+        let activityVC = UIActivityViewController(
+            activityItems: workout.activityItems,
+            applicationActivities: nil
+        )
         
+        // Get the window scene and root view controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first,
            let rootVC = window.rootViewController {
+            
+            // For iPad
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            
             rootVC.present(activityVC, animated: true)
         }
     }
@@ -576,16 +645,40 @@ struct GroupWorkoutDetailView: View {
             do {
                 if isCalendarAdded {
                     try await container.groupWorkoutService.removeFromCalendar(workout)
+                    await MainActor.run {
+                        isCalendarAdded = false
+                        calendarSuccessMessage = "Workout removed from your calendar."
+                        showCalendarSuccessAlert = true
+                    }
                 } else {
                     try await container.groupWorkoutService.addToCalendar(workout)
-                }
-                
-                await MainActor.run {
-                    isCalendarAdded.toggle()
+                    await MainActor.run {
+                        isCalendarAdded = true
+                        let formatter = DateFormatter()
+                        formatter.dateStyle = .medium
+                        formatter.timeStyle = .short
+                        calendarSuccessMessage = "Workout added to your calendar for \(formatter.string(from: workout.scheduledStart)). You'll get a reminder 15 minutes before."
+                        showCalendarSuccessAlert = true
+                    }
                 }
             } catch {
                 print("Calendar operation failed: \(error)")
+                
+                // Check if it's a permission denied error
+                if case GroupWorkoutError.calendarAccessDenied = error {
+                    await MainActor.run {
+                        showCalendarDeniedAlert = true
+                    }
+                }
             }
+        }
+    }
+    
+    private func viewInCalendar() {
+        // Open Calendar app to the event date
+        // Using calshow URL scheme with the event date
+        if let url = URL(string: "calshow:\(Int(workout.scheduledStart.timeIntervalSinceReferenceDate))") {
+            UIApplication.shared.open(url)
         }
     }
 }
@@ -636,18 +729,6 @@ struct ParticipantRow: View {
             }
             
             Spacer()
-            
-            // Creator badge
-            if participant.userId == profile.userID && isCreator {
-                Text("Organizer")
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.15))
-                    .foregroundColor(.accentColor)
-                    .cornerRadius(4)
-            }
         }
         .padding(.vertical, 4)
     }
@@ -884,23 +965,3 @@ private struct InviteFollowerRow: View {
     }
 }
 
-struct EditGroupWorkoutView: View {
-    let workout: GroupWorkout
-    @Environment(\.dependencyContainer) private var container
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            Text("Edit Workout - Coming Soon")
-                .navigationTitle("Edit Workout")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") {
-                            dismiss()
-                        }
-                    }
-                }
-        }
-    }
-}

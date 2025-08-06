@@ -128,6 +128,7 @@ struct GroupWorkoutsView: View {
         .sheet(isPresented: $showingCreateWorkout) {
             CreateGroupWorkoutView()
                 .environment(\.dependencyContainer, container)
+                .environment(\.navigationCoordinator, navigationCoordinator)
         }
         .alert("Join Workout", isPresented: $showingJoinCodeInput) {
             TextField("Enter join code", text: $joinCode)
@@ -174,47 +175,18 @@ struct GroupWorkoutsView: View {
     
     private var upcomingSectionedList: some View {
         ScrollView {
-            LazyVStack(spacing: 24) {
-                // Hosting Section
-                if !viewModel.hostingWorkouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Hosting")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal)
-                        
-                        ForEach(viewModel.hostingWorkouts, id: \.id) { workout in
-                            workoutCard(for: workout)
-                        }
-                    }
+            LazyVStack(spacing: 16) {
+                // Combine all workouts without section headers
+                ForEach(viewModel.hostingWorkouts, id: \.id) { workout in
+                    workoutCard(for: workout)
                 }
                 
-                // Participating Section
-                if !viewModel.participatingWorkouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Participating")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal)
-                        
-                        ForEach(viewModel.participatingWorkouts, id: \.id) { workout in
-                            workoutCard(for: workout)
-                        }
-                    }
+                ForEach(viewModel.participatingWorkouts, id: \.id) { workout in
+                    workoutCard(for: workout)
                 }
                 
-                // Public Section
-                if !viewModel.publicWorkouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Public")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal)
-                        
-                        ForEach(viewModel.publicWorkouts, id: \.id) { workout in
-                            workoutCard(for: workout)
-                        }
-                    }
+                ForEach(viewModel.publicWorkouts, id: \.id) { workout in
+                    workoutCard(for: workout)
                 }
                 
                 // Load more button
@@ -259,6 +231,7 @@ struct GroupWorkoutsView: View {
             navigationCoordinator?.navigateToGroupWorkout(workout)
         } label: {
             GroupWorkoutCard(groupWorkout: workout)
+                .environment(\.dependencyContainer, container)
         }
         .buttonStyle(PlainButtonStyle())
     }
