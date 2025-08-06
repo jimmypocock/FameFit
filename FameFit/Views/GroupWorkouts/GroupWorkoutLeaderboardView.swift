@@ -159,7 +159,7 @@ struct GroupWorkoutLeaderboardView: View {
         VStack(spacing: 8) {
             // Top 3 participants
             ForEach(Array(sortedParticipants.prefix(3).enumerated()), id: \.element.0) { index, participant in
-                LeaderboardRow(
+                GroupLeaderboardRow(
                     rank: index + 1,
                     userId: participant.0,
                     data: participant.1,
@@ -194,7 +194,7 @@ struct GroupWorkoutLeaderboardView: View {
             case .distance:
                 return (lhs.value.totalDistance ?? 0) > (rhs.value.totalDistance ?? 0)
             case .heartRate:
-                return lhs.value.currentHeartRate > rhs.value.currentHeartRate
+                return (lhs.value.currentHeartRate ?? 0) > (rhs.value.currentHeartRate ?? 0)
             case .duration:
                 return lhs.value.duration > rhs.value.duration
             }
@@ -290,7 +290,7 @@ struct MetricChip: View {
     }
 }
 
-struct LeaderboardRow: View {
+struct GroupLeaderboardRow: View {
     let rank: Int
     let userId: String
     let data: GroupWorkoutData
@@ -413,7 +413,7 @@ struct LeaderboardRow: View {
             let km = (data.totalDistance ?? 0) / 1000
             return String(format: "%.2f", km)
         case .heartRate:
-            return "\(Int(data.currentHeartRate))"
+            return "\(Int(data.currentHeartRate ?? 0))"
         case .duration:
             return formatDuration(data.duration)
         }
@@ -485,7 +485,7 @@ struct FullLeaderboardView: View {
                     
                     // All participants
                     ForEach(Array(sortedParticipants.enumerated()), id: \.element.0) { index, participant in
-                        LeaderboardRow(
+                        GroupLeaderboardRow(
                             rank: index + 1,
                             userId: participant.0,
                             data: participant.1,
@@ -519,7 +519,7 @@ struct FullLeaderboardView: View {
             case .distance:
                 return (lhs.value.totalDistance ?? 0) > (rhs.value.totalDistance ?? 0)
             case .heartRate:
-                return lhs.value.currentHeartRate > rhs.value.currentHeartRate
+                return (lhs.value.currentHeartRate ?? 0) > (rhs.value.currentHeartRate ?? 0)
             case .duration:
                 return lhs.value.duration > rhs.value.duration
             }

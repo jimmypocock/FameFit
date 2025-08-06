@@ -24,14 +24,19 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     @Published private(set) var connectionState: ConnectionState = .disconnected
     @Published private(set) var syncStatus: SyncStatus = .idle
     
+    // Current workout metrics (updated from Watch or local HealthKit)
+    @Published var heartRate: Double = 0
+    @Published var activeEnergy: Double = 0
+    @Published var distance: Double = 0
+    @Published var averageHeartRate: Double = 0
+    
     // MARK: - Dependencies
     
-    private let workoutManager: WorkoutManager
-    private let groupWorkoutService: GroupWorkoutServiceProtocol
-    private let healthKitService: HealthKitService
-    private let cloudKitManager: CloudKitManaging
-    private let userProfileService: UserProfileServicing
-    private let notificationManager: NotificationManaging
+    private let groupWorkoutService: any GroupWorkoutServiceProtocol
+    private let healthKitService: any HealthKitService
+    private let cloudKitManager: any CloudKitManaging
+    private let userProfileService: any UserProfileServicing
+    private let notificationManager: any NotificationManaging
     
     // MARK: - Private Properties
     
@@ -52,14 +57,12 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     // MARK: - Initialization
     
     init(
-        workoutManager: WorkoutManager,
-        groupWorkoutService: GroupWorkoutServiceProtocol,
-        healthKitService: HealthKitService,
-        cloudKitManager: CloudKitManaging,
-        userProfileService: UserProfileServicing,
-        notificationManager: NotificationManaging
+        groupWorkoutService: any GroupWorkoutServiceProtocol,
+        healthKitService: any HealthKitService,
+        cloudKitManager: any CloudKitManaging,
+        userProfileService: any UserProfileServicing,
+        notificationManager: any NotificationManaging
     ) {
-        self.workoutManager = workoutManager
         self.groupWorkoutService = groupWorkoutService
         self.healthKitService = healthKitService
         self.cloudKitManager = cloudKitManager
@@ -80,11 +83,6 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         
         // Check HealthKit authorization
         try await verifyHealthKitAuthorization()
-        
-        // Check for existing workout session
-        if workoutManager.isWorkoutActive {
-            throw GroupWorkoutCoordinatorError.existingWorkoutActive
-        }
         
         // Store group workout info
         self.currentGroupWorkout = groupWorkout
@@ -121,8 +119,9 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         self.currentParticipation = participant
         self.participantID = participant.id
         
-        // Start HealthKit workout with group metadata
-        try await startHealthKitWorkout(for: groupWorkout)
+        // Store metadata for later retrieval
+        UserDefaults.standard.set(groupWorkout.id, forKey: "activeGroupWorkoutID")
+        UserDefaults.standard.set(Date(), forKey: "activeGroupWorkoutStartTime")
         
         // Start metric updates
         startMetricUpdates()
@@ -131,11 +130,10 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         isInGroupWorkout = true
         connectionState = .connected
         
-        // Notify
-        await notificationManager.sendLocalNotification(
-            title: "Group Workout Started",
-            body: "You've joined \(groupWorkout.name)",
-            identifier: "group-workout-started"
+        // Notify - using feature announcement as closest match
+        await notificationManager.notifyFeatureAnnouncement(
+            feature: "Group Workout Started",
+            description: "You've joined \(groupWorkout.name)"
         )
     }
     
@@ -167,17 +165,17 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
             var finalData = participation.workoutData ?? GroupWorkoutData(
                 startTime: workoutStartTime ?? Date(),
                 endTime: Date(),
-                totalEnergyBurned: workoutManager.activeEnergy,
-                totalDistance: workoutManager.distance,
-                averageHeartRate: workoutManager.averageHeartRate,
-                currentHeartRate: workoutManager.heartRate,
+                totalEnergyBurned: activeEnergy,
+                totalDistance: distance,
+                averageHeartRate: averageHeartRate,
+                currentHeartRate: heartRate,
                 lastUpdated: Date()
             )
             finalData.endTime = Date()
             
             try await groupWorkoutService.updateParticipantData(
                 groupWorkoutID ?? "",
-                workoutData: finalData
+                data: finalData
             )
         }
         
@@ -188,13 +186,14 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
             try await groupWorkoutService.updateParticipantStatus(workoutId, status: .completed)
         }
         
-        // Stop HealthKit workout with group metadata
-        try await stopHealthKitWorkout()
-        
         // Clear cached data if successfully synced
         if syncStatus == .synced {
             await offlineCache.clear()
         }
+        
+        // Clear stored metadata
+        UserDefaults.standard.removeObject(forKey: "activeGroupWorkoutID")
+        UserDefaults.standard.removeObject(forKey: "activeGroupWorkoutStartTime")
         
         // Reset state
         resetState()
@@ -215,24 +214,25 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         try await stopGroupWorkout()
     }
     
+    /// Update metrics from external source (Watch, HealthKit, etc)
+    func updateMetrics(heartRate: Double? = nil, calories: Double? = nil, distance: Double? = nil, avgHeartRate: Double? = nil) {
+        if let hr = heartRate {
+            self.heartRate = hr
+        }
+        if let cal = calories {
+            self.activeEnergy = cal
+        }
+        if let dist = distance {
+            self.distance = dist
+        }
+        if let avgHR = avgHeartRate {
+            self.averageHeartRate = avgHR
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func setupObservers() {
-        // Observe workout manager metrics
-        workoutManager.$heartRate
-            .combineLatest(
-                workoutManager.$activeEnergy,
-                workoutManager.$distance,
-                workoutManager.$averageHeartRate
-            )
-            .throttle(for: .seconds(5), scheduler: RunLoop.main, latest: true)
-            .sink { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    await self?.syncMetricsToCloudKit()
-                }
-            }
-            .store(in: &cancellables)
-        
         // Observe group workout updates
         groupWorkoutService.workoutUpdates
             .sink { [weak self] update in
@@ -250,19 +250,19 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     
     private func checkForExistingSession() {
         Task { @MainActor in
-            // Check for existing HealthKit workout
-            if workoutManager.isWorkoutActive {
-                await attemptReconnection()
-            }
-            
             // Check for cached offline data
             if await offlineCache.hasPendingData() {
                 await syncOfflineData()
             }
+            
+            // Check for stored group workout session
+            if let storedID = UserDefaults.standard.string(forKey: "activeGroupWorkoutID") {
+                await attemptReconnection(with: storedID)
+            }
         }
     }
     
-    private func attemptReconnection() async {
+    private func attemptReconnection(with workoutId: String? = nil) async {
         FameFitLogger.info("🔄 Attempting to reconnect to existing workout session", category: FameFitLogger.workout)
         
         reconnectionAttempts += 1
@@ -275,8 +275,10 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         
         connectionState = .reconnecting
         
-        // Try to recover group workout ID from HealthKit metadata
-        if let recoveredID = await recoverGroupWorkoutID() {
+        // Try to recover group workout ID
+        let recoveredID = workoutId ?? UserDefaults.standard.string(forKey: "activeGroupWorkoutID")
+        
+        if let recoveredID = recoveredID {
             do {
                 let workout = try await groupWorkoutService.fetchWorkout(recoveredID)
                 
@@ -302,49 +304,6 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         }
     }
     
-    private func startHealthKitWorkout(for groupWorkout: GroupWorkout) async throws {
-        // Create workout configuration
-        let configuration = HKWorkoutConfiguration()
-        configuration.activityType = groupWorkout.workoutType
-        configuration.locationType = .indoor // Could be dynamic based on workout
-        
-        // Start workout with group metadata
-        let metadata: [String: Any] = [
-            "groupWorkoutID": groupWorkout.id,
-            "groupWorkoutName": groupWorkout.name,
-            "isGroupWorkout": true,
-            "isHost": isHost,
-            "participantCount": groupWorkout.participantCount
-        ]
-        
-        // Store metadata for later retrieval
-        UserDefaults.standard.set(groupWorkout.id, forKey: "activeGroupWorkoutID")
-        UserDefaults.standard.set(Date(), forKey: "activeGroupWorkoutStartTime")
-        
-        // Start the workout through WorkoutManager
-        workoutManager.selectedWorkout = groupWorkout.workoutType
-        
-        // Store the HealthKit workout ID when available
-        // This will be set by WorkoutManager delegate callbacks
-    }
-    
-    private func stopHealthKitWorkout() async throws {
-        // Add group workout metadata to the saved workout
-        let metadata: [String: Any] = [
-            "groupWorkoutID": groupWorkoutID ?? "",
-            "isGroupWorkout": true,
-            "participantCount": participantMetrics.count,
-            "wasHost": isHost
-        ]
-        
-        // End workout through WorkoutManager
-        workoutManager.endWorkout()
-        
-        // Clear stored metadata
-        UserDefaults.standard.removeObject(forKey: "activeGroupWorkoutID")
-        UserDefaults.standard.removeObject(forKey: "activeGroupWorkoutStartTime")
-    }
-    
     private func startMetricUpdates() {
         updateTimer = Timer.scheduledTimer(withTimeInterval: updateInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -368,10 +327,10 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         let workoutData = GroupWorkoutData(
             startTime: workoutStartTime ?? Date(),
             endTime: nil,
-            totalEnergyBurned: workoutManager.activeEnergy,
-            totalDistance: workoutManager.distance,
-            averageHeartRate: workoutManager.averageHeartRate,
-            currentHeartRate: workoutManager.heartRate,
+            totalEnergyBurned: activeEnergy,
+            totalDistance: distance,
+            averageHeartRate: averageHeartRate,
+            currentHeartRate: heartRate,
             lastUpdated: Date()
         )
         
@@ -379,7 +338,7 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         
         do {
             syncStatus = .syncing
-            try await groupWorkoutService.updateParticipantData(workoutId, workoutData: workoutData)
+            try await groupWorkoutService.updateParticipantData(workoutId, data: workoutData)
             syncStatus = .synced
             
             // Clear offline cache on successful sync
@@ -460,11 +419,6 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
                 await fetchParticipantMetrics()
             }
             
-        case .metricsUpdated(let workoutId):
-            if workoutId == groupWorkoutID {
-                await fetchParticipantMetrics()
-            }
-            
         default:
             break
         }
@@ -478,7 +432,7 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         for (workoutId, metrics) in pendingMetrics {
             for metric in metrics {
                 do {
-                    try await groupWorkoutService.updateParticipantData(workoutId, workoutData: metric)
+                    try await groupWorkoutService.updateParticipantData(workoutId, data: metric)
                     await offlineCache.clearMetrics(for: workoutId)
                 } catch {
                     FameFitLogger.warning("Failed to sync offline metric", category: FameFitLogger.workout)
@@ -487,22 +441,17 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         }
     }
     
-    private func recoverGroupWorkoutID() async -> String? {
-        // Try to recover from UserDefaults
-        if let storedID = UserDefaults.standard.string(forKey: "activeGroupWorkoutID") {
-            return storedID
-        }
-        
-        // Try to recover from HealthKit metadata (would need to query recent workouts)
-        // This would require fetching recent HKWorkouts and checking metadata
-        
-        return nil
-    }
-    
     private func verifyHealthKitAuthorization() async throws {
-        let authorized = await healthKitService.requestAuthorization()
-        if !authorized {
-            throw GroupWorkoutCoordinatorError.healthKitNotAuthorized
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthKitService.requestAuthorization { authorized, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if !authorized {
+                    continuation.resume(throwing: GroupWorkoutCoordinatorError.healthKitNotAuthorized)
+                } else {
+                    continuation.resume()
+                }
+            }
         }
     }
     
@@ -520,6 +469,10 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         workoutStartTime = nil
         isHost = false
         reconnectionAttempts = 0
+        heartRate = 0
+        activeEnergy = 0
+        distance = 0
+        averageHeartRate = 0
     }
     
     #if os(iOS)
@@ -537,39 +490,49 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
 
 #if os(iOS)
 extension GroupWorkoutCoordinator: WCSessionDelegate {
-    func sessionDidBecomeInactive(_ session: WCSession) {
-        connectionState = .disconnected
-    }
-    
-    func sessionDidDeactivate(_ session: WCSession) {
-        connectionState = .disconnected
-    }
-    
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if activationState == .activated {
-            connectionState = .connected
+    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {
+        Task { @MainActor in
+            connectionState = .disconnected
         }
     }
     
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
-        // Handle real-time metric updates from Watch
-        if let metrics = message["metrics"] as? [String: Any] {
-            Task { @MainActor in
-                await handleWatchMetricsUpdate(metrics)
+    nonisolated func sessionDidDeactivate(_ session: WCSession) {
+        Task { @MainActor in
+            connectionState = .disconnected
+        }
+    }
+    
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        Task { @MainActor in
+            if activationState == .activated {
+                connectionState = .connected
             }
         }
     }
     
-    private func handleWatchMetricsUpdate(_ metrics: [String: Any]) async {
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        // Handle real-time metric updates from Watch
+        if let metrics = message["metrics"] as? [String: Any] {
+            Task { @MainActor in
+                handleWatchMetricsUpdate(metrics)
+            }
+        }
+    }
+    
+    @MainActor
+    private func handleWatchMetricsUpdate(_ metrics: [String: Any]) {
         // Update local metrics from Watch
         if let heartRate = metrics["heartRate"] as? Double {
-            workoutManager.heartRate = heartRate
+            self.heartRate = heartRate
         }
         if let calories = metrics["activeEnergy"] as? Double {
-            workoutManager.activeEnergy = calories
+            self.activeEnergy = calories
         }
         if let distance = metrics["distance"] as? Double {
-            workoutManager.distance = distance
+            self.distance = distance
+        }
+        if let avgHR = metrics["averageHeartRate"] as? Double {
+            self.averageHeartRate = avgHR
         }
     }
 }

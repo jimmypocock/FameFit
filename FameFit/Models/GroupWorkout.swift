@@ -203,7 +203,13 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             recordType: "GroupWorkouts",
             recordID: recordID ?? CKRecord.ID(recordName: id)
         )
-
+        
+        updateCKRecord(record)
+        return record
+    }
+    
+    /// Updates an existing CKRecord with current values
+    func updateCKRecord(_ record: CKRecord) {
         record["name"] = name
         record["description"] = description
         record["workoutType"] = Int64(workoutType.rawValue)
@@ -221,8 +227,6 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         record["location"] = location
         record["notes"] = notes
         record["participantIDs"] = participantIDs
-
-        return record
     }
 
     // MARK: - Helper Methods

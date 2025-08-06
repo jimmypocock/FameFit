@@ -89,8 +89,36 @@ extension GroupWorkoutService {
         var updatedWorkout = workout
         updatedWorkout.modifiedTimestamp = Date()
         
-        // Save to CloudKit
-        let record = updatedWorkout.toCKRecord()
+        // Fetch the existing record first to avoid "record already exists" error
+        let recordID = CKRecord.ID(recordName: workout.id)
+        
+        // Try to fetch the existing record, if it fails, create a new one
+        let record: CKRecord
+        do {
+            // Use a predicate query to fetch the record since we don't have direct fetch
+            let predicate = NSPredicate(format: "recordID == %@", recordID)
+            let records = try await cloudKitManager.fetchRecords(
+                ofType: "GroupWorkouts",
+                predicate: predicate,
+                sortDescriptors: nil,
+                limit: 1
+            )
+            
+            if let existingRecord = records.first {
+                // Update the existing record
+                record = existingRecord
+                updatedWorkout.updateCKRecord(record)
+            } else {
+                // No existing record found, create new one
+                record = updatedWorkout.toCKRecord(recordID: recordID)
+            }
+        } catch {
+            // If fetch fails, create new record
+            FameFitLogger.warning("Could not fetch existing record, creating new: \(error)", category: FameFitLogger.social)
+            record = updatedWorkout.toCKRecord(recordID: recordID)
+        }
+        
+        // Save the record
         let savedRecord = try await cloudKitManager.save(record)
         
         guard let savedWorkout = GroupWorkout(from: savedRecord) else {

@@ -9,7 +9,7 @@ import SwiftUI
 import HealthKit
 
 struct GroupWorkoutDetailView: View {
-    let workout: GroupWorkout
+    @State var workout: GroupWorkout
     @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
@@ -61,14 +61,31 @@ struct GroupWorkoutDetailView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
                     
-                    if isCreator && workout.isUpcoming {
+                    if isCreator && (workout.status == .scheduled || workout.status == .active) {
                         Menu {
-                            Button(action: { showEditSheet = true }) {
-                                Label("Edit Workout", systemImage: "pencil")
+                            // Only allow editing if workout hasn't started yet
+                            if workout.scheduledStart > Date() {
+                                Button(action: { showEditSheet = true }) {
+                                    Label("Edit Workout", systemImage: "pencil")
+                                }
                             }
                             
-                            Button(role: .destructive, action: { showDeleteAlert = true }) {
-                                Label("Delete Workout", systemImage: "trash")
+                            // Allow canceling scheduled workouts or ending active ones
+                            if workout.status == .scheduled {
+                                Button(role: .destructive, action: { showDeleteAlert = true }) {
+                                    Label("Cancel Workout", systemImage: "xmark.circle")
+                                }
+                            } else if workout.status == .active {
+                                Button(role: .destructive, action: { showDeleteAlert = true }) {
+                                    Label("End Workout", systemImage: "stop.circle")
+                                }
+                            }
+                            
+                            // Always allow deletion for scheduled workouts
+                            if workout.status == .scheduled {
+                                Button(role: .destructive, action: { showDeleteAlert = true }) {
+                                    Label("Delete Workout", systemImage: "trash")
+                                }
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
@@ -157,7 +174,32 @@ struct GroupWorkoutDetailView: View {
                 }
                 .buttonStyle(BorderedProminentButtonStyle())
                 .tint(.green)
+            } else if workout.status == .active {
+                // Host can complete or cancel an active workout
+                HStack(spacing: 12) {
+                    Button(action: completeWorkout) {
+                        Label("Complete", systemImage: "checkmark.circle.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedProminentButtonStyle())
+                    .tint(.green)
+                    
+                    Button(action: cancelWorkout) {
+                        Label("Cancel", systemImage: "xmark.circle.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedButtonStyle())
+                    .tint(.red)
+                }
             }
+        } else if workout.status == .active && myParticipation != nil {
+            // Participants can mark themselves as completed during active workout
+            Button(action: completeWorkout) {
+                Label("Mark as Completed", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(BorderedProminentButtonStyle())
+            .tint(.green)
         } else if myParticipation == nil && workout.isJoinable {
             joinButtons
         } else if let participation = myParticipation, participation.status != .declined {
@@ -287,7 +329,7 @@ struct GroupWorkoutDetailView: View {
                 
                 Spacer()
                 
-                if isCreator && workout.isUpcoming {
+                if isCreator && (workout.status == .scheduled || workout.status == .active) {
                     Button(action: { showInviteSheet = true }) {
                         Label("Invite", systemImage: "person.badge.plus")
                             .font(.caption)
@@ -399,6 +441,9 @@ struct GroupWorkoutDetailView: View {
         isLoading = true
         
         do {
+            // Refresh the workout data itself to get latest status
+            let refreshedWorkout = try await container.groupWorkoutService.fetchWorkout(workout.id)
+            
             // Load participants
             let loadedParticipants = try await container.groupWorkoutService.getParticipants(workout.id)
             
@@ -419,6 +464,7 @@ struct GroupWorkoutDetailView: View {
             let hasCalendarEvent = UserDefaults.standard.string(forKey: calendarKey) != nil
             
             await MainActor.run {
+                self.workout = refreshedWorkout
                 self.participants = loadedParticipants
                 self.participantProfiles = profiles
                 self.myParticipation = myPart
@@ -458,13 +504,45 @@ struct GroupWorkoutDetailView: View {
     private func startWorkout() {
         Task {
             do {
-                _ = try await container.groupWorkoutService.startGroupWorkout(workout.id)
+                let updatedWorkout = try await container.groupWorkoutService.startGroupWorkout(workout.id)
+                await MainActor.run {
+                    self.workout = updatedWorkout
+                }
                 await loadData()
                 
                 // TODO: Navigate to watch workout view or show active workout UI
                 FameFitLogger.info("🏋️ Started group workout: \(workout.name)", category: FameFitLogger.ui)
             } catch {
                 FameFitLogger.error("Failed to start workout", error: error, category: FameFitLogger.ui)
+            }
+        }
+    }
+    
+    private func completeWorkout() {
+        Task {
+            do {
+                let updatedWorkout = try await container.groupWorkoutService.completeGroupWorkout(workout.id)
+                await MainActor.run {
+                    self.workout = updatedWorkout
+                }
+                await loadData()
+                
+                FameFitLogger.info("🏋️ Completed group workout: \(workout.name)", category: FameFitLogger.ui)
+            } catch {
+                FameFitLogger.error("Failed to complete workout", error: error, category: FameFitLogger.ui)
+            }
+        }
+    }
+    
+    private func cancelWorkout() {
+        Task {
+            do {
+                try await container.groupWorkoutService.cancelGroupWorkout(workout.id)
+                await loadData()
+                
+                FameFitLogger.info("🏋️ Cancelled group workout: \(workout.name)", category: FameFitLogger.ui)
+            } catch {
+                FameFitLogger.error("Failed to cancel workout", error: error, category: FameFitLogger.ui)
             }
         }
     }
