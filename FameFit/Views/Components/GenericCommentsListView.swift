@@ -442,15 +442,15 @@ class GenericCommentsViewModel: ObservableObject {
                 comments[index] = AnyActivityFeedCommentWithUser(
                     ActivityFeedCommentWithUser(comment: ActivityFeedComment(
                         id: updatedComment.id,
-                        activityFeedId: "",
+                        activityFeedID: "",
                         sourceType: "",
-                        sourceRecordId: "",
-                        userId: updatedComment.userId,
-                        activityOwnerId: "",
+                        sourceID: "",
+                        userID: updatedComment.userID,
+                        activityOwnerID: "",
                         content: updatedComment.content,
                         createdTimestamp: updatedComment.createdTimestamp,
                         modifiedTimestamp: updatedComment.modifiedTimestamp,
-                        parentCommentId: updatedComment.parentCommentId,
+                        parentCommentID: updatedComment.parentCommentID,
                         isEdited: updatedComment.isEdited,
                         likeCount: updatedComment.likeCount
                     ), user: existingUser)

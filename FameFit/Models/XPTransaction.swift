@@ -10,7 +10,7 @@ import CloudKit
 
 struct XPTransaction: Identifiable, Codable {
     let id: UUID
-    let userRecordID: String
+    let userID: String
     let workoutRecordID: String
     let timestamp: Date
     let baseXP: Int
@@ -20,7 +20,7 @@ struct XPTransaction: Identifiable, Codable {
     let modifiedTimestamp: Date
     
     init(id: UUID = UUID(),
-         userRecordID: String,
+         userID: String,
          workoutRecordID: String,
          timestamp: Date = Date(),
          baseXP: Int,
@@ -29,7 +29,7 @@ struct XPTransaction: Identifiable, Codable {
          createdTimestamp: Date = Date(),
          modifiedTimestamp: Date = Date()) {
         self.id = id
-        self.userRecordID = userRecordID
+        self.userID = userID
         self.workoutRecordID = workoutRecordID
         self.timestamp = timestamp
         self.baseXP = baseXP
@@ -79,7 +79,7 @@ extension XPTransaction {
     
     init?(from record: CKRecord) {
         guard record.recordType == Self.recordType,
-              let userRecordID = record["userRecordID"] as? String,
+              let userID = record["userID"] as? String,
               let workoutRecordID = record["workoutRecordID"] as? String,
               let timestamp = record["timestamp"] as? Date,
               let baseXP = record["baseXP"] as? Int64,
@@ -94,7 +94,7 @@ extension XPTransaction {
         }
         
         self.id = UUID(uuidString: record.recordID.recordName) ?? UUID()
-        self.userRecordID = userRecordID
+        self.userID = userID
         self.workoutRecordID = workoutRecordID
         self.timestamp = timestamp
         self.baseXP = Int(baseXP)
@@ -108,7 +108,7 @@ extension XPTransaction {
         let recordID = CKRecord.ID(recordName: id.uuidString)
         let record = CKRecord(recordType: Self.recordType, recordID: recordID)
         
-        record["userRecordID"] = userRecordID
+        record["userID"] = userID
         record["workoutRecordID"] = workoutRecordID
         record["timestamp"] = timestamp
         record["baseXP"] = Int64(baseXP)

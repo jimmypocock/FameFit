@@ -12,13 +12,13 @@ struct ActivityFeedComment: Identifiable, Codable, Equatable {
     let id: String // CKRecord.ID as String
     
     // Dual reference system
-    let activityFeedId: String // Reference to ActivityFeed item (might expire)
+    let activityFeedID: String // Reference to ActivityFeed item (might expire)
     let sourceType: String // "workout", "achievement", "level_up", etc.
-    let sourceRecordId: String // The permanent record ID (workout ID, achievement ID, etc.)
+    let sourceID: String // The permanent record ID (workout ID, achievement ID, etc.)
     
     // User info
-    let userId: String // User who posted the comment
-    let activityOwnerId: String // Owner of the activity (for notifications)
+    let userID: String // User who posted the comment
+    let activityOwnerID: String // Owner of the activity (for notifications)
     
     // Content
     var content: String
@@ -26,7 +26,7 @@ struct ActivityFeedComment: Identifiable, Codable, Equatable {
     var modifiedTimestamp: Date
     
     // Optional fields
-    var parentCommentId: String? // For threaded replies
+    var parentCommentID: String? // For threaded replies
     var isEdited: Bool = false
     var likeCount: Int = 0
     
@@ -41,11 +41,11 @@ struct ActivityFeedComment: Identifiable, Codable, Equatable {
 
 extension ActivityFeedComment {
     init?(from record: CKRecord) {
-        guard let activityFeedId = record["activityFeedId"] as? String,
+        guard let activityFeedID = record["activityFeedID"] as? String,
               let sourceType = record["sourceType"] as? String,
-              let sourceRecordId = record["sourceRecordId"] as? String,
-              let userId = record["userId"] as? String,
-              let activityOwnerId = record["activityOwnerId"] as? String,
+              let sourceID = record["sourceID"] as? String,
+              let userID = record["userID"] as? String,
+              let activityOwnerID = record["activityOwnerID"] as? String,
               let content = record["content"] as? String,
               let createdTimestamp = record["createdTimestamp"] as? Date,
               let modifiedTimestamp = record["modifiedTimestamp"] as? Date
@@ -54,15 +54,15 @@ extension ActivityFeedComment {
         }
         
         id = record.recordID.recordName
-        self.activityFeedId = activityFeedId
+        self.activityFeedID = activityFeedID
         self.sourceType = sourceType
-        self.sourceRecordId = sourceRecordId
-        self.userId = userId
-        self.activityOwnerId = activityOwnerId
+        self.sourceID = sourceID
+        self.userID = userID
+        self.activityOwnerID = activityOwnerID
         self.content = content
         self.createdTimestamp = createdTimestamp
         self.modifiedTimestamp = modifiedTimestamp
-        parentCommentId = record["parentCommentId"] as? String
+        parentCommentID = record["parentCommentID"] as? String
         isEdited = (record["isEdited"] as? Int64) == 1
         likeCount = Int(record["likeCount"] as? Int64 ?? 0)
     }
@@ -74,17 +74,17 @@ extension ActivityFeedComment {
             CKRecord(recordType: "ActivityFeedComments")
         }
         
-        record["activityFeedId"] = activityFeedId
+        record["activityFeedID"] = activityFeedID
         record["sourceType"] = sourceType
-        record["sourceRecordId"] = sourceRecordId
-        record["userId"] = userId
-        record["activityOwnerId"] = activityOwnerId
+        record["sourceID"] = sourceID
+        record["userID"] = userID
+        record["activityOwnerID"] = activityOwnerID
         record["content"] = content
         record["createdTimestamp"] = createdTimestamp
         record["modifiedTimestamp"] = modifiedTimestamp
         
-        if let parentCommentId {
-            record["parentCommentId"] = parentCommentId
+        if let parentCommentID {
+            record["parentCommentID"] = parentCommentID
         }
         
         record["isEdited"] = isEdited ? Int64(1) : Int64(0)

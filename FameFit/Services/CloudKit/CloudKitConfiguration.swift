@@ -33,7 +33,6 @@ enum CloudKitConfiguration {
     enum UserFields {
         static let displayName = "displayName"
         static let totalXP = "totalXP"
-        static let influencerXP = "influencerXP" // Legacy
         static let totalWorkouts = "totalWorkouts"
         static let currentStreak = "currentStreak"
         static let joinTimestamp = "joinTimestamp"

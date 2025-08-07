@@ -109,9 +109,9 @@ final class WorkoutKudosService: WorkoutKudosServicing {
         } else {
             // Add kudos
             let kudos = WorkoutKudos(
-                workoutId: workoutId,
+                workoutID: workoutId,
                 userID: currentUserId,
-                workoutOwnerId: ownerId
+                workoutOwnerID: ownerId
             )
 
             let record = kudos.toCloudKitRecord(in: publicDatabase)
@@ -202,7 +202,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
         }
 
         return WorkoutKudosSummary(
-            workoutId: workoutId,
+            workoutID: workoutId,
             totalCount: kudosList.count,
             hasUserKudos: kudosList.contains { $0.userID == currentUserId },
             recentUsers: recentUsers
@@ -292,7 +292,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 switch result {
                 case let .success(record):
                     if let kudos = WorkoutKudos(record: record) {
-                        kudosByWorkout[kudos.workoutId, default: []].append(kudos)
+                        kudosByWorkout[kudos.workoutID, default: []].append(kudos)
                     }
                 case .failure:
                     continue
@@ -305,7 +305,7 @@ final class WorkoutKudosService: WorkoutKudosServicing {
                 let currentUserId = try await getCurrentUserId()
 
                 summaries[workoutId] = WorkoutKudosSummary(
-                    workoutId: workoutId,
+                    workoutID: workoutId,
                     totalCount: kudosList.count,
                     hasUserKudos: kudosList.contains { $0.userID == currentUserId },
                     recentUsers: [] // Skip fetching users for batch operation

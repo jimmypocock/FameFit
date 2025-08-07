@@ -197,7 +197,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 
                 // Set initial values for new record
                 userRecord["totalXP"] = 0
-                userRecord["influencerXP"] = 0 // Legacy
                 userRecord["totalWorkouts"] = 0
                 userRecord["currentStreak"] = 0
                 userRecord["joinTimestamp"] = Date()
@@ -458,7 +457,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             self.userRecord = record
             
             // Extract user data
-            self.totalXP = record["totalXP"] as? Int ?? record["influencerXP"] as? Int ?? 0
+            self.totalXP = record["totalXP"] as? Int ?? 0
             self.userName = record["displayName"] as? String ?? ""
             self.currentStreak = record["currentStreak"] as? Int ?? 0
             self.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
@@ -472,7 +471,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                Record ID: \(record.recordID.recordName)
                totalWorkouts: \(record["totalWorkouts"] as? Int ?? 0)
                totalXP: \(record["totalXP"] as? Int ?? 0)
-               influencerXP: \(record["influencerXP"] as? Int ?? 0)
                Final values: workouts=\(self.totalWorkouts), XP=\(self.totalXP)
             """, category: FameFitLogger.cloudKit)
     }

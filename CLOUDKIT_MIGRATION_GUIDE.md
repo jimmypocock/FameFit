@@ -5,21 +5,25 @@ This guide helps you migrate from the legacy CloudKitManager to the modern Cloud
 ## Overview of Changes
 
 ### 1. **Async/Await Instead of Callbacks**
+
 - All CloudKit operations now use Swift's modern concurrency
 - No more completion handlers or callback hell
 - Better error propagation and handling
 
 ### 2. **Actor-based State Management**
+
 - Thread-safe state management using Swift actors
 - No more race conditions
 - Proper retry logic with exponential backoff
 
 ### 3. **Operation Queue with Rate Limiting**
+
 - Automatic rate limiting to prevent CloudKit throttling
 - Priority-based operation scheduling
 - Better performance under load
 
 ### 4. **Improved Error Handling**
+
 - Distinguishes between retryable and non-retryable errors
 - Automatic retry with exponential backoff
 - Better error messages and logging

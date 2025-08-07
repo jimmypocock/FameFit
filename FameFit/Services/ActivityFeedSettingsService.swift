@@ -29,7 +29,7 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
     private let settingsKey = "ActivityFeedSettings"
     private let recordType = "ActivityFeedSettings"
     
-    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings(userID: ""))
     
     var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> {
         settingsSubject.eraseToAnyPublisher()
@@ -43,6 +43,9 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
         // Load cached settings on init
         if let cachedSettings = loadCachedSettings() {
             settingsSubject.send(cachedSettings)
+        } else {
+            // Initialize with proper userID
+            settingsSubject.send(ActivityFeedSettings(userID: cloudKitManager.currentUserID ?? ""))
         }
     }
     
@@ -66,7 +69,7 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
         }
         
         // Return defaults for new users
-        let defaultSettings = ActivityFeedSettings()
+        let defaultSettings = ActivityFeedSettings(userID: cloudKitManager.currentUserID ?? "")
         cacheSettings(defaultSettings)
         settingsSubject.send(defaultSettings)
         return defaultSettings
@@ -84,7 +87,7 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
     }
     
     func resetToDefaults() async throws {
-        let defaultSettings = ActivityFeedSettings()
+        let defaultSettings = ActivityFeedSettings(userID: cloudKitManager.currentUserID ?? "")
         try await saveSettings(defaultSettings)
     }
     
@@ -209,8 +212,8 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
 // MARK: - Mock Implementation
 
 final class MockActivityFeedSettingsService: ActivityFeedSettingsServicing {
-    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
-    private var currentSettings = ActivityFeedSettings()
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings(userID: ""))
+    private var currentSettings = ActivityFeedSettings(userID: "")
     
     var settingsPublisher: AnyPublisher<ActivityFeedSettings, Never> {
         settingsSubject.eraseToAnyPublisher()
@@ -238,7 +241,7 @@ final class MockActivityFeedSettingsService: ActivityFeedSettingsServicing {
         if shouldFail {
             throw error
         }
-        currentSettings = ActivityFeedSettings()
+        currentSettings = ActivityFeedSettings(userID: "")
         settingsSubject.send(currentSettings)
     }
 }

@@ -13,17 +13,17 @@ import Foundation
 
 protocol ActivityFeedCommentsServicing {
     // Fetch comments for any activity
-    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
+    func fetchComments(for activityFeedID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
+    func fetchCommentsBySource(sourceType: String, sourceID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser]
     
     // Post comment
     func postComment(
-        activityFeedId: String,
+        activityFeedID: String,
         sourceType: String,
-        sourceRecordId: String,
-        activityOwnerId: String,
+        sourceID: String,
+        activityOwnerID: String,
         content: String,
-        parentCommentId: String?
+        parentCommentID: String?
     ) async throws -> ActivityFeedComment
     
     // Update/Delete
@@ -35,8 +35,8 @@ protocol ActivityFeedCommentsServicing {
     func unlikeComment(commentId: String) async throws -> Int
     
     // Count
-    func fetchCommentCount(for activityFeedId: String) async throws -> Int
-    func fetchCommentCountBySource(sourceType: String, sourceRecordId: String) async throws -> Int
+    func fetchCommentCount(for activityFeedID: String) async throws -> Int
+    func fetchCommentCountBySource(sourceType: String, sourceID: String) async throws -> Int
 }
 
 // MARK: - Service Implementation
@@ -73,15 +73,15 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     
     // MARK: - Fetch Comments
     
-    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
-        let predicate = NSPredicate(format: "activityFeedId == %@", activityFeedId)
+    func fetchComments(for activityFeedID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
+        let predicate = NSPredicate(format: "activityFeedID == %@", activityFeedID)
         return try await fetchCommentsWithPredicate(predicate, limit: limit)
     }
     
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
+    func fetchCommentsBySource(sourceType: String, sourceID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         let predicate = NSPredicate(
-            format: "sourceType == %@ AND sourceRecordId == %@",
-            sourceType, sourceRecordId
+            format: "sourceType == %@ AND sourceID == %@",
+            sourceType, sourceID
         )
         return try await fetchCommentsWithPredicate(predicate, limit: limit)
     }
@@ -98,12 +98,12 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     // MARK: - Post Comment
     
     func postComment(
-        activityFeedId: String,
+        activityFeedID: String,
         sourceType: String,
-        sourceRecordId: String,
-        activityOwnerId: String,
+        sourceID: String,
+        activityOwnerID: String,
         content: String,
-        parentCommentId: String?
+        parentCommentID: String?
     ) async throws -> ActivityFeedComment {
         // Validate content
         guard ActivityFeedComment.isValidComment(content) else {
@@ -121,15 +121,15 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         // Create comment
         let comment = ActivityFeedComment(
             id: UUID().uuidString,
-            activityFeedId: activityFeedId,
+            activityFeedID: activityFeedID,
             sourceType: sourceType,
-            sourceRecordId: sourceRecordId,
-            userId: cloudKitManager.currentUserID ?? "",
-            activityOwnerId: activityOwnerId,
+            sourceID: sourceID,
+            userID: cloudKitManager.currentUserID ?? "",
+            activityOwnerID: activityOwnerID,
             content: content,
             createdTimestamp: Date(),
             modifiedTimestamp: Date(),
-            parentCommentId: parentCommentId,
+            parentCommentID: parentCommentID,
             isEdited: false,
             likeCount: 0
         )
@@ -139,12 +139,12 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         // TODO: Implement actual save when CloudKit is available
         
         // Send notification if not commenting on own activity
-        if activityOwnerId != cloudKitManager.currentUserID {
+        if activityOwnerID != cloudKitManager.currentUserID {
             Task {
                 await sendCommentFameFitNotification(
-                    to: activityOwnerId,
+                    to: activityOwnerID,
                     sourceType: sourceType,
-                    sourceRecordId: sourceRecordId
+                    sourceID: sourceID
                 )
             }
         }
@@ -188,12 +188,12 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     
     // MARK: - Count
     
-    func fetchCommentCount(for activityFeedId: String) async throws -> Int {
+    func fetchCommentCount(for activityFeedID: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
         return 0
     }
     
-    func fetchCommentCountBySource(sourceType: String, sourceRecordId: String) async throws -> Int {
+    func fetchCommentCountBySource(sourceType: String, sourceID: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
         return 0
     }
@@ -213,10 +213,10 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         return false
     }
     
-    private func sendCommentFameFitNotification(to userId: String, sourceType: String, sourceRecordId: String) async {
+    private func sendCommentFameFitNotification(to userID: String, sourceType: String, sourceID: String) async {
         // Get the commenter's profile
-        guard let currentUserId = cloudKitManager.currentUserID,
-              let commenterProfile = try? await userProfileService.fetchProfile(userId: currentUserId) else {
+        guard let currentUserID = cloudKitManager.currentUserID,
+              let commenterProfile = try? await userProfileService.fetchProfile(userId: currentUserID) else {
             return
         }
         
@@ -225,7 +225,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         await notificationManager.notifyWorkoutComment(
             from: commenterProfile,
             comment: "commented on your \(sourceType)",
-            for: sourceRecordId
+            for: sourceID
         )
     }
 }

@@ -11,7 +11,7 @@ struct PrivacyQuickSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
     
-    @State private var settings = ActivityFeedSettings()
+    @State private var settings = ActivityFeedSettings(userID: "")
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var showError = false

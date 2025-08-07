@@ -25,9 +25,9 @@ class XPTransactionService: ObservableObject {
     
     // MARK: - Fetch All Transactions (for verification)
     func fetchAllTransactions(for userID: String) async throws -> [XPTransaction] {
-        let predicate = NSPredicate(format: "userRecordID == %@", userID)
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: "XPTransactions", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         var allTransactions: [XPTransaction] = []
         var cursor: CKQueryOperation.Cursor?
@@ -77,14 +77,14 @@ class XPTransactionService: ObservableObject {
     
     // MARK: - Create Transaction
     func createTransaction(
-        userRecordID: String,
+        userID: String,
         workoutRecordID: String,
         baseXP: Int,
         finalXP: Int,
         factors: XPCalculationFactors
     ) async throws -> XPTransaction {
         let transaction = XPTransaction(
-            userRecordID: userRecordID,
+            userID: userID,
             workoutRecordID: workoutRecordID,
             baseXP: baseXP,
             finalXP: finalXP,
@@ -113,8 +113,8 @@ class XPTransactionService: ObservableObject {
     }
     
     // MARK: - Fetch Transactions
-    func fetchTransactions(for userRecordID: String, limit: Int = 10) async throws -> [XPTransaction] {
-        let predicate = NSPredicate(format: "userRecordID == %@", userRecordID)
+    func fetchTransactions(for userID: String, limit: Int = 10) async throws -> [XPTransaction] {
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: XPTransaction.recordType, predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
         
@@ -159,8 +159,8 @@ class XPTransactionService: ObservableObject {
     }
     
     // MARK: - Analytics
-    func fetchUserStats(for userRecordID: String) async throws -> XPStats {
-        let predicate = NSPredicate(format: "userRecordID == %@", userRecordID)
+    func fetchUserStats(for userID: String) async throws -> XPStats {
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: XPTransaction.recordType, predicate: predicate)
         
         do {

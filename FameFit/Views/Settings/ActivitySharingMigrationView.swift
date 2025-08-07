@@ -135,17 +135,18 @@ struct ActivitySharingMigrationView: View {
     private func applyPresetAndContinue() {
         Task {
             do {
+                let userID = container.cloudKitManager.currentUserID ?? ""
                 let settings: ActivityFeedSettings
                 
                 switch selectedPreset {
                 case .minimal:
-                    settings = .conservative
+                    settings = .conservative(userID: userID)
                 case .balanced:
-                    settings = .balanced
+                    settings = .balanced(userID: userID)
                 case .social:
-                    settings = .social
+                    settings = .social(userID: userID)
                 case .off:
-                    var offSettings = ActivityFeedSettings()
+                    var offSettings = ActivityFeedSettings(userID: userID)
                     offSettings.shareActivitiesToFeed = false
                     settings = offSettings
                 }

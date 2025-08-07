@@ -426,7 +426,7 @@ final class ActivityFeedViewModel: ObservableObject {
         var updatedItem = feedItems[index]
         if var kudosSummary = updatedItem.kudosSummary {
             kudosSummary = WorkoutKudosSummary(
-                workoutId: kudosSummary.workoutId,
+                workoutID: kudosSummary.workoutID,
                 totalCount: update.newCount,
                 hasUserKudos: update.action == .added,
                 recentUsers: kudosSummary.recentUsers
