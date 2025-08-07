@@ -333,6 +333,29 @@ class GroupWorkoutsViewModel: ObservableObject {
         self.groupWorkoutService = groupWorkoutService
         self.currentUserId = currentUserId
         self.navigationCoordinator = navigationCoordinator
+        
+        // Listen for workout deletion notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWorkoutDeleted),
+            name: Notification.Name("GroupWorkoutDeleted"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleWorkoutDeleted(_ notification: Notification) {
+        // Refresh the currently selected tab when a workout is deleted
+        Task { @MainActor in
+            // Remove the deleted workout from all lists
+            if let workoutId = notification.userInfo?["workoutId"] as? String {
+                upcomingWorkouts.removeAll { $0.id == workoutId }
+                activeWorkouts.removeAll { $0.id == workoutId }
+                myWorkouts.removeAll { $0.id == workoutId }
+                hostingWorkouts.removeAll { $0.id == workoutId }
+                participatingWorkouts.removeAll { $0.id == workoutId }
+                publicWorkouts.removeAll { $0.id == workoutId }
+            }
+        }
     }
 
     func loadWorkouts(for tab: GroupWorkoutsView.WorkoutTab) async {

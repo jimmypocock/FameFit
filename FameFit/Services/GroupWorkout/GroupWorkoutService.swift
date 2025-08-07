@@ -28,6 +28,7 @@ final class GroupWorkoutService: GroupWorkoutServiceProtocol, @unchecked Sendabl
     let notificationManager: any NotificationManaging
     let rateLimiter: any RateLimitingServicing
     let eventStore = EKEventStore()
+    var workoutProcessor: WorkoutProcessor?
     
     // Publishers
     private let workoutUpdatesSubject = PassthroughSubject<GroupWorkoutUpdate, Never>()

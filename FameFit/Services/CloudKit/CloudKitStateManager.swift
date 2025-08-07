@@ -83,8 +83,12 @@ actor CloudKitStateManager {
         switch initializationState {
         case .notStarted, .failed:
             return accountStatus == .available
-        default:
-            return false
+        case .completed:
+            return false // Already initialized
+        case .inProgress:
+            return false // Already in progress
+        case .waitingForAccount:
+            return accountStatus == .available // Can start if account becomes available
         }
     }
     

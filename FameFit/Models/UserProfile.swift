@@ -47,7 +47,7 @@ struct UserProfile: Identifiable, Codable, Equatable {
     let bio: String
 
     // Cached stats from Users table
-    let workoutCount: Int
+    let workoutCount: Int  // TODO: Rename to totalWorkouts for consistency
     let totalXP: Int
     let createdTimestamp: Date
 
@@ -59,8 +59,18 @@ struct UserProfile: Identifiable, Codable, Equatable {
     // Image URLs will be stored as strings after upload
     var profileImageURL: String?
     var headerImageURL: String?
+    
+    // Count verification metadata
+    var countsLastVerified: Date?
+    var countsVersion: Int?
+    var countsSyncToken: String?
 
     // Computed properties
+    var totalWorkouts: Int {
+        // Alias for workoutCount to maintain consistency
+        return workoutCount
+    }
+    
     var initials: String {
         return String(username.prefix(2)).uppercased()
     }

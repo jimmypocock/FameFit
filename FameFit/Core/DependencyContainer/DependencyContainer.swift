@@ -26,6 +26,7 @@ final class DependencyContainer: ObservableObject {
     // MARK: - Workout Services
     
     let workoutObserver: WorkoutObserver
+    let workoutProcessor: WorkoutProcessor
     let workoutSyncManager: WorkoutSyncManager
     let workoutSyncQueue: WorkoutSyncQueue
     
@@ -71,6 +72,14 @@ final class DependencyContainer: ObservableObject {
     
     let xpTransactionService: XPTransactionService
     
+    // MARK: - Verification Services
+    
+    let countVerificationService: CountVerificationServicing
+    
+    // MARK: - Sync Services
+    
+    let statsSyncService: StatsSyncServicing
+    
     // MARK: - Base Initializer
     
     /// Base initializer that accepts all dependencies
@@ -79,6 +88,7 @@ final class DependencyContainer: ObservableObject {
         authenticationManager: AuthenticationManager,
         cloudKitManager: CloudKitManager,
         workoutObserver: WorkoutObserver,
+        workoutProcessor: WorkoutProcessor,
         healthKitService: HealthKitService,
         modernHealthKitService: ModernHealthKitServicing,
         watchConnectivityManager: WatchConnectivityManaging,
@@ -104,11 +114,14 @@ final class DependencyContainer: ObservableObject {
         activitySharingSettingsService: ActivityFeedSettingsServicing,
         bulkPrivacyUpdateService: BulkPrivacyUpdateServicing,
         workoutAutoShareService: WorkoutAutoShareServicing,
-        xpTransactionService: XPTransactionService
+        xpTransactionService: XPTransactionService,
+        countVerificationService: CountVerificationServicing,
+        statsSyncService: StatsSyncServicing
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
         self.workoutObserver = workoutObserver
+        self.workoutProcessor = workoutProcessor
         self.healthKitService = healthKitService
         self.modernHealthKitService = modernHealthKitService
         self.watchConnectivityManager = watchConnectivityManager
@@ -135,6 +148,8 @@ final class DependencyContainer: ObservableObject {
         self.bulkPrivacyUpdateService = bulkPrivacyUpdateService
         self.workoutAutoShareService = workoutAutoShareService
         self.xpTransactionService = xpTransactionService
+        self.countVerificationService = countVerificationService
+        self.statsSyncService = statsSyncService
     }
 }
 

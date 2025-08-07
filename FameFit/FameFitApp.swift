@@ -81,6 +81,21 @@ struct FameFitApp: App {
                             
                             // Start auto-sharing service for workouts
                             dependencyContainer.workoutAutoShareService.setupAutoSharing()
+                            
+                            // Verify counts if needed (runs in background)
+                            if dependencyContainer.countVerificationService.shouldVerifyOnAppLaunch() {
+                                Task {
+                                    do {
+                                        let result = try await dependencyContainer.countVerificationService.verifyAllCounts()
+                                        if result.hadCorrections {
+                                            FameFitLogger.info("🔢 Count verification completed: \(result.summary)", category: FameFitLogger.data)
+                                        }
+                                    } catch {
+                                        FameFitLogger.error("🔢 Count verification failed", error: error, category: FameFitLogger.data)
+                                    }
+                                }
+                            }
+                            
                             Task {
                                 do {
                                     let granted = try await dependencyContainer.apnsManager

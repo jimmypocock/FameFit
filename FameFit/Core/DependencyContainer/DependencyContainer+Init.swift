@@ -115,10 +115,32 @@ extension DependencyContainer {
             container: cloudKitManager.container
         )
         
+        // Create WorkoutProcessor
+        let workoutProcessor = WorkoutProcessor(
+            cloudKitManager: cloudKitManager,
+            xpTransactionService: xpTransactionService,
+            activityFeedService: activityFeedService,
+            notificationManager: notificationManager,
+            userProfileService: userProfileService
+        )
+        
         let workoutAutoShareService = factory.createWorkoutAutoShareService(
             activityFeedService: activityFeedService,
             settingsService: activitySharingSettingsService,
             notificationManager: notificationManager
+        )
+        
+        // Create verification service
+        let countVerificationService = CountVerificationService(
+            cloudKitManager: cloudKitManager,
+            userProfileService: userProfileService,
+            xpTransactionService: xpTransactionService
+        )
+        
+        // Create stats sync service
+        let statsSyncService = StatsSyncService(
+            container: cloudKitManager.container,
+            operationQueue: CloudKitOperationQueue()
         )
         
         // Phase 10: Real-time Sync Coordinator
@@ -134,11 +156,18 @@ extension DependencyContainer {
             activityFeedService: activityFeedService
         )
         
+        // Wire up WorkoutProcessor to services that need it
+        workoutObserver.workoutProcessor = workoutProcessor
+        if let concreteGroupWorkoutService = groupWorkoutService as? GroupWorkoutService {
+            concreteGroupWorkoutService.workoutProcessor = workoutProcessor
+        }
+        
         // Initialize with all services
         self.init(
             authenticationManager: authenticationManager,
             cloudKitManager: cloudKitManager,
             workoutObserver: workoutObserver,
+            workoutProcessor: workoutProcessor,
             healthKitService: healthKitService,
             modernHealthKitService: modernHealthKitService,
             watchConnectivityManager: watchConnectivityManager,
@@ -164,12 +193,15 @@ extension DependencyContainer {
             activitySharingSettingsService: activitySharingSettingsService,
             bulkPrivacyUpdateService: bulkPrivacyUpdateService,
             workoutAutoShareService: workoutAutoShareService,
-            xpTransactionService: xpTransactionService
+            xpTransactionService: xpTransactionService,
+            countVerificationService: countVerificationService,
+            statsSyncService: statsSyncService
         )
         
         // Phase 11: Wire up circular dependencies (after all services are created)
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.xpTransactionService = xpTransactionService
+        cloudKitManager.statsSyncService = statsSyncService
         workoutObserver.cloudKitManager = cloudKitManager
         
         // Since we're already on MainActor, we can set these directly

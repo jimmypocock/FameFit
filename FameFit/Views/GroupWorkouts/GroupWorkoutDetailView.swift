@@ -10,6 +10,7 @@ import HealthKit
 
 struct GroupWorkoutDetailView: View {
     @State var workout: GroupWorkout
+    var onDelete: (() -> Void)? = nil  // Callback for when workout is deleted
     @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
@@ -609,6 +610,13 @@ struct GroupWorkoutDetailView: View {
             do {
                 try await container.groupWorkoutService.deleteGroupWorkout(workout.id)
                 await MainActor.run {
+                    // Post notification for list refresh
+                    NotificationCenter.default.post(
+                        name: Notification.Name("GroupWorkoutDeleted"),
+                        object: nil,
+                        userInfo: ["workoutId": workout.id]
+                    )
+                    onDelete?()  // Notify parent view that workout was deleted (if provided)
                     dismiss()
                 }
             } catch {

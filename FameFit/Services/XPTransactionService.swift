@@ -23,6 +23,58 @@ class XPTransactionService: ObservableObject {
         self.publicDatabase = container.publicCloudDatabase
     }
     
+    // MARK: - Fetch All Transactions (for verification)
+    func fetchAllTransactions(for userID: String) async throws -> [XPTransaction] {
+        let predicate = NSPredicate(format: "userRecordID == %@", userID)
+        let query = CKQuery(recordType: "XPTransactions", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        
+        var allTransactions: [XPTransaction] = []
+        var cursor: CKQueryOperation.Cursor?
+        
+        repeat {
+            let (records, nextCursor) = try await withCheckedThrowingContinuation { continuation in
+                let operation: CKQueryOperation
+                
+                if let cursor = cursor {
+                    operation = CKQueryOperation(cursor: cursor)
+                } else {
+                    operation = CKQueryOperation(query: query)
+                    operation.resultsLimit = 400 // CloudKit max
+                }
+                
+                var fetchedRecords: [CKRecord] = []
+                
+                operation.recordMatchedBlock = { _, result in
+                    switch result {
+                    case .success(let record):
+                        fetchedRecords.append(record)
+                    case .failure(let error):
+                        print("Failed to fetch XP transaction record: \(error)")
+                    }
+                }
+                
+                operation.queryResultBlock = { result in
+                    switch result {
+                    case .success(let cursor):
+                        continuation.resume(returning: (fetchedRecords, cursor))
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+                
+                publicDatabase.add(operation)
+            }
+            
+            // Convert records to XPTransaction objects
+            let transactions = records.compactMap { XPTransaction(from: $0) }
+            allTransactions.append(contentsOf: transactions)
+            cursor = nextCursor
+        } while cursor != nil
+        
+        return allTransactions
+    }
+    
     // MARK: - Create Transaction
     func createTransaction(
         userRecordID: String,
