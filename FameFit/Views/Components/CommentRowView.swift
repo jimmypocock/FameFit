@@ -24,7 +24,7 @@ struct CommentRowView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
                 // Thread indicator for replies
-                if commentWithUser.comment.parentCommentId != nil {
+                if commentWithUser.comment.parentCommentID != nil {
                     VStack {
                         Rectangle()
                             .fill(Color.gray.opacity(0.3))
@@ -144,7 +144,7 @@ struct CommentRowView: View {
                         Spacer()
 
                         // More options for own comments
-                        if commentWithUser.comment.userId == currentUserId {
+                        if commentWithUser.comment.userID == currentUserId {
                             Button(action: { showingActions.toggle() }) {
                                 Image(systemName: "ellipsis")
                                     .font(.system(size: 14))
@@ -191,15 +191,15 @@ struct CommentRowView: View {
                 commentWithUser: ActivityFeedCommentWithUser(
                     comment: ActivityFeedComment(
                         id: "1",
-                        activityFeedId: "feed1",
+                        activityFeedID: "feed1",
                         sourceType: "workout",
-                        sourceRecordId: "workout1",
-                        userId: "user1",
-                        activityOwnerId: "owner1",
+                        sourceID: "workout1",
+                        userID: "user1",
+                        activityOwnerID: "owner1",
                         content: "Great workout! Your form looked amazing throughout the entire session. Keep it up! 💪",
                         createdTimestamp: Date().addingTimeInterval(-3_600),
                         modifiedTimestamp: Date().addingTimeInterval(-3_600),
-                        parentCommentId: nil,
+                        parentCommentID: nil,
                         isEdited: false,
                         likeCount: 3
                     ),
@@ -232,15 +232,15 @@ struct CommentRowView: View {
                 commentWithUser: ActivityFeedCommentWithUser(
                     comment: ActivityFeedComment(
                         id: "2",
-                        activityFeedId: "feed1",
+                        activityFeedID: "feed1",
                         sourceType: "workout",
-                        sourceRecordId: "workout1",
-                        userId: "user2",
-                        activityOwnerId: "owner1",
+                        sourceID: "workout1",
+                        userID: "user2",
+                        activityOwnerID: "owner1",
                         content: "Thanks for the motivation! 🙏",
                         createdTimestamp: Date().addingTimeInterval(-1_800),
                         modifiedTimestamp: Date().addingTimeInterval(-1_800),
-                        parentCommentId: "1",
+                        parentCommentID: "1",
                         isEdited: false,
                         likeCount: 1
                     ),

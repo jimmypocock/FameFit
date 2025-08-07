@@ -162,7 +162,6 @@ class CloudKitSchemaManager {
                 let dummyRecord = CKRecord(recordType: "Users")
                 dummyRecord["displayName"] = "Schema Init"
                 dummyRecord["totalXP"] = Int64(0)
-                dummyRecord["influencerXP"] = Int64(0) // Backward compatibility
                 dummyRecord["totalWorkouts"] = Int64(0)
                 dummyRecord["currentStreak"] = Int64(0)
                 dummyRecord["joinTimestamp"] = Date()

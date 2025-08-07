@@ -11,11 +11,11 @@ import Foundation
 
 protocol Comment {
     var id: String { get }
-    var userId: String { get }
+    var userID: String { get }
     var content: String { get }
     var createdTimestamp: Date { get }
     var modifiedTimestamp: Date { get }
-    var parentCommentId: String? { get }
+    var parentCommentID: String? { get }
     var isEdited: Bool { get }
     var likeCount: Int { get }
 }
@@ -80,21 +80,21 @@ struct AnyActivityFeedCommentWithUser: ActivityFeedCommentWithUserProtocol, Iden
 
 struct AnyComment: Comment {
     let id: String
-    let userId: String
+    let userID: String
     let content: String
     let createdTimestamp: Date
     let modifiedTimestamp: Date
-    let parentCommentId: String?
+    let parentCommentID: String?
     let isEdited: Bool
     let likeCount: Int
     
     init<T: Comment>(_ comment: T) {
         self.id = comment.id
-        self.userId = comment.userId
+        self.userID = comment.userID
         self.content = comment.content
         self.createdTimestamp = comment.createdTimestamp
         self.modifiedTimestamp = comment.modifiedTimestamp
-        self.parentCommentId = comment.parentCommentId
+        self.parentCommentID = comment.parentCommentID
         self.isEdited = comment.isEdited
         self.likeCount = comment.likeCount
     }

@@ -24,7 +24,7 @@ struct GenericCommentRowView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
                 // Thread indicator for replies
-                if commentWithUser.comment.parentCommentId != nil {
+                if commentWithUser.comment.parentCommentID != nil {
                     VStack {
                         Rectangle()
                             .fill(Color.gray.opacity(0.3))
@@ -140,7 +140,7 @@ struct GenericCommentRowView: View {
                         Spacer()
                         
                         // More options for own comments
-                        if commentWithUser.comment.userId == currentUserId {
+                        if commentWithUser.comment.userID == currentUserId {
                             Button(action: { showingActions.toggle() }) {
                                 Image(systemName: "ellipsis")
                                     .font(.system(size: 14))

@@ -10,6 +10,11 @@ import HealthKit
 import CloudKit
 
 struct ActivityFeedSettings: Codable, Equatable {
+    // MARK: - Identification
+    
+    /// User ID these settings belong to
+    let userID: String
+    
     // MARK: - Preset Options
     
     enum SharingPreset: String, CaseIterable {
@@ -93,7 +98,8 @@ struct ActivityFeedSettings: Codable, Equatable {
     
     // MARK: - Initializers
     
-    init() {
+    init(userID: String) {
+        self.userID = userID
         // Initialize with common workout types by default
         let defaultWorkoutTypes: Set<HKWorkoutActivityType> = [
             .running,
@@ -192,6 +198,7 @@ struct ActivityFeedSettings: Codable, Equatable {
 
 extension ActivityFeedSettings {
     init(from record: CKRecord) {
+        self.userID = record["userID"] as? String ?? ""
         self.shareActivitiesToFeed = record["shareActivitiesToFeed"] as? Bool ?? true
         self.shareWorkouts = record["shareWorkouts"] as? Bool ?? true
         self.shareAchievements = record["shareAchievements"] as? Bool ?? true
@@ -223,6 +230,8 @@ extension ActivityFeedSettings {
     
     func toCKRecord() -> CKRecord {
         let record = CKRecord(recordType: "ActivityFeedSettings")
+        
+        record["userID"] = userID
         
         // Convert Bool to Int64 for CloudKit
         record["shareActivitiesToFeed"] = shareActivitiesToFeed ? 1 : 0
@@ -258,8 +267,8 @@ extension ActivityFeedSettings {
 
 extension ActivityFeedSettings {
     /// Conservative preset - share less, more private
-    static var conservative: ActivityFeedSettings {
-        var settings = ActivityFeedSettings()
+    static func conservative(userID: String) -> ActivityFeedSettings {
+        var settings = ActivityFeedSettings(userID: userID)
         settings.shareWorkouts = true
         settings.shareAchievements = false
         settings.shareLevelUps = false
@@ -270,13 +279,13 @@ extension ActivityFeedSettings {
     }
     
     /// Balanced preset - reasonable defaults
-    static var balanced: ActivityFeedSettings {
-        ActivityFeedSettings() // Use defaults
+    static func balanced(userID: String) -> ActivityFeedSettings {
+        ActivityFeedSettings(userID: userID) // Use defaults
     }
     
     /// Social preset - share more, more public
-    static var social: ActivityFeedSettings {
-        var settings = ActivityFeedSettings()
+    static func social(userID: String) -> ActivityFeedSettings {
+        var settings = ActivityFeedSettings(userID: userID)
         settings.shareWorkouts = true
         settings.shareAchievements = true
         settings.shareLevelUps = true
@@ -293,7 +302,8 @@ extension ActivityFeedSettings {
     
     /// Create ActivityFeedSettings from CloudKit record
     static func fromCKRecord(_ record: CKRecord) -> ActivityFeedSettings {
-        var settings = ActivityFeedSettings()
+        let userID = record["userID"] as? String ?? ""
+        var settings = ActivityFeedSettings(userID: userID)
         
         // Core sharing settings - CloudKit stores as Int64 (1/0)
         settings.shareActivitiesToFeed = (record["shareActivitiesToFeed"] as? Int64 ?? 1) == 1

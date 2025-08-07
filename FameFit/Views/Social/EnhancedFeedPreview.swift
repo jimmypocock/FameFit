@@ -67,7 +67,7 @@ struct EnhancedFeedPreview: View {
                 commentCount: 5,
                 hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "1",
+                    workoutID: "1",
                     totalCount: 12,
                     hasUserKudos: false,
                     recentUsers: []
@@ -180,7 +180,7 @@ struct EnhancedFeedPreview: View {
                 commentCount: 3,
                 hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "4",
+                    workoutID: "4",
                     totalCount: 8,
                     hasUserKudos: false,
                     recentUsers: []

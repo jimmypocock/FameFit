@@ -185,7 +185,7 @@ struct XPTransactionDetailView_Previews: PreviewProvider {
     static var previews: some View {
         XPTransactionDetailView(
             transaction: XPTransaction(
-                userRecordID: "test-user",
+                userID: "test-user",
                 workoutRecordID: "test-workout",
                 baseXP: 30,
                 finalXP: 54,

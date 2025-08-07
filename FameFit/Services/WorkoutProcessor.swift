@@ -182,7 +182,7 @@ final class WorkoutProcessor {
         }
         
         _ = try await xpTransactionService.createTransaction(
-            userRecordID: userId,
+            userID: userId,
             workoutRecordID: workout.id.uuidString,
             baseXP: xpResult.baseXP,
             finalXP: xpResult.finalXP,

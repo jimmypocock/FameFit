@@ -28,8 +28,8 @@ class ActivityFeedCommentsAdapter: CommentServicing {
     }
     
     func fetchComments(for resourceId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
-        // For activity comments, resourceId could be either activityFeedId or sourceRecordId
-        // Default to using it as activityFeedId
+        // For activity comments, resourceId could be either activityFeedID or sourceRecordId
+        // Default to using it as activityFeedID
         try await activityCommentsService.fetchComments(for: resourceId, limit: limit)
     }
     
@@ -41,12 +41,12 @@ class ActivityFeedCommentsAdapter: CommentServicing {
         metadata: CommentMetadata
     ) async throws -> ActivityFeedComment {
         try await activityCommentsService.postComment(
-            activityFeedId: resourceId,
+            activityFeedID: resourceId,
             sourceType: metadata.resourceType,
-            sourceRecordId: metadata.sourceRecordId ?? resourceId,
-            activityOwnerId: resourceOwnerId,
+            sourceID: metadata.sourceRecordId ?? resourceId,
+            activityOwnerID: resourceOwnerId,
             content: content,
-            parentCommentId: parentCommentId
+            parentCommentID: parentCommentId
         )
     }
     
@@ -77,7 +77,7 @@ class ActivityFeedCommentsAdapter: CommentServicing {
     func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         try await activityCommentsService.fetchCommentsBySource(
             sourceType: sourceType,
-            sourceRecordId: sourceRecordId,
+            sourceID: sourceRecordId,
             limit: limit
         )
     }

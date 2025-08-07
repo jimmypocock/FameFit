@@ -12,7 +12,7 @@ struct ActivityFeedSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
     
-    @State private var settings = ActivityFeedSettings()
+    @State private var settings = ActivityFeedSettings(userID: "")
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var showError = false
@@ -374,14 +374,15 @@ struct ActivityFeedSettingsView: View {
     
     private func applyPreset(_ preset: SharingPreset) {
         selectedPreset = preset
+        let userID = container.cloudKitManager.currentUserID ?? ""
         
         switch preset {
         case .conservative:
-            settings = .conservative
+            settings = .conservative(userID: userID)
         case .balanced:
-            settings = .balanced
+            settings = .balanced(userID: userID)
         case .social:
-            settings = .social
+            settings = .social(userID: userID)
         case .custom:
             // Keep current settings
             break
@@ -391,12 +392,13 @@ struct ActivityFeedSettingsView: View {
     }
     
     private func detectPreset() {
+        let userID = container.cloudKitManager.currentUserID ?? ""
         // Check if current settings match any preset
-        if settings == .conservative {
+        if settings == .conservative(userID: userID) {
             selectedPreset = .conservative
-        } else if settings == .balanced {
+        } else if settings == .balanced(userID: userID) {
             selectedPreset = .balanced
-        } else if settings == .social {
+        } else if settings == .social(userID: userID) {
             selectedPreset = .social
         } else {
             selectedPreset = .custom

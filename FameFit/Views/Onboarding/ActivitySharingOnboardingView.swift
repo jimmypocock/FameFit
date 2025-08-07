@@ -143,18 +143,19 @@ struct ActivitySharingOnboardingView: View {
         
         Task {
             do {
+                let userID = container.cloudKitManager.currentUserID ?? ""
                 let settings: ActivityFeedSettings
                 
                 switch selectedPreset {
                 case .minimal:
-                    settings = .conservative
+                    settings = .conservative(userID: userID)
                 case .balanced:
-                    settings = .balanced
+                    settings = .balanced(userID: userID)
                 case .social:
-                    settings = .social
+                    settings = .social(userID: userID)
                 case .custom:
                     // Shouldn't happen in onboarding
-                    settings = .balanced
+                    settings = .balanced(userID: userID)
                 }
                 
                 try await container.activitySharingSettingsService.saveSettings(settings)

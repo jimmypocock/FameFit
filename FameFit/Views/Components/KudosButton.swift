@@ -196,7 +196,7 @@ struct KudosButton_Previews: PreviewProvider {
                 workoutId: "123",
                 ownerId: "456",
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "123",
+                    workoutID: "123",
                     totalCount: 0,
                     hasUserKudos: false,
                     recentUsers: []
@@ -209,7 +209,7 @@ struct KudosButton_Previews: PreviewProvider {
                 workoutId: "123",
                 ownerId: "456",
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "123",
+                    workoutID: "123",
                     totalCount: 42,
                     hasUserKudos: false,
                     recentUsers: []
@@ -222,7 +222,7 @@ struct KudosButton_Previews: PreviewProvider {
                 workoutId: "123",
                 ownerId: "456",
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "123",
+                    workoutID: "123",
                     totalCount: 43,
                     hasUserKudos: true,
                     recentUsers: []

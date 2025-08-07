@@ -534,13 +534,12 @@ final class UserProfileService: UserProfileServicing {
         do {
             let userRecord = try await privateDatabase.record(for: recordID)
             let workoutCount = userRecord["totalWorkouts"] as? Int ?? 0
-            let totalXP = userRecord["totalXP"] as? Int ?? userRecord["influencerXP"] as? Int ?? 0
+            let totalXP = userRecord["totalXP"] as? Int ?? 0
             
             print("🔍 Fresh stats from Users record:")
             print("   Record ID: \(recordID.recordName)")
             print("   totalWorkouts: \(userRecord["totalWorkouts"] ?? "nil")")
             print("   totalXP: \(userRecord["totalXP"] ?? "nil")")
-            print("   influencerXP: \(userRecord["influencerXP"] ?? "nil")")
             print("   Final values: workouts=\(workoutCount), XP=\(totalXP)")
             
             return (workoutCount: workoutCount, totalXP: totalXP)

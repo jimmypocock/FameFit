@@ -21,7 +21,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
     var mockComments: [CommentWithUser] = []
     var mockCommentCount = 0
     
-    func fetchComments(for activityFeedId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchComments(for activityFeedID: String, limit: Int) async throws -> [CommentWithUser] {
         fetchCommentsCalled = true
         if shouldFail {
             throw error
@@ -30,7 +30,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
     }
     
     func postComment(
-        activityFeedId: String,
+        activityFeedID: String,
         sourceType: String,
         sourceRecordId: String,
         activityOwnerId: String,
@@ -44,7 +44,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
         
         return ActivityFeedComment(
             id: UUID().uuidString,
-            activityFeedId: activityFeedId,
+            activityFeedID: activityFeedID,
             sourceType: sourceType,
             sourceRecordId: sourceRecordId,
             userId: "test-user",
@@ -73,7 +73,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
         
         return ActivityFeedComment(
             id: commentId,
-            activityFeedId: "test-feed",
+            activityFeedID: "test-feed",
             sourceType: "workout",
             sourceRecordId: "test-workout",
             userId: "test-user",
@@ -109,7 +109,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
         return 0
     }
     
-    func fetchCommentCount(for activityFeedId: String) async throws -> Int {
+    func fetchCommentCount(for activityFeedID: String) async throws -> Int {
         getCommentCountCalled = true
         if shouldFail {
             throw error
