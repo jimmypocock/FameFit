@@ -15,8 +15,8 @@ private struct DependencyContainerKey: EnvironmentKey {
         FameFitLogger.warning("Creating default DependencyContainer - this should be injected at app level", category: FameFitLogger.general)
         return MainActor.assumeIsolated {
             let container = DependencyContainer()
-            // Start initialization for the default container since it will be reused
-            container.cloudKitManager.startInitialization()
+            // Don't start initialization for the default container - it's just a fallback
+            // The app should inject the proper container which will handle initialization
             return container
         }
     }()

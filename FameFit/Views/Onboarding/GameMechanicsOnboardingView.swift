@@ -139,7 +139,7 @@ struct GameMechanicsOnboardingView: View {
                     authManager.completeOnboarding()
                     
                     // Now that onboarding is complete, start health services
-                    container.workoutSyncManager.startReliableSync()
+                    container.workoutObserver.startObservingWorkouts()
                     container.workoutAutoShareService.setupAutoSharing()
                     
                     isCompletingOnboarding = false

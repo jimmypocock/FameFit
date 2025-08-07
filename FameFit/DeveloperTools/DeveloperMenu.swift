@@ -353,27 +353,32 @@ struct DeveloperMenu: View {
     private func recalculateStats() {
         Task {
             isLoading = true
-            message = "Recalculating stats..."
+            message = "Verifying and recalculating all counts..."
             
             do {
-                // Use the environment dependency container
+                // Use the new CountVerificationService
                 let container = dependencyContainer
-                let cloudKitManager = container.cloudKitManager
+                let verificationService = container.countVerificationService
                 
-                try await cloudKitManager.recalculateUserStats()
+                // Force verification (marks as verified after completion)
+                let result = try await verificationService.verifyAllCounts()
                 
-                message = "✅ Stats recalculated successfully!"
+                if result.hadCorrections {
+                    message = "✅ Counts corrected!\n\(result.summary)"
+                } else {
+                    message = "✅ All counts verified correctly!"
+                }
                 
                 // Trigger profile refresh
                 NotificationCenter.default.post(name: Notification.Name("RefreshUserProfile"), object: nil)
             } catch {
-                message = "❌ Failed to recalculate: \(error.localizedDescription)"
+                message = "❌ Failed to verify counts: \(error.localizedDescription)"
             }
             
             isLoading = false
             
             // Clear message after delay
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds to read the summary
             message = ""
         }
     }

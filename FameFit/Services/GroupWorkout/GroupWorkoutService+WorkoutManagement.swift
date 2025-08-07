@@ -208,7 +208,10 @@ extension GroupWorkoutService {
         
         // Verify user is host or participant
         let participants = try await getParticipants(workoutId)
-        guard workout.hostId == userId || participants.contains(where: { $0.userId == userId }) else {
+        let isHost = workout.hostId == userId
+        let isParticipant = participants.contains(where: { $0.userId == userId })
+        
+        guard isHost || isParticipant else {
             throw GroupWorkoutError.notParticipant
         }
         
@@ -218,6 +221,15 @@ extension GroupWorkoutService {
         
         // Update participant status
         try await updateParticipantStatus(workoutId, status: .active)
+        
+        // Track workout start time using UnifiedWorkoutProcessor
+        if let processor = workoutProcessor {
+            if isHost {
+                try await processor.processGroupWorkoutStart(groupWorkout: updatedWorkout, hostId: userId)
+            } else {
+                try await processor.processGroupWorkoutJoin(groupWorkout: updatedWorkout, participantId: userId)
+            }
+        }
         
         // Send real-time update
         sendUpdate(.statusChanged(workoutId: workoutId, status: .active))
@@ -236,6 +248,7 @@ extension GroupWorkoutService {
         }
         
         var workout = try await fetchWorkout(workoutId)
+        let isHost = workout.hostId == userId
         
         // Update participant status
         try await updateParticipantStatus(workoutId, status: .completed)
@@ -246,17 +259,35 @@ extension GroupWorkoutService {
             $0.status == .completed || $0.status == .dropped
         }
         
-        if allCompleted || workout.hostId == userId {
-            workout.status = .completed
+        // Process workout completion using UnifiedWorkoutProcessor
+        if let processor = workoutProcessor {
+            if isHost {
+                // Host ending the workout
+                try await processor.processGroupWorkoutEnd(groupWorkout: workout, hostId: userId)
+                
+                // Also end for all active participants
+                for participant in allParticipants where participant.status == .active {
+                    try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantId: participant.userId)
+                }
+                
+                workout.status = .completed
+            } else {
+                // Participant marking as completed
+                try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantId: userId)
+                
+                if allCompleted {
+                    workout.status = .completed
+                }
+            }
+        } else {
+            // Fallback to old XP award method if processor not available
+            await awardGroupWorkoutXP(workout, for: userId)
         }
         
         let updatedWorkout = try await updateGroupWorkout(workout)
         
         // Send real-time update
         sendUpdate(.statusChanged(workoutId: workoutId, status: workout.status))
-        
-        // Award XP for group workout completion
-        await awardGroupWorkoutXP(updatedWorkout, for: userId)
         
         return updatedWorkout
     }

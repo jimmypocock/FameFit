@@ -23,6 +23,7 @@ struct FameFitLogger {
     static let healthKit = "HealthKit"
     static let ui = "UI"
     static let app = "App"
+    static let data = "Data"
     static let general = "General"
     
     // MARK: - OSLog Instances
@@ -37,6 +38,7 @@ struct FameFitLogger {
         healthKit: OSLog(subsystem: "com.jimmypocock.FameFit", category: "HealthKit"),
         ui: OSLog(subsystem: "com.jimmypocock.FameFit", category: "UI"),
         app: OSLog(subsystem: "com.jimmypocock.FameFit", category: "App"),
+        data: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Data"),
         general: OSLog(subsystem: "com.jimmypocock.FameFit", category: "General")
     ]
     

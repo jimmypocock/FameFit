@@ -10,6 +10,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
     weak var cloudKitManager: CloudKitManager?
     weak var notificationStore: (any NotificationStoring)?
     weak var apnsManager: (any APNSManaging)?
+    weak var workoutProcessor: WorkoutProcessor?
     private var preferences: NotificationPreferences = .load()
 
     @Published var lastError: FameFitError?
@@ -194,71 +195,34 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
             return
         }
 
-        let workoutType = workout.workoutActivityType
-        let duration = workout.duration / 60
-
-        // Log workout info
         FameFitLogger.info(
-            "Processing workout: \(workoutType.displayName) - Duration: \(Int(duration)) min",
+            "Processing workout: \(workout.workoutActivityType.displayName) - Duration: \(Int(workout.duration / 60)) min",
             category: FameFitLogger.workout
         )
 
-        // Get energy burned using the new API
-        var calories: Double = 0
-        if let energyBurnedType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            let energyBurned = workout.statistics(for: energyBurnedType)?.sumQuantity()
-            calories = energyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+        // Use WorkoutProcessor for all processing
+        guard let processor = workoutProcessor else {
+            FameFitLogger.error("WorkoutProcessor not available, falling back to legacy processing", category: FameFitLogger.workout)
+            // Fallback to legacy CloudKitManager saveWorkout
+            let historyItem = Workout(from: workout, followersEarned: 0)
+            cloudKitManager?.saveWorkout(historyItem)
+            return
         }
 
-        // Create workout history item (includes average heart rate from workout)
-        let historyItem = Workout(from: workout, followersEarned: 0)
-
-        // Calculate XP using the XPCalculator
-        let currentStreak = cloudKitManager?.currentStreak ?? 0
-        var calculatedXP = XPCalculator.calculateXP(
-            for: historyItem,
-            currentStreak: currentStreak
-        )
-
-        // Check for special bonuses (first workout, milestones, etc.)
-        let workoutCount = (cloudKitManager?.totalWorkouts ?? 0) + 1
-        let bonusXP = XPCalculator.calculateSpecialBonus(
-            workoutNumber: workoutCount,
-            isPersonalRecord: false // Could implement PR detection later
-        )
-        calculatedXP += bonusXP
-
-        let character = FameFitCharacter.characterForWorkoutType(workoutType)
-
-        FameFitLogger.info(
-            "Adding \(calculatedXP) XP for workout (base + \(bonusXP) bonus)",
-            category: FameFitLogger.workout
-        )
-        // Add XP for completed workout
-        cloudKitManager?.addXP(calculatedXP)
-
-        // Create final history item with calculated XP
-        let finalHistoryItem = Workout(from: workout, followersEarned: calculatedXP, xpEarned: calculatedXP)
-
-        // Save workout history to CloudKit
-        FameFitLogger.info(
-            "💾 Saving workout to CloudKit: \(finalHistoryItem.workoutType) with \(calculatedXP) XP",
-            category: FameFitLogger.workout
-        )
-        cloudKitManager?.saveWorkout(finalHistoryItem)
-
-        // Publish workout completion for sharing prompt (only for recent workouts)
-        let workoutAge = Date().timeIntervalSince(workout.endDate)
-        if workoutAge < 3_600 { // Only prompt for workouts completed within the last hour
-            workoutCompletedSubject.send(finalHistoryItem)
+        Task {
+            do {
+                try await processor.processHealthKitWorkout(workout)
+                
+                // Publish workout completion for sharing prompt (only for recent workouts)
+                let workoutAge = Date().timeIntervalSince(workout.endDate)
+                if workoutAge < 3_600 { // Only prompt for workouts completed within the last hour
+                    let historyItem = Workout(from: workout, followersEarned: 0)
+                    workoutCompletedSubject.send(historyItem)
+                }
+            } catch {
+                FameFitLogger.error("Failed to process workout", error: error, category: FameFitLogger.workout)
+            }
         }
-
-        sendWorkoutFameFitNotification(
-            character: character,
-            duration: Int(duration),
-            calories: Int(calories),
-            xpEarned: calculatedXP
-        )
     }
 
     private func requestNotificationPermissions() {

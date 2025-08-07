@@ -24,6 +24,8 @@ struct ProfileView: View {
     @State private var showingFollowersList = false
     @State private var selectedFollowTab: FollowListTab = .followers
     @State private var showUnfollowConfirmation = false
+    @State private var isVerifyingStats = false
+    @State private var statsVerificationMessage: String?
 
     let userId: String
 
@@ -103,8 +105,13 @@ struct ProfileView: View {
                 // Profile Header
                 profileHeader(profile)
 
-                // Stats Grid
+                // Stats Grid with refresh capability for own profile
                 statsGrid(profile)
+                
+                // Refresh Stats button for own profile
+                if isOwnProfile {
+                    refreshStatsSection
+                }
 
                 // Bio Section
                 if !profile.bio.isEmpty {
@@ -118,6 +125,9 @@ struct ProfileView: View {
                 memberInfo(profile)
             }
             .padding()
+        }
+        .refreshable {
+            await refreshProfile()
         }
     }
 
@@ -532,6 +542,106 @@ struct ProfileView: View {
                 print("Failed to load follower counts: \(error)")
             }
         }
+    }
+    
+    // MARK: - Refresh Stats Section
+    
+    private var refreshStatsSection: some View {
+        VStack(spacing: 12) {
+            if let message = statsVerificationMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Button(action: {
+                Task {
+                    await verifyStats()
+                }
+            }) {
+                HStack {
+                    if isVerifyingStats {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    Text("Verify Stats")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+            }
+            .disabled(isVerifyingStats)
+            
+            if let lastVerified = profile?.countsLastVerified {
+                Text("Last verified: \(lastVerified, formatter: relativeDateFormatter)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var relativeDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }
+    
+    // MARK: - Refresh Methods
+    
+    private func refreshProfile() async {
+        // Pull-to-refresh action
+        loadProfile()
+        loadFollowerCounts()
+        
+        // Also verify stats if it's own profile
+        if isOwnProfile {
+            await verifyStats()
+        }
+    }
+    
+    private func verifyStats() async {
+        guard isOwnProfile else { return }
+        
+        isVerifyingStats = true
+        statsVerificationMessage = nil
+        
+        do {
+            let result = try await container.countVerificationService.verifyAllCounts()
+            
+            if result.hadCorrections {
+                statsVerificationMessage = "Stats updated: \(result.summary)"
+                
+                // Reload profile to show new counts
+                loadProfile()
+            } else {
+                statsVerificationMessage = "All stats verified ✓"
+            }
+            
+            // Clear message after delay
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                statsVerificationMessage = nil
+            }
+        } catch {
+            print("❌ Verification error: \(error)")
+            statsVerificationMessage = "Verification failed: \(error.localizedDescription)"
+            
+            // Clear message after delay
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds to read error
+                statsVerificationMessage = nil
+            }
+        }
+        
+        isVerifyingStats = false
     }
 }
 

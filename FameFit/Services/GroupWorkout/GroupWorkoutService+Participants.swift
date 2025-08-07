@@ -41,13 +41,17 @@ extension GroupWorkoutService {
         
         // Add participant
         let userProfile = try await userProfileService.fetchProfileByUserID(userId)
+        
+        // If workout is already active, participant starts as active
+        let initialStatus: ParticipantStatus = workout.status == .active ? .active : .joined
+        
         let participant = GroupWorkoutParticipant(
             id: UUID().uuidString,
             groupWorkoutId: workoutId,
             userId: userId,
             username: userProfile.username,
             profileImageURL: userProfile.profileImageURL,
-            status: .joined
+            status: initialStatus
         )
         
         // Save participant record
@@ -60,6 +64,11 @@ extension GroupWorkoutService {
             workout.participantIDs.append(userId)
         }
         _ = try await updateGroupWorkout(workout)
+        
+        // If workout is active, track start time for this participant
+        if workout.status == .active, let processor = workoutProcessor {
+            try await processor.processGroupWorkoutJoin(groupWorkout: workout, participantId: userId)
+        }
         
         // Record action
         await rateLimiter.recordAction(.followRequest, userId: userId)
@@ -120,6 +129,11 @@ extension GroupWorkoutService {
         )
         
         if let record = records.first {
+            // If workout is active, process workout completion for this participant
+            if workout.status == .active, let processor = workoutProcessor {
+                try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantId: userId)
+            }
+            
             // Update status to dropped
             record["status"] = ParticipantStatus.dropped.rawValue
             _ = try await cloudKitManager.save(record)
