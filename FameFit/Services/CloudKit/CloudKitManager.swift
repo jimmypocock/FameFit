@@ -36,6 +36,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     @Published var joinTimestamp: Date?
     @Published var lastError: FameFitError?
     @Published private(set) var isInitialized = false
+    @Published private(set) var currentUserRecordID: String?
     
     // Services
     weak var authenticationManager: AuthenticationManager?
@@ -45,7 +46,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     // Computed properties for compatibility
     var isAvailable: Bool { isSignedIn }
-    var currentUserID: String? { userRecord?.recordID.recordName }
+    var currentUserID: String? { currentUserRecordID ?? userRecord?.recordID.recordName }
     var currentUserXP: Int { totalXP }
     
     // Databases
@@ -342,6 +343,14 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         
         do {
             let recordID = try await container.userRecordID()
+            
+            // Store the user ID immediately when we get it
+            await MainActor.run {
+                self.currentUserRecordID = recordID.recordName
+                // Post notification from main thread
+                NotificationCenter.default.post(name: Notification.Name("CloudKitUserIDAvailable"), object: nil)
+            }
+            
             let record = try await operationQueue.enqueueFetch(
                 recordID: recordID,
                 database: privateDatabase,
@@ -350,7 +359,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             await processUserRecord(record)
             
-            FameFitLogger.info("Successfully fetched user record", category: FameFitLogger.cloudKit)
+            FameFitLogger.info("Successfully fetched user record with ID: \(recordID.recordName)", category: FameFitLogger.cloudKit)
         } catch {
             FameFitLogger.error("Failed to fetch user record", error: error, category: FameFitLogger.cloudKit)
             
@@ -491,14 +500,17 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     private func processUserRecord(_ record: CKRecord) async {
+        let extractedXP = record["totalXP"] as? Int ?? 0
+        let extractedWorkouts = record["totalWorkouts"] as? Int ?? 0
+        
         await MainActor.run {
             self.userRecord = record
             
             // Extract user data
-            self.totalXP = record["totalXP"] as? Int ?? 0
+            self.totalXP = extractedXP
             self.userName = record["displayName"] as? String ?? ""
             self.currentStreak = record["currentStreak"] as? Int ?? 0
-            self.totalWorkouts = record["totalWorkouts"] as? Int ?? 0
+            self.totalWorkouts = extractedWorkouts
             self.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
             self.joinTimestamp = record["joinTimestamp"] as? Date
             self.lastError = nil
@@ -507,9 +519,9 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         FameFitLogger.info("""
             🔍 Fresh stats from Users record:
                Record ID: \(record.recordID.recordName)
-               totalWorkouts: \(record["totalWorkouts"] as? Int ?? 0)
-               totalXP: \(record["totalXP"] as? Int ?? 0)
-               Final values: workouts=\(self.totalWorkouts), XP=\(self.totalXP)
+               totalWorkouts: \(extractedWorkouts)
+               totalXP: \(extractedXP)
+               Final values: workouts=\(extractedWorkouts), XP=\(extractedXP)
             """, category: FameFitLogger.cloudKit)
     }
     
@@ -629,7 +641,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             do {
                 // Create the workout record
                 let record = CKRecord(recordType: "Workouts")
-                record["workoutID"] = workoutHistory.id.uuidString
+                record["id"] = workoutHistory.id.uuidString
                 record["workoutType"] = workoutHistory.workoutType
                 record["startDate"] = workoutHistory.startDate
                 record["endDate"] = workoutHistory.endDate
@@ -669,7 +681,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
                 
                 let workouts = records.compactMap { record -> Workout? in
-                    guard let id = record["workoutID"] as? String,
+                    guard let id = record["id"] as? String,
                           let type = record["workoutType"] as? String,
                           let startDate = record["startDate"] as? Date,
                           let endDate = record["endDate"] as? Date else {
@@ -686,6 +698,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     let followersEarned = record["followersEarned"] as? Int ?? 5
                     let xpEarned = record["xpEarned"] as? Int
                     let source = record["source"] as? String ?? "Unknown"
+                    let groupWorkoutID = record["groupWorkoutID"] as? String
                     
                     return Workout(
                         id: workoutID,
@@ -698,7 +711,8 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                         averageHeartRate: averageHeartRate,
                         followersEarned: followersEarned,
                         xpEarned: xpEarned,
-                        source: source
+                        source: source,
+                        groupWorkoutID: groupWorkoutID
                     )
                 }
                 

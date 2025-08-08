@@ -27,6 +27,12 @@ final class ActivityFeedViewModel: ObservableObject {
     private var lastFetchedDate: Date?
     private let pageSize = 20
     private var cancellables = Set<AnyCancellable>()
+    private var isLoadingInitial = false // Prevent duplicate initial loads
+    
+    // Cache key for persisting feed state
+    private let feedCacheKey = "cached_activity_feed_items"
+    private let feedCacheTimestampKey = "cached_activity_feed_timestamp"
+    private let cacheExpirationTime: TimeInterval = 300 // 5 minutes
 
     // Content filtering
     private let inappropriateWords = Set([
@@ -87,10 +93,36 @@ final class ActivityFeedViewModel: ObservableObject {
     }
 
     func loadInitialFeed() async {
+        // Prevent multiple simultaneous initial loads
+        guard !isLoadingInitial else {
+            FameFitLogger.info("⏭️ Initial feed load already in progress, skipping", category: FameFitLogger.social)
+            return
+        }
+        
+        isLoadingInitial = true
         isLoading = true
         error = nil
-        feedItems = []
-
+        
+        defer {
+            isLoadingInitial = false
+            isLoading = false
+        }
+        
+        // Try to load cached feed first for instant display
+        if loadCachedFeed() {
+            // We have cached items, show them immediately
+            // But still fetch fresh data in the background
+            Task {
+                await loadFreshFeed()
+            }
+        } else {
+            // No cache, load fresh
+            feedItems = []
+            await loadFreshFeed()
+        }
+    }
+    
+    private func loadFreshFeed() async {
         do {
             // First, get the list of users we're following
             if let socialService {
@@ -118,8 +150,6 @@ final class ActivityFeedViewModel: ObservableObject {
             FameFitLogger.error("❌ Failed to load feed: \(error)", category: FameFitLogger.social)
             self.error = "Failed to load feed"
         }
-
-        isLoading = false
     }
 
     func refreshFeed() async {
@@ -145,18 +175,40 @@ final class ActivityFeedViewModel: ObservableObject {
     // MARK: - Real-time Updates
 
     private func startRealTimeUpdates() {
-        // Set up a timer to periodically check for new items
-        Timer.publish(every: 30.0, on: .main, in: .common)
+        // More intelligent polling strategy - start frequent, then slow down
+        let intervals: [TimeInterval] = [10, 20, 30, 60] // Start with 10s, gradually increase to 60s
+        var currentIntervalIndex = 0
+        
+        Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in
-                Task { [weak self] in
-                    await self?.checkForNewItems()
+            .scan(0) { count, _ in count + 1 }
+            .sink { [weak self] secondsElapsed in
+                guard let self = self else { return }
+                
+                // Determine current interval based on how long app has been running
+                if secondsElapsed < 60 {
+                    currentIntervalIndex = 0 // 10s intervals for first minute
+                } else if secondsElapsed < 180 {
+                    currentIntervalIndex = 1 // 20s intervals for next 2 minutes
+                } else if secondsElapsed < 600 {
+                    currentIntervalIndex = 2 // 30s intervals for next 7 minutes
+                } else {
+                    currentIntervalIndex = 3 // 60s intervals after 10 minutes
+                }
+                
+                let interval = intervals[min(currentIntervalIndex, intervals.count - 1)]
+                
+                // Check if it's time to poll based on current interval
+                if secondsElapsed % Int(interval) == 0 {
+                    Task { [weak self] in
+                        await self?.checkForNewItems()
+                    }
                 }
             }
             .store(in: &cancellables)
     }
 
-    private func checkForNewItems() async {
+    func checkForNewItems() async {
         guard !isLoading,
               let activityFeedService,
               !followingUsers.isEmpty
@@ -196,14 +248,23 @@ final class ActivityFeedViewModel: ObservableObject {
 
         guard !filteredItems.isEmpty else { return }
 
+        // Remove duplicates - only add items that aren't already in the feed
+        let existingIDs = Set(feedItems.map(\.id))
+        let newItems = filteredItems.filter { !existingIDs.contains($0.id) }
+        
+        guard !newItems.isEmpty else { return }
+
         // Sort by timestamp (newest first)
-        let sortedItems = filteredItems.sorted { $0.timestamp > $1.timestamp }
+        let sortedItems = newItems.sorted { $0.timestamp > $1.timestamp }
 
         // Insert at the beginning of the feed
         feedItems.insert(contentsOf: sortedItems, at: 0)
 
         // Load kudos for any new workout items
         await loadKudosForNewItems(sortedItems)
+        
+        // Update cache with new items
+        saveFeedToCache()
     }
 
     private func loadKudosForNewItems(_ items: [ActivityFeedItem]) async {
@@ -228,6 +289,38 @@ final class ActivityFeedViewModel: ObservableObject {
         } catch {
             print("Failed to load kudos for new items: \(error)")
         }
+    }
+
+    // MARK: - Cache Management
+    
+    private func loadCachedFeed() -> Bool {
+        // Check if we have cached data that's not expired
+        guard let cacheTimestamp = UserDefaults.standard.object(forKey: feedCacheTimestampKey) as? Date,
+              Date().timeIntervalSince(cacheTimestamp) < cacheExpirationTime,
+              let cachedData = UserDefaults.standard.data(forKey: feedCacheKey),
+              let cachedItems = try? JSONDecoder().decode([ActivityFeedItem].self, from: cachedData) else {
+            return false
+        }
+        
+        feedItems = cachedItems
+        FameFitLogger.info("📦 Loaded \(cachedItems.count) cached feed items", category: FameFitLogger.social)
+        return true
+    }
+    
+    private func saveFeedToCache() {
+        // Only cache the first page of items
+        let itemsToCache = Array(feedItems.prefix(pageSize))
+        
+        if let data = try? JSONEncoder().encode(itemsToCache) {
+            UserDefaults.standard.set(data, forKey: feedCacheKey)
+            UserDefaults.standard.set(Date(), forKey: feedCacheTimestampKey)
+            FameFitLogger.info("💾 Cached \(itemsToCache.count) feed items", category: FameFitLogger.social)
+        }
+    }
+    
+    private func clearFeedCache() {
+        UserDefaults.standard.removeObject(forKey: feedCacheKey)
+        UserDefaults.standard.removeObject(forKey: feedCacheTimestampKey)
     }
 
     // MARK: - Private Methods
@@ -272,8 +365,12 @@ final class ActivityFeedViewModel: ObservableObject {
         // Sort by timestamp
         let sortedItems = filteredItems.sorted { $0.timestamp > $1.timestamp }
 
-        // Append to existing items
-        feedItems.append(contentsOf: sortedItems)
+        // Remove duplicates - only add items that aren't already in the feed
+        let existingIDs = Set(feedItems.map(\.id))
+        let newItems = sortedItems.filter { !existingIDs.contains($0.id) }
+        
+        // Append only new items
+        feedItems.append(contentsOf: newItems)
 
         // Load kudos for workout items
         await loadKudosForWorkouts()
@@ -283,6 +380,9 @@ final class ActivityFeedViewModel: ObservableObject {
             hasMoreItems = false
         }
         lastFetchedDate = sortedItems.last?.timestamp
+        
+        // Save to cache for quick loading next time
+        saveFeedToCache()
     }
 
     private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedRecord]) async -> [ActivityFeedItem] {

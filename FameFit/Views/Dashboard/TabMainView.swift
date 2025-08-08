@@ -14,6 +14,7 @@ struct TabMainView: View {
     @State private var showingFilters = false
     @State private var activeSheet: SheetType?
     @State private var workoutToShare: Workout?
+    @State private var previousTab = 0
 
     @Environment(\.dependencyContainer) var container
     @State private var cancellables = Set<AnyCancellable>()
@@ -181,6 +182,13 @@ struct TabMainView: View {
             viewModel.loadUserProfile()
             viewModel.loadFollowerCounts()
             setupWorkoutSharingListener()
+        }
+        .onChange(of: navigationCoordinator.selectedTab) { oldValue, newValue in
+            // Refresh activity feed when returning to home tab
+            if newValue == 0 && oldValue != 0 {
+                NotificationCenter.default.post(name: Notification.Name("RefreshActivityFeed"), object: nil)
+            }
+            previousTab = oldValue
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ClearAllCaches"))) { _ in
             // Refresh all data with fresh fetch when cache is cleared

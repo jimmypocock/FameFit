@@ -13,13 +13,14 @@ struct Workout: Identifiable, Codable {
     let followersEarned: Int // Deprecated - use xpEarned
     let xpEarned: Int?
     let source: String
+    let groupWorkoutID: String? // Reference to associated GroupWorkout if any
 
     // Computed property for backward compatibility
     var effectiveXPEarned: Int {
         xpEarned ?? followersEarned
     }
 
-    // Custom decoding to handle missing xpEarned
+    // Custom decoding to handle missing xpEarned and groupWorkoutID
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -33,6 +34,7 @@ struct Workout: Identifiable, Codable {
         followersEarned = try container.decode(Int.self, forKey: .followersEarned)
         xpEarned = try container.decodeIfPresent(Int.self, forKey: .xpEarned)
         source = try container.decode(String.self, forKey: .source)
+        groupWorkoutID = try container.decodeIfPresent(String.self, forKey: .groupWorkoutID)
     }
 
     // Standard init
@@ -47,7 +49,8 @@ struct Workout: Identifiable, Codable {
         averageHeartRate: Double?,
         followersEarned: Int,
         xpEarned: Int?,
-        source: String
+        source: String,
+        groupWorkoutID: String? = nil
     ) {
         self.id = id
         self.workoutType = workoutType
@@ -60,6 +63,7 @@ struct Workout: Identifiable, Codable {
         self.followersEarned = followersEarned
         self.xpEarned = xpEarned
         self.source = source
+        self.groupWorkoutID = groupWorkoutID
     }
 
     var formattedDuration: String {
@@ -83,7 +87,7 @@ struct Workout: Identifiable, Codable {
 }
 
 extension Workout {
-    init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil) {
+    init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil, groupWorkoutID: String? = nil) {
         id = UUID()
         workoutType = workout.workoutActivityType.displayName
         startDate = workout.startDate
@@ -107,6 +111,7 @@ extension Workout {
         averageHeartRate = workout.averageHeartRate?.doubleValue(for: .count().unitDivided(by: .minute()))
         self.followersEarned = followersEarned
         source = workout.sourceRevision.source.name
+        self.groupWorkoutID = groupWorkoutID
     }
 }
 
