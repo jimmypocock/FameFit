@@ -250,8 +250,8 @@ struct EditProfileView: View {
                     bio: bio,
                     workoutCount: profile.workoutCount,
                     totalXP: profile.totalXP,
-                    createdTimestamp: profile.createdTimestamp,
-                    modifiedTimestamp: Date(),
+                    creationDate: profile.creationDate,
+                    modificationDate: Date(),
                     isVerified: profile.isVerified,
                     privacyLevel: privacyLevel,
                     profileImageURL: profile.profileImageURL, // TODO: Handle image upload

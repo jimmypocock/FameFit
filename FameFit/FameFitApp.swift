@@ -75,6 +75,11 @@ struct FameFitApp: App {
 
                         // Only start health-related services if user has completed onboarding
                         if dependencyContainer.authenticationManager.hasCompletedOnboarding {
+                            // Request notification permissions for group workouts
+                            Task {
+                                _ = await NotificationService.shared.requestAuthorization()
+                            }
+                            
                             // Start the reliable sync manager using HKAnchoredObjectQuery
                             // This provides more reliable workout tracking than observer queries
                             dependencyContainer.workoutSyncManager.startReliableSync()

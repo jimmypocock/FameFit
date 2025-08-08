@@ -173,6 +173,6 @@ struct GenericCommentRowView: View {
     private var timeAgoString: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: commentWithUser.comment.createdTimestamp, relativeTo: Date())
+        return formatter.localizedString(for: commentWithUser.comment.creationDate, relativeTo: Date())
     }
 }

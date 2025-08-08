@@ -375,8 +375,8 @@ struct NotificationDebugView: View {
             bio: "Test user for debugging",
             workoutCount: 50,
             totalXP: 1_500,
-            createdTimestamp: Date().addingTimeInterval(-86_400 * 30), // 30 days ago
-            modifiedTimestamp: Date(),
+            creationDate: Date().addingTimeInterval(-86_400 * 30), // 30 days ago
+            modificationDate: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )

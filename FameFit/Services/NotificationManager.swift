@@ -27,6 +27,21 @@ protocol NotificationManaging: AnyObject {
     func notifyWorkoutKudos(from user: UserProfile, for workoutID: String) async
     func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutID: String) async
     func notifyMention(by user: UserProfile, in context: String) async
+    
+    // Group workout notifications
+    func notifyGroupWorkoutInvite(workout: GroupWorkout, from host: UserProfile) async
+    func notifyGroupWorkoutStart(workout: GroupWorkout) async
+    func notifyGroupWorkoutUpdate(workout: GroupWorkout, changeType: String) async
+    func notifyGroupWorkoutCancellation(workout: GroupWorkout) async
+    func notifyGroupWorkoutParticipantJoined(workout: GroupWorkout, participant: UserProfile) async
+    func notifyGroupWorkoutParticipantLeft(workout: GroupWorkout, participant: UserProfile) async
+    func scheduleGroupWorkoutReminder(workout: GroupWorkout) async
+    
+    // Challenge notifications  
+    func notifyChallengeInvite(challenge: WorkoutChallenge, from user: UserProfile) async
+    func notifyChallengeStart(challenge: WorkoutChallenge) async
+    func notifyChallengeComplete(challenge: WorkoutChallenge, isWinner: Bool) async
+    func notifyChallengeVerificationFailure(linkID: String, workoutName: String) async
 
     // System notifications
     func notifySecurityAlert(title: String, message: String) async
@@ -320,6 +335,337 @@ final class NotificationManager: NotificationManaging {
             print("Failed to schedule mention notification: \(error)")
         }
     }
+    
+    // MARK: - Group Workout Notifications
+    
+    func notifyGroupWorkoutInvite(workout: GroupWorkout, from host: UserProfile) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: host.userID,
+                hostName: host.username,
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutInvite,
+            title: "Group Workout Invite 🏃‍♂️",
+            body: "\(host.username) invited you to \(workout.name)",
+            metadata: metadata,
+            priority: .high,
+            actions: [.accept, .decline],
+            deliveryDate: nil // Send immediately
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule group workout invite notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyGroupWorkoutStart(workout: GroupWorkout) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutStarting,
+            title: "Workout Starting Now! 🎯",
+            body: "\(workout.name) is starting with \(workout.participantCount) participants",
+            metadata: metadata,
+            priority: .immediate,
+            actions: [.view]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule group workout start notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyGroupWorkoutUpdate(workout: GroupWorkout, changeType: String) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutUpdated,
+            title: "Workout Updated 📝",
+            body: "\(workout.name) has been \(changeType)",
+            metadata: metadata,
+            actions: [.view]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule group workout update notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyGroupWorkoutCancellation(workout: GroupWorkout) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutCancelled,
+            title: "Workout Cancelled ❌",
+            body: "\(workout.name) has been cancelled",
+            metadata: metadata,
+            priority: .high,
+            actions: []
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule group workout cancellation notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyGroupWorkoutParticipantJoined(workout: GroupWorkout, participant: UserProfile) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutParticipantJoined,
+            title: "New Participant 👥",
+            body: "\(participant.username) joined \(workout.name)",
+            metadata: metadata,
+            groupID: "group_workout_\(workout.id)"
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule participant joined notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyGroupWorkoutParticipantLeft(workout: GroupWorkout, participant: UserProfile) async {
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutParticipantLeft,
+            title: "Participant Left 👤",
+            body: "\(participant.username) left \(workout.name)",
+            metadata: metadata,
+            groupID: "group_workout_\(workout.id)"
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule participant left notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func scheduleGroupWorkoutReminder(workout: GroupWorkout) async {
+        // Schedule reminder 15 minutes before workout
+        let reminderDate = workout.scheduledStart.addingTimeInterval(-900)
+        
+        guard reminderDate > Date() else { 
+            FameFitLogger.debug("Reminder time has passed, not scheduling", category: FameFitLogger.notifications)
+            return 
+        }
+        
+        let metadata = NotificationMetadataContainer.groupWorkout(
+            GroupWorkoutNotificationMetadata(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: workout.workoutType.displayName,
+                hostID: workout.hostID,
+                hostName: "",
+                scheduledStart: workout.scheduledStart,
+                participantCount: workout.participantCount
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .groupWorkoutReminder,
+            title: "Workout Starting Soon! ⏰",
+            body: "\(workout.name) starts in 15 minutes",
+            metadata: metadata,
+            priority: .high,
+            actions: [.view],
+            deliveryDate: reminderDate
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+            FameFitLogger.info("Scheduled reminder for workout \(workout.name)", category: FameFitLogger.notifications)
+        } catch {
+            FameFitLogger.error("Failed to schedule group workout reminder", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    // MARK: - Challenge Notifications
+    
+    func notifyChallengeInvite(challenge: WorkoutChallenge, from user: UserProfile) async {
+        let metadata = NotificationMetadataContainer.challenge(
+            ChallengeNotificationMetadata(
+                workoutChallengeID: challenge.id,
+                challengeName: challenge.name,
+                challengeType: challenge.type.rawValue,
+                creatorID: user.userID,
+                creatorName: user.username,
+                targetValue: challenge.targetValue,
+                endDate: challenge.endDate
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .challengeInvite,
+            title: "Challenge Invite! \(challenge.type.icon)",
+            body: "\(user.username) challenged you: \(challenge.name)",
+            metadata: metadata,
+            priority: .high,
+            actions: [.accept, .decline]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule challenge invite notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyChallengeStart(challenge: WorkoutChallenge) async {
+        let metadata = NotificationMetadataContainer.challenge(
+            ChallengeNotificationMetadata(
+                workoutChallengeID: challenge.id,
+                challengeName: challenge.name,
+                challengeType: challenge.type.rawValue,
+                creatorID: challenge.creatorID,
+                creatorName: nil,
+                targetValue: challenge.targetValue,
+                endDate: challenge.endDate
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .challengeStarted,
+            title: "Challenge Started! 🏁",
+            body: "\(challenge.name) is now active. Good luck!",
+            metadata: metadata,
+            actions: [.view]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule challenge start notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyChallengeComplete(challenge: WorkoutChallenge, isWinner: Bool) async {
+        let title = isWinner ? "You Won! 🏆" : "Challenge Complete!"
+        let body = isWinner 
+            ? "Congratulations! You won \(challenge.name)!"
+            : "The challenge '\(challenge.name)' has ended. Check the results!"
+        
+        let metadata = NotificationMetadataContainer.challenge(
+            ChallengeNotificationMetadata(
+                workoutChallengeID: challenge.id,
+                challengeName: challenge.name,
+                challengeType: challenge.type.rawValue,
+                creatorID: challenge.creatorID,
+                creatorName: nil,
+                targetValue: challenge.targetValue,
+                endDate: challenge.endDate
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .challengeCompleted,
+            title: title,
+            body: body,
+            metadata: metadata,
+            priority: isWinner ? .immediate : .high,
+            actions: [.view]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule challenge complete notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
+    
+    func notifyChallengeVerificationFailure(linkID: String, workoutName: String) async {
+        let metadata = NotificationMetadataContainer.system(
+            SystemNotificationMetadata(
+                severity: "warning",
+                actionUrl: "famefit://verification/\(linkID)",
+                requiresAction: true
+            )
+        )
+        
+        let request = NotificationRequest(
+            type: .workoutVerificationFailed,
+            title: "Verification Issue ⚠️",
+            body: "Your \(workoutName) couldn't be verified. Tap to request manual verification.",
+            metadata: metadata,
+            priority: .high,
+            actions: [.view]
+        )
+        
+        do {
+            try await scheduler.scheduleFameFitNotification(request)
+        } catch {
+            FameFitLogger.error("Failed to schedule verification failure notification", error: error, category: FameFitLogger.notifications)
+        }
+    }
 
     // MARK: - System Notifications
 
@@ -487,6 +833,52 @@ final class MockNotificationManager: NotificationManaging {
 
     func notifyFeatureAnnouncement(feature: String, description _: String) async {
         sentNotifications.append("feature_\(feature)")
+    }
+    
+    // Group workout notifications
+    func notifyGroupWorkoutInvite(workout: GroupWorkout, from host: UserProfile) async {
+        sentNotifications.append("group_invite_\(workout.id)")
+    }
+    
+    func notifyGroupWorkoutStart(workout: GroupWorkout) async {
+        sentNotifications.append("group_start_\(workout.id)")
+    }
+    
+    func notifyGroupWorkoutUpdate(workout: GroupWorkout, changeType: String) async {
+        sentNotifications.append("group_update_\(workout.id)_\(changeType)")
+    }
+    
+    func notifyGroupWorkoutCancellation(workout: GroupWorkout) async {
+        sentNotifications.append("group_cancel_\(workout.id)")
+    }
+    
+    func notifyGroupWorkoutParticipantJoined(workout: GroupWorkout, participant: UserProfile) async {
+        sentNotifications.append("group_joined_\(workout.id)_\(participant.id)")
+    }
+    
+    func notifyGroupWorkoutParticipantLeft(workout: GroupWorkout, participant: UserProfile) async {
+        sentNotifications.append("group_left_\(workout.id)_\(participant.id)")
+    }
+    
+    func scheduleGroupWorkoutReminder(workout: GroupWorkout) async {
+        sentNotifications.append("group_reminder_\(workout.id)")
+    }
+    
+    // Challenge notifications
+    func notifyChallengeInvite(challenge: WorkoutChallenge, from user: UserProfile) async {
+        sentNotifications.append("challenge_invite_\(challenge.id)")
+    }
+    
+    func notifyChallengeStart(challenge: WorkoutChallenge) async {
+        sentNotifications.append("challenge_start_\(challenge.id)")
+    }
+    
+    func notifyChallengeComplete(challenge: WorkoutChallenge, isWinner: Bool) async {
+        sentNotifications.append("challenge_complete_\(challenge.id)_\(isWinner)")
+    }
+    
+    func notifyChallengeVerificationFailure(linkID: String, workoutName: String) async {
+        sentNotifications.append("verification_failed_\(linkID)")
     }
 
     func updatePreferences(_ preferences: NotificationPreferences) {

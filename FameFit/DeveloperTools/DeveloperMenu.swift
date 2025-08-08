@@ -13,12 +13,14 @@ enum DeveloperSheetType: Identifiable {
     case personaPicker
     case profilePicker
     case navigationDebug
+    case groupWorkoutDebug
     
     var id: String {
         switch self {
         case .personaPicker: return "personaPicker"
         case .profilePicker: return "profilePicker"
         case .navigationDebug: return "navigationDebug"
+        case .groupWorkoutDebug: return "groupWorkoutDebug"
         }
     }
 }
@@ -122,6 +124,34 @@ struct DeveloperMenu: View {
                             }
                             
                             Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Group Workout Debug
+                    Button(action: { sheetType = .groupWorkoutDebug }) {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.indigo)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Group Workout Debug")
+                                    .font(.headline)
+                                Text("Test Watch-Phone sync scenarios")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -302,6 +332,9 @@ struct DeveloperMenu: View {
                                    })
             case .navigationDebug:
                 NavigationDebugView()
+            case .groupWorkoutDebug:
+                GroupWorkoutDebugView()
+                    .environment(\.dependencyContainer, dependencyContainer)
             }
         }
         .task {

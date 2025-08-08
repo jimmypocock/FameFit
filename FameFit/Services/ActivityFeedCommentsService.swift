@@ -88,7 +88,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     
     private func fetchCommentsWithPredicate(_ predicate: NSPredicate, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         let query = CKQuery(recordType: "ActivityFeedComments", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         // TODO: Implement actual CloudKit query when available
         // For now, return empty array
@@ -127,8 +127,8 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
             userID: cloudKitManager.currentUserID ?? "",
             activityOwnerID: activityOwnerID,
             content: content,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             parentCommentID: parentCommentID,
             isEdited: false,
             likeCount: 0

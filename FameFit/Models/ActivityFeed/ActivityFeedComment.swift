@@ -22,8 +22,8 @@ struct ActivityFeedComment: Identifiable, Codable, Equatable {
     
     // Content
     var content: String
-    let createdTimestamp: Date
-    var modifiedTimestamp: Date
+    let creationDate: Date
+    var modificationDate: Date
     
     // Optional fields
     var parentCommentID: String? // For threaded replies
@@ -47,8 +47,8 @@ extension ActivityFeedComment {
               let userID = record["userID"] as? String,
               let activityOwnerID = record["activityOwnerID"] as? String,
               let content = record["content"] as? String,
-              let createdTimestamp = record["createdTimestamp"] as? Date,
-              let modifiedTimestamp = record["modifiedTimestamp"] as? Date
+              let creationDate = record.creationDate,
+              let modificationDate = record.modificationDate
         else {
             return nil
         }
@@ -60,8 +60,8 @@ extension ActivityFeedComment {
         self.userID = userID
         self.activityOwnerID = activityOwnerID
         self.content = content
-        self.createdTimestamp = createdTimestamp
-        self.modifiedTimestamp = modifiedTimestamp
+        self.creationDate = creationDate
+        self.modificationDate = modificationDate
         parentCommentID = record["parentCommentID"] as? String
         isEdited = (record["isEdited"] as? Int64) == 1
         likeCount = Int(record["likeCount"] as? Int64 ?? 0)
@@ -80,8 +80,8 @@ extension ActivityFeedComment {
         record["userID"] = userID
         record["activityOwnerID"] = activityOwnerID
         record["content"] = content
-        record["createdTimestamp"] = createdTimestamp
-        record["modifiedTimestamp"] = modifiedTimestamp
+        
+        
         
         if let parentCommentID {
             record["parentCommentID"] = parentCommentID

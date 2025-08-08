@@ -394,7 +394,7 @@ class DeveloperResetTool {
                         if let hostID = record["hostID"] as? String, hostID == userID {
                             // If user is host, we should cancel the workout instead of deleting
                             record["status"] = "cancelled"
-                            record["modifiedTimestamp"] = Date()
+                            
                             print("    ⚠️ Cancelling group workout hosted by user")
                         } else {
                             // Remove user from participants array
@@ -406,7 +406,7 @@ class DeveloperResetTool {
                                     return false
                                 }
                                 record["participants"] = participants as CKRecordValue
-                                record["modifiedTimestamp"] = Date()
+                                
                                 print("    ✅ Removed user from participant list")
                             }
                         }
@@ -451,14 +451,14 @@ class DeveloperResetTool {
                         if let creatorID = record["creatorID"] as? String, creatorID == userID {
                             // If user is creator, mark challenge as cancelled
                             record["status"] = "cancelled"
-                            record["modifiedTimestamp"] = Date()
+                            
                             print("    ⚠️ Cancelling challenge created by user")
                         } else {
                             // Remove user from participants array
                             if var participants = record["participants"] as? [String] {
                                 participants.removeAll { $0 == userID }
                                 record["participants"] = participants as CKRecordValue
-                                record["modifiedTimestamp"] = Date()
+                                
                                 print("    ✅ Removed user from participant list")
                             }
                         }

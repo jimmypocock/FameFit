@@ -448,8 +448,8 @@ class GenericCommentsViewModel: ObservableObject {
                         userID: updatedComment.userID,
                         activityOwnerID: "",
                         content: updatedComment.content,
-                        createdTimestamp: updatedComment.createdTimestamp,
-                        modifiedTimestamp: updatedComment.modifiedTimestamp,
+                        creationDate: updatedComment.creationDate,
+                        modificationDate: updatedComment.modificationDate,
                         parentCommentID: updatedComment.parentCommentID,
                         isEdited: updatedComment.isEdited,
                         likeCount: updatedComment.likeCount
@@ -524,9 +524,9 @@ class GenericCommentsViewModel: ObservableObject {
     private func sortComments() {
         switch sortOrder {
         case .newest:
-            comments.sort { $0.comment.createdTimestamp > $1.comment.createdTimestamp }
+            comments.sort { $0.comment.creationDate > $1.comment.creationDate }
         case .oldest:
-            comments.sort { $0.comment.createdTimestamp < $1.comment.createdTimestamp }
+            comments.sort { $0.comment.creationDate < $1.comment.creationDate }
         case .mostLiked:
             comments.sort { $0.comment.likeCount > $1.comment.likeCount }
         }

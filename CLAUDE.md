@@ -255,6 +255,33 @@ When creating new CloudKit record types, follow these steps:
 
 This follows Apple's CloudKit naming conventions and ensures consistency across the codebase.
 
+### CloudKit System Fields
+**CRITICAL**: NEVER create custom timestamp fields. CloudKit automatically provides system fields that should always be used:
+- ✅ Use `record.creationDate` for when a record was created
+- ✅ Use `record.modificationDate` for when a record was last modified
+- ❌ NEVER use custom fields like `createdTimestamp`, `modifiedTimestamp`, `updatedAt`, etc.
+
+**Why this matters:**
+1. System fields are automatically managed by CloudKit
+2. They're indexed and optimized for queries
+3. Custom timestamp fields cause "Unknown field" errors
+4. System fields are guaranteed to be accurate and consistent
+
+**In queries:**
+- Use `"creationDate"` not `"createdTimestamp"`
+- Use `"modificationDate"` not `"modifiedTimestamp"`
+
+**In code:**
+```swift
+// ✅ CORRECT - Reading system fields
+let createdAt = record.creationDate
+let modifiedAt = record.modificationDate
+
+// ❌ WRONG - Don't set or read custom timestamp fields
+record["createdTimestamp"] = Date()  // DON'T DO THIS
+let created = record["createdTimestamp"] as? Date  // DON'T DO THIS
+```
+
 ### Example: Workouts Record Type
 Fields configuration:
 - `workoutID` (String) - Queryable, Sortable

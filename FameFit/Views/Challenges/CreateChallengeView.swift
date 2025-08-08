@@ -276,7 +276,7 @@ struct CreateChallengeView: View {
                         challengeDescription,
                     startDate: Date(),
                     endDate: Date().addingTimeInterval(Double(duration) * 24 * 3_600),
-                    createdTimestamp: Date(),
+                    creationDate: Date(),
                     status: .pending,
                     winnerID: nil,
                     xpStake: Int(xpStake) ?? 0,

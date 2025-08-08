@@ -54,7 +54,7 @@ struct AchievementNotificationMetadata: NotificationMetadata {
 
 struct ChallengeNotificationMetadata: NotificationMetadata {
     var type: String { "challenge" }
-    let challengeID: String
+    let workoutChallengeID: String
     let challengeName: String
     let challengeType: String // "distance", "duration", "calories", "workouts"
     let creatorID: String
@@ -72,6 +72,19 @@ struct SystemNotificationMetadata: NotificationMetadata {
     let requiresAction: Bool
 }
 
+// MARK: - Group Workout Metadata
+
+struct GroupWorkoutNotificationMetadata: NotificationMetadata {
+    var type: String { "groupWorkout" }
+    let workoutID: String
+    let workoutName: String
+    let workoutType: String
+    let hostID: String
+    let hostName: String?
+    let scheduledStart: Date
+    let participantCount: Int
+}
+
 // MARK: - Type-Erased Container
 
 enum NotificationMetadataContainer: Codable {
@@ -80,6 +93,7 @@ enum NotificationMetadataContainer: Codable {
     case achievement(AchievementNotificationMetadata)
     case challenge(ChallengeNotificationMetadata)
     case system(SystemNotificationMetadata)
+    case groupWorkout(GroupWorkoutNotificationMetadata)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -105,6 +119,9 @@ enum NotificationMetadataContainer: Codable {
         case "system":
             let metadata = try SystemNotificationMetadata(from: decoder)
             self = .system(metadata)
+        case "groupWorkout":
+            let metadata = try GroupWorkoutNotificationMetadata(from: decoder)
+            self = .groupWorkout(metadata)
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -125,6 +142,8 @@ enum NotificationMetadataContainer: Codable {
         case let .challenge(metadata):
             try metadata.encode(to: encoder)
         case let .system(metadata):
+            try metadata.encode(to: encoder)
+        case let .groupWorkout(metadata):
             try metadata.encode(to: encoder)
         }
     }

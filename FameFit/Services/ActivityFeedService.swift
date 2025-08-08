@@ -110,7 +110,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             workoutID: workoutHistory.id.uuidString,
             content: contentString,
             visibility: finalPrivacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600), // 30 days
             xpEarned: workoutHistory.followersEarned,
             achievementName: nil
@@ -157,7 +157,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             workoutID: nil,
             content: contentString,
             visibility: effectivePrivacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(90 * 24 * 3_600), // 90 days for achievements
             xpEarned: xpEarned,
             achievementName: achievementName
@@ -197,7 +197,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             workoutID: nil,
             content: contentString,
             visibility: effectivePrivacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(365 * 24 * 3_600), // 1 year for level ups
             xpEarned: nil,
             achievementName: nil
@@ -214,7 +214,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         
         let predicate = if let since {
             NSPredicate(
-                format: "userID IN %@ AND createdTimestamp > %@ AND expiresAt > %@",
+                format: "userID IN %@ AND creationDate > %@ AND expiresAt > %@",
                 Array(userIDs),
                 since as NSDate,
                 Date() as NSDate
@@ -230,7 +230,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         FameFitLogger.info("🔍 Query predicate: \(predicate)", category: FameFitLogger.social)
 
         let query = CKQuery(recordType: "ActivityFeed", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
         // Perform the actual CloudKit query
         do {
@@ -326,7 +326,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         record["workoutID"] = item.workoutID
         record["content"] = item.content
         record["visibility"] = item.visibility
-        record["createdTimestamp"] = item.createdTimestamp
+        // creationDate is automatically set by CloudKit - no need to set it
         record["expiresAt"] = item.expiresAt
         record["xpEarned"] = item.xpEarned
         record["achievementName"] = item.achievementName
@@ -355,7 +355,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             let activityType = record["activityType"] as? String,
             let content = record["content"] as? String,
             let visibility = record["visibility"] as? String,
-            let createdTimestamp = record["createdTimestamp"] as? Date,
+            let creationDate = record.creationDate,
             let expiresAt = record["expiresAt"] as? Date
         else {
             return nil
@@ -368,7 +368,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             workoutID: record["workoutID"] as? String,
             content: content,
             visibility: visibility,
-            createdTimestamp: createdTimestamp,
+            creationDate: creationDate,
             expiresAt: expiresAt,
             xpEarned: record["xpEarned"] as? Int,
             achievementName: record["achievementName"] as? String

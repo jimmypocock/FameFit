@@ -22,8 +22,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
     let scheduledStart: Date
     let scheduledEnd: Date
     var status: GroupWorkoutStatus
-    let createdTimestamp: Date
-    var modifiedTimestamp: Date
+    let creationDate: Date
+    var modificationDate: Date
     let isPublic: Bool
     let joinCode: String? // For private groups
     let tags: [String]
@@ -89,8 +89,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         scheduledStart: Date,
         scheduledEnd: Date,
         status: GroupWorkoutStatus = .scheduled,
-        createdTimestamp: Date = Date(),
-        modifiedTimestamp: Date = Date(),
+        creationDate: Date = Date(),
+        modificationDate: Date = Date(),
         isPublic: Bool = true,
         joinCode: String? = nil,
         tags: [String] = [],
@@ -108,8 +108,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         self.scheduledStart = scheduledStart
         self.scheduledEnd = scheduledEnd
         self.status = status
-        self.createdTimestamp = createdTimestamp
-        self.modifiedTimestamp = modifiedTimestamp
+        self.creationDate = creationDate
+        self.modificationDate = modificationDate
         self.isPublic = isPublic
         self.joinCode = joinCode ?? (isPublic ? nil : Self.generateJoinCode())
         self.tags = tags
@@ -163,8 +163,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         let statusRaw = record["status"] as? String ?? "scheduled"
         let status = GroupWorkoutStatus(rawValue: statusRaw) ?? .scheduled
         
-        let createdTimestamp = record["createdTimestamp"] as? Date ?? record.creationDate ?? Date()
-        let modifiedTimestamp = record["modifiedTimestamp"] as? Date ?? record.modificationDate ?? Date()
+        let creationDate = record.creationDate ?? record.creationDate ?? Date()
+        let modificationDate = record.modificationDate ?? record.modificationDate ?? Date()
         
         let isPublic = record["isPublic"] as? Int64 ?? 0 // Default to private
 
@@ -187,8 +187,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             scheduledStart: scheduledStart,
             scheduledEnd: scheduledEnd,
             status: status,
-            createdTimestamp: createdTimestamp,
-            modifiedTimestamp: modifiedTimestamp,
+            creationDate: creationDate,
+            modificationDate: modificationDate,
             isPublic: isPublic != 0,
             joinCode: record["joinCode"] as? String,
             tags: tags,
@@ -219,8 +219,8 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         record["scheduledStart"] = scheduledStart
         record["scheduledEnd"] = scheduledEnd
         record["status"] = status.rawValue
-        record["createdTimestamp"] = createdTimestamp
-        record["modifiedTimestamp"] = modifiedTimestamp
+        
+        
         record["isPublic"] = isPublic ? Int64(1) : Int64(0)
         record["joinCode"] = joinCode
         record["tags"] = tags
@@ -252,7 +252,7 @@ extension GroupWorkout: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, description, workoutType, hostID, participantCount
         case maxParticipants, scheduledStart, scheduledEnd, status
-        case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
+        case creationDate, modificationDate, isPublic, joinCode, tags
         case location, notes, participantIDs
     }
 
@@ -279,8 +279,8 @@ extension GroupWorkout: Codable {
         scheduledStart = try container.decode(Date.self, forKey: .scheduledStart)
         scheduledEnd = try container.decode(Date.self, forKey: .scheduledEnd)
         status = try container.decode(GroupWorkoutStatus.self, forKey: .status)
-        createdTimestamp = try container.decode(Date.self, forKey: .createdTimestamp)
-        modifiedTimestamp = try container.decode(Date.self, forKey: .modifiedTimestamp)
+        creationDate = try container.decode(Date.self, forKey: .creationDate)
+        modificationDate = try container.decode(Date.self, forKey: .modificationDate)
         isPublic = try container.decode(Bool.self, forKey: .isPublic)
         joinCode = try container.decodeIfPresent(String.self, forKey: .joinCode)
         tags = try container.decode([String].self, forKey: .tags)
@@ -301,8 +301,8 @@ extension GroupWorkout: Codable {
         try container.encode(scheduledStart, forKey: .scheduledStart)
         try container.encode(scheduledEnd, forKey: .scheduledEnd)
         try container.encode(status, forKey: .status)
-        try container.encode(createdTimestamp, forKey: .createdTimestamp)
-        try container.encode(modifiedTimestamp, forKey: .modifiedTimestamp)
+        try container.encode(creationDate, forKey: .creationDate)
+        try container.encode(modificationDate, forKey: .modificationDate)
         try container.encode(isPublic, forKey: .isPublic)
         try container.encodeIfPresent(joinCode, forKey: .joinCode)
         try container.encode(tags, forKey: .tags)
@@ -537,7 +537,7 @@ extension GroupWorkoutInvite {
         record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutID), action: .deleteSelf)
         record["invitedByID"] = invitedBy
         record["invitedUserID"] = invitedUser
-        // invitedAt is stored in system createdTimestamp field
+        // invitedAt is stored in system creationDate field
         record["expiresTimestamp"] = expiresAt
         
         return record

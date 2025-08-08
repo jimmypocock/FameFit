@@ -416,7 +416,7 @@ final class ActivityFeedViewModel: ObservableObject {
                 userID: activityItem.userID,
                 userProfile: userProfile,
                 type: feedItemType,
-                timestamp: activityItem.createdTimestamp,
+                timestamp: activityItem.creationDate,
                 content: content,
                 workoutID: feedItemType == .workout ? activityItem.id : nil,
                 kudosCount: 0,

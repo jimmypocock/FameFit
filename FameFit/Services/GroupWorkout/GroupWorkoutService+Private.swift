@@ -68,48 +68,49 @@ extension GroupWorkoutService {
         
         guard workout.hostID != participantID else { return }
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notification would be sent to host about new participant", category: FameFitLogger.social)
+        // Fetch participant profile
+        guard let participant = try? await userProfileService.fetchProfile(userID: participantID) else {
+            FameFitLogger.warning("Could not fetch participant profile for notification", category: FameFitLogger.social)
+            return
+        }
+        
+        await notificationManager.notifyGroupWorkoutParticipantJoined(workout: workout, participant: participant)
     }
     
     func notifyParticipantsOfUpdate(_ workout: GroupWorkout) async {
         FameFitLogger.info("Notifying participants of workout update", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout update", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutUpdate(workout: workout, changeType: "updated")
     }
     
     func notifyParticipantsOfCancellation(_ workout: GroupWorkout) async {
         FameFitLogger.info("Notifying participants of workout cancellation", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout cancellation", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutCancellation(workout: workout)
     }
     
     func notifyParticipantsOfStart(_ workout: GroupWorkout, startedBy: String) async {
         FameFitLogger.info("Notifying participants of workout start", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout start", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutStart(workout: workout)
     }
     
     func notifyUserOfInvite(userID: String, workout: GroupWorkout) async {
         FameFitLogger.info("Notifying user of workout invite", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notification would be sent to user about workout invite", category: FameFitLogger.social)
+        // Fetch host profile
+        guard let host = try? await userProfileService.fetchProfile(userID: workout.hostID) else {
+            FameFitLogger.warning("Could not fetch host profile for notification", category: FameFitLogger.social)
+            return
+        }
+        
+        await notificationManager.notifyGroupWorkoutInvite(workout: workout, from: host)
     }
     
     func scheduleWorkoutReminder(_ workout: GroupWorkout) async {
         FameFitLogger.info("Scheduling workout reminder", category: FameFitLogger.social)
         
-        // Schedule reminder 15 minutes before workout
-        let reminderDate = workout.scheduledStart.addingTimeInterval(-900)
-        
-        guard reminderDate > Date() else { return }
-        
-        // TODO: Implement local notification scheduling
-        FameFitLogger.debug("Local notification would be scheduled for workout reminder", category: FameFitLogger.social)
+        await notificationManager.scheduleGroupWorkoutReminder(workout: workout)
     }
     
     // MARK: - XP & Rewards

@@ -49,6 +49,18 @@ enum NotificationType: String, Codable, CaseIterable {
     case challengeStarted = "challenge_started"
     case challengeCompleted = "challenge_completed"
     case leaderboardChange = "leaderboard_change"
+    
+    // Group workout notifications
+    case groupWorkoutInvite = "group_workout_invite"
+    case groupWorkoutStarting = "group_workout_starting"
+    case groupWorkoutUpdated = "group_workout_updated"
+    case groupWorkoutCancelled = "group_workout_cancelled"
+    case groupWorkoutParticipantJoined = "group_workout_participant_joined"
+    case groupWorkoutParticipantLeft = "group_workout_participant_left"
+    case groupWorkoutReminder = "group_workout_reminder"
+    
+    // Verification notifications
+    case workoutVerificationFailed = "workout_verification_failed"
 
     // System notifications
     case securityAlert = "security_alert"
@@ -61,9 +73,12 @@ enum NotificationType: String, Codable, CaseIterable {
         case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk, .unlockAchieved:
             .workout
         case .newFollower, .followRequest, .followAccepted, .workoutKudos, .workoutComment, .mentioned,
-             .challengeInvite,
-             .challengeStarted, .challengeCompleted, .leaderboardChange:
+             .challengeInvite, .challengeStarted, .challengeCompleted, .leaderboardChange,
+             .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutUpdated, .groupWorkoutCancelled,
+             .groupWorkoutParticipantJoined, .groupWorkoutParticipantLeft, .groupWorkoutReminder:
             .social
+        case .workoutVerificationFailed:
+            .system
         case .securityAlert, .privacyUpdate, .featureAnnouncement, .maintenanceNotice:
             .system
         }
@@ -73,13 +88,17 @@ enum NotificationType: String, Codable, CaseIterable {
         switch self {
         case .securityAlert, .mentioned, .followRequest:
             .immediate
-        case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted:
+        case .workoutCompleted, .workoutShared, .xpMilestone, .levelUp, .followAccepted, .challengeInvite, .challengeStarted,
+             .groupWorkoutInvite, .groupWorkoutStarting:
             .high
-        case .newFollower, .workoutComment, .streakMaintained, .unlockAchieved:
+        case .newFollower, .workoutComment, .streakMaintained, .unlockAchieved,
+             .groupWorkoutUpdated, .groupWorkoutParticipantJoined, .groupWorkoutParticipantLeft:
             .medium
-        case .workoutKudos, .leaderboardChange, .streakAtRisk:
+        case .workoutKudos, .leaderboardChange, .streakAtRisk,
+             .groupWorkoutCancelled, .groupWorkoutReminder:
             .low
-        case .privacyUpdate, .featureAnnouncement, .maintenanceNotice, .challengeCompleted:
+        case .privacyUpdate, .featureAnnouncement, .maintenanceNotice, .challengeCompleted,
+             .workoutVerificationFailed:
             .low
         }
     }
@@ -105,6 +124,13 @@ enum NotificationType: String, Codable, CaseIterable {
         case .privacyUpdate, .featureAnnouncement, .maintenanceNotice:
             .enabled
         case .challengeCompleted:
+            .enabled
+        case .groupWorkoutInvite, .groupWorkoutStarting:
+            .immediate
+        case .groupWorkoutUpdated, .groupWorkoutCancelled, .groupWorkoutParticipantJoined,
+             .groupWorkoutParticipantLeft, .groupWorkoutReminder:
+            .enabled
+        case .workoutVerificationFailed:
             .enabled
         }
     }
@@ -163,6 +189,22 @@ enum NotificationType: String, Codable, CaseIterable {
             "New Feature"
         case .maintenanceNotice:
             "Maintenance"
+        case .groupWorkoutInvite:
+            "Group Workout Invite"
+        case .groupWorkoutStarting:
+            "Group Workout Starting"
+        case .groupWorkoutUpdated:
+            "Group Workout Updated"
+        case .groupWorkoutCancelled:
+            "Group Workout Cancelled"
+        case .groupWorkoutParticipantJoined:
+            "Participant Joined"
+        case .groupWorkoutParticipantLeft:
+            "Participant Left"
+        case .groupWorkoutReminder:
+            "Group Workout Reminder"
+        case .workoutVerificationFailed:
+            "Verification Failed"
         }
     }
 
@@ -200,6 +242,12 @@ enum NotificationType: String, Codable, CaseIterable {
             "✨"
         case .maintenanceNotice:
             "🔧"
+        case .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutUpdated,
+             .groupWorkoutCancelled, .groupWorkoutParticipantJoined,
+             .groupWorkoutParticipantLeft, .groupWorkoutReminder:
+            "🏋️"
+        case .workoutVerificationFailed:
+            "❌"
         }
     }
 }
@@ -258,6 +306,8 @@ enum NotificationAction: String, Codable {
     case accept
     case decline
     case dismiss
+    case join
+    case verify
 
     var displayName: String {
         switch self {
@@ -273,6 +323,10 @@ enum NotificationAction: String, Codable {
             "Decline"
         case .dismiss:
             "Dismiss"
+        case .join:
+            "Join"
+        case .verify:
+            "Verify"
         }
     }
 }

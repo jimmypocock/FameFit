@@ -118,6 +118,6 @@ enum GroupWorkoutQueryBuilder {
     }
     
     static var invitedAtDescending: NSSortDescriptor {
-        NSSortDescriptor(key: "createdTimestamp", ascending: false)
+        NSSortDescriptor(key: "creationDate", ascending: false)
     }
 }

@@ -145,7 +145,7 @@ extension GroupWorkoutService {
         let now = Date()
         let predicate = NSPredicate(format: "invitedUserID == %@ AND expiresTimestamp > %@", userID, now as NSDate)
         
-        let sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        let sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",
@@ -161,7 +161,7 @@ extension GroupWorkoutService {
         FameFitLogger.info("Getting invites for workout: \(workoutID)", category: FameFitLogger.social)
         
         let predicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutID: workoutID)
-        let sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        let sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",

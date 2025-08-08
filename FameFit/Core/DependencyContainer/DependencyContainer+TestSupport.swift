@@ -91,7 +91,8 @@ extension DependencyContainer {
         let resolvedSocialFollowingService = socialFollowingService ?? CachedSocialFollowingService(
             cloudKitManager: cloudKitManager,
             rateLimiter: resolvedRateLimitingService,
-            profileService: resolvedUserProfileService
+            profileService: resolvedUserProfileService,
+            notificationManager: resolvedNotificationManager
         )
         
         // Create activity feed services
@@ -124,12 +125,18 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager
         )
         
+        // Create WorkoutChallengeLinksService first
+        let workoutChallengeLinksService = WorkoutChallengeLinksService(
+            cloudKitManager: cloudKitManager
+        )
+        
         // Create challenge and group workout services
         let resolvedWorkoutChallengesService = workoutChallengesService ?? WorkoutChallengesService(
             cloudKitManager: cloudKitManager,
             userProfileService: resolvedUserProfileService,
             notificationManager: resolvedNotificationManager,
-            rateLimiter: resolvedRateLimitingService
+            rateLimiter: resolvedRateLimitingService,
+            workoutChallengeLinksService: workoutChallengeLinksService
         )
         
         let resolvedGroupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
@@ -174,7 +181,9 @@ extension DependencyContainer {
             xpTransactionService: resolvedXpTransactionService,
             activityFeedService: resolvedActivityFeedService,
             notificationManager: resolvedNotificationManager,
-            userProfileService: resolvedUserProfileService
+            userProfileService: resolvedUserProfileService,
+            workoutChallengesService: resolvedWorkoutChallengesService,
+            workoutChallengeLinksService: workoutChallengeLinksService
         )
         
         // Create verification service
@@ -215,6 +224,7 @@ extension DependencyContainer {
             apnsManager: resolvedApnsManager,
             groupWorkoutService: resolvedGroupWorkoutService,
             workoutChallengesService: resolvedWorkoutChallengesService,
+            workoutChallengeLinksService: workoutChallengeLinksService,
             subscriptionManager: resolvedSubscriptionManager,
             realTimeSyncCoordinator: resolvedRealTimeSyncCoordinator,
             activityCommentsService: resolvedActivityCommentsService,

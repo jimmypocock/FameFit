@@ -64,7 +64,7 @@ final class ChallengesViewModel: ObservableObject {
         guard let service = challengesService else { return }
 
         do {
-            let acceptedChallenge = try await service.acceptChallenge(challengeID: challenge.id)
+            let acceptedChallenge = try await service.acceptChallenge(workoutChallengeID: challenge.id)
 
             // Move from pending to active
             pendingChallenges.removeAll { $0.id == challenge.id }
@@ -78,7 +78,7 @@ final class ChallengesViewModel: ObservableObject {
         guard let service = challengesService else { return }
 
         do {
-            try await service.declineChallenge(challengeID: challenge.id)
+            try await service.declineChallenge(workoutChallengeID: challenge.id)
 
             // Remove from pending
             pendingChallenges.removeAll { $0.id == challenge.id }
@@ -92,7 +92,7 @@ final class ChallengesViewModel: ObservableObject {
 
         do {
             try await service.updateProgress(
-                challengeID: challenge.id,
+                workoutChallengeID: challenge.id,
                 progress: progress,
                 workoutID: workoutID
             )

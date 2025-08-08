@@ -73,7 +73,7 @@ extension GroupWorkoutService {
         
         // Update the workout
         var updatedWorkout = workout
-        updatedWorkout.modifiedTimestamp = Date()
+        updatedWorkout.modificationDate = Date()
         
         // Fetch the existing record first to avoid "record already exists" error
         let recordID = CKRecord.ID(recordName: workout.id)

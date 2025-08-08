@@ -21,6 +21,8 @@ final class WorkoutProcessor {
     private let activityFeedService: ActivityFeedServicing
     private let notificationManager: NotificationManaging?
     private let userProfileService: UserProfileServicing
+    private let workoutChallengesService: WorkoutChallengesServicing
+    private let workoutChallengeLinksService: WorkoutChallengeLinksServicing
     
     // MARK: - Initialization
     
@@ -29,13 +31,17 @@ final class WorkoutProcessor {
         xpTransactionService: XPTransactionService,
         activityFeedService: ActivityFeedServicing,
         notificationManager: NotificationManaging?,
-        userProfileService: UserProfileServicing
+        userProfileService: UserProfileServicing,
+        workoutChallengesService: WorkoutChallengesServicing,
+        workoutChallengeLinksService: WorkoutChallengeLinksServicing
     ) {
         self.cloudKitManager = cloudKitManager
         self.xpTransactionService = xpTransactionService
         self.activityFeedService = activityFeedService
         self.notificationManager = notificationManager
         self.userProfileService = userProfileService
+        self.workoutChallengesService = workoutChallengesService
+        self.workoutChallengeLinksService = workoutChallengeLinksService
     }
     
     // MARK: - Public Methods
@@ -201,14 +207,17 @@ final class WorkoutProcessor {
             )
         }
         
-        // Step 6: Send notifications
+        // Step 6: Process challenges
+        await processWorkoutForChallenges(workout: workoutWithXP, userID: userID)
+        
+        // Step 7: Send notifications
         await sendNotifications(
             workout: workoutWithXP,
             xpEarned: xpResult.finalXP,
             source: source
         )
         
-        // Step 7: Update user profile workout count
+        // Step 8: Update user profile workout count
         await updateUserProfileWorkoutCount()
         
         FameFitLogger.info("✅ Workout processing complete: +\(xpResult.finalXP) XP", category: FameFitLogger.workout)
@@ -378,6 +387,112 @@ final class WorkoutProcessor {
         // This will be reflected when the profile is next fetched
         FameFitLogger.info("📈 Updated user profile workout count", category: FameFitLogger.social)
     }
+    
+    // MARK: - Challenge Processing
+    
+    // MARK: - Verification Helper
+    
+    private func verifyLinkWithRetry(link: WorkoutChallengeLink, workoutChallengeIDs: [String]) async {
+        do {
+            // First attempt at verification
+            _ = try await workoutChallengeLinksService.verifyLink(linkID: link.id)
+            FameFitLogger.info("✅ Verified challenge link: \(link.id)", category: FameFitLogger.workout)
+            
+        } catch let error as VerificationFailureReason where error == .timeout {
+            FameFitLogger.warning("⏱️ Verification timed out for link: \(link.id)", category: FameFitLogger.workout)
+            
+            // Check if challenge is ending soon - use grace period if needed
+            if let workoutChallengeID = workoutChallengeIDs.first(where: { $0 == link.workoutChallengeID }) {
+                await checkForGracePeriodVerification(link: link, workoutChallengeID: workoutChallengeID)
+            }
+            
+        } catch {
+            FameFitLogger.warning("⚠️ Initial verification failed for link: \(link.id): \(error)", category: FameFitLogger.workout)
+            
+            // Schedule retry with backoff
+            Task {
+                do {
+                    _ = try await workoutChallengeLinksService.retryVerificationWithBackoff(linkID: link.id)
+                    FameFitLogger.info("✅ Retry verification successful for link: \(link.id)", category: FameFitLogger.workout)
+                } catch {
+                    FameFitLogger.error("❌ All verification attempts failed for link: \(link.id)", error: error, category: FameFitLogger.workout)
+                    
+                    // Final fallback - check if user can request manual verification
+                    await notifyUserAboutVerificationFailure(linkID: link.id)
+                }
+            }
+        }
+    }
+    
+    private func checkForGracePeriodVerification(link: WorkoutChallengeLink, workoutChallengeID: String) async {
+        do {
+            // Fetch challenge to get end date
+            let challenge = try await workoutChallengesService.fetchChallenge(workoutChallengeID: workoutChallengeID)
+            
+            // Check if within grace period
+            let timeSinceChallengeEnd = Date().timeIntervalSince(challenge.endDate)
+            if timeSinceChallengeEnd <= VerificationConfig.challengeEndGracePeriod && timeSinceChallengeEnd > 0 {
+                _ = try await workoutChallengeLinksService.verifyWithGracePeriod(
+                    linkID: link.id,
+                    challengeEndDate: challenge.endDate
+                )
+                FameFitLogger.info("✅ Grace period verification successful for link: \(link.id)", category: FameFitLogger.workout)
+            }
+        } catch {
+            FameFitLogger.error("Failed to apply grace period verification", error: error, category: FameFitLogger.workout)
+        }
+    }
+    
+    private func notifyUserAboutVerificationFailure(linkID: String) async {
+        // Send notification to user about verification failure and manual verification option
+        guard let notificationManager = notificationManager else { return }
+        
+        // Get workout type for the notification (generic for now)
+        await notificationManager.notifyChallengeVerificationFailure(
+            linkID: linkID,
+            workoutName: "workout"
+        )
+    }
+    
+    private func processWorkoutForChallenges(workout: Workout, userID: String) async {
+        do {
+            // Fetch user's active challenges
+            let activeChallenges = try await workoutChallengesService.fetchActiveChallenge(for: userID)
+            
+            guard !activeChallenges.isEmpty else {
+                FameFitLogger.debug("No active challenges for user \(userID)", category: FameFitLogger.workout)
+                return
+            }
+            
+            FameFitLogger.info("🎯 Processing workout for \(activeChallenges.count) active challenges", category: FameFitLogger.workout)
+            
+            // Get challenge IDs
+            let workoutChallengeIDs = activeChallenges.map { $0.id }
+            
+            // Process the workout for all active challenges
+            let createdLinks = try await workoutChallengeLinksService.processWorkoutForChallenges(
+                workout: workout,
+                userID: userID,
+                activeChallengeIDs: workoutChallengeIDs
+            )
+            
+            if !createdLinks.isEmpty {
+                FameFitLogger.info("✅ Created \(createdLinks.count) challenge links for workout", category: FameFitLogger.workout)
+                
+                // Start verification process with proper retry logic
+                Task {
+                    // Initial delay to ensure HealthKit data is confirmed
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                    
+                    for link in createdLinks {
+                        await verifyLinkWithRetry(link: link, workoutChallengeIDs: workoutChallengeIDs)
+                    }
+                }
+            }
+        } catch {
+            FameFitLogger.error("Failed to process workout for challenges", error: error, category: FameFitLogger.workout)
+        }
+    }
 }
 
 // MARK: - Supporting Types
@@ -404,4 +519,3 @@ enum WorkoutProcessingError: LocalizedError {
         }
     }
 }
-

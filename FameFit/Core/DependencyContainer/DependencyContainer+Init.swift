@@ -94,6 +94,10 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager
         )
         
+        let workoutChallengeLinksService = WorkoutChallengeLinksService(
+            cloudKitManager: cloudKitManager
+        )
+        
         let groupWorkoutService = factory.createGroupWorkoutService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
@@ -121,7 +125,9 @@ extension DependencyContainer {
             xpTransactionService: xpTransactionService,
             activityFeedService: activityFeedService,
             notificationManager: notificationManager,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            workoutChallengesService: workoutChallengesService,
+            workoutChallengeLinksService: workoutChallengeLinksService
         )
         
         let workoutAutoShareService = factory.createWorkoutAutoShareService(
@@ -201,6 +207,7 @@ extension DependencyContainer {
             apnsManager: apnsManager,
             groupWorkoutService: groupWorkoutService,
             workoutChallengesService: workoutChallengesService,
+            workoutChallengeLinksService: workoutChallengeLinksService,
             subscriptionManager: subscriptionManager,
             realTimeSyncCoordinator: realTimeSyncCoordinator,
             activityCommentsService: activityCommentsService,

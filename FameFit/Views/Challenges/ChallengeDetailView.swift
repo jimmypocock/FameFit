@@ -359,7 +359,7 @@ struct ChallengeDetailView: View {
         Task {
             do {
                 try await container.workoutChallengesService.updateProgress(
-                    challengeID: challenge.id,
+                    workoutChallengeID: challenge.id,
                     progress: newProgress,
                     workoutID: nil
                 )
@@ -379,7 +379,7 @@ struct ChallengeDetailView: View {
     private func cancelChallenge() {
         Task {
             do {
-                try await container.workoutChallengesService.cancelChallenge(challengeID: challenge.id)
+                try await container.workoutChallengesService.cancelChallenge(workoutChallengeID: challenge.id)
 
                 await MainActor.run {
                     dismiss()
@@ -575,7 +575,7 @@ private struct ChallengeLeaderboardRow: View {
             description: "Reach 50 km",
             startDate: Date(),
             endDate: Date().addingTimeInterval(7 * 24 * 3_600),
-            createdTimestamp: Date(),
+            creationDate: Date(),
             status: .active,
             winnerID: nil,
             xpStake: 100,

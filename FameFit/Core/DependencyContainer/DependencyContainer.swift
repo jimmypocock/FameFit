@@ -61,6 +61,7 @@ final class DependencyContainer: ObservableObject {
     // MARK: - Challenge & Group Services
     
     let workoutChallengesService: WorkoutChallengesServicing
+    let workoutChallengeLinksService: WorkoutChallengeLinksServicing
     let groupWorkoutService: GroupWorkoutServiceProtocol
     
     // MARK: - Sync & Real-time Services
@@ -108,6 +109,7 @@ final class DependencyContainer: ObservableObject {
         apnsManager: APNSManaging,
         groupWorkoutService: GroupWorkoutServiceProtocol,
         workoutChallengesService: WorkoutChallengesServicing,
+        workoutChallengeLinksService: WorkoutChallengeLinksServicing,
         subscriptionManager: CloudKitSubscriptionManaging,
         realTimeSyncCoordinator: RealTimeSyncCoordinating,
         activityCommentsService: ActivityFeedCommentsServicing,
@@ -141,6 +143,7 @@ final class DependencyContainer: ObservableObject {
         self.apnsManager = apnsManager
         self.groupWorkoutService = groupWorkoutService
         self.workoutChallengesService = workoutChallengesService
+        self.workoutChallengeLinksService = workoutChallengeLinksService
         self.subscriptionManager = subscriptionManager
         self.realTimeSyncCoordinator = realTimeSyncCoordinator
         self.activityCommentsService = activityCommentsService

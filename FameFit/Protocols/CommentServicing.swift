@@ -13,8 +13,8 @@ protocol Comment {
     var id: String { get }
     var userID: String { get }
     var content: String { get }
-    var createdTimestamp: Date { get }
-    var modifiedTimestamp: Date { get }
+    var creationDate: Date { get }
+    var modificationDate: Date { get }
     var parentCommentID: String? { get }
     var isEdited: Bool { get }
     var likeCount: Int { get }
@@ -82,8 +82,8 @@ struct AnyComment: Comment {
     let id: String
     let userID: String
     let content: String
-    let createdTimestamp: Date
-    let modifiedTimestamp: Date
+    let creationDate: Date
+    let modificationDate: Date
     let parentCommentID: String?
     let isEdited: Bool
     let likeCount: Int
@@ -92,8 +92,8 @@ struct AnyComment: Comment {
         self.id = comment.id
         self.userID = comment.userID
         self.content = comment.content
-        self.createdTimestamp = comment.createdTimestamp
-        self.modifiedTimestamp = comment.modifiedTimestamp
+        self.creationDate = comment.creationDate
+        self.modificationDate = comment.modificationDate
         self.parentCommentID = comment.parentCommentID
         self.isEdited = comment.isEdited
         self.likeCount = comment.likeCount

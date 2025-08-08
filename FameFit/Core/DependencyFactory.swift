@@ -155,10 +155,15 @@ class ProductionDependencyFactory: DependencyFactory {
         rateLimiter: RateLimitingServicing, 
         profileService: UserProfileServicing
     ) -> SocialFollowingServicing {
-        CachedSocialFollowingService(
+        let notificationStore = createNotificationStore()
+        let scheduler = createNotificationScheduler()
+        let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
+        
+        return CachedSocialFollowingService(
             cloudKitManager: cloudKitManager,
             rateLimiter: rateLimiter,
-            profileService: profileService
+            profileService: profileService,
+            notificationManager: notificationManager
         )
     }
     
@@ -180,11 +185,13 @@ class ProductionDependencyFactory: DependencyFactory {
         let scheduler = createNotificationScheduler()
         let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
         let rateLimiter = createRateLimitingService()
+        let workoutChallengeLinksService = WorkoutChallengeLinksService(cloudKitManager: cloudKitManager)
         return WorkoutChallengesService(
             cloudKitManager: cloudKitManager,
             userProfileService: userProfileService,
             notificationManager: notificationManager,
-            rateLimiter: rateLimiter
+            rateLimiter: rateLimiter,
+            workoutChallengeLinksService: workoutChallengeLinksService
         )
     }
     
