@@ -296,7 +296,7 @@ final class WorkoutProcessor {
     
     private func saveWorkoutRecord(_ workout: Workout) async throws {
         let record = CKRecord(recordType: "Workouts")
-        record["workoutID"] = workout.id.uuidString
+        record["id"] = workout.id.uuidString
         record["workoutType"] = workout.workoutType
         record["startDate"] = workout.startDate
         record["endDate"] = workout.endDate
@@ -363,6 +363,13 @@ final class WorkoutProcessor {
             currentXP: cloudKitManager.totalXP
         )
         
+        // Post notification for feed refresh
+        NotificationCenter.default.post(
+            name: Notification.Name("WorkoutCompleted"),
+            object: nil,
+            userInfo: ["workoutID": workout.id.uuidString]
+        )
+        
         // Could add more notification types here
     }
     
@@ -398,41 +405,3 @@ enum WorkoutProcessingError: LocalizedError {
     }
 }
 
-// MARK: - Workout Extension
-
-extension Workout {
-    init(
-        id: UUID,
-        workoutType: String,
-        startDate: Date,
-        endDate: Date,
-        duration: TimeInterval,
-        totalEnergyBurned: Double,
-        totalDistance: Double?,
-        averageHeartRate: Double?,
-        followersEarned: Int,
-        xpEarned: Int?,
-        source: String,
-        groupWorkoutID: String?
-    ) {
-        self.id = id
-        self.workoutType = workoutType
-        self.startDate = startDate
-        self.endDate = endDate
-        self.duration = duration
-        self.totalEnergyBurned = totalEnergyBurned
-        self.totalDistance = totalDistance
-        self.averageHeartRate = averageHeartRate
-        self.followersEarned = followersEarned
-        self.xpEarned = xpEarned
-        self.source = source
-        
-        // Store group workout ID in a property if available
-        // This might need to be added to the Workout model
-    }
-    
-    var groupWorkoutID: String? {
-        // This would need to be added to the Workout model
-        return nil
-    }
-}

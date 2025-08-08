@@ -15,12 +15,10 @@ struct WorkoutStartView: View {
     @State private var showWatchNotConnectedAlert = false
     @State private var selectedWorkoutType: HKWorkoutActivityType?
     
-    // Main workout types matching the Watch app
-    private let workoutTypes: [(type: HKWorkoutActivityType, name: String, icon: String, color: Color)] = [
-        (.running, "Run", "figure.run", .orange),
-        (.cycling, "Bike", "bicycle", .blue),
-        (.walking, "Walk", "figure.walk", .green)
-    ]
+    // Use centralized primary workout types
+    private var workoutTypes: [WorkoutTypeConfig] {
+        WorkoutTypes.primary
+    }
     
     var body: some View {
         ScrollView {
@@ -30,14 +28,14 @@ struct WorkoutStartView: View {
                 
                 // Workout type cards
                 VStack(spacing: 16) {
-                    ForEach(workoutTypes, id: \.type) { workout in
+                    ForEach(workoutTypes, id: \.id) { config in
                         WorkoutTypeCard(
-                            workoutType: workout.type,
-                            name: workout.name,
-                            icon: workout.icon,
-                            color: workout.color,
+                            workoutType: config.type,
+                            name: config.name,
+                            icon: config.icon,
+                            color: config.color,
                             onTap: {
-                                startWorkout(type: workout.type)
+                                startWorkout(type: config.type)
                             }
                         )
                     }

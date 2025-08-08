@@ -15,7 +15,7 @@ struct CreateGroupWorkoutView: View {
     @Environment(\.navigationCoordinator) private var navigationCoordinator
     
     @State private var title = ""
-    @State private var selectedWorkoutType: Int = 37 // Running
+    @State private var selectedWorkoutType: Int = Int(WorkoutTypes.defaultType.rawValue)
     @State private var scheduledDate = Date().addingTimeInterval(300) // 5 minutes from now
     @State private var location = ""
     @State private var notes = ""
@@ -39,18 +39,10 @@ struct CreateGroupWorkoutView: View {
         FameFitLogger.debug("📝 CreateGroupWorkoutView initialized", category: FameFitLogger.ui)
     }
     
-    private let workoutTypes: [(id: Int, name: String, icon: String)] = [
-        (37, "Running", "figure.run"),
-        (13, "Cycling", "bicycle"),
-        (46, "Swimming", "figure.pool.swim"),
-        (20, "Functional Training", "figure.strengthtraining.functional"),
-        (71, "Yoga", "figure.yoga"),
-        (16, "Dance", "figure.dance"),
-        (35, "Racquetball", "figure.racquetball"),
-        (52, "Tennis", "figure.tennis"),
-        (24, "Hiking", "figure.hiking"),
-        (15, "Crossfit", "figure.cross.training")
-    ]
+    // Use centralized workout types
+    private var workoutTypes: [WorkoutTypeConfig] {
+        WorkoutTypes.all
+    }
     
     var body: some View {
         NavigationView {
@@ -60,9 +52,9 @@ struct CreateGroupWorkoutView: View {
                     TextField("Workout Title", text: $title)
                     
                     Picker("Workout Type", selection: $selectedWorkoutType) {
-                        ForEach(workoutTypes, id: \.id) { type in
-                            Label(type.name, systemImage: type.icon)
-                                .tag(type.id)
+                        ForEach(workoutTypes, id: \.id) { config in
+                            Label(config.name, systemImage: config.icon)
+                                .tag(config.id)
                         }
                     }
                 }

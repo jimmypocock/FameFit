@@ -14,6 +14,7 @@ import SwiftUI
 
 struct ActivityFeedView: View {
     @Environment(\.dependencyContainer) var container
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = ActivityFeedViewModel()
     @Binding var showingFilters: Bool
     var onDiscoverTap: (() -> Void)?
@@ -22,6 +23,8 @@ struct ActivityFeedView: View {
     @State private var showingProfile = false
     @State private var selectedWorkoutForComments: ActivityFeedItem?
     @State private var showingComments = false
+    @State private var lastRefreshTime = Date()
+    @State private var hasAppeared = false
 
     private var currentUserID: String? {
         container.cloudKitManager.currentUserID
@@ -74,15 +77,98 @@ struct ActivityFeedView: View {
             }
         }
         .task {
-            viewModel.configure(
-                socialService: container.socialFollowingService,
-                profileService: container.userProfileService,
-                activityFeedService: container.activityFeedService,
-                kudosService: container.workoutKudosService,
-                commentsService: container.activityCommentsService,
-                currentUserID: currentUserID ?? ""
-            )
-            await viewModel.loadInitialFeed()
+            // Only configure on first appearance
+            if !hasAppeared {
+                // Wait for CloudKit to be ready and user ID to be available
+                await waitForCloudKitReady()
+                
+                // Only proceed if we have a valid user ID
+                guard let userID = currentUserID, !userID.isEmpty else {
+                    FameFitLogger.warning("⚠️ No user ID available for feed", category: FameFitLogger.social)
+                    return
+                }
+                
+                viewModel.configure(
+                    socialService: container.socialFollowingService,
+                    profileService: container.userProfileService,
+                    activityFeedService: container.activityFeedService,
+                    kudosService: container.workoutKudosService,
+                    commentsService: container.activityCommentsService,
+                    currentUserID: userID
+                )
+                await viewModel.loadInitialFeed()
+                hasAppeared = true
+                lastRefreshTime = Date()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Refresh when app becomes active after being in background
+            if newPhase == .active {
+                let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshTime)
+                // Refresh if it's been more than 30 seconds since last refresh
+                if timeSinceLastRefresh > 30 {
+                    Task {
+                        await viewModel.checkForNewItems()
+                        lastRefreshTime = Date()
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("WorkoutCompleted"))) { _ in
+            // Refresh feed when a new workout is completed
+            Task {
+                await viewModel.checkForNewItems()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("RefreshActivityFeed"))) { _ in
+            // Allow other parts of the app to trigger feed refresh
+            Task {
+                await viewModel.refreshFeed()
+                lastRefreshTime = Date()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloudKitUserIDAvailable"))) { _ in
+            // Try to load feed when user ID becomes available
+            if !hasAppeared, let userID = currentUserID, !userID.isEmpty {
+                Task {
+                    viewModel.configure(
+                        socialService: container.socialFollowingService,
+                        profileService: container.userProfileService,
+                        activityFeedService: container.activityFeedService,
+                        kudosService: container.workoutKudosService,
+                        commentsService: container.activityCommentsService,
+                        currentUserID: userID
+                    )
+                    await viewModel.loadInitialFeed()
+                    hasAppeared = true
+                    lastRefreshTime = Date()
+                }
+            }
+        }
+    }
+
+    // MARK: - Helper Methods
+    
+    private func waitForCloudKitReady() async {
+        // Wait for CloudKit to initialize (max 3 seconds)
+        let maxWaitTime: TimeInterval = 3.0
+        let startTime = Date()
+        
+        while container.cloudKitManager.currentUserID == nil || 
+              container.cloudKitManager.currentUserID?.isEmpty == true {
+            // Check if we've exceeded max wait time
+            if Date().timeIntervalSince(startTime) > maxWaitTime {
+                FameFitLogger.warning("⏱️ CloudKit initialization timeout", category: FameFitLogger.social)
+                break
+            }
+            
+            // Wait a bit before checking again
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        }
+        
+        // Give CloudKit a moment to fully initialize after user ID is available
+        if container.cloudKitManager.currentUserID != nil {
+            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         }
     }
 

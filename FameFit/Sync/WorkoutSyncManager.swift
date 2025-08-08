@@ -319,7 +319,7 @@ class WorkoutSyncManager: ObservableObject {
         do {
             // Create workout record
             let record = CKRecord(recordType: "Workouts")
-            record["workoutID"] = workout.uuid.uuidString
+            record["id"] = workout.uuid.uuidString
             record["workoutType"] = workout.workoutActivityType.storageKey
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
