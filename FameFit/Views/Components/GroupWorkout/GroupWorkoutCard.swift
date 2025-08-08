@@ -58,17 +58,17 @@ struct GroupWorkoutCard: View {
     private func loadHostUsername() {
         Task {
             do {
-                print("Loading host username for hostId: \(groupWorkout.hostId)")
+                print("Loading host username for hostID: \(groupWorkout.hostID)")
                 // Use fetchProfileByUserID for CloudKit user IDs (starting with underscore)
-                let profile = try await container.userProfileService.fetchProfileByUserID(groupWorkout.hostId)
+                let profile = try await container.userProfileService.fetchProfileByUserID(groupWorkout.hostID)
                 await MainActor.run {
                     hostUsername = profile.username
                     print("Successfully loaded host username: \(profile.username)")
                 }
             } catch {
-                print("Failed to load host username for \(groupWorkout.hostId): \(error)")
+                print("Failed to load host username for \(groupWorkout.hostID): \(error)")
                 await MainActor.run {
-                    // Show hostId as fallback
+                    // Show hostID as fallback
                     hostUsername = "Unknown"
                 }
             }
@@ -88,20 +88,20 @@ struct GroupWorkoutCard: View {
                     name: "Morning Run Club",
                     description: "Join us for an energizing morning run through the park. All fitness levels welcome!",
                     workoutType: .running,
-                    hostId: "host1",
+                    hostID: "host1",
                     participants: [
                         GroupWorkoutParticipant(
-                            userId: "host1",
+                            userID: "host1",
                             username: "SarahWilson",
                             profileImageURL: nil
                         ),
                         GroupWorkoutParticipant(
-                            userId: "user2",
+                            userID: "user2",
                             username: "MikeJohnson",
                             profileImageURL: nil
                         ),
                         GroupWorkoutParticipant(
-                            userId: "user3",
+                            userID: "user3",
                             username: "EmmaChen",
                             profileImageURL: nil
                         )
@@ -112,7 +112,7 @@ struct GroupWorkoutCard: View {
                     isPublic: true,
                     tags: ["Beginner", "Outdoor"]
                 ),
-                currentUserId: "currentUser",
+                currentUserID: "currentUser",
                 onJoin: {},
                 onLeave: {},
                 onStart: {},
@@ -125,16 +125,16 @@ struct GroupWorkoutCard: View {
                     name: "HIIT Challenge",
                     description: "High-intensity interval training session",
                     workoutType: .functionalStrengthTraining,
-                    hostId: "host2",
+                    hostID: "host2",
                     participants: [
                         GroupWorkoutParticipant(
-                            userId: "host2",
+                            userID: "host2",
                             username: "CoachAlex",
                             profileImageURL: nil,
                             status: .active
                         ),
                         GroupWorkoutParticipant(
-                            userId: "currentUser",
+                            userID: "currentUser",
                             username: "CurrentUser",
                             profileImageURL: nil,
                             status: .active
@@ -147,7 +147,7 @@ struct GroupWorkoutCard: View {
                     isPublic: false,
                     tags: ["Advanced", "Indoor"]
                 ),
-                currentUserId: "currentUser",
+                currentUserID: "currentUser",
                 onJoin: {},
                 onLeave: {},
                 onStart: {},

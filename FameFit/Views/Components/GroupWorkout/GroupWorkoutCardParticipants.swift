@@ -47,7 +47,7 @@ struct GroupWorkoutCardParticipants: View {
                 Spacer()
 
                 // Host indicator
-                if let host = participants.first(where: { $0.userId == groupWorkout.hostId }) {
+                if let host = participants.first(where: { $0.userID == groupWorkout.hostID }) {
                     HStack(spacing: 4) {
                         Image(systemName: "crown.fill")
                             .font(.system(size: 12))

@@ -14,19 +14,19 @@ import UIKit
 
 protocol SocialMediaCacheCoordinating {
     // Feed management
-    func refreshFeed(userId: String, userInitiated: Bool) async
-    func loadFeedPage(userId: String, page: Int, userInitiated: Bool) async -> [ActivityFeedItem]?
-    func preloadNextFeedPage(userId: String, currentPage: Int)
+    func refreshFeed(userID: String, userInitiated: Bool) async
+    func loadFeedPage(userID: String, page: Int, userInitiated: Bool) async -> [ActivityFeedItem]?
+    func preloadNextFeedPage(userID: String, currentPage: Int)
     
     // Social data management  
-    func refreshUserProfile(userId: String, force: Bool) async -> UserProfile?
-    func refreshSocialCounts(userId: String) async
-    func handleSocialInteraction(type: SocialInteractionType, userId: String, targetId: String)
+    func refreshUserProfile(userID: String, force: Bool) async -> UserProfile?
+    func refreshSocialCounts(userID: String) async
+    func handleSocialInteraction(type: SocialInteractionType, userID: String, targetID: String)
     
     // Lifecycle management
     func handleAppLaunch()
     func handleAppBecomeActive()
-    func handleUserLogin(userId: String)
+    func handleUserLogin(userID: String)
     func handleUserLogout()
     
     // Cache health
@@ -83,7 +83,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
     @Published private(set) var isOptimizing = false
     
     private var cancellables = Set<AnyCancellable>()
-    private var currentUserId: String?
+    private var currentUserID: String?
     
     // MARK: - Configuration
     
@@ -118,22 +118,22 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
     
     // MARK: - Feed Management
     
-    func refreshFeed(userId: String, userInitiated: Bool = false) async {
-        print("🔄 Refreshing feed for user: \(userId), userInitiated: \(userInitiated)")
+    func refreshFeed(userID: String, userInitiated: Bool = false) async {
+        print("🔄 Refreshing feed for user: \(userID), userInitiated: \(userInitiated)")
         
         smartRefreshManager.requestFeedRefresh(
             feedType: "activity",
-            userId: userId,
+            userID: userID,
             page: 0,
             type: [ActivityFeedItem].self,
             userInitiated: userInitiated
         ) {
             // Fetch fresh feed data
-            let feedItems = try await self.fetchFeedItems(userId: userId, page: 0)
+            let feedItems = try await self.fetchFeedItems(userID: userID, page: 0)
             
             // Update cache with real-time invalidation
             await self.updateFeedCacheWithInvalidation(
-                userId: userId,
+                userID: userID,
                 page: 0,
                 items: feedItems
             )
@@ -144,19 +144,19 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         // If user-initiated, also refresh profile and social counts
         if userInitiated {
             Task {
-                _ = await refreshUserProfile(userId: userId, force: true)
-                await refreshSocialCounts(userId: userId)
+                _ = await refreshUserProfile(userID: userID, force: true)
+                await refreshSocialCounts(userID: userID)
             }
         }
     }
     
-    func loadFeedPage(userId: String, page: Int, userInitiated: Bool = false) async -> [ActivityFeedItem]? {
-        print("📄 Loading feed page \(page) for user: \(userId)")
+    func loadFeedPage(userID: String, page: Int, userInitiated: Bool = false) async -> [ActivityFeedItem]? {
+        print("📄 Loading feed page \(page) for user: \(userID)")
         
         // Try cache first
         let (cachedData, shouldRefresh, cacheStatus) = socialFeedCache.getFeedData(
             feedType: "activity",
-            userId: userId,
+            userID: userID,
             page: page,
             type: [ActivityFeedItem].self,
             strategy: userInitiated ? .immediate : .staleWhileRevalidate
@@ -169,7 +169,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             // Trigger background refresh if stale
             if shouldRefresh && networkMonitor.isConnected {
                 Task {
-                    await refreshFeedPage(userId: userId, page: page)
+                    await refreshFeedPage(userID: userID, page: page)
                 }
             }
             
@@ -178,12 +178,12 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         
         // Fetch fresh data
         do {
-            let feedItems = try await fetchFeedItems(userId: userId, page: page)
+            let feedItems = try await fetchFeedItems(userID: userID, page: page)
             
             // Update cache
             socialFeedCache.setFeedPage(
                 feedType: "activity",
-                userId: userId,
+                userID: userID,
                 page: page,
                 data: feedItems
             )
@@ -199,7 +199,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         }
     }
     
-    nonisolated func preloadNextFeedPage(userId: String, currentPage: Int) {
+    nonisolated func preloadNextFeedPage(userID: String, currentPage: Int) {
         Task { @MainActor in
             guard networkMonitor.shouldPrefetch else { return }
         
@@ -208,7 +208,7 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         // Check if prefetch is needed
         if socialFeedCache.shouldPrefetchNextPage(
             feedType: "activity",
-            userId: userId,
+            userID: userID,
             currentPage: currentPage,
             itemsFromBottom: 3 // Trigger when 3 items from bottom
         ) {
@@ -216,10 +216,10 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             
             socialFeedCache.prefetchNextPage(
                 feedType: "activity",
-                userId: userId,
+                userID: userID,
                 currentPage: currentPage
             ) { page in
-                return try await self.fetchFeedItems(userId: userId, page: page)
+                return try await self.fetchFeedItems(userID: userID, page: page)
             }
         }
         }
@@ -227,68 +227,68 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
     
     // MARK: - Social Data Management
     
-    func refreshUserProfile(userId: String, force: Bool = false) async -> UserProfile? {
+    func refreshUserProfile(userID: String, force: Bool = false) async -> UserProfile? {
         // Check cache first if not forcing
-        if !force, let cachedProfile = socialDataCache.getProfile(userId: userId) {
+        if !force, let cachedProfile = socialDataCache.getProfile(userID: userID) {
             return cachedProfile
         }
         
         return await smartRefreshManager.requestRefresh(
-            id: "profile:\(userId)",
+            id: "profile:\(userID)",
             priority: .high,
             userInitiated: force
         ) {
-            let profile = try await self.userProfileService.fetchProfile(userId: userId)
+            let profile = try await self.userProfileService.fetchProfile(userID: userID)
             self.socialDataCache.setProfile(profile)
             return profile
         }
     }
     
-    func refreshSocialCounts(userId: String) async {
+    func refreshSocialCounts(userID: String) async {
         await withTaskGroup(of: Void.self) { group in
             // Refresh follower count
             group.addTask {
                 await self.smartRefreshManager.requestRefresh(
-                    id: "followerCount:\(userId)",
+                    id: "followerCount:\(userID)",
                     priority: .medium
                 ) {
-                    let count = try await self.socialFollowingService.getFollowerCount(for: userId)
-                    self.socialDataCache.setFollowerCount(userId: userId, count: count)
+                    let count = try await self.socialFollowingService.getFollowerCount(for: userID)
+                    self.socialDataCache.setFollowerCount(userID: userID, count: count)
                 }
             }
             
             // Refresh following count
             group.addTask {
                 await self.smartRefreshManager.requestRefresh(
-                    id: "followingCount:\(userId)",
+                    id: "followingCount:\(userID)",
                     priority: .medium
                 ) {
-                    let count = try await self.socialFollowingService.getFollowingCount(for: userId)
-                    self.socialDataCache.setFollowingCount(userId: userId, count: count)
+                    let count = try await self.socialFollowingService.getFollowingCount(for: userID)
+                    self.socialDataCache.setFollowingCount(userID: userID, count: count)
                 }
             }
         }
     }
     
-    nonisolated func handleSocialInteraction(type: SocialInteractionType, userId: String, targetId: String) {
-        print("💬 Handling social interaction: \(type) from \(userId) to \(targetId)")
+    nonisolated func handleSocialInteraction(type: SocialInteractionType, userID: String, targetID: String) {
+        print("💬 Handling social interaction: \(type) from \(userID) to \(targetID)")
         
         Task { @MainActor in
             switch type {
             case .follow, .unfollow:
-                handleFollowInteraction(type: type, followerId: userId, followingId: targetId)
+                handleFollowInteraction(type: type, followerID: userID, followingID: targetID)
                 
             case .like, .unlike:
-                handleLikeInteraction(type: type, userId: userId, postId: targetId)
+                handleLikeInteraction(type: type, userID: userID, postID: targetID)
                 
             case .comment, .deleteComment:
-                handleCommentInteraction(type: type, userId: userId, postId: targetId)
+                handleCommentInteraction(type: type, userID: userID, postID: targetID)
                 
             case .share:
-                handleShareInteraction(userId: userId, postId: targetId)
+                handleShareInteraction(userID: userID, postID: targetID)
                 
             case .block, .unblock:
-                handleBlockInteraction(type: type, userId: userId, blockedId: targetId)
+                handleBlockInteraction(type: type, userID: userID, blockedID: targetID)
             }
         }
     }
@@ -308,22 +308,22 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         print("📱 App became active - refreshing critical data")
         
         Task { @MainActor in
-            guard let userId = currentUserId else { return }
+            guard let userID = currentUserID else { return }
             
             // Refresh most important data
-            await refreshFeed(userId: userId, userInitiated: false)
-            _ = await refreshUserProfile(userId: userId, force: false)
+            await refreshFeed(userID: userID, userInitiated: false)
+            _ = await refreshUserProfile(userID: userID, force: false)
         }
     }
     
-    nonisolated func handleUserLogin(userId: String) {
-        print("👤 User logged in: \(userId)")
+    nonisolated func handleUserLogin(userID: String) {
+        print("👤 User logged in: \(userID)")
         
         Task { @MainActor in
-            currentUserId = userId
+            currentUserID = userID
             
             // Pre-warm cache with user's data
-            await prewarmUserCache(userId: userId)
+            await prewarmUserCache(userID: userID)
         }
     }
     
@@ -331,12 +331,12 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
         print("👋 User logged out - clearing user-specific caches")
         
         Task { @MainActor in
-            if let userId = currentUserId {
-                socialDataCache.invalidateUser(userId)
-                socialFeedCache.invalidateOnNewPost(userId: userId)
+            if let userID = currentUserID{
+                socialDataCache.invalidateUser(userID)
+                socialFeedCache.invalidateOnNewPost(userID: userID)
             }
             
-            currentUserId = nil
+            currentUserID = nil
         }
     }
     
@@ -407,84 +407,84 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
             .store(in: &cancellables)
     }
     
-    private func fetchFeedItems(userId: String, page: Int) async throws -> [ActivityFeedItem] {
+    private func fetchFeedItems(userID: String, page: Int) async throws -> [ActivityFeedItem] {
         // This would call the actual feed service
         // For now, return empty array - would be implemented with real service calls
         return []
     }
     
-    private func updateFeedCacheWithInvalidation(userId: String, page: Int, items: [ActivityFeedItem]) async {
+    private func updateFeedCacheWithInvalidation(userID: String, page: Int, items: [ActivityFeedItem]) async {
         // Update the cache
         socialFeedCache.setFeedPage(
             feedType: "activity",
-            userId: userId,
+            userID: userID,
             page: page,
             data: items
         )
         
         // If this is page 0 (first page), it might affect other users' feeds
         if page == 0 {
-            socialFeedCache.invalidateOnNewPost(userId: userId)
+            socialFeedCache.invalidateOnNewPost(userID: userID)
         }
     }
     
-    private func refreshFeedPage(userId: String, page: Int) async {
+    private func refreshFeedPage(userID: String, page: Int) async {
         smartRefreshManager.requestFeedRefresh(
             feedType: "activity",
-            userId: userId,
+            userID: userID,
             page: page,
             type: [ActivityFeedItem].self,
             userInitiated: false
         ) {
-            return try await self.fetchFeedItems(userId: userId, page: page)
+            return try await self.fetchFeedItems(userID: userID, page: page)
         }
     }
     
-    private func handleFollowInteraction(type: SocialInteractionType, followerId: String, followingId: String) {
+    private func handleFollowInteraction(type: SocialInteractionType, followerID: String, followingID: String) {
         // Invalidate relevant caches
-        socialFeedCache.invalidateOnFollow(followerId: followerId, followingId: followingId)
-        socialDataCache.invalidateFollowAction(follower: followerId, following: followingId)
+        socialFeedCache.invalidateOnFollow(followerID: followerID, followingID: followingID)
+        socialDataCache.invalidateFollowAction(follower: followerID, following: followingID)
         
         // Refresh affected data in background
         Task {
-            await refreshSocialCounts(userId: followerId)
-            await refreshSocialCounts(userId: followingId)
+            await refreshSocialCounts(userID: followerID)
+            await refreshSocialCounts(userID: followingID)
         }
     }
     
-    private func handleLikeInteraction(type: SocialInteractionType, userId: String, postId: String) {
-        socialFeedCache.invalidateOnInteraction(postId: postId, interactionType: "like")
+    private func handleLikeInteraction(type: SocialInteractionType, userID: String, postID: String) {
+        socialFeedCache.invalidateOnInteraction(postID: postID, interactionType: "like")
     }
     
-    private func handleCommentInteraction(type: SocialInteractionType, userId: String, postId: String) {
-        socialFeedCache.invalidateOnInteraction(postId: postId, interactionType: "comment")
+    private func handleCommentInteraction(type: SocialInteractionType, userID: String, postID: String) {
+        socialFeedCache.invalidateOnInteraction(postID: postID, interactionType: "comment")
     }
     
-    private func handleShareInteraction(userId: String, postId: String) {
-        socialFeedCache.invalidateOnInteraction(postId: postId, interactionType: "share")
+    private func handleShareInteraction(userID: String, postID: String) {
+        socialFeedCache.invalidateOnInteraction(postID: postID, interactionType: "share")
     }
     
-    private func handleBlockInteraction(type: SocialInteractionType, userId: String, blockedId: String) {
+    private func handleBlockInteraction(type: SocialInteractionType, userID: String, blockedID: String) {
         // Block interactions require more aggressive cache invalidation
-        socialDataCache.invalidateUser(userId)
-        socialDataCache.invalidateUser(blockedId)
+        socialDataCache.invalidateUser(userID)
+        socialDataCache.invalidateUser(blockedID)
     }
     
-    private func prewarmUserCache(userId: String) async {
-        print("🔥 Pre-warming cache for user: \(userId)")
+    private func prewarmUserCache(userID: String) async {
+        print("🔥 Pre-warming cache for user: \(userID)")
         
         // Load critical user data
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                _ = await self.refreshUserProfile(userId: userId, force: false)
+                _ = await self.refreshUserProfile(userID: userID, force: false)
             }
             
             group.addTask {
-                await self.refreshFeed(userId: userId, userInitiated: false)
+                await self.refreshFeed(userID: userID, userInitiated: false)
             }
             
             group.addTask {
-                await self.refreshSocialCounts(userId: userId)
+                await self.refreshSocialCounts(userID: userID)
             }
         }
     }
@@ -528,10 +528,10 @@ final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoord
     private func handleBackgroundRefreshFameFitNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let _ = userInfo["feedType"] as? String,
-              let userId = userInfo["userId"] as? String else { return }
+              let userID = userInfo["userID"] as? String else { return }
         
         Task {
-            await refreshFeedPage(userId: userId, page: 0)
+            await refreshFeedPage(userID: userID, page: 0)
         }
     }
 }

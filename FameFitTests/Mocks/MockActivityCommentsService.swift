@@ -79,7 +79,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
             userId: "test-user",
             activityOwnerId: "test-owner",
             content: newContent,
-            createdTimestamp: Date().addingTimeInterval(-3600),
+            createdTimestamp: Date().addingTimeInterval(-3_600),
             modifiedTimestamp: Date(),
             parentCommentId: nil,
             isEdited: true,

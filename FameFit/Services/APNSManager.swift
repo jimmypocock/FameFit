@@ -46,7 +46,7 @@ struct PushNotificationPayload: Codable {
         let alert: Alert
         let badge: Int?
         let sound: String?
-        let threadId: String?
+        let threadID: String?
         let category: String?
 
         struct Alert: Codable {
@@ -59,7 +59,7 @@ struct PushNotificationPayload: Codable {
             case alert
             case badge
             case sound
-            case threadId = "thread-id"
+            case threadID = "thread-id"
             case category
         }
     }

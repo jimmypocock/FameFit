@@ -33,8 +33,8 @@ struct WorkoutCommentsView: View {
 
                 // Comments list
                 CommentsListView(
-                    workoutId: workout.id.uuidString,
-                    workoutOwnerId: workoutOwner?.id ?? "",
+                    workoutID: workout.id.uuidString,
+                    workoutOwnerID: workoutOwner?.id ?? "",
                     currentUser: currentUser,
                     commentsService: container.activityCommentsService
                 )
@@ -226,8 +226,8 @@ struct WorkoutCommentsView: View {
     private func loadCurrentUser() {
         Task {
             do {
-                if let userId = container.cloudKitManager.currentUserID {
-                    currentUser = try await container.userProfileService.fetchProfile(userId: userId)
+                if let userID = container.cloudKitManager.currentUserID {
+                    currentUser = try await container.userProfileService.fetchProfile(userID: userID)
                 }
             } catch {
                 print("Failed to load current user: \(error)")

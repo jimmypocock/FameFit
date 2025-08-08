@@ -14,7 +14,7 @@ import UIKit
 
 struct FeedCacheConfig {
     static let feedTTL: TimeInterval = 300 // 5 minutes - fresh content
-    static let feedStaleTTL: TimeInterval = 1800 // 30 minutes - stale but usable
+    static let feedStaleTTL: TimeInterval = 1_800 // 30 minutes - stale but usable
     static let maxPagesInMemory = 3
     static let prefetchTriggerOffset = 5 // Prefetch when 5 items from bottom
     static let backgroundRefreshInterval: TimeInterval = 180 // 3 minutes
@@ -115,40 +115,39 @@ final class SocialFeedCache: @unchecked Sendable {
     
     func getFeedPage<T: Codable>(
         feedType: String,
-        userId: String,
+        userID: String,
         page: Int,
         type: T.Type
     ) -> FeedCacheEntry<T>? {
-        let key = feedCacheKey(feedType: feedType, userId: userId, page: page)
+        let key = feedCacheKey(feedType: feedType, userID: userID, page: page)
         return cacheManager.get(key, type: FeedCacheEntry<T>.self)
     }
     
     func setFeedPage<T: Codable>(
         feedType: String,
-        userId: String,
+        userID: String,
         page: Int,
         data: T,
         pageInfo: PaginationInfo? = nil
     ) {
-        let key = feedCacheKey(feedType: feedType, userId: userId, page: page)
+        let key = feedCacheKey(feedType: feedType, userID: userID, page: page)
         let entry = FeedCacheEntry(data: data, timestamp: Date(), pageInfo: pageInfo)
         cacheManager.set(key, value: entry, ttl: FeedCacheConfig.feedTTL)
         
         // Schedule background refresh for this feed
-        scheduleBackgroundRefresh(feedType: feedType, userId: userId)
+        scheduleBackgroundRefresh(feedType: feedType, userID: userID)
     }
     
     // MARK: - Intelligent Data Serving
     
     func getFeedData<T: Codable>(
         feedType: String,
-        userId: String,
+        userID: String,
         page: Int,
         type: T.Type,
         strategy: CacheRefreshStrategy = .staleWhileRevalidate
     ) -> (data: T?, shouldRefresh: Bool, cacheStatus: CacheStatus) {
-        
-        guard let entry = getFeedPage(feedType: feedType, userId: userId, page: page, type: type) else {
+        guard let entry = getFeedPage(feedType: feedType, userID: userID, page: page, type: type) else {
             return (nil, true, .miss)
         }
         
@@ -180,7 +179,7 @@ final class SocialFeedCache: @unchecked Sendable {
     
     func shouldPrefetchNextPage(
         feedType: String,
-        userId: String,
+        userID: String,
         currentPage: Int,
         itemsFromBottom: Int
     ) -> Bool {
@@ -188,7 +187,7 @@ final class SocialFeedCache: @unchecked Sendable {
         guard itemsFromBottom <= FeedCacheConfig.prefetchTriggerOffset else { return false }
         
         let nextPage = currentPage + 1
-        let nextPageKey = feedCacheKey(feedType: feedType, userId: userId, page: nextPage)
+        let nextPageKey = feedCacheKey(feedType: feedType, userID: userID, page: nextPage)
         
         // Don't prefetch if already cached and fresh
         if cacheManager.get(nextPageKey, type: FeedCacheEntry<[ActivityFeedItem]>.self) != nil {
@@ -200,7 +199,7 @@ final class SocialFeedCache: @unchecked Sendable {
     
     func prefetchNextPage(
         feedType: String,
-        userId: String,
+        userID: String,
         currentPage: Int,
         fetchFunction: @escaping (Int) async throws -> [ActivityFeedItem]
     ) {
@@ -209,8 +208,8 @@ final class SocialFeedCache: @unchecked Sendable {
         Task {
             do {
                 let data = try await fetchFunction(nextPage)
-                setFeedPage(feedType: feedType, userId: userId, page: nextPage, data: data)
-                print("📥 Prefetched \(feedType) page \(nextPage) for user \(userId)")
+                setFeedPage(feedType: feedType, userID: userID, page: nextPage, data: data)
+                print("📥 Prefetched \(feedType) page \(nextPage) for user \(userID)")
             } catch {
                 print("❌ Prefetch failed for \(feedType) page \(nextPage): \(error)")
             }
@@ -236,8 +235,8 @@ final class SocialFeedCache: @unchecked Sendable {
             .store(in: &cancellables)
     }
     
-    private func scheduleBackgroundRefresh(feedType: String, userId: String) {
-        let key = "\(feedType):\(userId)"
+    private func scheduleBackgroundRefresh(feedType: String, userID: String) {
+        let key = "\(feedType):\(userID)"
         
         // Cancel existing task
         backgroundRefreshTasks[key]?.cancel()
@@ -249,7 +248,7 @@ final class SocialFeedCache: @unchecked Sendable {
                 guard !Task.isCancelled else { return }
                 guard networkMonitor.shouldBackgroundRefresh else { return }
                 
-                await performBackgroundRefresh(feedType: feedType, userId: userId)
+                await performBackgroundRefresh(feedType: feedType, userID: userID)
             } catch {
                 // Task was cancelled or sleep failed - this is normal
                 return
@@ -257,8 +256,8 @@ final class SocialFeedCache: @unchecked Sendable {
         }
     }
     
-    private func performBackgroundRefresh(feedType: String, userId: String) async {
-        let key = "\(feedType):\(userId)"
+    private func performBackgroundRefresh(feedType: String, userID: String) async {
+        let key = "\(feedType):\(userID)"
         
         // Check if we recently refreshed
         if let lastRefresh = lastBackgroundRefresh[key],
@@ -270,48 +269,48 @@ final class SocialFeedCache: @unchecked Sendable {
         lastBackgroundRefresh[key] = Date()
         
         // This would be called by the appropriate service
-        print("🔄 Background refresh triggered for \(feedType) - user \(userId)")
+        print("🔄 Background refresh triggered for \(feedType) - user \(userID)")
         
         // Notify that background refresh is available
         NotificationCenter.default.post(
             name: .backgroundRefreshAvailable,
             object: nil,
-            userInfo: ["feedType": feedType, "userId": userId]
+            userInfo: ["feedType": feedType, "userID": userID]
         )
     }
     
     // MARK: - Cache Invalidation for Social Interactions
     
-    func invalidateOnNewPost(userId: String) {
+    func invalidateOnNewPost(userID: String) {
         // Invalidate user's own feed
-        invalidateFeed(feedType: "activity", userId: userId)
+        invalidateFeed(feedType: "activity", userID: userID)
         
         // TODO: In a real app, we'd also invalidate feeds of followers
         // This would require a follower list or push notification system
-        print("🗑️ Invalidated feeds due to new post from \(userId)")
+        print("🗑️ Invalidated feeds due to new post from \(userID)")
     }
     
-    func invalidateOnFollow(followerId: String, followingId: String) {
-        // Invalidate follower's feed (will now include posts from followingId)
-        invalidateFeed(feedType: "activity", userId: followerId)
-        invalidateFeed(feedType: "social", userId: followerId)
+    func invalidateOnFollow(followerID: String, followingID: String) {
+        // Invalidate follower's feed (will now include posts from followingID)
+        invalidateFeed(feedType: "activity", userID: followerID)
+        invalidateFeed(feedType: "social", userID: followerID)
         
         // Invalidate following lists
-        cacheManager.invalidate(matching: "following:\(followerId)")
-        cacheManager.invalidate(matching: "followers:\(followingId)")
+        cacheManager.invalidate(matching: "following:\(followerID)")
+        cacheManager.invalidate(matching: "followers:\(followingID)")
         
-        print("🗑️ Invalidated feeds due to follow: \(followerId) -> \(followingId)")
+        print("🗑️ Invalidated feeds due to follow: \(followerID) -> \(followingID)")
     }
     
-    func invalidateOnInteraction(postId: String, interactionType: String) {
+    func invalidateOnInteraction(postID: String, interactionType: String) {
         // For likes, comments, etc. - invalidate the specific post
-        cacheManager.invalidate(matching: "post:\(postId)")
+        cacheManager.invalidate(matching: "post:\(postID)")
         
         // Invalidate feeds that might contain this post
         // In practice, this would be more targeted
         cacheManager.invalidate(matching: "activity:")
         
-        print("🗑️ Invalidated data due to \(interactionType) on post \(postId)")
+        print("🗑️ Invalidated data due to \(interactionType) on post \(postID)")
     }
     
     // MARK: - App Lifecycle Handling
@@ -342,12 +341,12 @@ final class SocialFeedCache: @unchecked Sendable {
         print("🔄 Refreshing stale feeds after app activation")
     }
     
-    private func invalidateFeed(feedType: String, userId: String) {
-        cacheManager.invalidate(matching: "\(feedType):\(userId):")
+    private func invalidateFeed(feedType: String, userID: String) {
+        cacheManager.invalidate(matching: "\(feedType):\(userID):")
     }
     
-    private func feedCacheKey(feedType: String, userId: String, page: Int) -> String {
-        "\(feedType):\(userId):page:\(page)"
+    private func feedCacheKey(feedType: String, userID: String, page: Int) -> String {
+        "\(feedType):\(userID):page:\(page)"
     }
 }
 

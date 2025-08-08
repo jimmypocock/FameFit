@@ -65,7 +65,7 @@ struct ChallengesView: View {
             viewModel.configure(
                 challengesService: container.workoutChallengesService,
                 userProfileService: container.userProfileService,
-                currentUserId: container.cloudKitManager.currentUserID ?? ""
+                currentUserID: container.cloudKitManager.currentUserID ?? ""
             )
             await viewModel.loadChallenges()
         }
@@ -90,7 +90,7 @@ struct ChallengesView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.activeChallenges) { challenge in
-                            ChallengeCard(challenge: challenge, currentUserId: viewModel.currentUserId) {
+                            ChallengeCard(challenge: challenge, currentUserID: viewModel.currentUserID) {
                                 selectedChallenge = challenge
                                 showingChallengeDetails = true
                             }
@@ -161,7 +161,7 @@ struct ChallengesView: View {
                         ForEach(viewModel.completedChallenges) { challenge in
                             CompletedChallengeCard(
                                 challenge: challenge,
-                                currentUserId: viewModel.currentUserId
+                                currentUserID: viewModel.currentUserID
                             ) {
                                 selectedChallenge = challenge
                                 showingChallengeDetails = true
@@ -205,11 +205,11 @@ struct ChallengesView: View {
 
 struct ChallengeCard: View {
     let challenge: WorkoutChallenge
-    let currentUserId: String
+    let currentUserID: String
     let onTap: () -> Void
 
     private var myProgress: ChallengeParticipant? {
-        challenge.participants.first { $0.id == currentUserId }
+        challenge.participants.first { $0.id == currentUserID}
     }
 
     private var progressColor: Color {
@@ -250,7 +250,7 @@ struct ChallengeCard: View {
                             Text(leader.username)
                                 .font(.caption)
                                 .fontWeight(.medium)
-                                .foregroundColor(leader.id == currentUserId ? .green : .primary)
+                                .foregroundColor(leader.id == currentUserID ? .green : .primary)
                         }
                     }
                 }
@@ -415,11 +415,11 @@ struct PendingChallengeCard: View {
 
 struct CompletedChallengeCard: View {
     let challenge: WorkoutChallenge
-    let currentUserId: String
+    let currentUserID: String
     let onTap: () -> Void
 
     private var didWin: Bool {
-        challenge.winnerId == currentUserId
+        challenge.winnerID == currentUserID
     }
 
     var body: some View {
@@ -454,7 +454,7 @@ struct CompletedChallengeCard: View {
                     }
                 }
 
-                if let winner = challenge.participants.first(where: { $0.id == challenge.winnerId }) {
+                if let winner = challenge.participants.first(where: { $0.id == challenge.winnerID}) {
                     HStack {
                         Text("Winner: \(winner.username)")
                             .font(.caption)

@@ -16,7 +16,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
     let name: String
     let description: String
     let workoutType: HKWorkoutActivityType
-    let hostId: String
+    let hostID: String
     let maxParticipants: Int
     var participantCount: Int = 0  // Cached count for performance
     let scheduledStart: Date
@@ -83,7 +83,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         name: String,
         description: String,
         workoutType: HKWorkoutActivityType,
-        hostId: String,
+        hostID: String,
         participantCount: Int = 0,
         maxParticipants: Int = GroupWorkoutConstants.defaultMaxParticipants,
         scheduledStart: Date,
@@ -102,7 +102,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         self.name = name
         self.description = description
         self.workoutType = workoutType
-        self.hostId = hostId
+        self.hostID = hostID
         self.participantCount = participantCount
         self.maxParticipants = maxParticipants
         self.scheduledStart = scheduledStart
@@ -143,7 +143,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             return nil
         }
         
-        guard let hostId = record["hostID"] as? String else {
+        guard let hostID = record["hostID"] as? String else {
             FameFitLogger.warning("🏋️ GroupWorkout init failed: missing or invalid hostID", category: FameFitLogger.social)
             return nil
         }
@@ -181,7 +181,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
             name: name,
             description: description,
             workoutType: workoutType,
-            hostId: hostId,
+            hostID: hostID,
             participantCount: Int(participantCount),
             maxParticipants: Int(maxParticipants),
             scheduledStart: scheduledStart,
@@ -213,7 +213,7 @@ struct GroupWorkout: Identifiable, Equatable, Hashable {
         record["name"] = name
         record["description"] = description
         record["workoutType"] = Int64(workoutType.rawValue)
-        record["hostID"] = hostId
+        record["hostID"] = hostID
         record["participantCount"] = Int64(participantCount)
         record["maxParticipants"] = Int64(maxParticipants)
         record["scheduledStart"] = scheduledStart
@@ -250,7 +250,7 @@ extension GroupWorkout {
 
 extension GroupWorkout: Codable {
     enum CodingKeys: String, CodingKey {
-        case id, name, description, workoutType, hostId, participantCount
+        case id, name, description, workoutType, hostID, participantCount
         case maxParticipants, scheduledStart, scheduledEnd, status
         case createdTimestamp, modifiedTimestamp, isPublic, joinCode, tags
         case location, notes, participantIDs
@@ -273,7 +273,7 @@ extension GroupWorkout: Codable {
         }
         workoutType = type
 
-        hostId = try container.decode(String.self, forKey: .hostId)
+        hostID = try container.decode(String.self, forKey: .hostID)
         participantCount = try container.decodeIfPresent(Int.self, forKey: .participantCount) ?? 0
         maxParticipants = try container.decode(Int.self, forKey: .maxParticipants)
         scheduledStart = try container.decode(Date.self, forKey: .scheduledStart)
@@ -295,7 +295,7 @@ extension GroupWorkout: Codable {
         try container.encode(name, forKey: .name)
         try container.encode(description, forKey: .description)
         try container.encode(workoutType.rawValue, forKey: .workoutType)
-        try container.encode(hostId, forKey: .hostId)
+        try container.encode(hostID, forKey: .hostID)
         try container.encode(participantCount, forKey: .participantCount)
         try container.encode(maxParticipants, forKey: .maxParticipants)
         try container.encode(scheduledStart, forKey: .scheduledStart)
@@ -316,8 +316,8 @@ extension GroupWorkout: Codable {
 
 struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
     let id: String
-    let groupWorkoutId: String  // Reference to parent workout
-    let userId: String
+    let groupWorkoutID: String  // Reference to parent workout
+    let userID: String
     let username: String
     let profileImageURL: String?
     let joinedAt: Date
@@ -326,8 +326,8 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
 
     init(
         id: String = UUID().uuidString,
-        groupWorkoutId: String,
-        userId: String,
+        groupWorkoutID: String,
+        userID: String,
         username: String,
         profileImageURL: String? = nil,
         joinedAt: Date = Date(),
@@ -335,8 +335,8 @@ struct GroupWorkoutParticipant: Codable, Identifiable, Equatable {
         workoutData: GroupWorkoutData? = nil
     ) {
         self.id = id
-        self.groupWorkoutId = groupWorkoutId
-        self.userId = userId
+        self.groupWorkoutID = groupWorkoutID
+        self.userID = userID
         self.username = username
         self.profileImageURL = profileImageURL
         self.joinedAt = joinedAt
@@ -352,7 +352,7 @@ extension GroupWorkoutParticipant {
         guard
             let id = record["id"] as? String,
             let groupWorkoutRef = record["groupWorkoutID"] as? CKRecord.Reference,
-            let userId = record["userID"] as? String,
+            let userID = record["userID"] as? String,
             let username = record["username"] as? String,
             let joinedAt = record["joinedTimestamp"] as? Date,
             let statusRaw = record["status"] as? String,
@@ -362,8 +362,8 @@ extension GroupWorkoutParticipant {
         }
         
         self.id = id
-        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
-        self.userId = userId
+        self.groupWorkoutID = groupWorkoutRef.recordID.recordName
+        self.userID = userID
         self.username = username
         self.profileImageURL = record["profileImageURL"] as? String
         self.joinedAt = joinedAt
@@ -381,8 +381,8 @@ extension GroupWorkoutParticipant {
         let record = CKRecord(recordType: "GroupWorkoutParticipants", recordID: CKRecord.ID(recordName: id))
         
         record["id"] = id
-        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
-        record["userID"] = userId
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutID), action: .deleteSelf)
+        record["userID"] = userID
         record["username"] = username
         record["profileImageURL"] = profileImageURL
         record["joinedTimestamp"] = joinedAt
@@ -481,7 +481,7 @@ enum ParticipantStatus: String, Codable, CaseIterable {
 
 struct GroupWorkoutInvite: Identifiable, Codable {
     let id: String
-    let groupWorkoutId: String
+    let groupWorkoutID: String
     let invitedBy: String // User ID who sent the invite
     let invitedUser: String // User ID who was invited
     let invitedAt: Date
@@ -493,14 +493,14 @@ struct GroupWorkoutInvite: Identifiable, Codable {
     
     init(
         id: String = UUID().uuidString,
-        groupWorkoutId: String,
+        groupWorkoutID: String,
         invitedBy: String,
         invitedUser: String,
         invitedAt: Date = Date(),
         expiresAt: Date = Date().addingTimeInterval(7 * 24 * 60 * 60) // 7 days default
     ) {
         self.id = id
-        self.groupWorkoutId = groupWorkoutId
+        self.groupWorkoutID = groupWorkoutID
         self.invitedBy = invitedBy
         self.invitedUser = invitedUser
         self.invitedAt = invitedAt
@@ -523,7 +523,7 @@ extension GroupWorkoutInvite {
         }
         
         self.id = id
-        self.groupWorkoutId = groupWorkoutRef.recordID.recordName
+        self.groupWorkoutID = groupWorkoutRef.recordID.recordName
         self.invitedBy = invitedBy
         self.invitedUser = invitedUser
         self.invitedAt = record.creationDate ?? Date()
@@ -534,7 +534,7 @@ extension GroupWorkoutInvite {
         let record = CKRecord(recordType: "GroupWorkoutInvites", recordID: CKRecord.ID(recordName: id))
         
         record["id"] = id
-        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutId), action: .deleteSelf)
+        record["groupWorkoutID"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: groupWorkoutID), action: .deleteSelf)
         record["invitedByID"] = invitedBy
         record["invitedUserID"] = invitedUser
         // invitedAt is stored in system createdTimestamp field
@@ -543,4 +543,3 @@ extension GroupWorkoutInvite {
         return record
     }
 }
-

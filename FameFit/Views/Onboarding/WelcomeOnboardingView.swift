@@ -55,7 +55,7 @@ struct WelcomeOnboardingView: View {
                     }
                     .padding()
                 }
-                .onChange(of: visibleMessages) { _, newValue in
+                .onChange(of: visibleMessages) { _, _ in
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
@@ -147,7 +147,6 @@ struct WelcomeChatBubble: View {
         }
     }
 }
-
 
 #Preview {
     ZStack {

@@ -93,7 +93,7 @@ struct ChallengeParticipant: Codable, Identifiable {
 
 struct WorkoutChallenge: Identifiable, Codable {
     let id: String // CKRecord.ID as String
-    let creatorId: String
+    let creatorID: String
     var participants: [ChallengeParticipant]
     let type: ChallengeType
     let targetValue: Double
@@ -104,7 +104,7 @@ struct WorkoutChallenge: Identifiable, Codable {
     let endDate: Date
     let createdTimestamp: Date
     var status: ChallengeStatus
-    var winnerId: String?
+    var winnerID: String?
 
     // Betting/Stakes (optional)
     var xpStake: Int = 0 // XP each participant puts up
@@ -192,7 +192,7 @@ struct WorkoutChallenge: Identifiable, Codable {
 
 extension WorkoutChallenge {
     init?(from record: CKRecord) {
-        guard let creatorId = record["creatorID"] as? String,
+        guard let creatorID = record["creatorID"] as? String,
               let participantsData = record["participants"] as? Data,
               let participants = try? JSONDecoder().decode([ChallengeParticipant].self, from: participantsData),
               let typeString = record["type"] as? String,
@@ -210,7 +210,7 @@ extension WorkoutChallenge {
         }
 
         id = record.recordID.recordName
-        self.creatorId = creatorId
+        self.creatorID = creatorID
         self.participants = participants
         self.type = type
         self.targetValue = targetValue
@@ -221,7 +221,7 @@ extension WorkoutChallenge {
         self.endDate = endDate
         self.createdTimestamp = createdTimestamp
         self.status = status
-        winnerId = record["winnerID"] as? String
+        winnerID = record["winnerID"] as? String
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
         winnerTakesAll = (record["winnerTakesAll"] as? Int64) == 1
         isPublic = (record["isPublic"] as? Int64) == 1
@@ -239,7 +239,7 @@ extension WorkoutChallenge {
             record = CKRecord(recordType: "WorkoutChallenges", recordID: challengeRecordID)
         }
 
-        record["creatorID"] = creatorId
+        record["creatorID"] = creatorID
         record["participants"] = try? JSONEncoder().encode(participants)
         record["type"] = type.rawValue
         record["targetValue"] = targetValue
@@ -255,8 +255,8 @@ extension WorkoutChallenge {
         record["createdTimestamp"] = createdTimestamp
         record["status"] = status.rawValue
 
-        if let winnerId {
-            record["winnerID"] = winnerId
+        if let winnerID {
+            record["winnerID"] = winnerID
         }
 
         record["xpStake"] = Int64(xpStake)
@@ -275,9 +275,9 @@ extension WorkoutChallenge {
 // MARK: - Challenge Update
 
 struct ChallengeUpdate: Codable {
-    let challengeId: String
-    let userId: String
+    let challengeID: String
+    let userID: String
     let progressValue: Double
     let timestamp: Date
-    let workoutId: String? // Reference to specific workout
+    let workoutID: String? // Reference to specific workout
 }

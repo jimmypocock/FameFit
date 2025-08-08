@@ -289,8 +289,8 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         ]
 
         // Use workout-specific identifier to prevent duplicates
-        let notificationId = "workout-\(character.rawValue)-\(Date().timeIntervalSince1970)"
-        let request = UNNotificationRequest(identifier: notificationId, content: content, trigger: nil)
+        let notificationID = "workout-\(character.rawValue)-\(Date().timeIntervalSince1970)"
+        let request = UNNotificationRequest(identifier: notificationID, content: content, trigger: nil)
 
         UNUserNotificationCenter.current().add(request) { [weak self] error in
             if let error {
@@ -344,7 +344,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                 ),
                 badge: preferences.badgeEnabled ? (notificationStore?.unreadCount ?? 0) + 1 : nil,
                 sound: preferences.shouldPlaySound(for: .workoutCompleted) ? "default" : nil,
-                threadId: "workout-completed",
+                threadID: "workout-completed",
                 category: "WORKOUT_COMPLETED"
             ),
             notificationType: "workoutCompleted",

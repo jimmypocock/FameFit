@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct GenericCommentInputView: View {
-    let resourceId: String
-    let resourceOwnerId: String
+    let resourceID: String
+    let resourceOwnerID: String
     let resourceType: String
-    let sourceRecordId: String?
-    let parentCommentId: String?
+    let sourceRecordID: String?
+    let parentCommentID: String?
     let editingComment: AnyComment?
     let currentUser: UserProfile?
     let onSubmit: (String) -> Void
@@ -27,7 +27,7 @@ struct GenericCommentInputView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Context header
-            if parentCommentId != nil || editingComment != nil {
+            if parentCommentID != nil || editingComment != nil {
                 HStack {
                     Text(editingComment != nil ? "Editing comment" : "Replying to comment")
                         .font(.caption)

@@ -257,7 +257,7 @@ This follows Apple's CloudKit naming conventions and ensures consistency across 
 
 ### Example: Workouts Record Type
 Fields configuration:
-- `workoutId` (String) - Queryable, Sortable
+- `workoutID` (String) - Queryable, Sortable
 - `workoutType` (String) - Queryable, Sortable  
 - `startDate` (Date/Time) - Queryable, Sortable
 - `endDate` (Date/Time) - Queryable, Sortable
@@ -267,6 +267,16 @@ Fields configuration:
 - `averageHeartRate` (Double) - Queryable
 - `followersEarned` (Int64) - Queryable
 - `source` (String) - Queryable
+
+Required Index:
+- `___recordID` - QUERYABLE (prevents query errors)
+
+### Example: WorkoutKudos Record Type
+Fields configuration:
+- `workoutID` (String) - Queryable, Sortable
+- `userID` (String) - Queryable (user who gave kudos)
+- `workoutOwnerID` (String) - Queryable (user who owns workout)
+- `createdTimestamp` (Date/Time) - Queryable, Sortable
 
 Required Index:
 - `___recordID` - QUERYABLE (prevents query errors)

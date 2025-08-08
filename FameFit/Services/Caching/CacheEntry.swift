@@ -47,4 +47,3 @@ extension CacheEntry: Codable where T: Codable {
         case ttl
     }
 }
-

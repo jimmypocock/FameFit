@@ -90,7 +90,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "Workouts")
-            record["workoutId"] = workout.id.uuidString
+            record["workoutID"] = workout.id.uuidString
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -172,7 +172,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "WorkoutHistory")
-            record["workoutId"] = workout.id.uuidString
+            record["workoutID"] = workout.id.uuidString
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -209,7 +209,7 @@ final class CloudKitSeeder {
             record["id"] = activity.id
             record["userID"] = activity.userID
             record["activityType"] = activity.activityType
-            record["workoutId"] = activity.workoutId
+            record["workoutID"] = activity.workoutID
             record["content"] = activity.content
             record["visibility"] = activity.visibility
             record["createdTimestamp"] = activity.createdTimestamp
@@ -316,7 +316,7 @@ final class CloudKitSeeder {
             bio: persona.bio,
             workoutCount: persona.workoutCount,
             totalXP: persona.totalXP,
-            createdTimestamp: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3600)),
+            createdTimestamp: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3_600)),
             modifiedTimestamp: Date(),
             isVerified: persona.isVerified,
             privacyLevel: .publicProfile,
@@ -400,7 +400,7 @@ final class CloudKitSeeder {
             guard Int.random(in: 0..<100) < getWorkoutFrequency(for: persona) else { continue }
             
             let workoutType = workoutTypes.randomElement() ?? "Running"
-            let date = Date().addingTimeInterval(-Double(dayOffset * 24 * 3600))
+            let date = Date().addingTimeInterval(-Double(dayOffset * 24 * 3_600))
             
             let workout = createWorkout(
                 type: workoutType,
@@ -555,7 +555,7 @@ final class CloudKitSeeder {
             }
         }()
         
-        return (duration / 3600) * speedKmPerHour * 1000 // Convert to meters
+        return (duration / 3_600) * speedKmPerHour * 1_000 // Convert to meters
     }
     
     private func getTypicalHeartRate(for type: String, persona: TestAccountPersona) -> Double? {
@@ -609,11 +609,11 @@ final class CloudKitSeeder {
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "workout",
-                workoutId: workout.id.uuidString,
+                workoutID: workout.id.uuidString,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
                 createdTimestamp: workout.endDate,
-                expiresAt: workout.endDate.addingTimeInterval(90 * 24 * 3600),
+                expiresAt: workout.endDate.addingTimeInterval(90 * 24 * 3_600),
                 xpEarned: workout.xpEarned,
                 achievementName: nil
             )
@@ -634,11 +634,11 @@ final class CloudKitSeeder {
                 id: UUID().uuidString,
                 userID: userID,
                 activityType: "achievement",
-                workoutId: nil,
+                workoutID: nil,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
-                createdTimestamp: Date().addingTimeInterval(-7 * 24 * 3600),
-                expiresAt: Date().addingTimeInterval(83 * 24 * 3600),
+                createdTimestamp: Date().addingTimeInterval(-7 * 24 * 3_600),
+                expiresAt: Date().addingTimeInterval(83 * 24 * 3_600),
                 xpEarned: 0,
                 achievementName: "Rising Star"
             )

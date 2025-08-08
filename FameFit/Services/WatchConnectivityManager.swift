@@ -15,7 +15,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var isPaired = false
     @Published var isWatchAppInstalled = false
     
-    private override init() {
+    override private init() {
         super.init()
         
         if WCSession.isSupported() {
@@ -98,11 +98,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
     
     // MARK: - Message Handling
     
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         handleMessage(message)
     }
     
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         handleMessage(message)
         replyHandler(["status": "received"])
     }

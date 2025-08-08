@@ -94,7 +94,6 @@ extension ActivityFeedComment {
     }
 }
 
-
 // MARK: - Comment with User Info
 
 struct ActivityFeedCommentWithUser: Identifiable {

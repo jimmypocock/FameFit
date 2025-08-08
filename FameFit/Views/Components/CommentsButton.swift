@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CommentsButton: View {
-    let workoutId: String
+    let workoutID: String
     let commentCount: Int
     let onTap: () -> Void
 
@@ -62,21 +62,21 @@ struct CommentsButton: View {
     VStack(spacing: 20) {
         // No comments
         CommentsButton(
-            workoutId: "workout1",
+            workoutID: "workout1",
             commentCount: 0,
             onTap: {}
         )
 
         // With comments
         CommentsButton(
-            workoutId: "workout2",
+            workoutID: "workout2",
             commentCount: 5,
             onTap: {}
         )
 
         // Many comments
         CommentsButton(
-            workoutId: "workout3",
+            workoutID: "workout3",
             commentCount: 23,
             onTap: {}
         )

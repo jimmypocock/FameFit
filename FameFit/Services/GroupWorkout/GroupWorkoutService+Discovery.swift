@@ -16,7 +16,7 @@ extension GroupWorkoutService {
         
         let now = Date()
         
-        guard let currentUserId = try? await cloudKitManager.getCurrentUserID() else {
+        guard let currentUserID = try? await cloudKitManager.getCurrentUserID() else {
             // Non-authenticated: only show public workouts
             let predicate = NSPredicate(format: 
                 "isPublic == 1 AND scheduledEnd > %@ AND status == %@",
@@ -39,9 +39,9 @@ extension GroupWorkoutService {
         
         // Filter client-side: show workouts that are public, hosted by user, or user is participant
         let filteredWorkouts = allWorkouts.filter { workout in
-            workout.isPublic || 
-            workout.hostId == currentUserId || 
-            workout.participantIDs.contains(currentUserId)
+            workout.isPublic ||
+            workout.hostID == currentUserID ||
+            workout.participantIDs.contains(currentUserID)
         }
         
         // Take only the requested limit after filtering
@@ -51,7 +51,7 @@ extension GroupWorkoutService {
         
         // Log details for debugging
         for workout in limitedWorkouts {
-            FameFitLogger.debug("Workout: \(workout.name) - Host: \(workout.hostId) - Public: \(workout.isPublic) - Status: \(workout.status.rawValue) - ParticipantIDs: \(workout.participantIDs)", category: FameFitLogger.social)
+            FameFitLogger.debug("Workout: \(workout.name) - Host: \(workout.hostID) - Public: \(workout.isPublic) - Status: \(workout.status.rawValue) - ParticipantIDs: \(workout.participantIDs)", category: FameFitLogger.social)
         }
         
         return limitedWorkouts
@@ -72,21 +72,21 @@ extension GroupWorkoutService {
     func fetchMyWorkouts() async throws -> [GroupWorkout] {
         FameFitLogger.info("Fetching my workouts", category: FameFitLogger.social)
         
-        guard let userId = try? await cloudKitManager.getCurrentUserID() else {
+        guard let userID = try? await cloudKitManager.getCurrentUserID() else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        let predicate = GroupWorkoutQueryBuilder.workoutsByHostQuery(userId: userId)
+        let predicate = GroupWorkoutQueryBuilder.workoutsByHostQuery(userID: userID)
         return try await fetchWorkouts(with: predicate, limit: 100)
     }
     
-    func fetchWorkout(_ workoutId: String) async throws -> GroupWorkout {
+    func fetchWorkout(_ workoutID: String) async throws -> GroupWorkout {
         // Check cache first
-        if let cached = await getCachedWorkout(workoutId) {
+        if let cached = await getCachedWorkout(workoutID) {
             return cached
         }
         
-        let recordID = CKRecord.ID(recordName: workoutId)
+        let recordID = CKRecord.ID(recordName: workoutID)
         
         // Fetch using a query to ensure we use the public database
         let predicate = NSPredicate(format: "recordID == %@", recordID)

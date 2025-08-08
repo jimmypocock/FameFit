@@ -11,7 +11,7 @@ import CloudKit
 struct XPTransaction: Identifiable, Codable {
     let id: UUID
     let userID: String
-    let workoutRecordID: String
+    let workoutID: String
     let timestamp: Date
     let baseXP: Int
     let finalXP: Int
@@ -21,7 +21,7 @@ struct XPTransaction: Identifiable, Codable {
     
     init(id: UUID = UUID(),
          userID: String,
-         workoutRecordID: String,
+         workoutID: String,
          timestamp: Date = Date(),
          baseXP: Int,
          finalXP: Int,
@@ -30,7 +30,7 @@ struct XPTransaction: Identifiable, Codable {
          modifiedTimestamp: Date = Date()) {
         self.id = id
         self.userID = userID
-        self.workoutRecordID = workoutRecordID
+        self.workoutID = workoutID
         self.timestamp = timestamp
         self.baseXP = baseXP
         self.finalXP = finalXP
@@ -75,12 +75,12 @@ enum XPBonusType: String, Codable, CaseIterable {
 
 // MARK: - CloudKit Support
 extension XPTransaction {
-    static let recordType = "XPTransaction"
+    static let recordType = "XPTransactions"
     
     init?(from record: CKRecord) {
         guard record.recordType == Self.recordType,
               let userID = record["userID"] as? String,
-              let workoutRecordID = record["workoutRecordID"] as? String,
+              let workoutID = record["workoutID"] as? String,
               let timestamp = record["timestamp"] as? Date,
               let baseXP = record["baseXP"] as? Int64,
               let finalXP = record["finalXP"] as? Int64,
@@ -95,7 +95,7 @@ extension XPTransaction {
         
         self.id = UUID(uuidString: record.recordID.recordName) ?? UUID()
         self.userID = userID
-        self.workoutRecordID = workoutRecordID
+        self.workoutID = workoutID
         self.timestamp = timestamp
         self.baseXP = Int(baseXP)
         self.finalXP = Int(finalXP)
@@ -109,7 +109,7 @@ extension XPTransaction {
         let record = CKRecord(recordType: Self.recordType, recordID: recordID)
         
         record["userID"] = userID
-        record["workoutRecordID"] = workoutRecordID
+        record["workoutID"] = workoutID
         record["timestamp"] = timestamp
         record["baseXP"] = Int64(baseXP)
         record["finalXP"] = Int64(finalXP)

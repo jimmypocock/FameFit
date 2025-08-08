@@ -11,7 +11,7 @@ struct FollowersListContent: View {
     let profiles: [UserProfile]
     let followingStatuses: [String: RelationshipStatus]
     let pendingActions: Set<String>
-    let currentUserId: String?
+    let currentUserID: String?
     let onFollowAction: (UserProfile) async -> Void
 
     var body: some View {
@@ -22,7 +22,7 @@ struct FollowersListContent: View {
                         profile: profile,
                         relationshipStatus: followingStatuses[profile.id] ?? .notFollowing,
                         isProcessing: pendingActions.contains(profile.id),
-                        showFollowButton: currentUserId != nil && profile.id != currentUserId
+                        showFollowButton: currentUserID != nil && profile.id != currentUserID
                     ) {
                         await onFollowAction(profile)
                     } onTap: {

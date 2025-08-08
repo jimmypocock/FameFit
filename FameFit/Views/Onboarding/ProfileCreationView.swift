@@ -182,7 +182,6 @@ struct ProfileCreationView: View {
         .padding()
     }
 
-
     private var bioStep: some View {
         VStack(spacing: 30) {
             Text("TELL US ABOUT YOURSELF")
@@ -413,7 +412,7 @@ struct ProfileCreationView: View {
                 }
                 
                 // Get current user ID from CloudKit
-                guard let userId = container.cloudKitManager.currentUserID else {
+                guard let userID = container.cloudKitManager.currentUserID else {
                     throw ProfileServiceError.profileNotFound
                 }
 
@@ -422,10 +421,10 @@ struct ProfileCreationView: View {
                 let profileImageURL: String? = nil
 
                 // Create profile with lowercase username
-                let profileId = UUID().uuidString
+                let profileID = UUID().uuidString
                 let profile = UserProfile(
-                    id: profileId,
-                    userID: userId, // Reference to Users record
+                    id: profileID,
+                    userID: userID, // Reference to Users record
                     username: username.lowercased(),
                     bio: bio,
                     workoutCount: 0, // New profile starts with 0 workouts

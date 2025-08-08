@@ -8,35 +8,35 @@
 import SwiftUI
 
 struct GenericCommentsListView: View {
-    let resourceId: String
-    let resourceOwnerId: String
+    let resourceID: String
+    let resourceOwnerID: String
     let resourceType: String
-    let sourceRecordId: String?
+    let sourceRecordID: String?
     let currentUser: UserProfile?
     let commentService: AnyCommentService
     
     @StateObject private var viewModel: GenericCommentsViewModel
     @State private var showingInput = false
-    @State private var replyToCommentId: String?
+    @State private var replyToCommentID: String?
     @State private var editingComment: AnyComment?
     @State private var searchText = ""
     
     init(
-        resourceId: String,
-        resourceOwnerId: String,
+        resourceID: String,
+        resourceOwnerID: String,
         resourceType: String,
-        sourceRecordId: String? = nil,
+        sourceRecordID: String? = nil,
         currentUser: UserProfile?,
         commentService: AnyCommentService
     ) {
-        self.resourceId = resourceId
-        self.resourceOwnerId = resourceOwnerId
+        self.resourceID = resourceID
+        self.resourceOwnerID = resourceOwnerID
         self.resourceType = resourceType
-        self.sourceRecordId = sourceRecordId
+        self.sourceRecordID = sourceRecordID
         self.currentUser = currentUser
         self.commentService = commentService
         _viewModel = StateObject(wrappedValue: GenericCommentsViewModel(
-            resourceId: resourceId,
+            resourceID: resourceID,
             commentService: commentService
         ))
     }
@@ -56,13 +56,13 @@ struct GenericCommentsListView: View {
             }
             
             // Input area (sticky bottom)
-            if showingInput || replyToCommentId != nil || editingComment != nil {
+            if showingInput || replyToCommentID != nil || editingComment != nil {
                 GenericCommentInputView(
-                    resourceId: resourceId,
-                    resourceOwnerId: resourceOwnerId,
+                    resourceID: resourceID,
+                    resourceOwnerID: resourceOwnerID,
                     resourceType: resourceType,
-                    sourceRecordId: sourceRecordId,
-                    parentCommentId: replyToCommentId,
+                    sourceRecordID: sourceRecordID,
+                    parentCommentID: replyToCommentID,
                     editingComment: editingComment,
                     currentUser: currentUser,
                     onSubmit: handleCommentSubmit,
@@ -201,9 +201,9 @@ struct GenericCommentsListView: View {
                 ForEach(filteredComments) { commentWithUser in
                     GenericCommentRowView(
                         commentWithUser: commentWithUser,
-                        currentUserId: currentUser?.id,
-                        onReply: { commentId in
-                            replyToCommentId = commentId
+                        currentUserID: currentUser?.id,
+                        onReply: { commentID in
+                            replyToCommentID = commentID
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 proxy.scrollTo("input", anchor: .bottom)
                             }
@@ -211,14 +211,14 @@ struct GenericCommentsListView: View {
                         onEdit: { comment in
                             editingComment = comment
                         },
-                        onDelete: { commentId in
+                        onDelete: { commentID in
                             Task {
-                                await viewModel.deleteComment(commentId: commentId)
+                                await viewModel.deleteComment(commentID: commentID)
                             }
                         },
-                        onLike: { commentId in
+                        onLike: { commentID in
                             Task {
-                                await viewModel.toggleCommentLike(commentId: commentId)
+                                await viewModel.toggleCommentLike(commentID: commentID)
                             }
                         },
                         onUserTap: { _ in
@@ -335,21 +335,21 @@ struct GenericCommentsListView: View {
         Task {
             if let editingComment {
                 await viewModel.updateComment(
-                    commentId: editingComment.id,
+                    commentID: editingComment.id,
                     newContent: content
                 )
                 self.editingComment = nil
             } else {
                 let metadata = CommentMetadata(
                     resourceType: resourceType,
-                    sourceRecordId: sourceRecordId
+                    sourceRecordID: sourceRecordID
                 )
                 await viewModel.postComment(
                     content: content,
-                    parentCommentId: replyToCommentId,
+                    parentCommentID: replyToCommentID,
                     metadata: metadata
                 )
-                replyToCommentId = nil
+                replyToCommentID = nil
                 showingInput = false
             }
         }
@@ -358,7 +358,7 @@ struct GenericCommentsListView: View {
     private func handleInputCancel() {
         withAnimation(.easeInOut(duration: 0.2)) {
             showingInput = false
-            replyToCommentId = nil
+            replyToCommentID = nil
             editingComment = nil
         }
     }
@@ -375,7 +375,7 @@ class GenericCommentsViewModel: ObservableObject {
     @Published var hasMoreComments = true
     @Published var sortOrder: CommentSortOrder = .newest
     
-    private let resourceId: String
+    private let resourceID: String
     private let commentService: AnyCommentService
     private let pageSize = 20
     
@@ -391,8 +391,8 @@ class GenericCommentsViewModel: ObservableObject {
         }
     }
     
-    init(resourceId: String, commentService: AnyCommentService) {
-        self.resourceId = resourceId
+    init(resourceID: String, commentService: AnyCommentService) {
+        self.resourceID = resourceID
         self.commentService = commentService
     }
     
@@ -411,13 +411,13 @@ class GenericCommentsViewModel: ObservableObject {
         await fetchComments(reset: false)
     }
     
-    func postComment(content: String, parentCommentId: String?, metadata: CommentMetadata) async {
+    func postComment(content: String, parentCommentID: String?, metadata: CommentMetadata) async {
         do {
             _ = try await commentService.postComment(
-                resourceId: resourceId,
-                resourceOwnerId: "", // Will be handled by service
+                resourceID: resourceID,
+                resourceOwnerID: "", // Will be handled by service
                 content: content,
-                parentCommentId: parentCommentId,
+                parentCommentID: parentCommentID,
                 metadata: metadata
             )
             
@@ -428,15 +428,15 @@ class GenericCommentsViewModel: ObservableObject {
         }
     }
     
-    func updateComment(commentId: String, newContent: String) async {
+    func updateComment(commentID: String, newContent: String) async {
         do {
             let updatedComment = try await commentService.updateComment(
-                commentId: commentId,
+                commentID: commentID,
                 newContent: newContent
             )
             
             // Update the comment in the local list
-            if let index = comments.firstIndex(where: { $0.comment.id == commentId }) {
+            if let index = comments.firstIndex(where: { $0.comment.id == commentID}) {
                 // Simply update the content and metadata of the existing comment
                 let existingUser = comments[index].user
                 comments[index] = AnyActivityFeedCommentWithUser(
@@ -461,20 +461,20 @@ class GenericCommentsViewModel: ObservableObject {
         }
     }
     
-    func deleteComment(commentId: String) async {
+    func deleteComment(commentID: String) async {
         do {
-            try await commentService.deleteComment(commentId: commentId)
-            comments.removeAll { $0.comment.id == commentId }
+            try await commentService.deleteComment(commentID: commentID)
+            comments.removeAll { $0.comment.id == commentID}
             totalComments -= 1
         } catch {
             errorMessage = error.localizedDescription
         }
     }
     
-    func toggleCommentLike(commentId: String) async {
+    func toggleCommentLike(commentID: String) async {
         do {
             // This would typically check if user has already liked
-            _ = try await commentService.likeComment(commentId: commentId)
+            _ = try await commentService.likeComment(commentID: commentID)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -498,7 +498,7 @@ class GenericCommentsViewModel: ObservableObject {
         
         do {
             let fetchedComments = try await commentService.fetchComments(
-                for: resourceId,
+                for: resourceID,
                 limit: pageSize
             )
             
@@ -511,7 +511,7 @@ class GenericCommentsViewModel: ObservableObject {
             hasMoreComments = fetchedComments.count == pageSize
             
             // Get total count
-            totalComments = try await commentService.fetchCommentCount(for: resourceId)
+            totalComments = try await commentService.fetchCommentCount(for: resourceID)
             
             sortComments()
         } catch {

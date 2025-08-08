@@ -27,12 +27,12 @@ protocol ActivityFeedCommentsServicing {
     ) async throws -> ActivityFeedComment
     
     // Update/Delete
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment
-    func deleteComment(commentId: String) async throws
+    func updateComment(commentID: String, newContent: String) async throws -> ActivityFeedComment
+    func deleteComment(commentID: String) async throws
     
     // Interactions
-    func likeComment(commentId: String) async throws -> Int
-    func unlikeComment(commentId: String) async throws -> Int
+    func likeComment(commentID: String) async throws -> Int
+    func unlikeComment(commentID: String) async throws -> Int
     
     // Count
     func fetchCommentCount(for activityFeedID: String) async throws -> Int
@@ -111,7 +111,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         }
         
         // Rate limiting check
-        _ = try await rateLimiter.checkLimit(for: .comment, userId: cloudKitManager.currentUserID ?? "")
+        _ = try await rateLimiter.checkLimit(for: .comment, userID: cloudKitManager.currentUserID ?? "")
         
         // Content moderation
         if containsInappropriateContent(content) {
@@ -154,7 +154,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     
     // MARK: - Update/Delete
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
+    func updateComment(commentID: String, newContent: String) async throws -> ActivityFeedComment {
         // Validate content
         guard ActivityFeedComment.isValidComment(newContent) else {
             throw ActivityFeedCommentError.invalidContent
@@ -169,19 +169,19 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
         throw ActivityFeedCommentError.notImplemented
     }
     
-    func deleteComment(commentId: String) async throws {
+    func deleteComment(commentID: String) async throws {
         // TODO: Implement actual delete when CloudKit is available
         throw ActivityFeedCommentError.notImplemented
     }
     
     // MARK: - Interactions
     
-    func likeComment(commentId: String) async throws -> Int {
+    func likeComment(commentID: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
         throw ActivityFeedCommentError.notImplemented
     }
     
-    func unlikeComment(commentId: String) async throws -> Int {
+    func unlikeComment(commentID: String) async throws -> Int {
         // TODO: Implement when CloudKit is available
         throw ActivityFeedCommentError.notImplemented
     }
@@ -216,7 +216,7 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsServicing {
     private func sendCommentFameFitNotification(to userID: String, sourceType: String, sourceID: String) async {
         // Get the commenter's profile
         guard let currentUserID = cloudKitManager.currentUserID,
-              let commenterProfile = try? await userProfileService.fetchProfile(userId: currentUserID) else {
+              let commenterProfile = try? await userProfileService.fetchProfile(userID: currentUserID) else {
             return
         }
         

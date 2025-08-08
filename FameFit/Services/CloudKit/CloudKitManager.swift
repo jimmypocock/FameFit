@@ -152,7 +152,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     await performInitialization()
                 }
             }
-            
         } catch {
             FameFitLogger.error("Failed to check account status", error: error, category: FameFitLogger.cloudKit)
             await MainActor.run {
@@ -214,7 +213,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             // Update local state
             await processUserRecord(savedRecord)
-            
         } catch {
             FameFitLogger.error("Failed to setup user record", error: error, category: FameFitLogger.cloudKit)
             await MainActor.run {
@@ -234,6 +232,49 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     func addXP(_ xp: Int) {
         Task {
             await addXPAsync(xp)
+        }
+    }
+    
+    /// Complete a workout - increments both XP and workout count
+    func completeWorkout(xpEarned: Int) async {
+        FameFitLogger.info("Completing workout with \(xpEarned) XP", category: FameFitLogger.cloudKit)
+        
+        guard let userRecord = userRecord else {
+            FameFitLogger.warning("No user record available", category: FameFitLogger.cloudKit)
+            await fetchUserRecordAsync()
+            return
+        }
+        
+        do {
+            // Update both XP and workout count
+            let currentXP = userRecord["totalXP"] as? Int ?? 0
+            let currentWorkouts = userRecord["totalWorkouts"] as? Int ?? 0
+            
+            userRecord["totalXP"] = currentXP + xpEarned
+            userRecord["totalWorkouts"] = currentWorkouts + 1
+            
+            // Save the updated record
+            let savedRecord = try await operationQueue.enqueueSave(
+                record: userRecord,
+                database: privateDatabase,
+                priority: .high
+            )
+            
+            // Update local state
+            await processUserRecord(savedRecord)
+            
+            FameFitLogger.info("Successfully completed workout: +\(xpEarned) XP, workout #\(currentWorkouts + 1)", category: FameFitLogger.cloudKit)
+            
+            // Sync updated stats to UserProfiles
+            await syncStatsToUserProfile(totalWorkouts: currentWorkouts + 1, totalXP: currentXP + xpEarned)
+            
+            // Track XP transaction
+            await trackXPTransaction(xp: xpEarned)
+        } catch {
+            FameFitLogger.error("Failed to complete workout", error: error, category: FameFitLogger.cloudKit)
+            await MainActor.run {
+                self.lastError = error.fameFitError
+            }
         }
     }
     
@@ -272,7 +313,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             // Track XP transaction
             await trackXPTransaction(xp: xp)
-            
         } catch {
             FameFitLogger.error("Failed to add XP", error: error, category: FameFitLogger.cloudKit)
             await MainActor.run {
@@ -311,7 +351,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             await processUserRecord(record)
             
             FameFitLogger.info("Successfully fetched user record", category: FameFitLogger.cloudKit)
-            
         } catch {
             FameFitLogger.error("Failed to fetch user record", error: error, category: FameFitLogger.cloudKit)
             
@@ -419,7 +458,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             }
             
             FameFitLogger.info("CloudKit initialization completed successfully", category: FameFitLogger.cloudKit)
-            
         } catch {
             FameFitLogger.error("CloudKit initialization failed", error: error, category: FameFitLogger.cloudKit)
             await stateManager.setInitializationState(.failed(error))
@@ -511,7 +549,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             let workoutRecords = try await operationQueue.enqueueQuery(
                 query: query,
                 database: privateDatabase,
-                limit: 1000,
+                limit: 1_000,
                 priority: .medium
             )
             
@@ -557,7 +595,6 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             // Sync to UserProfiles record
             await syncStatsToUserProfile(totalWorkouts: workoutRecords.count, totalXP: totalXP)
-            
         } catch {
             FameFitLogger.error("❌ Failed to recalculate stats", error: error, category: FameFitLogger.cloudKit)
         }
@@ -592,7 +629,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             do {
                 // Create the workout record
                 let record = CKRecord(recordType: "Workouts")
-                record["workoutId"] = workoutHistory.id.uuidString
+                record["workoutID"] = workoutHistory.id.uuidString
                 record["workoutType"] = workoutHistory.workoutType
                 record["startDate"] = workoutHistory.startDate
                 record["endDate"] = workoutHistory.endDate
@@ -632,7 +669,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                 FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
                 
                 let workouts = records.compactMap { record -> Workout? in
-                    guard let id = record["workoutId"] as? String,
+                    guard let id = record["workoutID"] as? String,
                           let type = record["workoutType"] as? String,
                           let startDate = record["startDate"] as? Date,
                           let endDate = record["endDate"] as? Date else {
@@ -641,7 +678,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     }
                     
                     // Extract individual fields to avoid type-checking timeout
-                    let workoutId = UUID(uuidString: id) ?? UUID()
+                    let workoutID = UUID(uuidString: id) ?? UUID()
                     let duration = record["duration"] as? TimeInterval ?? 0
                     let totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
                     let totalDistance = record["totalDistance"] as? Double
@@ -651,7 +688,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     let source = record["source"] as? String ?? "Unknown"
                     
                     return Workout(
-                        id: workoutId,
+                        id: workoutID,
                         workoutType: type,
                         startDate: startDate,
                         endDate: endDate,
@@ -752,7 +789,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     }
     
     private func syncStatsToUserProfile(totalWorkouts: Int, totalXP: Int) async {
-        guard let userId = currentUserID else {
+        guard let userID = currentUserID else {
             FameFitLogger.warning("Cannot sync to profile - no user ID", category: FameFitLogger.cloudKit)
             return
         }
@@ -760,7 +797,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         // Use centralized sync service if available
         if let syncService = statsSyncService {
             let stats = UserStatsSnapshot(
-                userID: userId,
+                userID: userID,
                 totalWorkouts: totalWorkouts,
                 totalXP: totalXP,
                 currentStreak: currentStreak,
@@ -777,10 +814,10 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     private func performDirectStatsSync(totalWorkouts: Int, totalXP: Int) async {
         // Original implementation as fallback
-        guard let userId = currentUserID else { return }
+        guard let userID = currentUserID else { return }
         
         do {
-            let predicate = NSPredicate(format: "userID == %@", userId)
+            let predicate = NSPredicate(format: "userID == %@", userID)
             let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
             let results = try await publicDatabase.records(matching: query)
             

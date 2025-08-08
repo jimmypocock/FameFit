@@ -27,57 +27,57 @@ class ActivityFeedCommentsAdapter: CommentServicing {
         self.activityCommentsService = activityCommentsService
     }
     
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
-        // For activity comments, resourceId could be either activityFeedID or sourceRecordId
+    func fetchComments(for resourceID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
+        // For activity comments, resourceIDcould be either activityFeedID or sourceRecordID
         // Default to using it as activityFeedID
-        try await activityCommentsService.fetchComments(for: resourceId, limit: limit)
+        try await activityCommentsService.fetchComments(for: resourceID, limit: limit)
     }
     
     func postComment(
-        resourceId: String,
-        resourceOwnerId: String,
+        resourceID: String,
+        resourceOwnerID: String,
         content: String,
-        parentCommentId: String?,
+        parentCommentID: String?,
         metadata: CommentMetadata
     ) async throws -> ActivityFeedComment {
         try await activityCommentsService.postComment(
-            activityFeedID: resourceId,
+            activityFeedID: resourceID,
             sourceType: metadata.resourceType,
-            sourceID: metadata.sourceRecordId ?? resourceId,
-            activityOwnerID: resourceOwnerId,
+            sourceID: metadata.sourceRecordID ?? resourceID,
+            activityOwnerID: resourceOwnerID,
             content: content,
-            parentCommentID: parentCommentId
+            parentCommentID: parentCommentID
         )
     }
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
+    func updateComment(commentID: String, newContent: String) async throws -> ActivityFeedComment {
         try await activityCommentsService.updateComment(
-            commentId: commentId,
+            commentID: commentID,
             newContent: newContent
         )
     }
     
-    func deleteComment(commentId: String) async throws {
-        try await activityCommentsService.deleteComment(commentId: commentId)
+    func deleteComment(commentID: String) async throws {
+        try await activityCommentsService.deleteComment(commentID: commentID)
     }
     
-    func likeComment(commentId: String) async throws -> Int {
-        try await activityCommentsService.likeComment(commentId: commentId)
+    func likeComment(commentID: String) async throws -> Int {
+        try await activityCommentsService.likeComment(commentID: commentID)
     }
     
-    func unlikeComment(commentId: String) async throws -> Int {
-        try await activityCommentsService.unlikeComment(commentId: commentId)
+    func unlikeComment(commentID: String) async throws -> Int {
+        try await activityCommentsService.unlikeComment(commentID: commentID)
     }
     
-    func fetchCommentCount(for resourceId: String) async throws -> Int {
-        try await activityCommentsService.fetchCommentCount(for: resourceId)
+    func fetchCommentCount(for resourceID: String) async throws -> Int {
+        try await activityCommentsService.fetchCommentCount(for: resourceID)
     }
     
     // Additional method to fetch by source when needed
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
+    func fetchCommentsBySource(sourceType: String, sourceRecordID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         try await activityCommentsService.fetchCommentsBySource(
             sourceType: sourceType,
-            sourceID: sourceRecordId,
+            sourceID: sourceRecordID,
             limit: limit
         )
     }

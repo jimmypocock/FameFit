@@ -22,7 +22,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     private let _markAllAsRead: () -> Void
     private let _clearAll: () -> Void
     private let _deleteNotification: (IndexSet) -> Void
-    private let _deleteNotificationById: (String) -> Void
+    private let _deleteNotificationByID: (String) -> Void
     private let _clearAllNotifications: () -> Void
     private let _loadNotifications: () -> Void
     private let _saveNotifications: () -> Void
@@ -52,7 +52,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
             store?.deleteFameFitNotification(at: offsets)
         }
 
-        _deleteNotificationById = { [weak store] id in
+        _deleteNotificationByID = { [weak store] id in
             store?.deleteFameFitNotification(id)
         }
 
@@ -108,7 +108,7 @@ final class AnyNotificationStore: ObservableObject, NotificationStoring {
     }
 
     func deleteFameFitNotification(_ id: String) {
-        _deleteNotificationById(id)
+        _deleteNotificationByID(id)
     }
 
     func clearAllNotifications() {

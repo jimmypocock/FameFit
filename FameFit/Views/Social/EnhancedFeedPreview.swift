@@ -62,7 +62,7 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "85"
                     ]
                 ),
-                workoutId: "1",
+                workoutID: "1",
                 kudosCount: 12,
                 commentCount: 5,
                 hasKudoed: false,
@@ -103,7 +103,7 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "500"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 8,
                 hasKudoed: false,
@@ -138,7 +138,7 @@ struct EnhancedFeedPreview: View {
                         "newTitle": "Fitness Warrior"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 15,
                 hasKudoed: false,
@@ -175,7 +175,7 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "120"
                     ]
                 ),
-                workoutId: "4",
+                workoutID: "4",
                 kudosCount: 8,
                 commentCount: 3,
                 hasKudoed: false,

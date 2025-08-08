@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct KudosButton: View {
-    let workoutId: String
-    let ownerId: String
+    let workoutID: String
+    let ownerID: String
     let kudosSummary: WorkoutKudosSummary?
     let onTap: () async -> Void
 
@@ -193,8 +193,8 @@ struct KudosButton_Previews: PreviewProvider {
         VStack(spacing: 20) {
             // No kudos
             KudosButton(
-                workoutId: "123",
-                ownerId: "456",
+                workoutID: "123",
+                ownerID: "456",
                 kudosSummary: WorkoutKudosSummary(
                     workoutID: "123",
                     totalCount: 0,
@@ -206,8 +206,8 @@ struct KudosButton_Previews: PreviewProvider {
 
             // With kudos (not liked)
             KudosButton(
-                workoutId: "123",
-                ownerId: "456",
+                workoutID: "123",
+                ownerID: "456",
                 kudosSummary: WorkoutKudosSummary(
                     workoutID: "123",
                     totalCount: 42,
@@ -219,8 +219,8 @@ struct KudosButton_Previews: PreviewProvider {
 
             // With kudos (liked)
             KudosButton(
-                workoutId: "123",
-                ownerId: "456",
+                workoutID: "123",
+                ownerID: "456",
                 kudosSummary: WorkoutKudosSummary(
                     workoutID: "123",
                     totalCount: 43,

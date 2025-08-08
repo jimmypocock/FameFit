@@ -53,8 +53,7 @@ struct CreateGroupWorkoutView: View {
     ]
     
     var body: some View {
-        let _ = FameFitLogger.debug("📝 CreateGroupWorkoutView body rendering", category: FameFitLogger.ui)
-        return NavigationView {
+        NavigationView {
             Form {
                 // Basic Info
                 Section {
@@ -95,7 +94,7 @@ struct CreateGroupWorkoutView: View {
                             .onAppear {
                                 FameFitLogger.debug("📝 TextEditor appeared with minHeight: 60", category: FameFitLogger.ui)
                             }
-                            .onChange(of: notes) { oldValue, newValue in
+                            .onChange(of: notes) { _, newValue in
                                 FameFitLogger.debug("📝 Notes changed, length: \(newValue.count)", category: FameFitLogger.ui)
                             }
                     }
@@ -115,7 +114,7 @@ struct CreateGroupWorkoutView: View {
                                     .frame(width: 80)
                                     .multilineTextAlignment(.trailing)
                                     .keyboardType(.numberPad)
-                                    .onChange(of: maxParticipants) { oldValue, newValue in
+                                    .onChange(of: maxParticipants) { _, newValue in
                                         // Enforce limits
                                         if newValue < GroupWorkoutConstants.minParticipants {
                                             maxParticipants = GroupWorkoutConstants.minParticipants
@@ -180,20 +179,15 @@ struct CreateGroupWorkoutView: View {
             }
             .navigationTitle("Create Group Workout")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    dismiss()
+                },
+                trailing: Button("Create") {
+                    createWorkout()
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Create") {
-                        createWorkout()
-                    }
-                    .disabled(title.isEmpty || isCreating)
-                }
-            }
+                .disabled(title.isEmpty || isCreating)
+            )
             .sheet(isPresented: $showTimeZonePicker) {
                 TimeZonePickerView(selectedTimeZone: $selectedTimeZone)
             }
@@ -212,7 +206,6 @@ struct CreateGroupWorkoutView: View {
             .disabled(isCreating)
             .overlay {
                 if isCreating {
-                    let _ = FameFitLogger.debug("📝 Showing loading overlay", category: FameFitLogger.ui)
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
                         .overlay {
@@ -265,18 +258,18 @@ struct CreateGroupWorkoutView: View {
         Task {
             do {
                 // Get current user ID
-                let currentUserId = container.cloudKitManager.currentUserID ?? "unknown"
-                FameFitLogger.debug("Creating workout with userId: \(currentUserId)", category: FameFitLogger.social)
+                let currentUserID = container.cloudKitManager.currentUserID ?? "unknown"
+                FameFitLogger.debug("Creating workout with userID: \(currentUserID)", category: FameFitLogger.social)
                 
                 // Create the workout
                 let workoutType = HKWorkoutActivityType(rawValue: UInt(selectedWorkoutType)) ?? .running
-                let scheduledEnd = scheduledDate.addingTimeInterval(3600) // Default 1 hour duration
+                let scheduledEnd = scheduledDate.addingTimeInterval(3_600) // Default 1 hour duration
                 
                 let workout = GroupWorkout(
                     name: title,
                     description: notes,
                     workoutType: workoutType,
-                    hostId: currentUserId,
+                    hostID: currentUserID,
                     maxParticipants: maxParticipants,
                     scheduledStart: scheduledDate,
                     scheduledEnd: scheduledEnd,

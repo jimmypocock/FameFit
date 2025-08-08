@@ -79,7 +79,6 @@ class WorkoutSyncManager: ObservableObject {
             
             lastSyncDate = Date()
             isSyncing = false
-            
         } catch {
             FameFitLogger.error("Manual sync failed", error: error, category: FameFitLogger.workout)
             syncError = error.fameFitError
@@ -320,7 +319,7 @@ class WorkoutSyncManager: ObservableObject {
         do {
             // Create workout record
             let record = CKRecord(recordType: "Workouts")
-            record["workoutId"] = workout.uuid.uuidString
+            record["workoutID"] = workout.uuid.uuidString
             record["workoutType"] = workout.workoutActivityType.storageKey
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -341,8 +340,8 @@ class WorkoutSyncManager: ObservableObject {
             syncedIDs.append(workout.uuid.uuidString)
             
             // Keep only last 1000 IDs to prevent unbounded growth
-            if syncedIDs.count > 1000 {
-                syncedIDs = Array(syncedIDs.suffix(1000))
+            if syncedIDs.count > 1_000 {
+                syncedIDs = Array(syncedIDs.suffix(1_000))
             }
             
             UserDefaults.standard.set(syncedIDs, forKey: "SyncedWorkoutIDs")
@@ -353,7 +352,6 @@ class WorkoutSyncManager: ObservableObject {
             )
             
             return true
-            
         } catch {
             FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.workout)
             return false

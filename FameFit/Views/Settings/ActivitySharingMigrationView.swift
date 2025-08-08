@@ -154,7 +154,6 @@ struct ActivitySharingMigrationView: View {
                 try await container.activitySharingSettingsService.saveSettings(settings)
                 markMigrationComplete()
                 onComplete()
-                
             } catch {
                 print("Failed to save sharing settings: \(error)")
                 // Still mark as complete to avoid blocking the user

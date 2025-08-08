@@ -122,7 +122,6 @@ final class WorkoutAutoShareService: WorkoutAutoShareServicing {
             await sendAutoShareNotification(for: workout, privacy: privacy)
             
             print("Successfully auto-shared workout: \(workout.workoutType)")
-            
         } catch {
             print("Failed to auto-share workout: \(error)")
         }

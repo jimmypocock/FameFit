@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct GroupWorkoutDetailDeepLinkView: View {
-    let workoutId: String
+    let workoutID: String
     @Environment(\.dependencyContainer) private var container
     @State private var workout: GroupWorkout?
     @State private var isLoading = true
@@ -53,7 +53,7 @@ struct GroupWorkoutDetailDeepLinkView: View {
         
         do {
             // Fetch the workout by ID
-            let fetchedWorkout = try await container.groupWorkoutService.fetchWorkout(workoutId)
+            let fetchedWorkout = try await container.groupWorkoutService.fetchWorkout(workoutID)
             workout = fetchedWorkout
         } catch {
             FameFitLogger.error("Failed to load workout for deep link", error: error, category: FameFitLogger.ui)
@@ -66,7 +66,7 @@ struct GroupWorkoutDetailDeepLinkView: View {
 
 #Preview {
     NavigationStack {
-        GroupWorkoutDetailDeepLinkView(workoutId: "test-workout-id")
+        GroupWorkoutDetailDeepLinkView(workoutID: "test-workout-id")
             .environment(\.dependencyContainer, DependencyContainer())
     }
 }

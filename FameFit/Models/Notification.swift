@@ -15,7 +15,7 @@ struct FameFitNotification: Identifiable, Codable {
     let actions: [NotificationAction]
 
     // Grouping support
-    let groupId: String?
+    let groupID: String?
 
     // Legacy support - will be removed in future
     let character: FameFitCharacter?
@@ -29,7 +29,7 @@ struct FameFitNotification: Identifiable, Codable {
         body: String,
         metadata: NotificationMetadataContainer? = nil,
         actions: [NotificationAction] = [],
-        groupId: String? = nil
+        groupID: String? = nil
     ) {
         id = UUID().uuidString
         self.type = type
@@ -39,7 +39,7 @@ struct FameFitNotification: Identifiable, Codable {
         isRead = false
         self.metadata = metadata
         self.actions = actions
-        self.groupId = groupId
+        self.groupID = groupID
 
         // Legacy fields - set to nil for new notifications
         character = nil
@@ -68,7 +68,7 @@ struct FameFitNotification: Identifiable, Codable {
         self.followersEarned = followersEarned
         isRead = false
         metadata = .workout(WorkoutNotificationMetadata(
-            workoutId: nil,
+            workoutID: nil,
             workoutType: nil,
             duration: workoutDuration,
             calories: calories,
@@ -77,7 +77,7 @@ struct FameFitNotification: Identifiable, Codable {
             averageHeartRate: nil
         ))
         actions = []
-        groupId = nil
+        groupID = nil
     }
 
     // Explicit Codable implementation to handle the custom init
@@ -99,7 +99,7 @@ struct FameFitNotification: Identifiable, Codable {
 
         metadata = try? container.decode(NotificationMetadataContainer.self, forKey: .metadata)
         actions = (try? container.decode([NotificationAction].self, forKey: .actions)) ?? []
-        groupId = try? container.decode(String.self, forKey: .groupId)
+        groupID = try? container.decode(String.self, forKey: .groupID)
 
         // Legacy fields - decode if present
         character = try? container.decode(FameFitCharacter.self, forKey: .character)

@@ -379,7 +379,7 @@ struct NotificationRowView: View {
                 title: "Workout Complete! 💪",
                 body: "Great job on that 30-minute run! You earned 45 XP.",
                 metadata: .workout(WorkoutNotificationMetadata(
-                    workoutId: "123",
+                    workoutID: "123",
                     workoutType: "Running",
                     duration: 30,
                     calories: 250,
@@ -422,7 +422,7 @@ struct NotificationRowView: View {
                 title: "Achievement Unlocked! 🏆",
                 body: "You've earned the 'Workout Warrior' achievement!",
                 metadata: .achievement(AchievementNotificationMetadata(
-                    achievementId: "warrior",
+                    achievementID: "warrior",
                     achievementName: "Workout Warrior",
                     achievementDescription: "Complete 50 workouts",
                     xpRequired: 1_000,

@@ -119,7 +119,6 @@ actor CloudKitOperationQueue {
             recordSuccess(duration: duration)
             
             FameFitLogger.debug("Operation completed: \(queuedOp.description) (took \(String(format: "%.2f", duration))s)", category: FameFitLogger.cloudKit)
-            
         } catch {
             let duration = Date().timeIntervalSince(startTime)
             recordFailure(error: error, duration: duration)

@@ -193,7 +193,7 @@ final class ModernHealthKitService: ModernHealthKitServicing, @unchecked Sendabl
             let query = HKObserverQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: nil
-            ) { [weak self] query, completionHandler, error in
+            ) { [weak self] _, completionHandler, error in
                 guard let self = self else {
                     completionHandler()
                     return

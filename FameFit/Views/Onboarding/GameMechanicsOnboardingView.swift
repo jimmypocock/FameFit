@@ -57,7 +57,7 @@ struct GameMechanicsOnboardingView: View {
                     }
                     .padding()
                 }
-                .onChange(of: visibleMessages) { _, newValue in
+                .onChange(of: visibleMessages) { _, _ in
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }

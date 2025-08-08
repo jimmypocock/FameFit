@@ -12,7 +12,7 @@ struct ActivityFeedRecord: Codable, Identifiable, Equatable {
     let id: String
     let userID: String
     let activityType: String
-    let workoutId: String?
+    let workoutID: String?
     let content: String // JSON encoded content
     let visibility: String // "private", "friends_only", "public"
     let createdTimestamp: Date
@@ -48,7 +48,7 @@ extension ActivityFeedRecord {
         self.id = record.recordID.recordName
         self.userID = userID
         self.activityType = activityType
-        self.workoutId = record["workoutId"] as? String
+        self.workoutID = record["workoutID"] as? String
         self.content = content
         self.visibility = visibility
         self.createdTimestamp = createdTimestamp
@@ -66,8 +66,8 @@ extension ActivityFeedRecord {
         
         record["userID"] = userID
         record["activityType"] = activityType
-        if let workoutId {
-            record["workoutId"] = workoutId
+        if let workoutID {
+            record["workoutID"] = workoutID
         }
         record["content"] = content
         record["visibility"] = visibility

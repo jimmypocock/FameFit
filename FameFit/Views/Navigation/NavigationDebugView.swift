@@ -60,7 +60,7 @@ struct NavigationDebugView: View {
                             .font(.system(.caption, design: .monospaced))
                     }
                 }
-            }
+                }
             .navigationTitle("Navigation Debug")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

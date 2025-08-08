@@ -10,10 +10,10 @@ import XCTest
 import CloudKit
 
 class CachedSocialFollowingServiceTests: XCTestCase {
-    var sut: CachedSocialFollowingService!
-    var mockCloudKitManager: MockCloudKitManager!
-    var mockRateLimiter: MockRateLimitingService!
-    var mockProfileService: MockUserProfileService!
+    private var sut: CachedSocialFollowingService!
+    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockRateLimiter: MockRateLimitingService!
+    private var mockProfileService: MockUserProfileService!
     
     override func setUp() {
         super.setUp()
@@ -92,7 +92,7 @@ class CachedSocialFollowingServiceTests: XCTestCase {
             bio: "Test bio",
             profileImage: nil,
             workoutCount: 10,
-            totalXP: 1000,
+            totalXP: 1_000,
             level: 5,
             joinedDate: Date(),
             lastActive: Date(),

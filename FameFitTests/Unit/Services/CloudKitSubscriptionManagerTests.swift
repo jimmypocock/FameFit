@@ -82,7 +82,6 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(SubscriptionType.userProfile.subscriptionID, "user-profile-subscription")
     }
 
-
     // MARK: - Notification Handling Tests
 
     func testNotificationPublisher_CanReceiveSubscriptions() async {
@@ -127,5 +126,4 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(notificationInfo.changeType, changeType)
         XCTAssertEqual(notificationInfo.userInfo["key"] as? String, "value")
     }
-
 }

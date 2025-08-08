@@ -19,7 +19,7 @@ enum CloudKitConfiguration {
         static let deviceTokens = "DeviceTokens"
         static let userProfiles = "UserProfiles"
         static let userRelationships = "UserRelationships"
-        static let activityFeedItems = "ActivityFeedItems"
+        static let activityFeed = "ActivityFeed"
         static let workoutKudos = "WorkoutKudos"
         static let workoutComments = "WorkoutComments"
         static let groupWorkouts = "GroupWorkouts"
@@ -40,7 +40,7 @@ enum CloudKitConfiguration {
     }
     
     enum WorkoutFields {
-        static let workoutId = "workoutId"
+        static let workoutID = "workoutID"
         static let workoutType = "workoutType"
         static let startDate = "startDate"
         static let endDate = "endDate"

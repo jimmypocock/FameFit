@@ -113,14 +113,14 @@ struct GroupWorkoutsView: View {
             if let navigationCoordinator = navigationCoordinator {
                 viewModel.setup(
                     groupWorkoutService: container.groupWorkoutService,
-                    currentUserId: container.cloudKitManager.currentUserID,
+                    currentUserID: container.cloudKitManager.currentUserID,
                     navigationCoordinator: navigationCoordinator
                 )
             } else {
                 // Fallback without navigation coordinator (shouldn't happen in practice)
                 viewModel.setup(
                     groupWorkoutService: container.groupWorkoutService,
-                    currentUserId: container.cloudKitManager.currentUserID,
+                    currentUserID: container.cloudKitManager.currentUserID,
                     navigationCoordinator: nil
                 )
             }
@@ -322,16 +322,16 @@ class GroupWorkoutsViewModel: ObservableObject {
     @Published var publicWorkouts: [GroupWorkout] = []
 
     private var groupWorkoutService: GroupWorkoutServiceProtocol?
-    var currentUserId: String?
+    var currentUserID: String?
     private var navigationCoordinator: NavigationCoordinator?
 
     private var hasMoreUpcoming = true
     private var hasMoreActive = true
     private var hasMoreMyWorkouts = true
 
-    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserId: String?, navigationCoordinator: NavigationCoordinator?) {
+    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserID: String?, navigationCoordinator: NavigationCoordinator?) {
         self.groupWorkoutService = groupWorkoutService
-        self.currentUserId = currentUserId
+        self.currentUserID = currentUserID
         self.navigationCoordinator = navigationCoordinator
         
         // Listen for workout deletion notifications
@@ -347,13 +347,13 @@ class GroupWorkoutsViewModel: ObservableObject {
         // Refresh the currently selected tab when a workout is deleted
         Task { @MainActor in
             // Remove the deleted workout from all lists
-            if let workoutId = notification.userInfo?["workoutId"] as? String {
-                upcomingWorkouts.removeAll { $0.id == workoutId }
-                activeWorkouts.removeAll { $0.id == workoutId }
-                myWorkouts.removeAll { $0.id == workoutId }
-                hostingWorkouts.removeAll { $0.id == workoutId }
-                participatingWorkouts.removeAll { $0.id == workoutId }
-                publicWorkouts.removeAll { $0.id == workoutId }
+            if let workoutID = notification.userInfo?["workoutID"] as? String {
+                upcomingWorkouts.removeAll { $0.id == workoutID }
+                activeWorkouts.removeAll { $0.id == workoutID }
+                myWorkouts.removeAll { $0.id == workoutID }
+                hostingWorkouts.removeAll { $0.id == workoutID }
+                participatingWorkouts.removeAll { $0.id == workoutID }
+                publicWorkouts.removeAll { $0.id == workoutID }
             }
         }
     }
@@ -505,7 +505,7 @@ class GroupWorkoutsViewModel: ObservableObject {
     private func groupUpcomingWorkouts() {
         FameFitLogger.debug("🏋️ Grouping \(upcomingWorkouts.count) upcoming workouts", category: FameFitLogger.ui)
         
-        guard let userId = currentUserId else {
+        guard let userID = currentUserID else {
             // If no user ID, all workouts are public to view
             FameFitLogger.debug("🏋️ No user ID - showing all as public", category: FameFitLogger.ui)
             hostingWorkouts = []
@@ -515,16 +515,16 @@ class GroupWorkoutsViewModel: ObservableObject {
         }
         
         // Group workouts by user's relationship
-        let hosting = upcomingWorkouts.filter { $0.hostId == userId }
+        let hosting = upcomingWorkouts.filter { $0.hostID == userID }
             .sorted { $0.scheduledStart < $1.scheduledStart }
         
         let participating = upcomingWorkouts.filter { 
-            $0.hostId != userId && $0.participantIDs.contains(userId)
+            $0.hostID != userID && $0.participantIDs.contains(userID)
         }
             .sorted { $0.scheduledStart < $1.scheduledStart }
         
         let publicOnly = upcomingWorkouts.filter { 
-            $0.isPublic && $0.hostId != userId && !$0.participantIDs.contains(userId)
+            $0.isPublic && $0.hostID != userID && !$0.participantIDs.contains(userID)
         }
             .sorted { $0.scheduledStart < $1.scheduledStart }
         

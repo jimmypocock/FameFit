@@ -31,9 +31,9 @@ protocol ActivityFeedServicing {
         privacy: WorkoutPrivacy
     ) async throws
 
-    func fetchFeed(for userIds: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedRecord]
-    func deleteActivity(_ activityId: String) async throws
-    func updateActivityPrivacy(_ activityId: String, newPrivacy: WorkoutPrivacy) async throws
+    func fetchFeed(for userIDs: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedRecord]
+    func deleteActivity(_ activityID: String) async throws
+    func updateActivityPrivacy(_ activityID: String, newPrivacy: WorkoutPrivacy) async throws
 
     // Publishers for real-time updates
     var newActivityPublisher: AnyPublisher<ActivityFeedRecord, Never> { get }
@@ -44,7 +44,7 @@ protocol ActivityFeedServicing {
 
 final class ActivityFeedService: ActivityFeedServicing {
     private let cloudKitManager: any CloudKitManaging
-    private let privacySettings: WorkoutPrivacySettings
+    private var privacySettings: WorkoutPrivacySettings
 
     // Publishers
     private let newActivitySubject = PassthroughSubject<ActivityFeedRecord, Never>()
@@ -62,6 +62,12 @@ final class ActivityFeedService: ActivityFeedServicing {
         self.cloudKitManager = cloudKitManager
         self.privacySettings = privacySettings
     }
+    
+    /// Update privacy settings from saved user preferences
+    func updatePrivacySettings(_ settings: WorkoutPrivacySettings) {
+        self.privacySettings = settings
+        FameFitLogger.info("📱 Updated privacy settings: defaultPrivacy=\(settings.defaultPrivacy.rawValue)", category: FameFitLogger.social)
+    }
 
     // MARK: - Post Activity Methods
 
@@ -70,16 +76,20 @@ final class ActivityFeedService: ActivityFeedServicing {
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
+        FameFitLogger.info("📝 Attempting to post workout activity: type=\(workoutHistory.workoutType)", category: FameFitLogger.social)
+        
         // Validate privacy settings
         guard let workoutType = HKWorkoutActivityType.from(storageKey: workoutHistory.workoutType) else {
+            FameFitLogger.error("❌ Invalid workout type: \(workoutHistory.workoutType)", category: FameFitLogger.social)
             throw ActivityFeedError.invalidWorkoutType
         }
 
         let effectivePrivacy = privacySettings.effectivePrivacy(for: workoutType)
         let finalPrivacy = min(privacy, effectivePrivacy) // Use most restrictive
+        FameFitLogger.info("📊 Privacy check: requested=\(privacy.rawValue), effective=\(effectivePrivacy.rawValue), final=\(finalPrivacy.rawValue)", category: FameFitLogger.social)
 
-        // Don't post private workouts
-        guard finalPrivacy != .private else { return }
+        // Private workouts should still be saved - they're just not visible to others
+        // The visibility field controls who can see them
 
         // Create content
         let content = createWorkoutContent(
@@ -97,7 +107,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "workout",
-            workoutId: workoutHistory.id.uuidString,
+            workoutID: workoutHistory.id.uuidString,
             content: contentString,
             visibility: finalPrivacy.rawValue,
             createdTimestamp: Date(),
@@ -106,7 +116,9 @@ final class ActivityFeedService: ActivityFeedServicing {
             achievementName: nil
         )
 
+        FameFitLogger.info("📤 Saving activity feed item to CloudKit...", category: FameFitLogger.social)
         try await saveToCloudKit(activityItem)
+        FameFitLogger.info("✅ Successfully posted workout to activity feed", category: FameFitLogger.social)
 
         // Notify subscribers
         newActivitySubject.send(activityItem)
@@ -142,7 +154,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "achievement",
-            workoutId: nil,
+            workoutID: nil,
             content: contentString,
             visibility: effectivePrivacy.rawValue,
             createdTimestamp: Date(),
@@ -182,7 +194,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
             activityType: "level_up",
-            workoutId: nil,
+            workoutID: nil,
             content: contentString,
             visibility: effectivePrivacy.rawValue,
             createdTimestamp: Date(),
@@ -197,28 +209,64 @@ final class ActivityFeedService: ActivityFeedServicing {
 
     // MARK: - Fetch Methods
 
-    func fetchFeed(for userIds: Set<String>, since: Date?, limit _: Int) async throws -> [ActivityFeedRecord] {
+    func fetchFeed(for userIDs: Set<String>, since: Date?, limit _: Int) async throws -> [ActivityFeedRecord] {
+        FameFitLogger.info("🔍 Starting fetchFeed for \(userIDs.count) users: \(Array(userIDs).prefix(3))...", category: FameFitLogger.social)
+        
         let predicate = if let since {
             NSPredicate(
                 format: "userID IN %@ AND createdTimestamp > %@ AND expiresAt > %@",
-                Array(userIds),
+                Array(userIDs),
                 since as NSDate,
                 Date() as NSDate
             )
         } else {
             NSPredicate(
                 format: "userID IN %@ AND expiresAt > %@",
-                Array(userIds),
+                Array(userIDs),
                 Date() as NSDate
             )
         }
+        
+        FameFitLogger.info("🔍 Query predicate: \(predicate)", category: FameFitLogger.social)
 
-        let query = CKQuery(recordType: "ActivityFeedItems", predicate: predicate)
+        let query = CKQuery(recordType: "ActivityFeed", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
 
-        // Since CloudKitManager doesn't have performQuery, we'll use a simplified approach
-        // In a real implementation, this would be replaced with actual CloudKit queries
-        return []
+        // Perform the actual CloudKit query
+        do {
+            FameFitLogger.info("🌐 Executing CloudKit query on public database...", category: FameFitLogger.social)
+            let results = try await cloudKitManager.publicDatabase.records(matching: query)
+            FameFitLogger.info("📦 Query returned \(results.matchResults.count) results", category: FameFitLogger.social)
+            
+            let records = results.matchResults.compactMap { result -> CKRecord? in
+                do {
+                    return try result.1.get()
+                } catch {
+                    FameFitLogger.error("⚠️ Failed to get record: \(error)", category: FameFitLogger.social)
+                    return nil
+                }
+            }
+            
+            FameFitLogger.info("📦 Successfully extracted \(records.count) CKRecords", category: FameFitLogger.social)
+            
+            // Convert CKRecords to ActivityFeedRecords
+            let feedRecords = records.compactMap { record -> ActivityFeedRecord? in
+                let result = convertRecordToActivityItem(record)
+                if result == nil {
+                    FameFitLogger.warning("⚠️ Failed to convert record: \(record.recordID.recordName)", category: FameFitLogger.social)
+                }
+                return result
+            }
+            
+            FameFitLogger.info("📥 Successfully converted \(feedRecords.count) activity feed items from CloudKit", category: FameFitLogger.social)
+            if !feedRecords.isEmpty {
+                FameFitLogger.info("📋 First item: type=\(feedRecords[0].activityType), user=\(feedRecords[0].userID)", category: FameFitLogger.social)
+            }
+            return feedRecords
+        } catch {
+            FameFitLogger.error("❌ Failed to fetch activity feed: \(error)", category: FameFitLogger.social)
+            throw error
+        }
     }
 
     func deleteActivity(_: String) async throws {
@@ -226,12 +274,12 @@ final class ActivityFeedService: ActivityFeedServicing {
         // For now, this is a placeholder
     }
 
-    func updateActivityPrivacy(_ activityId: String, newPrivacy: WorkoutPrivacy) async throws {
+    func updateActivityPrivacy(_ activityID: String, newPrivacy: WorkoutPrivacy) async throws {
         // CloudKit update would go here
         // For now, this is a placeholder
 
         // Notify subscribers
-        privacyUpdateSubject.send((activityId, newPrivacy))
+        privacyUpdateSubject.send((activityID, newPrivacy))
     }
 
     // MARK: - Private Helper Methods
@@ -272,9 +320,33 @@ final class ActivityFeedService: ActivityFeedServicing {
     }
 
     private func saveToCloudKit(_ item: ActivityFeedRecord) async throws {
-        // CloudKit save would go here
-        // For now, this is a placeholder
-        print("Would save activity to CloudKit: \(item.activityType) by \(item.userID)")
+        let record = CKRecord(recordType: "ActivityFeed")
+        record["userID"] = item.userID
+        record["activityType"] = item.activityType
+        record["workoutID"] = item.workoutID
+        record["content"] = item.content
+        record["visibility"] = item.visibility
+        record["createdTimestamp"] = item.createdTimestamp
+        record["expiresAt"] = item.expiresAt
+        record["xpEarned"] = item.xpEarned
+        record["achievementName"] = item.achievementName
+        
+        FameFitLogger.info("📋 Activity feed record details:", category: FameFitLogger.social)
+        FameFitLogger.info("  - Record ID: \(record.recordID.recordName)", category: FameFitLogger.social)
+        FameFitLogger.info("  - User ID: \(item.userID)", category: FameFitLogger.social)
+        FameFitLogger.info("  - Type: \(item.activityType)", category: FameFitLogger.social)
+        FameFitLogger.info("  - Workout ID: \(item.workoutID ?? "nil")", category: FameFitLogger.social)
+        FameFitLogger.info("  - Visibility: \(item.visibility)", category: FameFitLogger.social)
+        
+        do {
+            let savedRecord = try await cloudKitManager.publicDatabase.save(record)
+            FameFitLogger.info("✅ Saved activity feed item to CloudKit: \(item.activityType)", category: FameFitLogger.social)
+            FameFitLogger.info("  - Saved Record ID: \(savedRecord.recordID.recordName)", category: FameFitLogger.social)
+            FameFitLogger.info("  - Database: Public", category: FameFitLogger.social)
+        } catch {
+            FameFitLogger.error("❌ Failed to save activity feed to CloudKit: \(error)", category: FameFitLogger.social)
+            throw error
+        }
     }
 
     private func convertRecordToActivityItem(_ record: CKRecord) -> ActivityFeedRecord? {
@@ -293,7 +365,7 @@ final class ActivityFeedService: ActivityFeedServicing {
             id: record.recordID.recordName,
             userID: userID,
             activityType: activityType,
-            workoutId: record["workoutId"] as? String,
+            workoutID: record["workoutID"] as? String,
             content: content,
             visibility: visibility,
             createdTimestamp: createdTimestamp,

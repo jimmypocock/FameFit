@@ -23,30 +23,30 @@ enum CacheTTL {
 
 enum CacheKeys {
     // Profile caching
-    static func profile(userId: String) -> String {
-        "profile:\(userId)"
+    static func profile(userID: String) -> String {
+        "profile:\(userID)"
     }
     
-    static func profileByRecordId(_ recordId: String) -> String {
-        "profile:record:\(recordId)"
+    static func profileByRecordID(_ recordID: String) -> String {
+        "profile:record:\(recordID)"
     }
     
     // Count caching
-    static func followerCount(userId: String) -> String {
-        "follower_count:\(userId)"
+    static func followerCount(userID: String) -> String {
+        "follower_count:\(userID)"
     }
     
-    static func followingCount(userId: String) -> String {
-        "following_count:\(userId)"
+    static func followingCount(userID: String) -> String {
+        "following_count:\(userID)"
     }
     
     // List caching
-    static func followers(userId: String, page: Int = 0) -> String {
-        "followers:\(userId):\(page)"
+    static func followers(userID: String, page: Int = 0) -> String {
+        "followers:\(userID):\(page)"
     }
     
-    static func following(userId: String, page: Int = 0) -> String {
-        "following:\(userId):\(page)"
+    static func following(userID: String, page: Int = 0) -> String {
+        "following:\(userID):\(page)"
     }
     
     // Relationship caching
@@ -71,54 +71,54 @@ final class SocialDataCache: @unchecked Sendable {
     
     // MARK: - Profile Caching
     
-    func getProfile(userId: String) -> UserProfile? {
-        cacheManager.get(CacheKeys.profile(userId: userId), type: UserProfile.self)
+    func getProfile(userID: String) -> UserProfile? {
+        cacheManager.get(CacheKeys.profile(userID: userID), type: UserProfile.self)
     }
     
     func setProfile(_ profile: UserProfile) {
         // Cache by both user ID and record ID for flexibility
-        cacheManager.set(CacheKeys.profile(userId: profile.userID), value: profile, ttl: CacheTTL.profile)
-        cacheManager.set(CacheKeys.profileByRecordId(profile.id), value: profile, ttl: CacheTTL.profile)
+        cacheManager.set(CacheKeys.profile(userID: profile.userID), value: profile, ttl: CacheTTL.profile)
+        cacheManager.set(CacheKeys.profileByRecordID(profile.id), value: profile, ttl: CacheTTL.profile)
     }
     
-    func getProfileByRecordId(_ recordId: String) -> UserProfile? {
-        cacheManager.get(CacheKeys.profileByRecordId(recordId), type: UserProfile.self)
+    func getProfileByRecordID(_ recordID: String) -> UserProfile? {
+        cacheManager.get(CacheKeys.profileByRecordID(recordID), type: UserProfile.self)
     }
     
     // MARK: - Count Caching
     
-    func getFollowerCount(userId: String) -> Int? {
-        cacheManager.get(CacheKeys.followerCount(userId: userId), type: Int.self)
+    func getFollowerCount(userID: String) -> Int? {
+        cacheManager.get(CacheKeys.followerCount(userID: userID), type: Int.self)
     }
     
-    func setFollowerCount(userId: String, count: Int) {
-        cacheManager.set(CacheKeys.followerCount(userId: userId), value: count, ttl: CacheTTL.followerCount)
+    func setFollowerCount(userID: String, count: Int) {
+        cacheManager.set(CacheKeys.followerCount(userID: userID), value: count, ttl: CacheTTL.followerCount)
     }
     
-    func getFollowingCount(userId: String) -> Int? {
-        cacheManager.get(CacheKeys.followingCount(userId: userId), type: Int.self)
+    func getFollowingCount(userID: String) -> Int? {
+        cacheManager.get(CacheKeys.followingCount(userID: userID), type: Int.self)
     }
     
-    func setFollowingCount(userId: String, count: Int) {
-        cacheManager.set(CacheKeys.followingCount(userId: userId), value: count, ttl: CacheTTL.followingCount)
+    func setFollowingCount(userID: String, count: Int) {
+        cacheManager.set(CacheKeys.followingCount(userID: userID), value: count, ttl: CacheTTL.followingCount)
     }
     
     // MARK: - List Caching
     
-    func getFollowers(userId: String, page: Int = 0) -> [UserProfile]? {
-        cacheManager.get(CacheKeys.followers(userId: userId, page: page), type: [UserProfile].self)
+    func getFollowers(userID: String, page: Int = 0) -> [UserProfile]? {
+        cacheManager.get(CacheKeys.followers(userID: userID, page: page), type: [UserProfile].self)
     }
     
-    func setFollowers(userId: String, followers: [UserProfile], page: Int = 0) {
-        cacheManager.set(CacheKeys.followers(userId: userId, page: page), value: followers, ttl: CacheTTL.followersList)
+    func setFollowers(userID: String, followers: [UserProfile], page: Int = 0) {
+        cacheManager.set(CacheKeys.followers(userID: userID, page: page), value: followers, ttl: CacheTTL.followersList)
     }
     
-    func getFollowing(userId: String, page: Int = 0) -> [UserProfile]? {
-        cacheManager.get(CacheKeys.following(userId: userId, page: page), type: [UserProfile].self)
+    func getFollowing(userID: String, page: Int = 0) -> [UserProfile]? {
+        cacheManager.get(CacheKeys.following(userID: userID, page: page), type: [UserProfile].self)
     }
     
-    func setFollowing(userId: String, following: [UserProfile], page: Int = 0) {
-        cacheManager.set(CacheKeys.following(userId: userId, page: page), value: following, ttl: CacheTTL.followingList)
+    func setFollowing(userID: String, following: [UserProfile], page: Int = 0) {
+        cacheManager.set(CacheKeys.following(userID: userID, page: page), value: following, ttl: CacheTTL.followingList)
     }
     
     // MARK: - Relationship Caching
@@ -144,28 +144,28 @@ final class SocialDataCache: @unchecked Sendable {
     // MARK: - Cache Invalidation
     
     /// Invalidate all caches for a specific user
-    func invalidateUser(_ userId: String) {
+    func invalidateUser(_ userID: String) {
         // Invalidate counts
-        cacheManager.remove(CacheKeys.followerCount(userId: userId))
-        cacheManager.remove(CacheKeys.followingCount(userId: userId))
+        cacheManager.remove(CacheKeys.followerCount(userID: userID))
+        cacheManager.remove(CacheKeys.followingCount(userID: userID))
         
         // Invalidate lists (all pages)
-        cacheManager.invalidate(matching: "followers:\(userId):")
-        cacheManager.invalidate(matching: "following:\(userId):")
+        cacheManager.invalidate(matching: "followers:\(userID):")
+        cacheManager.invalidate(matching: "following:\(userID):")
         
         // Invalidate relationships
-        cacheManager.invalidate(matching: "relationship:\(userId):")
-        cacheManager.invalidate(matching: "relationship:.*:\(userId)")
+        cacheManager.invalidate(matching: "relationship:\(userID):")
+        cacheManager.invalidate(matching: "relationship:.*:\(userID)")
         
         // Invalidate profile
-        cacheManager.remove(CacheKeys.profile(userId: userId))
+        cacheManager.remove(CacheKeys.profile(userID: userID))
     }
     
     /// Invalidate caches when a follow action occurs
     func invalidateFollowAction(follower: String, following: String) {
         // Invalidate counts for both users
-        cacheManager.remove(CacheKeys.followerCount(userId: following))
-        cacheManager.remove(CacheKeys.followingCount(userId: follower))
+        cacheManager.remove(CacheKeys.followerCount(userID: following))
+        cacheManager.remove(CacheKeys.followingCount(userID: follower))
         
         // Invalidate lists for both users
         cacheManager.invalidate(matching: "followers:\(following):")

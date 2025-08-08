@@ -94,12 +94,12 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
     // MARK: - Private Methods
     
     private func fetchFromCloudKit() async throws -> ActivityFeedSettings? {
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw NSError(domain: "ActivityFeedSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
         }
         
         // Create predicate to find settings for current user
-        let predicate = NSPredicate(format: "userID == %@", userId)
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: recordType, predicate: predicate)
         
         do {
@@ -122,14 +122,14 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
     }
     
     private func saveToCloudKit(_ settings: ActivityFeedSettings) async throws {
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw NSError(domain: "ActivityFeedSettings", code: 1, userInfo: [NSLocalizedDescriptionKey: "No user ID available"])
         }
         
         // First, try to fetch existing record to update it
         let existingRecord: CKRecord?
         do {
-            existingRecord = try await fetchExistingRecord(for: userId)
+            existingRecord = try await fetchExistingRecord(for: userID)
         } catch {
             // If fetch fails, we'll create a new record
             existingRecord = nil
@@ -142,7 +142,7 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
             updateRecord(record, with: settings)
         } else {
             record = settings.toCKRecord()
-            record["userID"] = userId
+            record["userID"] = userID
         }
         
         // Save to CloudKit
@@ -155,8 +155,8 @@ final class ActivityFeedSettingsService: ActivityFeedSettingsServicing {
         }
     }
     
-    private func fetchExistingRecord(for userId: String) async throws -> CKRecord? {
-        let predicate = NSPredicate(format: "userID == %@", userId)
+    private func fetchExistingRecord(for userID: String) async throws -> CKRecord? {
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: recordType, predicate: predicate)
         
         let (matchResults, _) = try await privateDatabase.records(matching: query, inZoneWith: nil)

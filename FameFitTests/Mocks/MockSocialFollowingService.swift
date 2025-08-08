@@ -77,7 +77,7 @@ final class MockSocialFollowingService: SocialFollowingServicing {
             id: UUID().uuidString,
             requesterId: "mock-current-user",
             requesterProfile: nil,
-            targetId: userId,
+            targetID: userId,
             status: "pending",
             createdTimestamp: Date(),
             expiresAt: Date().addingTimeInterval(604_800),
@@ -148,15 +148,15 @@ final class MockSocialFollowingService: SocialFollowingServicing {
         }
     }
 
-    func checkRelationship(between userId: String, and targetId: String) async throws -> RelationshipStatus {
+    func checkRelationship(between userId: String, and targetID: String) async throws -> RelationshipStatus {
         if shouldFail { throw mockError }
 
-        if blockedUsers[userId]?.contains(targetId) == true {
+        if blockedUsers[userId]?.contains(targetID) == true {
             return .blocked
         }
 
-        let userFollowsTarget = relationships[userId]?.contains(targetId) == true
-        let targetFollowsUser = relationships[targetId]?.contains(userId) == true
+        let userFollowsTarget = relationships[userId]?.contains(targetID) == true
+        let targetFollowsUser = relationships[targetID]?.contains(userId) == true
 
         if userFollowsTarget && targetFollowsUser {
             return .mutualFollow

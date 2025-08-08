@@ -12,7 +12,7 @@ struct GroupWorkoutSummaryView: View {
     let workout: GroupWorkout
     let personalWorkout: HKWorkout?
     let participants: [GroupWorkoutParticipant]
-    let currentUserId: String
+    let currentUserID: String
     
     @State private var participantProfiles: [String: UserProfile] = [:]
     @State private var isLoadingProfiles = true
@@ -28,18 +28,18 @@ struct GroupWorkoutSummaryView: View {
             .map { participant in
                 ParticipantRanking(
                     participant: participant,
-                    profile: participantProfiles[participant.userId]
+                    profile: participantProfiles[participant.userID]
                 )
             }
             .sorted { $0.participant.workoutData!.totalEnergyBurned > $1.participant.workoutData!.totalEnergyBurned }
     }
     
     private var userRank: Int? {
-        rankings.firstIndex { $0.participant.userId == currentUserId }.map { $0 + 1 }
+        rankings.firstIndex { $0.participant.userID == currentUserID }.map { $0 + 1 }
     }
     
     private var userParticipant: GroupWorkoutParticipant? {
-        participants.first { $0.userId == currentUserId }
+        participants.first { $0.userID == currentUserID }
     }
     
     var body: some View {
@@ -242,7 +242,7 @@ struct GroupWorkoutSummaryView: View {
                     rank: index + 1,
                     participant: ranking.participant,
                     profile: ranking.profile,
-                    isCurrentUser: ranking.participant.userId == currentUserId
+                    isCurrentUser: ranking.participant.userID == currentUserID
                 )
             }
         }
@@ -258,7 +258,7 @@ struct GroupWorkoutSummaryView: View {
             }
             .buttonStyle(BorderedProminentButtonStyle())
             
-            if workout.hostId == currentUserId {
+            if workout.hostID == currentUserID {
                 Button(action: scheduleNextWorkout) {
                     Label("Schedule Next Workout", systemImage: "calendar.badge.plus")
                         .frame(maxWidth: .infinity)
@@ -275,12 +275,12 @@ struct GroupWorkoutSummaryView: View {
         
         for participant in participants {
             do {
-                let profile = try await container.userProfileService.fetchProfileByUserID(participant.userId)
+                let profile = try await container.userProfileService.fetchProfileByUserID(participant.userID)
                 await MainActor.run {
-                    participantProfiles[participant.userId] = profile
+                    participantProfiles[participant.userID] = profile
                 }
             } catch {
-                FameFitLogger.warning("Failed to load profile for \(participant.userId)", category: FameFitLogger.ui)
+                FameFitLogger.warning("Failed to load profile for \(participant.userID)", category: FameFitLogger.ui)
             }
         }
         
@@ -291,8 +291,8 @@ struct GroupWorkoutSummaryView: View {
     
     private func formatWorkoutDuration() -> String {
         let duration = workout.scheduledEnd.timeIntervalSince(workout.scheduledStart)
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / 3_600
+        let minutes = (Int(duration) % 3_600) / 60
         
         if hours > 0 {
             return "\(hours)h \(minutes)m"
@@ -341,7 +341,7 @@ struct GroupWorkoutSummaryView: View {
         if let data = userParticipant?.workoutData {
             text += "🔥 \(Int(data.totalEnergyBurned)) calories burned\n"
             if let distance = data.totalDistance, distance > 0 {
-                text += "📍 \(String(format: "%.2f", distance / 1000)) km\n"
+                text += "📍 \(String(format: "%.2f", distance / 1_000)) km\n"
             }
             text += "⏱ \(formatDuration(data.duration))\n"
         }
@@ -352,8 +352,8 @@ struct GroupWorkoutSummaryView: View {
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
-        let hours = Int(duration) / 3600
-        let minutes = (Int(duration) % 3600) / 60
+        let hours = Int(duration) / 3_600
+        let minutes = (Int(duration) % 3_600) / 60
         let seconds = Int(duration) % 60
         
         if hours > 0 {
@@ -406,7 +406,7 @@ struct GroupStatsCard: View {
                 StatBox(title: "Participants", value: "\(totalParticipants)", icon: "person.2.fill")
                 StatBox(title: "Completed", value: "\(completedCount)", icon: "checkmark.circle.fill")
                 StatBox(title: "Total Calories", value: "\(Int(totalCalories))", icon: "flame.fill")
-                StatBox(title: "Total Distance", value: String(format: "%.1f km", totalDistance / 1000), icon: "location.fill")
+                StatBox(title: "Total Distance", value: String(format: "%.1f km", totalDistance / 1_000), icon: "location.fill")
             }
         }
         .padding()
@@ -504,7 +504,7 @@ struct PersonalStatsCard: View {
                 
                 if let distance = data.totalDistance {
                     VStack {
-                        Text(String(format: "%.2f", distance / 1000))
+                        Text(String(format: "%.2f", distance / 1_000))
                             .font(.title)
                             .fontWeight(.bold)
                         Text("Kilometers")
@@ -551,8 +551,8 @@ struct ComparisonCard: View {
             if let distance = personalData.totalDistance {
                 ComparisonRow(
                     label: "Distance",
-                    personal: distance / 1000,
-                    average: groupAverage.distance / 1000,
+                    personal: distance / 1_000,
+                    average: groupAverage.distance / 1_000,
                     format: "%.2f km"
                 )
             }
@@ -654,19 +654,19 @@ struct FunFactsCard: View {
     private func findMVP() -> String? {
         participants
             .max { ($0.workoutData?.totalEnergyBurned ?? 0) < ($1.workoutData?.totalEnergyBurned ?? 0) }
-            .flatMap { profiles[$0.userId]?.username }
+            .flatMap { profiles[$0.userID]?.username }
     }
     
     private func findSpeedster() -> String? {
         participants
             .max { ($0.workoutData?.totalDistance ?? 0) < ($1.workoutData?.totalDistance ?? 0) }
-            .flatMap { profiles[$0.userId]?.username }
+            .flatMap { profiles[$0.userID]?.username }
     }
     
     private func findHeartRateChamp() -> String? {
         participants
             .max { ($0.workoutData?.averageHeartRate ?? 0) < ($1.workoutData?.averageHeartRate ?? 0) }
-            .flatMap { profiles[$0.userId]?.username }
+            .flatMap { profiles[$0.userID]?.username }
     }
 }
 

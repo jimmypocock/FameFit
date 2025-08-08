@@ -27,7 +27,7 @@ struct ProfileView: View {
     @State private var isVerifyingStats = false
     @State private var statsVerificationMessage: String?
 
-    let userId: String
+    let userID: String
 
     private var profileService: UserProfileServicing {
         container.userProfileService
@@ -38,7 +38,7 @@ struct ProfileView: View {
     }
 
     private var isOwnProfile: Bool {
-        userId == container.cloudKitManager.currentUserID
+        userID == container.cloudKitManager.currentUserID
     }
 
     var body: some View {
@@ -93,7 +93,7 @@ struct ProfileView: View {
             }
         }
         .sheet(isPresented: $showingFollowersList) {
-            FollowersListView(userId: userId, initialTab: selectedFollowTab)
+            FollowersListView(userID: userID, initialTab: selectedFollowTab)
         }
     }
 
@@ -425,7 +425,7 @@ struct ProfileView: View {
                     try await profileService.fetchCurrentUserProfile()
                 } else {
                     // For other users, we need to use the correct method (this should be fixed in ProfileService)
-                    try await profileService.fetchProfile(userId: userId)
+                    try await profileService.fetchProfile(userID: userID)
                 }
                 await MainActor.run {
                     profile = loadedProfile
@@ -461,13 +461,13 @@ struct ProfileView: View {
 
     private func loadRelationshipStatus() {
         guard !isOwnProfile,
-              let currentUserId = container.cloudKitManager.currentUserID else { return }
+              let currentUserID = container.cloudKitManager.currentUserID else { return }
 
         Task {
             do {
                 relationshipStatus = try await socialService.checkRelationship(
-                    between: currentUserId,
-                    and: userId
+                    between: currentUserID,
+                    and: userID
                 )
             } catch {
                 // Default to not following on error
@@ -486,20 +486,20 @@ struct ProfileView: View {
             switch relationshipStatus {
             case .following, .mutualFollow:
                 // Unfollow
-                try await socialService.unfollow(userId: userId)
+                try await socialService.unfollow(userID: userID)
                 relationshipStatus = .notFollowing
 
             case .notFollowing:
                 // Follow or request follow
                 if profile.privacyLevel == .privateProfile {
-                    try await socialService.requestFollow(userId: userId, message: nil)
+                    try await socialService.requestFollow(userID: userID, message: nil)
                     relationshipStatus = .pending
                 } else {
-                    try await socialService.follow(userId: userId)
+                    try await socialService.follow(userID: userID)
                     // Check if mutual
                     let newStatus = try await socialService.checkRelationship(
                         between: container.cloudKitManager.currentUserID ?? "",
-                        and: userId
+                        and: userID
                     )
                     relationshipStatus = newStatus
                 }
@@ -532,8 +532,8 @@ struct ProfileView: View {
         Task {
             do {
                 // Load counts in parallel
-                async let followers = socialService.getFollowerCount(for: userId)
-                async let following = socialService.getFollowingCount(for: userId)
+                async let followers = socialService.getFollowerCount(for: userID)
+                async let following = socialService.getFollowingCount(for: userID)
 
                 followerCount = try await followers
                 followingCount = try await following
@@ -683,7 +683,7 @@ struct ProfileStatCard: View {
 // MARK: - Preview
 
 #Preview("Own Profile") {
-    ProfileView(userId: "mock-user-1")
+    ProfileView(userID: "mock-user-1")
         .environment(\.dependencyContainer, {
             let container = DependencyContainer()
             // Set up mock data
@@ -692,6 +692,6 @@ struct ProfileStatCard: View {
 }
 
 #Preview("Other User Profile") {
-    ProfileView(userId: "other-user")
+    ProfileView(userID: "other-user")
         .environment(\.dependencyContainer, DependencyContainer())
 }

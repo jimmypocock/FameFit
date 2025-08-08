@@ -77,6 +77,8 @@ protocol CloudKitManaging: ObservableObject {
     func delete(withRecordID recordID: CKRecord.ID) async throws
     func getCurrentUserID() async throws -> String
     var database: CKDatabase { get }
+    var publicDatabase: CKDatabase { get }
+    var privateDatabase: CKDatabase { get }
 }
 
 // MARK: - WorkoutObserver Protocol

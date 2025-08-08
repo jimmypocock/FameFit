@@ -120,7 +120,7 @@ struct LeaderboardView: View {
     @State private var selectedTimeFilter: LeaderboardTimeFilter = .week
     @State private var selectedScope: LeaderboardScope = .global
     @State private var showingProfile = false
-    @State private var selectedUserId: String?
+    @State private var selectedUserID: String?
 
     var body: some View {
             VStack(spacing: 0) {
@@ -144,15 +144,15 @@ struct LeaderboardView: View {
                 }
             }
             .sheet(isPresented: $showingProfile) {
-                if let userId = selectedUserId {
-                    ProfileView(userId: userId)
+                if let userID = selectedUserID {
+                    ProfileView(userID: userID)
                 }
             }
             .task {
                 viewModel.configure(
                     userProfileService: container.userProfileService,
                     socialFollowingService: container.socialFollowingService,
-                    currentUserId: container.cloudKitManager.currentUserID ?? ""
+                    currentUserID: container.cloudKitManager.currentUserID ?? ""
                 )
                 await viewModel.loadLeaderboard(
                     timeFilter: selectedTimeFilter,
@@ -241,7 +241,7 @@ struct LeaderboardView: View {
                     ForEach(viewModel.entries) { entry in
                         LeaderboardRow(entry: entry) {
                             if !entry.isCurrentUser {
-                                selectedUserId = entry.id
+                                selectedUserID = entry.id
                                 showingProfile = true
                             }
                         }

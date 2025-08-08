@@ -50,16 +50,16 @@ final class UserProfileService: UserProfileServicing {
 
     // MARK: - Profile Operations
 
-    func fetchProfile(userId: String) async throws -> UserProfile {
+    func fetchProfile(userID: String) async throws -> UserProfile {
         // Check cache first
-        if let cached = getCachedProfile(userId: userId) {
+        if let cached = getCachedProfile(userID: userID) {
             return cached
         }
 
         isLoading = true
         defer { isLoading = false }
 
-        let recordID = CKRecord.ID(recordName: userId)
+        let recordID = CKRecord.ID(recordName: userID)
 
         do {
             let record = try await publicDatabase.record(for: recordID)
@@ -87,16 +87,16 @@ final class UserProfileService: UserProfileServicing {
             throw ProfileServiceError.networkError(CKError(.networkUnavailable))
         }
 
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw ProfileServiceError.profileNotFound
         }
 
-        // Try to fetch profile by userId field (not record ID)
-        var profile = try await fetchProfileByUserID(userId)
+        // Try to fetch profile by userID field (not record ID)
+        var profile = try await fetchProfileByUserID(userID)
         
         // Fetch fresh stats from Users record
         do {
-            let freshStats = try await fetchFreshUserStats(userId: userId)
+            let freshStats = try await fetchFreshUserStats(userID: userID)
             // Create updated profile with fresh stats
             profile = UserProfile(
                 id: profile.id,
@@ -126,21 +126,21 @@ final class UserProfileService: UserProfileServicing {
             throw ProfileServiceError.networkError(CKError(.networkUnavailable))
         }
 
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw ProfileServiceError.profileNotFound
         }
 
         // Clear cache for current user to force fresh data
-        if let existingProfile = profileCache.values.first(where: { $0.profile.userID == userId }) {
+        if let existingProfile = profileCache.values.first(where: { $0.profile.userID == userID }) {
             profileCache.removeValue(forKey: existingProfile.profile.id)
         }
 
-        // Fetch fresh profile by userId field
-        var profile = try await fetchProfileByUserID(userId)
+        // Fetch fresh profile by userID field
+        var profile = try await fetchProfileByUserID(userID)
         
         // Always fetch fresh stats from Users record
         do {
-            let freshStats = try await fetchFreshUserStats(userId: userId)
+            let freshStats = try await fetchFreshUserStats(userID: userID)
             // Create updated profile with fresh stats
             profile = UserProfile(
                 id: profile.id,
@@ -291,24 +291,24 @@ final class UserProfileService: UserProfileServicing {
         }
     }
 
-    func deleteProfile(userId: String) async throws {
+    func deleteProfile(userID: String) async throws {
         isLoading = true
         defer { isLoading = false }
 
-        let recordID = CKRecord.ID(recordName: userId)
+        let recordID = CKRecord.ID(recordName: userID)
 
         do {
             // Delete from public database
             _ = try await publicDatabase.deleteRecord(withID: recordID)
 
             // Delete settings from private database
-            let settingsID = CKRecord.ID(recordName: "settings-\(userId)")
+            let settingsID = CKRecord.ID(recordName: "settings-\(userID)")
             _ = try? await privateDatabase.deleteRecord(withID: settingsID)
 
             // Clear from cache
-            profileCache.removeValue(forKey: userId)
+            profileCache.removeValue(forKey: userID)
 
-            if currentProfile?.id == userId {
+            if currentProfile?.id == userID {
                 currentProfile = nil
             }
         } catch {
@@ -350,16 +350,16 @@ final class UserProfileService: UserProfileServicing {
 
     // MARK: - Settings Operations
 
-    func fetchSettings(userId: String) async throws -> UserSettings {
-        let recordID = CKRecord.ID(recordName: "settings-\(userId)")
+    func fetchSettings(userID: String) async throws -> UserSettings {
+        let recordID = CKRecord.ID(recordName: "settings-\(userID)")
 
         do {
             let record = try await privateDatabase.record(for: recordID)
-            return UserSettings(from: record) ?? UserSettings.defaultSettings(for: userId)
+            return UserSettings(from: record) ?? UserSettings.defaultSettings(for: userID)
         } catch let error as CKError {
             if error.code == .unknownItem {
                 // Settings don't exist, return defaults
-                return UserSettings.defaultSettings(for: userId)
+                return UserSettings.defaultSettings(for: userID)
             } else {
                 throw ProfileServiceError.networkError(error)
             }
@@ -505,11 +505,11 @@ final class UserProfileService: UserProfileServicing {
         profileCache.removeAll()
     }
 
-    func preloadProfiles(_ userIds: [String]) async {
+    func preloadProfiles(_ userIDs: [String]) async {
         await withTaskGroup(of: Void.self) { group in
-            for userId in userIds {
+            for userID in userIDs {
                 group.addTask { [weak self] in
-                    _ = try? await self?.fetchProfile(userId: userId)
+                    _ = try? await self?.fetchProfile(userID: userID)
                 }
             }
         }
@@ -517,8 +517,8 @@ final class UserProfileService: UserProfileServicing {
 
     // MARK: - Public Cache Management
 
-    func clearCache(for userId: String) {
-        profileCache.removeValue(forKey: userId)
+    func clearCache(for userID: String) {
+        profileCache.removeValue(forKey: userID)
     }
 
     func clearAllCache() {
@@ -527,9 +527,9 @@ final class UserProfileService: UserProfileServicing {
 
     // MARK: - Private Methods
     
-    private func fetchFreshUserStats(userId: String) async throws -> (workoutCount: Int, totalXP: Int) {
+    private func fetchFreshUserStats(userID: String) async throws -> (workoutCount: Int, totalXP: Int) {
         // Fetch fresh stats directly from the Users record in private database
-        let recordID = CKRecord.ID(recordName: userId)
+        let recordID = CKRecord.ID(recordName: userID)
         
         do {
             let userRecord = try await privateDatabase.record(for: recordID)
@@ -548,15 +548,15 @@ final class UserProfileService: UserProfileServicing {
         }
     }
 
-    private func getCachedProfile(userId: String) -> UserProfile? {
-        guard let cached = profileCache[userId] else { return nil }
+    private func getCachedProfile(userID: String) -> UserProfile? {
+        guard let cached = profileCache[userID] else { return nil }
 
         // Check if cache is still valid
         if Date().timeIntervalSince(cached.timestamp) < cacheTTL {
             return cached.profile
         } else {
             // Cache expired
-            profileCache.removeValue(forKey: userId)
+            profileCache.removeValue(forKey: userID)
             return nil
         }
     }
@@ -602,10 +602,10 @@ extension UserProfileService {
     /// Uploads a profile photo for the user
     /// - Parameters:
     ///   - image: The UIImage to upload
-    ///   - userId: The user's profile ID
+    ///   - userID: The user's profile ID
     ///   - isHeader: Whether this is a header image (false for profile photo)
     /// - Returns: The URL of the uploaded image
-    func uploadProfilePhoto(_ image: UIImage, for userId: String, isHeader: Bool = false) async throws -> String {
+    func uploadProfilePhoto(_ image: UIImage, for userID: String, isHeader: Bool = false) async throws -> String {
         isLoading = true
         defer { isLoading = false }
 
@@ -627,7 +627,7 @@ extension UserProfileService {
         let asset = CKAsset(fileURL: tempURL)
 
         // Fetch the user's profile record
-        let recordID = CKRecord.ID(recordName: userId)
+        let recordID = CKRecord.ID(recordName: userID)
 
         do {
             let record = try await publicDatabase.record(for: recordID)
@@ -668,11 +668,11 @@ extension UserProfileService {
     }
 
     /// Deletes a profile photo
-    func deleteProfilePhoto(for userId: String, isHeader: Bool = false) async throws {
+    func deleteProfilePhoto(for userID: String, isHeader: Bool = false) async throws {
         isLoading = true
         defer { isLoading = false }
 
-        let recordID = CKRecord.ID(recordName: userId)
+        let recordID = CKRecord.ID(recordName: userID)
 
         do {
             let record = try await publicDatabase.record(for: recordID)

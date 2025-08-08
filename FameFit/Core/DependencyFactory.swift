@@ -53,7 +53,6 @@ protocol DependencyFactory: AnyObject {
 // MARK: - Production Dependency Factory
 
 class ProductionDependencyFactory: DependencyFactory {
-    
     // MARK: - Core Services
     
     func createCloudKitManager() -> CloudKitManager {

@@ -117,7 +117,7 @@ struct WorkoutStartView: View {
         // Send message to watch to start workout
         Task {
                 try await container.watchConnectivityManager.startWorkout(type: Int(type.rawValue))
-            }
+        }
     }
 }
 
@@ -170,7 +170,6 @@ struct WorkoutTypeCard: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
 
 #Preview {
     WorkoutStartView()

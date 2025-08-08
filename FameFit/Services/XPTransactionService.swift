@@ -78,14 +78,14 @@ class XPTransactionService: ObservableObject {
     // MARK: - Create Transaction
     func createTransaction(
         userID: String,
-        workoutRecordID: String,
+        workoutID: String,
         baseXP: Int,
         finalXP: Int,
         factors: XPCalculationFactors
     ) async throws -> XPTransaction {
         let transaction = XPTransaction(
             userID: userID,
-            workoutRecordID: workoutRecordID,
+            workoutID: workoutID,
             baseXP: baseXP,
             finalXP: finalXP,
             factors: factors
@@ -142,8 +142,8 @@ class XPTransactionService: ObservableObject {
     }
     
     // MARK: - Fetch Transaction for Workout
-    func fetchTransaction(for workoutRecordID: String) async throws -> XPTransaction? {
-        let predicate = NSPredicate(format: "workoutRecordID == %@", workoutRecordID)
+    func fetchTransaction(for workoutID: String) async throws -> XPTransaction? {
+        let predicate = NSPredicate(format: "workoutID == %@", workoutID)
         let query = CKQuery(recordType: XPTransaction.recordType, predicate: predicate)
         
         do {

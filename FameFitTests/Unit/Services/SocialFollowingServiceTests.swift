@@ -243,7 +243,7 @@ final class SocialFollowingServiceTests: XCTestCase {
         // Then
         let sentRequests = try await mockSocialService.getSentFollowRequests()
         XCTAssertEqual(sentRequests.count, 1)
-        XCTAssertEqual(sentRequests.first?.targetId, userId)
+        XCTAssertEqual(sentRequests.first?.targetID, userId)
         XCTAssertEqual(sentRequests.first?.message, message)
     }
 

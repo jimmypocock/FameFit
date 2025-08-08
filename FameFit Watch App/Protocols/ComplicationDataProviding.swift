@@ -65,7 +65,7 @@ class ProductionComplicationDataProvider: ComplicationDataProviding {
     
     var currentLevel: Int {
         // Calculate level from XP
-        max(1, currentXP / 1000)
+        max(1, currentXP / 1_000)
     }
     
     // MARK: - Active Workout State
@@ -130,14 +130,14 @@ class ProductionComplicationDataProvider: ComplicationDataProviding {
 // MARK: - Mock Implementation
 
 class MockComplicationDataProvider: ComplicationDataProviding {
-    var currentXP: Int = 2500
+    var currentXP: Int = 2_500
     var currentStreak: Int = 7
     var todayWorkoutCount: Int = 2
     var totalWorkouts: Int = 45
     var currentLevel: Int = 3
     
     var isWorkoutActive: Bool = false
-    var currentWorkoutType: HKWorkoutActivityType? = nil
+    var currentWorkoutType: HKWorkoutActivityType?
     var workoutElapsedTime: TimeInterval = 0
     var workoutActiveEnergy: Double = 0
     
@@ -145,7 +145,7 @@ class MockComplicationDataProvider: ComplicationDataProviding {
     func setWorkoutActive(_ active: Bool, type: HKWorkoutActivityType? = .running) {
         isWorkoutActive = active
         currentWorkoutType = active ? type : nil
-        workoutElapsedTime = active ? 1200 : 0 // 20 minutes
+        workoutElapsedTime = active ? 1_200 : 0 // 20 minutes
         workoutActiveEnergy = active ? 150 : 0 // 150 calories
     }
     
@@ -153,7 +153,7 @@ class MockComplicationDataProvider: ComplicationDataProviding {
         currentXP = xp
         currentStreak = streak
         totalWorkouts = workouts
-        currentLevel = max(1, xp / 1000)
+        currentLevel = max(1, xp / 1_000)
         todayWorkoutCount = min(workouts, 3) // Assume max 3 per day
     }
     

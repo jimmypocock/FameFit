@@ -170,8 +170,8 @@
         
         private func createGraphicCircularTemplate() -> CLKComplicationTemplate {
             // Show progress towards next level
-            let currentLevelXP = dataProvider.currentLevel * 1000
-            let nextLevelXP = (dataProvider.currentLevel + 1) * 1000
+            let currentLevelXP = dataProvider.currentLevel * 1_000
+            let nextLevelXP = (dataProvider.currentLevel + 1) * 1_000
             let progress = Float(dataProvider.currentXP - currentLevelXP) / Float(nextLevelXP - currentLevelXP)
             
             let centerTextProvider = CLKSimpleTextProvider(text: "L\(dataProvider.currentLevel)")

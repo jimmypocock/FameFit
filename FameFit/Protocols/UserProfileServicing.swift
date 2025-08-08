@@ -72,20 +72,20 @@ protocol UserProfileServicing {
     var isLoadingPublisher: AnyPublisher<Bool, Never> { get }
 
     // Profile operations
-    func fetchProfile(userId: String) async throws -> UserProfile
+    func fetchProfile(userID: String) async throws -> UserProfile
     func fetchProfileByUserID(_ userID: String) async throws -> UserProfile // Fetch by CloudKit user ID
     func fetchCurrentUserProfile() async throws -> UserProfile
     func fetchCurrentUserProfileFresh() async throws -> UserProfile
     func createProfile(_ profile: UserProfile) async throws -> UserProfile
     func updateProfile(_ profile: UserProfile) async throws -> UserProfile
-    func deleteProfile(userId: String) async throws
+    func deleteProfile(userID: String) async throws
 
     // Username validation
     func isUsernameAvailable(_ username: String) async throws -> Bool
     func validateUsername(_ username: String) -> Result<Void, ProfileServiceError>
 
     // Settings operations
-    func fetchSettings(userId: String) async throws -> UserSettings
+    func fetchSettings(userID: String) async throws -> UserSettings
     func updateSettings(_ settings: UserSettings) async throws -> UserSettings
 
     // Search and discovery
@@ -96,6 +96,6 @@ protocol UserProfileServicing {
 
     // Caching
     func clearCache()
-    func clearCache(for userId: String)
-    func preloadProfiles(_ userIds: [String]) async
+    func clearCache(for userID: String)
+    func preloadProfiles(_ userIDs: [String]) async
 }

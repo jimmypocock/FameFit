@@ -56,13 +56,13 @@ enum WorkoutPrivacy: String, CaseIterable, Codable {
 
 struct WorkoutPrivacySettings: Codable, Equatable {
     // Default privacy level for new workouts
-    var defaultPrivacy: WorkoutPrivacy = .private
+    var defaultPrivacy: WorkoutPrivacy = .friendsOnly
 
     // Per-workout type privacy overrides
     var workoutTypeSettings: [String: WorkoutPrivacy] = [:]
 
     // General sharing preferences
-    var allowDataSharing: Bool = false
+    var allowDataSharing: Bool = true
     var shareAchievements: Bool = true
     var sharePersonalRecords: Bool = false
     var shareWorkoutPhotos: Bool = false
@@ -77,9 +77,9 @@ struct WorkoutPrivacySettings: Codable, Equatable {
     var notifyOnFollowerWorkouts: Bool = true
 
     init() {
-        // Initialize with privacy-first defaults
-        defaultPrivacy = .private
-        allowDataSharing = false
+        // Initialize with social defaults (users can make more private if needed)
+        defaultPrivacy = .friendsOnly  // Changed from .private to enable social features
+        allowDataSharing = true  // Share workout details with friends
         shareAchievements = true
         sharePersonalRecords = false
         shareWorkoutPhotos = false
@@ -88,6 +88,21 @@ struct WorkoutPrivacySettings: Codable, Equatable {
         notifyOnWorkoutLikes = true
         notifyOnWorkoutComments = true
         notifyOnFollowerWorkouts = true
+    }
+    
+    /// Initialize from saved ActivityFeedSettings
+    init(from feedSettings: ActivityFeedSettings) {
+        self.defaultPrivacy = feedSettings.workoutPrivacy
+        self.allowDataSharing = feedSettings.shareWorkoutDetails
+        self.shareAchievements = feedSettings.shareAchievements
+        self.sharePersonalRecords = false // Not in ActivityFeedSettings, using default
+        self.shareWorkoutPhotos = false // Not in ActivityFeedSettings, using default
+        self.shareLocation = false // Not in ActivityFeedSettings, using default
+        self.allowPublicSharing = true // Should be based on user age/COPPA
+        self.notifyOnWorkoutLikes = true // Not in ActivityFeedSettings, using default
+        self.notifyOnWorkoutComments = true // Not in ActivityFeedSettings, using default
+        self.notifyOnFollowerWorkouts = true // Not in ActivityFeedSettings, using default
+        self.workoutTypeSettings = [:] // Could be enhanced to support per-type settings
     }
 
     // MARK: - Workout Type Specific Settings

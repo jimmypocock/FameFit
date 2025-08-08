@@ -52,7 +52,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     
     // MARK: - Follow/Unfollow Operations
     
-    func follow(userId targetUserID: String) async throws {
+    func follow(userID targetUserID: String) async throws {
         // Validate we're using CloudKit user IDs
         guard isValidCloudKitUserID(targetUserID) else {
             throw SocialServiceError.invalidUserID
@@ -66,10 +66,10 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         }
         
         // Rate limiting check
-        _ = try await rateLimiter.checkLimit(for: .follow, userId: currentUserID)
+        _ = try await rateLimiter.checkLimit(for: .follow, userID: currentUserID)
         
         // Check if already following (check cache first)
-        let isAlreadyFollowing = try await isFollowing(userId: targetUserID)
+        let isAlreadyFollowing = try await isFollowing(userID: targetUserID)
         guard !isAlreadyFollowing else {
             throw SocialServiceError.alreadyFollowing
         }
@@ -95,7 +95,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         _ = try await publicDatabase.save(record)
         
         // Record action for rate limiting
-        await rateLimiter.recordAction(.follow, userId: currentUserID)
+        await rateLimiter.recordAction(.follow, userID: currentUserID)
         
         // Update caches
         await updateCachesAfterFollow(currentUserID: currentUserID, targetUserID: targetUserID)
@@ -104,7 +104,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         relationshipUpdatesSubject.send(relationship)
     }
     
-    func unfollow(userId targetUserID: String) async throws {
+    func unfollow(userID targetUserID: String) async throws {
         // Validate we're using CloudKit user IDs
         guard isValidCloudKitUserID(targetUserID) else {
             throw SocialServiceError.invalidUserID
@@ -113,7 +113,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         let currentUserID = try getCurrentUserID()
         
         // Rate limiting check
-        _ = try await rateLimiter.checkLimit(for: .unfollow, userId: currentUserID)
+        _ = try await rateLimiter.checkLimit(for: .unfollow, userID: currentUserID)
         
         // Find existing relationship
         let relationshipID = "\(currentUserID)_follows_\(targetUserID)"
@@ -144,7 +144,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         }
         
         // Record action for rate limiting
-        await rateLimiter.recordAction(.unfollow, userId: currentUserID)
+        await rateLimiter.recordAction(.unfollow, userID: currentUserID)
         
         // Update caches
         await updateCachesAfterUnfollow(currentUserID: currentUserID, targetUserID: targetUserID)
@@ -152,7 +152,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     
     // MARK: - Query Operations
     
-    func isFollowing(userId targetUserID: String) async throws -> Bool {
+    func isFollowing(userID targetUserID: String) async throws -> Bool {
         let currentUserID = try getCurrentUserID()
         
         // Check cache first
@@ -375,62 +375,62 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     
     // MARK: - Additional Protocol Methods (delegating to existing service)
     
-    func blockUser(_ userId: String) async throws {
+    func blockUser(_ userID: String) async throws {
         // Validate user ID
-        guard isValidCloudKitUserID(userId) else {
+        guard isValidCloudKitUserID(userID) else {
             throw SocialServiceError.invalidUserID
         }
         
         let currentUserID = try getCurrentUserID()
         
         // Rate limiting check
-        _ = try await rateLimiter.checkLimit(for: .follow, userId: currentUserID)
+        _ = try await rateLimiter.checkLimit(for: .follow, userID: currentUserID)
         
         // Create block record
         let blockRecord = CKRecord(recordType: "BlockedUsers")
         blockRecord["blockerID"] = currentUserID
-        blockRecord["blockedID"] = userId
+        blockRecord["blockedID"] = userID
         blockRecord["createdTimestamp"] = Date()
         
         // Save to CloudKit
         _ = try await publicDatabase.save(blockRecord)
         
         // Remove any existing relationships
-        if try await isFollowing(userId: userId) {
-            try await unfollow(userId: userId)
+        if try await isFollowing(userID: userID) {
+            try await unfollow(userID: userID)
         }
         
         // Remove them as follower if they're following us
-        let relationshipID = "\(userId)_follows_\(currentUserID)"
+        let relationshipID = "\(userID)_follows_\(currentUserID)"
         let recordID = CKRecord.ID(recordName: relationshipID)
         
         do {
             _ = try await publicDatabase.deleteRecord(withID: recordID)
-            await updateCachesAfterUnfollow(currentUserID: userId, targetUserID: currentUserID)
+            await updateCachesAfterUnfollow(currentUserID: userID, targetUserID: currentUserID)
         } catch {
             // Relationship might not exist, ignore
         }
         
         // Record action for rate limiting
-        await rateLimiter.recordAction(.follow, userId: currentUserID)
+        await rateLimiter.recordAction(.follow, userID: currentUserID)
         
         // Invalidate all caches related to this user
-        cacheManager.invalidateAllRelationships(for: userId)
+        cacheManager.invalidateAllRelationships(for: userID)
     }
     
-    func removeFollower(userId: String) async throws {
+    func removeFollower(userID: String) async throws {
         // Validate user ID
-        guard isValidCloudKitUserID(userId) else {
+        guard isValidCloudKitUserID(userID) else {
             throw SocialServiceError.invalidUserID
         }
         
         let currentUserID = try getCurrentUserID()
         
         // Rate limiting check
-        _ = try await rateLimiter.checkLimit(for: .follow, userId: currentUserID)
+        _ = try await rateLimiter.checkLimit(for: .follow, userID: currentUserID)
         
         // Remove the relationship where this user follows us
-        let relationshipID = "\(userId)_follows_\(currentUserID)"
+        let relationshipID = "\(userID)_follows_\(currentUserID)"
         let recordID = CKRecord.ID(recordName: relationshipID)
         
         do {
@@ -440,10 +440,10 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         }
         
         // Record action for rate limiting
-        await rateLimiter.recordAction(.follow, userId: currentUserID)
+        await rateLimiter.recordAction(.follow, userID: currentUserID)
         
         // Update caches
-        await updateCachesAfterUnfollow(currentUserID: userId, targetUserID: currentUserID)
+        await updateCachesAfterUnfollow(currentUserID: userID, targetUserID: currentUserID)
     }
     
     func checkRelationship(between userID: String, and targetID: String) async throws -> RelationshipStatus {
@@ -496,33 +496,33 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     
     // MARK: - Unimplemented Protocol Methods
     
-    func requestFollow(userId: String, message: String?) async throws {
+    func requestFollow(userID: String, message: String?) async throws {
         // For now, just call follow directly
         // In future, this could create a follow request record for private accounts
-        try await follow(userId: userId)
+        try await follow(userID: userID)
     }
     
-    func respondToFollowRequest(requestId: String, accept: Bool) async throws {
+    func respondToFollowRequest(requestID: String, accept: Bool) async throws {
         // TODO: Implement when follow requests are supported
         throw SocialServiceError.invalidRequest
     }
     
-    func getMutualFollowers(with userId: String, limit: Int) async throws -> [UserProfile] {
+    func getMutualFollowers(with userID: String, limit: Int) async throws -> [UserProfile] {
         // TODO: Implement
         []
     }
     
-    func unblockUser(_ userId: String) async throws {
+    func unblockUser(_ userID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
     
-    func muteUser(_ userId: String) async throws {
+    func muteUser(_ userID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
     
-    func unmuteUser(_ userId: String) async throws {
+    func unmuteUser(_ userID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
@@ -547,17 +547,17 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         []
     }
     
-    func acceptFollowRequest(_ requestId: String) async throws {
+    func acceptFollowRequest(_ requestID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
     
-    func rejectFollowRequest(_ requestId: String) async throws {
+    func rejectFollowRequest(_ requestID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
     
-    func cancelFollowRequest(requestId: String) async throws {
+    func cancelFollowRequest(requestID: String) async throws {
         // TODO: Implement
         throw SocialServiceError.invalidRequest
     }
