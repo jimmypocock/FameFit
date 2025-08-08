@@ -135,7 +135,6 @@ final class BulkPrivacyUpdateService: BulkPrivacyUpdateServicing {
             
             allRecords.append(contentsOf: records)
             cursor = results.queryCursor
-            
         } while cursor != nil
         
         // Update progress
@@ -217,7 +216,6 @@ final class BulkPrivacyUpdateService: BulkPrivacyUpdateServicing {
                     failed: failedCount,
                     currentActivity: "Completed batch \(index + 1)"
                 ))
-                
             } catch {
                 // If entire batch fails, count them all as failed
                 failedCount += batch.count

@@ -17,7 +17,7 @@ protocol NotificationMetadata: Codable {
 
 struct WorkoutNotificationMetadata: NotificationMetadata {
     var type: String { "workout" }
-    let workoutId: String?
+    let workoutID: String?
     let workoutType: String?
     let duration: Int // minutes
     let calories: Int
@@ -42,7 +42,7 @@ struct SocialNotificationMetadata: NotificationMetadata {
 
 struct AchievementNotificationMetadata: NotificationMetadata {
     var type: String { "achievement" }
-    let achievementId: String
+    let achievementID: String
     let achievementName: String
     let achievementDescription: String
     let xpRequired: Int
@@ -54,10 +54,10 @@ struct AchievementNotificationMetadata: NotificationMetadata {
 
 struct ChallengeNotificationMetadata: NotificationMetadata {
     var type: String { "challenge" }
-    let challengeId: String
+    let challengeID: String
     let challengeName: String
     let challengeType: String // "distance", "duration", "calories", "workouts"
-    let creatorId: String
+    let creatorID: String
     let creatorName: String?
     let targetValue: Double
     let endDate: Date

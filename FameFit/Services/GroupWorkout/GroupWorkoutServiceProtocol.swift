@@ -16,33 +16,33 @@ protocol GroupWorkoutServiceProtocol: AnyObject, Sendable {
     
     func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout
     func updateGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout
-    func deleteGroupWorkout(_ workoutId: String) async throws
-    func cancelGroupWorkout(_ workoutId: String) async throws
-    func startGroupWorkout(_ workoutId: String) async throws -> GroupWorkout
-    func completeGroupWorkout(_ workoutId: String) async throws -> GroupWorkout
+    func deleteGroupWorkout(_ workoutID: String) async throws
+    func cancelGroupWorkout(_ workoutID: String) async throws
+    func startGroupWorkout(_ workoutID: String) async throws -> GroupWorkout
+    func completeGroupWorkout(_ workoutID: String) async throws -> GroupWorkout
     
     // MARK: - Participant Management
     
-    func joinGroupWorkout(_ workoutId: String) async throws
+    func joinGroupWorkout(_ workoutID: String) async throws
     func joinWithCode(_ code: String) async throws -> GroupWorkout
-    func leaveGroupWorkout(_ workoutId: String) async throws
-    func updateParticipantStatus(_ workoutId: String, status: ParticipantStatus) async throws
-    func updateParticipantData(_ workoutId: String, data: GroupWorkoutData) async throws
-    func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant]
+    func leaveGroupWorkout(_ workoutID: String) async throws
+    func updateParticipantStatus(_ workoutID: String, status: ParticipantStatus) async throws
+    func updateParticipantData(_ workoutID: String, data: GroupWorkoutData) async throws
+    func getParticipants(_ workoutID: String) async throws -> [GroupWorkoutParticipant]
     
     // MARK: - Discovery
     
     func fetchUpcomingWorkouts(limit: Int) async throws -> [GroupWorkout]
     func fetchActiveWorkouts() async throws -> [GroupWorkout]
     func fetchMyWorkouts() async throws -> [GroupWorkout]
-    func fetchWorkout(_ workoutId: String) async throws -> GroupWorkout
+    func fetchWorkout(_ workoutID: String) async throws -> GroupWorkout
     func fetchPublicWorkouts(tags: [String]?, limit: Int) async throws -> [GroupWorkout]
     func searchWorkouts(query: String, filters: WorkoutFilters?) async throws -> [GroupWorkout]
     
     // MARK: - Invites
     
-    func inviteUser(_ userId: String, to workoutId: String) async throws
-    func respondToInvite(_ inviteId: String, accept: Bool) async throws
+    func inviteUser(_ userID: String, to workoutID: String) async throws
+    func respondToInvite(_ inviteID: String, accept: Bool) async throws
     func fetchMyInvites() async throws -> [GroupWorkoutInvite]
     
     // MARK: - Calendar Integration
@@ -75,8 +75,8 @@ enum GroupWorkoutUpdate {
     case created(GroupWorkout)
     case updated(GroupWorkout)
     case deleted(String)
-    case participantJoined(workoutId: String, participant: GroupWorkoutParticipant)
-    case participantLeft(workoutId: String, userId: String)
-    case participantDataUpdated(workoutId: String, participant: GroupWorkoutParticipant)
-    case statusChanged(workoutId: String, status: GroupWorkoutStatus)
+    case participantJoined(workoutID: String, participant: GroupWorkoutParticipant)
+    case participantLeft(workoutID: String, userID: String)
+    case participantDataUpdated(workoutID: String, participant: GroupWorkoutParticipant)
+    case statusChanged(workoutID: String, status: GroupWorkoutStatus)
 }

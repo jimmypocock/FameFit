@@ -70,9 +70,9 @@ enum RelationshipStatus: String, CaseIterable {
 
 struct FollowRequest: Codable, Identifiable {
     let id: String
-    let requesterId: String
+    let requesterID: String
     let requesterProfile: UserProfile?
-    let targetId: String
+    let targetID: String
     let status: String // "pending", "accepted", "rejected", "expired"
     let createdTimestamp: Date
     let expiresAt: Date
@@ -90,7 +90,7 @@ struct UserRelationship: Codable, Identifiable {
     let status: String // "active", "blocked", "muted"
     let notificationsEnabled: Bool
 
-    static func makeId(followerID: String, followingID: String) -> String {
+    static func makeID(followerID: String, followingID: String) -> String {
         "\(followerID)_follows_\(followingID)"
     }
 }
@@ -104,47 +104,47 @@ protocol SocialFollowingServicing {
     var relationshipUpdatesPublisher: AnyPublisher<UserRelationship, Never> { get }
 
     // Follow operations
-    func follow(userId: String) async throws
-    func unfollow(userId: String) async throws
-    func requestFollow(userId: String, message: String?) async throws
-    func respondToFollowRequest(requestId: String, accept: Bool) async throws
+    func follow(userID: String) async throws
+    func unfollow(userID: String) async throws
+    func requestFollow(userID: String, message: String?) async throws
+    func respondToFollowRequest(requestID: String, accept: Bool) async throws
 
     // Relationship queries
-    func getFollowers(for userId: String, limit: Int) async throws -> [UserProfile]
-    func getFollowing(for userId: String, limit: Int) async throws -> [UserProfile]
-    func checkRelationship(between userId: String, and targetId: String) async throws -> RelationshipStatus
-    func getMutualFollowers(with userId: String, limit: Int) async throws -> [UserProfile]
+    func getFollowers(for userID: String, limit: Int) async throws -> [UserProfile]
+    func getFollowing(for userID: String, limit: Int) async throws -> [UserProfile]
+    func checkRelationship(between userID: String, and targetID: String) async throws -> RelationshipStatus
+    func getMutualFollowers(with userID: String, limit: Int) async throws -> [UserProfile]
 
     // Counts
-    func getFollowerCount(for userId: String) async throws -> Int
-    func getFollowingCount(for userId: String) async throws -> Int
+    func getFollowerCount(for userID: String) async throws -> Int
+    func getFollowingCount(for userID: String) async throws -> Int
 
     // Block/Mute operations
-    func blockUser(_ userId: String) async throws
-    func unblockUser(_ userId: String) async throws
-    func muteUser(_ userId: String) async throws
-    func unmuteUser(_ userId: String) async throws
+    func blockUser(_ userID: String) async throws
+    func unblockUser(_ userID: String) async throws
+    func muteUser(_ userID: String) async throws
+    func unmuteUser(_ userID: String) async throws
     func getBlockedUsers() async throws -> [String]
     func getMutedUsers() async throws -> [String]
 
     // Follow requests
     func getPendingFollowRequests() async throws -> [FollowRequest]
     func getSentFollowRequests() async throws -> [FollowRequest]
-    func cancelFollowRequest(requestId: String) async throws
+    func cancelFollowRequest(requestID: String) async throws
 
     // Caching
     func clearRelationshipCache()
-    func preloadRelationships(for userIds: [String]) async
+    func preloadRelationships(for userIDs: [String]) async
 }
 
 // MARK: - Rate Limiting Service Protocol
 
 protocol RateLimitingServicing {
-    func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool
-    func recordAction(_ action: RateLimitAction, userId: String) async
-    func resetLimits(for userId: String) async
-    func getRemainingActions(for action: RateLimitAction, userId: String) async -> Int
-    func getResetTime(for action: RateLimitAction, userId: String) async -> Date?
+    func checkLimit(for action: RateLimitAction, userID: String) async throws -> Bool
+    func recordAction(_ action: RateLimitAction, userID: String) async
+    func resetLimits(for userID: String) async
+    func getRemainingActions(for action: RateLimitAction, userID: String) async -> Int
+    func getResetTime(for action: RateLimitAction, userID: String) async -> Date?
 }
 
 struct RateLimits {
@@ -179,7 +179,7 @@ enum RateLimitAction: String, CaseIterable {
         case .profileView:
             RateLimits(minutely: 30, hourly: 500, daily: 5_000, weekly: nil)
         case .workoutPost:
-            RateLimits(minutely: 1, hourly: 10, daily: 50, weekly: nil)
+            RateLimits(minutely: 5, hourly: 30, daily: 100, weekly: nil)
         case .followRequest:
             RateLimits(minutely: 2, hourly: 20, daily: 100, weekly: nil)
         case .report:
@@ -195,13 +195,13 @@ enum RateLimitAction: String, CaseIterable {
 // MARK: - Anti-Spam Service Protocol
 
 protocol AntiSpamServicing {
-    func checkForSpam(userId: String, action: SpamCheckAction) async -> SpamCheckResult
-    func reportSpam(userId: String, targetId: String, reason: SpamReason) async throws
-    func getSpamScore(for userId: String) async -> Double
+    func checkForSpam(userID: String, action: SpamCheckAction) async -> SpamCheckResult
+    func reportSpam(userID: String, targetID: String, reason: SpamReason) async throws
+    func getSpamScore(for userID: String) async -> Double
 }
 
 enum SpamCheckAction {
-    case follow(targetId: String)
+    case follow(targetID: String)
     case message(content: String)
     case profileUpdate(content: String)
     case workoutPost

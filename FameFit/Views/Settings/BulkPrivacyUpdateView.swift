@@ -331,7 +331,6 @@ final class BulkPrivacyUpdateViewModel: ObservableObject {
             
             updateResult = "Successfully updated \(count) activities to \(selectedPrivacy.displayName)"
             showCompletionAlert = true
-            
         } catch {
             errorMessage = error.localizedDescription
             showErrorAlert = true

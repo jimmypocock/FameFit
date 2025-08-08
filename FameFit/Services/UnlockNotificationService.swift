@@ -84,7 +84,7 @@ final class UnlockNotificationService: UnlockNotificationServiceProtocol {
             title: "\(character.emoji) Level Up!",
             body: "Congratulations! You've reached Level \(newLevel): \(title)",
             metadata: .achievement(AchievementNotificationMetadata(
-                achievementId: "level_\(newLevel)",
+                achievementID: "level_\(newLevel)",
                 achievementName: title,
                 achievementDescription: "Reached Level \(newLevel)",
                 xpRequired: getLevelThreshold(for: newLevel),

@@ -31,10 +31,10 @@ struct ActivityCommentsView: View {
                 
                 // Comments list - using the new generic system
                 GenericCommentsListView(
-                    resourceId: feedItem.id,
-                    resourceOwnerId: feedItem.userID,
+                    resourceID: feedItem.id,
+                    resourceOwnerID: feedItem.userID,
                     resourceType: getResourceType(for: feedItem.type),
-                    sourceRecordId: feedItem.workoutId, // For workouts, this is the workout ID
+                    sourceRecordID: feedItem.workoutID, // For workouts, this is the workout ID
                     currentUser: currentUser,
                     commentService: getCommentService(for: feedItem.type)
                 )
@@ -305,7 +305,6 @@ struct ActivityCommentsView: View {
         }
     }
     
-    
     // MARK: - Helper Views
     
     private struct StatPill: View {
@@ -356,8 +355,8 @@ struct ActivityCommentsView: View {
     }
     
     private func formatDuration(_ seconds: Double) -> String {
-        let hours = Int(seconds) / 3600
-        let minutes = (Int(seconds) % 3600) / 60
+        let hours = Int(seconds) / 3_600
+        let minutes = (Int(seconds) % 3_600) / 60
         
         if hours > 0 {
             return "\(hours)h \(minutes)m"
@@ -367,7 +366,7 @@ struct ActivityCommentsView: View {
     }
     
     private func formatDistance(_ meters: Double) -> String {
-        let kilometers = meters / 1000
+        let kilometers = meters / 1_000
         if kilometers >= 1 {
             return String(format: "%.1f km", kilometers)
         } else {
@@ -378,8 +377,8 @@ struct ActivityCommentsView: View {
     private func loadCurrentUser() {
         Task {
             do {
-                if let userId = container.cloudKitManager.currentUserID {
-                    currentUser = try await container.userProfileService.fetchProfile(userId: userId)
+                if let userID = container.cloudKitManager.currentUserID {
+                    currentUser = try await container.userProfileService.fetchProfile(userID: userID)
                 }
             } catch {
                 print("Failed to load current user: \(error)")
@@ -426,15 +425,15 @@ struct ActivityCommentsView: View {
                 username: "runner_sam",
                 bio: "Marathon enthusiast",
                 workoutCount: 312,
-                totalXP: 12500,
-                createdTimestamp: Date().addingTimeInterval(-86400 * 500),
+                totalXP: 12_500,
+                createdTimestamp: Date().addingTimeInterval(-86_400 * 500),
                 modifiedTimestamp: Date(),
                 isVerified: true,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
             ),
             type: .workout,
-            timestamp: Date().addingTimeInterval(-3600),
+            timestamp: Date().addingTimeInterval(-3_600),
             content: ActivityFeedContent(
                 title: "Morning Run",
                 subtitle: "Great workout!",
@@ -446,7 +445,7 @@ struct ActivityCommentsView: View {
                     "xpEarned": "25"
                 ]
             ),
-            workoutId: "test-workout-id",
+            workoutID: "test-workout-id",
             kudosCount: 5,
             commentCount: 3,
             hasKudoed: false

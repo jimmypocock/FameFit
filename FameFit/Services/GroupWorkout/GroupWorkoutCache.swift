@@ -20,20 +20,20 @@ actor GroupWorkoutCache {
         workoutCache[workout.id] = (workout, Date())
     }
     
-    func get(workoutId: String, expiration: TimeInterval) -> GroupWorkout? {
-        guard let cached = workoutCache[workoutId] else { return nil }
+    func get(workoutID: String, expiration: TimeInterval) -> GroupWorkout? {
+        guard let cached = workoutCache[workoutID] else { return nil }
         
         // Check if cache expired
         if Date().timeIntervalSince(cached.timestamp) > expiration {
-            workoutCache.removeValue(forKey: workoutId)
+            workoutCache.removeValue(forKey: workoutID)
             return nil
         }
         
         return cached.workout
     }
     
-    func remove(workoutId: String) {
-        workoutCache.removeValue(forKey: workoutId)
+    func remove(workoutID: String) {
+        workoutCache.removeValue(forKey: workoutID)
     }
     
     func clear() {
@@ -43,16 +43,16 @@ actor GroupWorkoutCache {
     
     // MARK: - Throttle Cache
     
-    func shouldThrottle(workoutId: String, interval: TimeInterval) -> Bool {
+    func shouldThrottle(workoutID: String, interval: TimeInterval) -> Bool {
         let now = Date()
         
-        if let lastUpdate = throttleCache[workoutId] {
+        if let lastUpdate = throttleCache[workoutID] {
             if now.timeIntervalSince(lastUpdate) < interval {
                 return false
             }
         }
         
-        throttleCache[workoutId] = now
+        throttleCache[workoutID] = now
         return true
     }
 }

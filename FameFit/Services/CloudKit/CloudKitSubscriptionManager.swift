@@ -138,9 +138,9 @@ final class CloudKitSubscriptionManager: CloudKitSubscriptionManaging {
         case .socialFollowing:
             notificationInfo.desiredKeys = ["followerID", "followingID", "status"]
         case .workoutKudos:
-            notificationInfo.desiredKeys = ["workoutId", "userId", "timestamp"]
+            notificationInfo.desiredKeys = ["workoutID", "userID", "timestamp"]
         case .workoutComments:
-            notificationInfo.desiredKeys = ["workoutId", "userId", "content", "parentCommentId"]
+            notificationInfo.desiredKeys = ["workoutID", "userID", "content", "parentCommentID"]
         case .workoutChallenges:
             notificationInfo.desiredKeys = ["status", "participants", "type", "targetValue"]
         case .groupWorkouts:

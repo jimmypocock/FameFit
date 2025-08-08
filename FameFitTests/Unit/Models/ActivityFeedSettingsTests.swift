@@ -10,7 +10,6 @@ import HealthKit
 import XCTest
 
 final class ActivityFeedSettingsTests: XCTestCase {
-    
     // MARK: - Default Settings Tests
     
     func testDefaultSettings() {

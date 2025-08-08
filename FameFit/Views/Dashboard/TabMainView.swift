@@ -26,7 +26,7 @@ struct TabMainView: View {
         TabView(selection: $navigationCoordinator.selectedTab) {
             // Activity Feed - Primary home screen
             NavigationStack {
-                SocialFeedView(
+                ActivityFeedView(
                     showingFilters: $showingFilters,
                     onDiscoverTap: {
                         navigationCoordinator.selectedTab = 1 // Switch to Discover tab
@@ -96,7 +96,7 @@ struct TabMainView: View {
                                 .environment(\.dependencyContainer, container)
                         case .groupWorkoutDetail(let id):
                             // For deep linking - load workout by ID
-                            GroupWorkoutDetailDeepLinkView(workoutId: id)
+                            GroupWorkoutDetailDeepLinkView(workoutID: id)
                                 .environment(\.dependencyContainer, container)
                         default:
                             EmptyView()
@@ -131,8 +131,8 @@ struct TabMainView: View {
             switch sheetType {
             case .profile:
                 NavigationStack {
-                    if let currentUserId = container.cloudKitManager.currentUserID {
-                        ProfileView(userId: currentUserId)
+                    if let currentUserID = container.cloudKitManager.currentUserID {
+                        ProfileView(userID: currentUserID)
                             .navigationTitle("Profile")
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {

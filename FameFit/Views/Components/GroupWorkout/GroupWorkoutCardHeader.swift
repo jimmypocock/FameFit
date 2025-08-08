@@ -112,14 +112,14 @@ struct GroupWorkoutCardHeader: View {
                 let interval = groupWorkout.scheduledStart.timeIntervalSince(now)
                 if interval < 60 {
                     return "Starting Soon"
-                } else if interval < 3600 {
+                } else if interval < 3_600 {
                     let minutes = Int(interval / 60)
                     return "Starts in \(minutes)m"
-                } else if interval < 86400 {
-                    let hours = Int(interval / 3600)
+                } else if interval < 86_400 {
+                    let hours = Int(interval / 3_600)
                     return "Starts in \(hours)h"
                 } else {
-                    let days = Int(interval / 86400)
+                    let days = Int(interval / 86_400)
                     return "Starts in \(days)d"
                 }
             }

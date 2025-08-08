@@ -142,11 +142,11 @@ final class CountVerificationService: CountVerificationServicing {
         FameFitLogger.debug("🔢 Verifying XP count from transactions", category: FameFitLogger.data)
         
         // Fetch all XP transactions for current user
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw CountVerificationError.userNotAuthenticated
         }
         
-        let transactions = try await xpTransactionService.fetchAllTransactions(for: userId)
+        let transactions = try await xpTransactionService.fetchAllTransactions(for: userID)
         let totalXP = transactions.reduce(0) { $0 + $1.finalXP }
         
         FameFitLogger.debug("🔢 Calculated XP: \(totalXP) from \(transactions.count) transactions", category: FameFitLogger.data)
@@ -165,7 +165,7 @@ final class CountVerificationService: CountVerificationServicing {
         do {
             let records = try await cloudKitManager.privateDatabase.allRecords(
                 matching: query,
-                desiredKeys: ["workoutId"] // Only need IDs for counting
+                desiredKeys: ["workoutID"] // Only need IDs for counting
             )
             
             FameFitLogger.debug("🔢 Found \(records.count) workout records", category: FameFitLogger.data)
@@ -183,7 +183,7 @@ final class CountVerificationService: CountVerificationServicing {
             return true
         }
         
-        let hoursSinceVerification = Date().timeIntervalSince(lastVerified) / 3600
+        let hoursSinceVerification = Date().timeIntervalSince(lastVerified) / 3_600
         return hoursSinceVerification >= staleThresholdHours
     }
     

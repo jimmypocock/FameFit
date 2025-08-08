@@ -162,6 +162,20 @@ extension DependencyContainer {
             concreteGroupWorkoutService.workoutProcessor = workoutProcessor
         }
         
+        // Load and apply saved user privacy settings
+        Task {
+            do {
+                let savedSettings = try await activitySharingSettingsService.loadSettings()
+                let privacySettings = WorkoutPrivacySettings(from: savedSettings)
+                if let concreteActivityFeedService = activityFeedService as? ActivityFeedService {
+                    concreteActivityFeedService.updatePrivacySettings(privacySettings)
+                }
+                FameFitLogger.info("✅ Loaded saved privacy settings from CloudKit", category: FameFitLogger.social)
+            } catch {
+                FameFitLogger.warning("⚠️ Could not load saved privacy settings: \(error)", category: FameFitLogger.social)
+            }
+        }
+        
         // Initialize with all services
         self.init(
             authenticationManager: authenticationManager,

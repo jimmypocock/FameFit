@@ -24,8 +24,8 @@ protocol NotificationManaging: AnyObject {
     func notifyNewFollower(from user: UserProfile) async
     func notifyFollowRequest(from user: UserProfile) async
     func notifyFollowAccepted(by user: UserProfile) async
-    func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async
-    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async
+    func notifyWorkoutKudos(from user: UserProfile, for workoutID: String) async
+    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutID: String) async
     func notifyMention(by user: UserProfile, in context: String) async
 
     // System notifications
@@ -92,7 +92,7 @@ final class NotificationManager: NotificationManaging {
 
         let metadata = NotificationMetadataContainer.workout(
             WorkoutNotificationMetadata(
-                workoutId: workout.id.uuidString,
+                workoutID: workout.id.uuidString,
                 workoutType: workout.workoutType,
                 duration: Int(workout.duration / 60),
                 calories: Int(workout.totalEnergyBurned),
@@ -234,7 +234,7 @@ final class NotificationManager: NotificationManaging {
         }
     }
 
-    func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async {
+    func notifyWorkoutKudos(from user: UserProfile, for workoutID: String) async {
         let metadata = NotificationMetadataContainer.social(
             SocialNotificationMetadata(
                 userID: user.userID,
@@ -252,7 +252,7 @@ final class NotificationManager: NotificationManaging {
             body: "\(user.username) cheered your workout",
             metadata: metadata,
             actions: [.view],
-            groupId: "kudos_\(workoutId)"
+            groupID: "kudos_\(workoutID)"
         )
 
         do {
@@ -469,12 +469,12 @@ final class MockNotificationManager: NotificationManaging {
         sentNotifications.append("follow_accepted_\(user.id)")
     }
 
-    func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async {
-        sentNotifications.append("kudos_\(user.id)_\(workoutId)")
+    func notifyWorkoutKudos(from user: UserProfile, for workoutID: String) async {
+        sentNotifications.append("kudos_\(user.id)_\(workoutID)")
     }
 
-    func notifyWorkoutComment(from user: UserProfile, comment _: String, for workoutId: String) async {
-        sentNotifications.append("comment_\(user.id)_\(workoutId)")
+    func notifyWorkoutComment(from user: UserProfile, comment _: String, for workoutID: String) async {
+        sentNotifications.append("comment_\(user.id)_\(workoutID)")
     }
 
     func notifyMention(by user: UserProfile, in _: String) async {

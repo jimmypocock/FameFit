@@ -8,27 +8,27 @@
 import SwiftUI
 
 struct CommentsListView: View {
-    let workoutId: String
-    let workoutOwnerId: String
+    let workoutID: String
+    let workoutOwnerID: String
     let currentUser: UserProfile?
 
     @StateObject private var viewModel: CommentsViewModel
     @State private var showingInput = false
-    @State private var replyToCommentId: String?
+    @State private var replyToCommentID: String?
     @State private var editingComment: ActivityFeedComment?
     @State private var searchText = ""
 
     init(
-        workoutId: String,
-        workoutOwnerId: String,
+        workoutID: String,
+        workoutOwnerID: String,
         currentUser: UserProfile?,
         commentsService: ActivityFeedCommentsServicing
     ) {
-        self.workoutId = workoutId
-        self.workoutOwnerId = workoutOwnerId
+        self.workoutID = workoutID
+        self.workoutOwnerID = workoutOwnerID
         self.currentUser = currentUser
         _viewModel = StateObject(wrappedValue: CommentsViewModel(
-            workoutId: workoutId,
+            workoutID: workoutID,
             commentsService: commentsService
         ))
     }
@@ -48,11 +48,11 @@ struct CommentsListView: View {
             }
 
             // Input area (sticky bottom)
-            if showingInput || replyToCommentId != nil || editingComment != nil {
+            if showingInput || replyToCommentID != nil || editingComment != nil {
                 CommentInputView(
-                    workoutId: workoutId,
-                    workoutOwnerId: workoutOwnerId,
-                    parentCommentId: replyToCommentId,
+                    workoutID: workoutID,
+                    workoutOwnerID: workoutOwnerID,
+                    parentCommentID: replyToCommentID,
                     editingComment: editingComment,
                     currentUser: currentUser,
                     onSubmit: handleCommentSubmit,
@@ -191,9 +191,9 @@ struct CommentsListView: View {
                 ForEach(filteredComments, id: \.comment.id) { commentWithUser in
                     GenericCommentRowView(
                         commentWithUser: AnyActivityFeedCommentWithUser(commentWithUser),
-                        currentUserId: currentUser?.id,
-                        onReply: { commentId in
-                            replyToCommentId = commentId
+                        currentUserID: currentUser?.id,
+                        onReply: { commentID in
+                            replyToCommentID = commentID
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 proxy.scrollTo("input", anchor: .bottom)
                             }
@@ -201,11 +201,11 @@ struct CommentsListView: View {
                         onEdit: { comment in
                             editingComment = ActivityFeedComment(
                                 id: comment.id,
-                                activityFeedID: workoutId, // Using workoutId as activityFeedID
+                                activityFeedID: workoutID, // Using workoutID as activityFeedID
                                 sourceType: "workout",
-                                sourceID: workoutId,
+                                sourceID: workoutID,
                                 userID: comment.userID,
-                                activityOwnerID: workoutOwnerId,
+                                activityOwnerID: workoutOwnerID,
                                 content: comment.content,
                                 createdTimestamp: comment.createdTimestamp,
                                 modifiedTimestamp: comment.modifiedTimestamp,
@@ -214,14 +214,14 @@ struct CommentsListView: View {
                                 likeCount: comment.likeCount
                             )
                         },
-                        onDelete: { commentId in
+                        onDelete: { commentID in
                             Task {
-                                await viewModel.deleteComment(commentId: commentId)
+                                await viewModel.deleteComment(commentID: commentID)
                             }
                         },
-                        onLike: { commentId in
+                        onLike: { commentID in
                             Task {
-                                await viewModel.toggleCommentLike(commentId: commentId)
+                                await viewModel.toggleCommentLike(commentID: commentID)
                             }
                         },
                         onUserTap: { _ in
@@ -339,16 +339,16 @@ struct CommentsListView: View {
         Task {
             if let editingComment {
                 await viewModel.updateComment(
-                    commentId: editingComment.id,
+                    commentID: editingComment.id,
                     newContent: content
                 )
                 self.editingComment = nil
             } else {
                 await viewModel.postComment(
                     content: content,
-                    parentCommentId: replyToCommentId
+                    parentCommentID: replyToCommentID
                 )
-                replyToCommentId = nil
+                replyToCommentID = nil
                 showingInput = false
             }
         }
@@ -357,7 +357,7 @@ struct CommentsListView: View {
     private func handleInputCancel() {
         withAnimation(.easeInOut(duration: 0.2)) {
             showingInput = false
-            replyToCommentId = nil
+            replyToCommentID = nil
             editingComment = nil
         }
     }
@@ -374,7 +374,7 @@ class CommentsViewModel: ObservableObject {
     @Published var hasMoreComments = true
     @Published var sortOrder: CommentSortOrder = .newest
 
-    private let workoutId: String
+    private let workoutID: String
     private let commentsService: ActivityFeedCommentsServicing
     private let pageSize = 20
 
@@ -390,8 +390,8 @@ class CommentsViewModel: ObservableObject {
         }
     }
 
-    init(workoutId: String, commentsService: ActivityFeedCommentsServicing) {
-        self.workoutId = workoutId
+    init(workoutID: String, commentsService: ActivityFeedCommentsServicing) {
+        self.workoutID = workoutID
         self.commentsService = commentsService
     }
 
@@ -410,15 +410,15 @@ class CommentsViewModel: ObservableObject {
         await fetchComments(reset: false)
     }
 
-    func postComment(content: String, parentCommentId: String?) async {
+    func postComment(content: String, parentCommentID: String?) async {
         do {
             _ = try await commentsService.postComment(
-                activityFeedID: workoutId, // Using workoutId as activityFeedID
+                activityFeedID: workoutID, // Using workoutID as activityFeedID
                 sourceType: "workout",
-                sourceID: workoutId,
+                sourceID: workoutID,
                 activityOwnerID: "", // Will be handled by service
                 content: content,
-                parentCommentID: parentCommentId
+                parentCommentID: parentCommentID
             )
 
             // Reload to get the updated list with proper threading
@@ -428,15 +428,15 @@ class CommentsViewModel: ObservableObject {
         }
     }
 
-    func updateComment(commentId: String, newContent: String) async {
+    func updateComment(commentID: String, newContent: String) async {
         do {
             let updatedComment = try await commentsService.updateComment(
-                commentId: commentId,
+                commentID: commentID,
                 newContent: newContent
             )
 
             // Update the comment in the local list
-            if let index = comments.firstIndex(where: { $0.comment.id == commentId }) {
+            if let index = comments.firstIndex(where: { $0.comment.id == commentID}) {
                 comments[index].comment = updatedComment
             }
         } catch {
@@ -444,20 +444,20 @@ class CommentsViewModel: ObservableObject {
         }
     }
 
-    func deleteComment(commentId: String) async {
+    func deleteComment(commentID: String) async {
         do {
-            try await commentsService.deleteComment(commentId: commentId)
-            comments.removeAll { $0.comment.id == commentId }
+            try await commentsService.deleteComment(commentID: commentID)
+            comments.removeAll { $0.comment.id == commentID}
             totalComments -= 1
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    func toggleCommentLike(commentId: String) async {
+    func toggleCommentLike(commentID: String) async {
         do {
             // This would typically check if user has already liked
-            _ = try await commentsService.likeComment(commentId: commentId)
+            _ = try await commentsService.likeComment(commentID: commentID)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -482,7 +482,7 @@ class CommentsViewModel: ObservableObject {
         do {
             let fetchedComments = try await commentsService.fetchCommentsBySource(
                 sourceType: "workout",
-                sourceID: workoutId,
+                sourceID: workoutID,
                 limit: pageSize
             )
 
@@ -495,7 +495,7 @@ class CommentsViewModel: ObservableObject {
             hasMoreComments = fetchedComments.count == pageSize
 
             // Get total count
-            totalComments = try await commentsService.fetchCommentCountBySource(sourceType: "workout", sourceID: workoutId)
+            totalComments = try await commentsService.fetchCommentCountBySource(sourceType: "workout", sourceID: workoutID)
 
             sortComments()
         } catch {
@@ -522,8 +522,8 @@ class CommentsViewModel: ObservableObject {
 #Preview {
     NavigationView {
         CommentsListView(
-            workoutId: "sample-workout",
-            workoutOwnerId: "owner123",
+            workoutID: "sample-workout",
+            workoutOwnerID: "owner123",
             currentUser: UserProfile(
                 id: "current",
                 userID: "current",
@@ -577,9 +577,9 @@ private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
         )
     }
 
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
+    func updateComment(commentID: String, newContent: String) async throws -> ActivityFeedComment {
         ActivityFeedComment(
-            id: commentId,
+            id: commentID,
             activityFeedID: "feed1",
             sourceType: "workout",
             sourceID: "workout1",
@@ -594,15 +594,15 @@ private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
         )
     }
 
-    func deleteComment(commentId _: String) async throws {
+    func deleteComment(commentID: String) async throws {
         // Mock delete
     }
 
-    func likeComment(commentId _: String) async throws -> Int {
+    func likeComment(commentID: String) async throws -> Int {
         1
     }
 
-    func unlikeComment(commentId _: String) async throws -> Int {
+    func unlikeComment(commentID: String) async throws -> Int {
         0
     }
 

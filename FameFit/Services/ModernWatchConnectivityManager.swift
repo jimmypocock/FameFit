@@ -123,7 +123,7 @@ final class WatchConnectivitySingleton: NSObject, ObservableObject, WatchConnect
     private let messageRateLimit = 10 // messages per minute
     private var messageTimestamps: [Date] = []
     
-    private override init() {
+    override private init() {
         super.init()
         
         // Activate session immediately for singleton
@@ -189,18 +189,18 @@ final class WatchConnectivitySingleton: NSObject, ObservableObject, WatchConnect
         // Check rate limiting
         try checkRateLimit()
         
-        let messageId = UUID().uuidString
-        var messageWithId = message
-        messageWithId["messageId"] = messageId
+        let messageID = UUID().uuidString
+        var messageWithID = message
+        messageWithID["messageID"] = messageID
         
         return try await withCheckedThrowingContinuation { continuation in
-            self.messageContinuations[messageId] = continuation
+            self.messageContinuations[messageID] = continuation
             
-            session.sendMessage(messageWithId, replyHandler: { [weak self] reply in
-                self?.messageContinuations.removeValue(forKey: messageId)
+            session.sendMessage(messageWithID, replyHandler: { [weak self] reply in
+                self?.messageContinuations.removeValue(forKey: messageID)
                 continuation.resume(returning: reply)
             }, errorHandler: { [weak self] error in
-                self?.messageContinuations.removeValue(forKey: messageId)
+                self?.messageContinuations.removeValue(forKey: messageID)
                 FameFitLogger.error("Message send failed", error: error, category: FameFitLogger.general)
                 continuation.resume(throwing: WatchConnectivityError.messageFailed(error))
             })
@@ -208,8 +208,8 @@ final class WatchConnectivitySingleton: NSObject, ObservableObject, WatchConnect
             // Add timeout
             Task {
                 try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
-                if self.messageContinuations[messageId] != nil {
-                    self.messageContinuations.removeValue(forKey: messageId)
+                if self.messageContinuations[messageID] != nil {
+                    self.messageContinuations.removeValue(forKey: messageID)
                     continuation.resume(throwing: WatchConnectivityError.timeout)
                 }
             }
@@ -345,13 +345,13 @@ extension WatchConnectivitySingleton: WCSessionDelegate {
     
     // MARK: - Message Handling
     
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         FameFitLogger.info("Received message: \(message.keys.joined(separator: ", "))", category: FameFitLogger.general)
         // Handle incoming messages
         handleIncomingMessage(message)
     }
     
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         FameFitLogger.info("Received message with reply: \(message.keys.joined(separator: ", "))", category: FameFitLogger.general)
         
         // Handle message and send reply
@@ -359,7 +359,7 @@ extension WatchConnectivitySingleton: WCSessionDelegate {
         replyHandler(reply)
     }
     
-    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         FameFitLogger.info("Received user info: \(userInfo.keys.joined(separator: ", "))", category: FameFitLogger.general)
         // Handle background user info transfers
         handleIncomingUserInfo(userInfo)
@@ -423,7 +423,7 @@ extension WatchConnectivitySingleton: WCSessionDelegate {
         // Gather data to sync
         let syncData: [String: Any] = [
             "command": "syncResponse",
-            "timestamp": Date(),
+            "timestamp": Date()
             // Add relevant data to sync
         ]
         

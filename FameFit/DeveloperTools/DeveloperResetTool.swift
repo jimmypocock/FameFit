@@ -96,7 +96,7 @@ class DeveloperResetTool {
                 let results = try await database.records(matching: query)
                 let count = results.matchResults.count
                 
-                if count > 0 {
+                if !results.matchResults.isEmpty {
                     print("\n📁 \(dbName.capitalized) Database (\(count) profiles):")
                     
                     for result in results.matchResults {
@@ -131,7 +131,7 @@ class DeveloperResetTool {
         print("🔍 Current user ID: \(currentUserID)")
         
         // First, try to get the current active profile from CloudKit
-        var activeUsername: String? = nil
+        var activeUsername: String?
         
         // Try to fetch the current user's active profile
         let activeProfileQuery = CKQuery(
@@ -169,7 +169,7 @@ class DeveloperResetTool {
                 let results = try await database.records(matching: query)
                 let count = results.matchResults.count
                 
-                if count > 0 {
+                if !results.matchResults.isEmpty {
                     print("\n📁 \(dbName.capitalized) Database (\(count) profiles):")
                     
                     for result in results.matchResults {
@@ -231,14 +231,14 @@ class DeveloperResetTool {
         await deleteRecords(ofType: "UserRelationships", matching: NSPredicate(format: "followerID == %@", userID))
         await deleteRecords(ofType: "UserRelationships", matching: NSPredicate(format: "followingID == %@", userID))
         
-        // ActivityFeedItems - if it exists
+        // ActivityFeed - if it exists
         await deleteRecords(ofType: "ActivityFeed", matching: NSPredicate(format: "userID == %@", userID))
         
         // WorkoutKudos - if it exists
         await deleteRecords(ofType: "WorkoutKudos", matching: NSPredicate(format: "userID == %@", userID))
         
-        // WorkoutComments - field is "userId" (lowercase)
-        await deleteRecords(ofType: "WorkoutComments", matching: NSPredicate(format: "userId == %@", userID))
+        // WorkoutComments - field is "userID" (lowercase)
+        await deleteRecords(ofType: "WorkoutComments", matching: NSPredicate(format: "userID == %@", userID))
         
         // GroupWorkouts - DON'T DELETE! Just remove user as participant
         // Deleting would break the workout for other participants
@@ -299,7 +299,7 @@ class DeveloperResetTool {
         
         let predicates = [
             ("userID == userID", NSPredicate(format: "userID == %@", userID)),
-            ("userId == userID", NSPredicate(format: "userId == %@", userID)),
+            ("userID == userID", NSPredicate(format: "userID == %@", userID)),
             ("ALL records", NSPredicate(value: true)) // Nuclear option - get ALL profiles and filter in code
         ]
         
@@ -330,7 +330,7 @@ class DeveloperResetTool {
                         if let record = try? result.1.get() {
                             // If we're using the "true" predicate, check if this record belongs to our user
                             if predicate.predicateFormat == "TRUEPREDICATE" {
-                                let recordUserID = record["userID"] as? String ?? record["userId"] as? String
+                                let recordUserID = record["userID"] as? String ?? record["userID"] as? String
                                 if recordUserID != userID {
                                     continue // Skip records for other users
                                 }
@@ -379,7 +379,7 @@ class DeveloperResetTool {
         print("  🔍 Looking for GroupWorkouts where user is participant...")
         
         // Find workouts where user is a participant
-        let participantPredicate = NSPredicate(format: "ANY participants.userId == %@", userID)
+        let participantPredicate = NSPredicate(format: "ANY participants.userID == %@", userID)
         let query = CKQuery(recordType: "GroupWorkouts", predicate: participantPredicate)
         
         var updatedCount = 0
@@ -400,8 +400,8 @@ class DeveloperResetTool {
                             // Remove user from participants array
                             if var participants = record["participants"] as? [[String: Any]] {
                                 participants.removeAll { participant in
-                                    if let participantUserId = participant["userId"] as? String {
-                                        return participantUserId == userID
+                                    if let participantUserID = participant["userID"] as? String {
+                                        return participantUserID == userID
                                     }
                                     return false
                                 }

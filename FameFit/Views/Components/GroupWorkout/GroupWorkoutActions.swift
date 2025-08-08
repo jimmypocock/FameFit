@@ -9,7 +9,7 @@ import SwiftUI
 
 struct GroupWorkoutActions: View {
     let groupWorkout: GroupWorkout
-    let currentUserId: String?
+    let currentUserID: String?
     let onJoin: () -> Void
     let onLeave: () -> Void
     let onStart: () -> Void
@@ -87,17 +87,17 @@ struct GroupWorkoutActions: View {
 
     // Check if the current user is a participant (including host)
     private var isParticipant: Bool {
-        guard let currentUserId else { return false }
+        guard let currentUserID else { return false }
         // Host is always a participant
-        if groupWorkout.hostId == currentUserId {
+        if groupWorkout.hostID == currentUserID {
             return true
         }
         // Check if user is in participantIDs array
-        return groupWorkout.participantIDs.contains(currentUserId)
+        return groupWorkout.participantIDs.contains(currentUserID)
     }
 
     private var isHost: Bool {
-        guard let currentUserId else { return false }
-        return groupWorkout.hostId == currentUserId
+        guard let currentUserID else { return false }
+        return groupWorkout.hostID == currentUserID
     }
 }

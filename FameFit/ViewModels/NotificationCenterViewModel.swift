@@ -175,7 +175,7 @@ final class NotificationCenterViewModel: ObservableObject {
     private func handleWorkoutInteractionFameFitNotification(_ notification: FameFitNotification) {
         // TODO: Navigate to specific workout with comments/kudos
         if let workoutMetadata = notification.workoutMetadata {
-            print("Navigate to workout details: \(workoutMetadata.workoutId ?? "unknown")")
+            print("Navigate to workout details: \(workoutMetadata.workoutID ?? "unknown")")
         }
     }
 

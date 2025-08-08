@@ -95,7 +95,7 @@ struct FollowerRow: View {
             showingProfile = true
         }
         .sheet(isPresented: $showingProfile) {
-            ProfileView(userId: profile.id)
+            ProfileView(userID: profile.id)
         }
     }
 

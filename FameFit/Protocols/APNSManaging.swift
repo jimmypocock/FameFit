@@ -52,7 +52,7 @@ struct PushNotificationRequest {
     let sound: String?
     let metadata: [String: String]?
     let category: String?
-    let threadId: String?
+    let threadID: String?
 
     init(
         userID: String,
@@ -64,7 +64,7 @@ struct PushNotificationRequest {
         sound: String? = "default",
         metadata: [String: String]? = nil,
         category: String? = nil,
-        threadId: String? = nil
+        threadID: String? = nil
     ) {
         self.userID = userID
         self.type = type
@@ -75,6 +75,6 @@ struct PushNotificationRequest {
         self.sound = sound
         self.metadata = metadata
         self.category = category
-        self.threadId = threadId
+        self.threadID = threadID
     }
 }

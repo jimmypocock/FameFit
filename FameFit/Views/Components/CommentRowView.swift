@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CommentRowView: View {
     let commentWithUser: ActivityFeedCommentWithUser
-    let currentUserId: String?
+    let currentUserID: String?
     let onReply: (String) -> Void
     let onEdit: (ActivityFeedComment) -> Void
     let onDelete: (String) -> Void
@@ -144,7 +144,7 @@ struct CommentRowView: View {
                         Spacer()
 
                         // More options for own comments
-                        if commentWithUser.comment.userID == currentUserId {
+                        if commentWithUser.comment.userID == currentUserID {
                             Button(action: { showingActions.toggle() }) {
                                 Image(systemName: "ellipsis")
                                     .font(.system(size: 14))
@@ -217,7 +217,7 @@ struct CommentRowView: View {
                         profileImageURL: nil
                     )
                 ),
-                currentUserId: "currentUser",
+                currentUserID: "currentUser",
                 onReply: { _ in },
                 onEdit: { _ in },
                 onDelete: { _ in },
@@ -258,7 +258,7 @@ struct CommentRowView: View {
                         profileImageURL: nil
                     )
                 ),
-                currentUserId: "currentUser",
+                currentUserID: "currentUser",
                 onReply: { _ in },
                 onEdit: { _ in },
                 onDelete: { _ in },

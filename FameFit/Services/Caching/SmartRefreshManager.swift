@@ -167,18 +167,18 @@ final class SmartRefreshManager: ObservableObject {
     /// Request refresh for feed data with smart caching
     func requestFeedRefresh<T: Codable>(
         feedType: String,
-        userId: String,
+        userID: String,
         page: Int,
         type: T.Type,
         userInitiated: Bool = false,
         fetchOperation: @escaping () async throws -> T
     ) {
-        let id = "feed:\(feedType):\(userId):\(page)"
+        let id = "feed:\(feedType):\(userID):\(page)"
         
         // Check if we need to refresh based on cache state
         let (_, shouldRefresh, cacheStatus) = socialFeedCache.getFeedData(
             feedType: feedType,
-            userId: userId,
+            userID: userID,
             page: page,
             type: type,
             strategy: userInitiated ? .immediate : .staleWhileRevalidate
@@ -196,7 +196,7 @@ final class SmartRefreshManager: ObservableObject {
             let data = try await fetchOperation()
             self.socialFeedCache.setFeedPage(
                 feedType: feedType,
-                userId: userId,
+                userID: userID,
                 page: page,
                 data: data
             )
@@ -231,7 +231,6 @@ final class SmartRefreshManager: ObservableObject {
             // Clear processed requests
             pendingRequests[.critical] = []
             pendingRequests[.high] = []
-            
         } catch {
             refreshState = .failed(error)
             print("❌ Critical data refresh failed: \(error)")
@@ -283,7 +282,6 @@ final class SmartRefreshManager: ObservableObject {
                 
                 print("✅ Refresh completed: \(request.id)")
                 return
-                
             } catch {
                 retryCount += 1
                 

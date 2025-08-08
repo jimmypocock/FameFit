@@ -18,10 +18,10 @@ final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
     private var userSpamScores: [String: Double] = [:]
     private let scoreQueue = DispatchQueue(label: "com.famefit.antispam", attributes: .concurrent)
 
-    func checkForSpam(userId: String, action: SpamCheckAction) async -> SpamCheckResult {
+    func checkForSpam(userID: String, action: SpamCheckAction) async -> SpamCheckResult {
         switch action {
-        case let .follow(targetId):
-            await checkFollowSpam(userId: userId, targetId: targetId)
+        case let .follow(targetID):
+            await checkFollowSpam(userID: userID, targetID: targetID)
 
         case let .message(content):
             checkContentSpam(content: content)
@@ -30,32 +30,32 @@ final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
             checkContentSpam(content: content)
 
         case .workoutPost:
-            await checkWorkoutSpam(userId: userId)
+            await checkWorkoutSpam(userID: userID)
         }
     }
 
-    func reportSpam(userId _: String, targetId: String, reason _: SpamReason) async throws {
+    func reportSpam(userID _: String, targetID: String, reason _: SpamReason) async throws {
         // In production, this would:
         // 1. Log the report to CloudKit
         // 2. Update spam scores
         // 3. Notify moderation team
         // 4. Take automatic action if threshold reached
 
-        await updateSpamScore(for: targetId, delta: 10.0)
+        await updateSpamScore(for: targetID, delta: 10.0)
     }
 
-    func getSpamScore(for userId: String) async -> Double {
+    func getSpamScore(for userID: String) async -> Double {
         await withCheckedContinuation { continuation in
             scoreQueue.sync {
-                continuation.resume(returning: userSpamScores[userId] ?? 0.0)
+                continuation.resume(returning: userSpamScores[userID] ?? 0.0)
             }
         }
     }
 
     // MARK: - Private Methods
 
-    private func checkFollowSpam(userId: String, targetId _: String) async -> SpamCheckResult {
-        let score = await getSpamScore(for: userId)
+    private func checkFollowSpam(userID: String, targetID: String) async -> SpamCheckResult {
+        let score = await getSpamScore(for: userID)
 
         // Check for mass following patterns
         if score > 50 {
@@ -122,7 +122,7 @@ final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
         )
     }
 
-    private func checkWorkoutSpam(userId _: String) async -> SpamCheckResult {
+    private func checkWorkoutSpam(userID _: String) async -> SpamCheckResult {
         // Check for unrealistic workout patterns
         // In production, this would analyze workout history
 
@@ -134,15 +134,15 @@ final class AntiSpamService: AntiSpamServicing, @unchecked Sendable {
         )
     }
 
-    private func updateSpamScore(for userId: String, delta: Double) async {
+    private func updateSpamScore(for userID: String, delta: Double) async {
         await withCheckedContinuation { continuation in
             scoreQueue.async(flags: .barrier) { [weak self] in
                 guard let self else {
                     continuation.resume()
                     return
                 }
-                let currentScore = userSpamScores[userId] ?? 0.0
-                userSpamScores[userId] = max(0, currentScore + delta)
+                let currentScore = userSpamScores[userID] ?? 0.0
+                userSpamScores[userID] = max(0, currentScore + delta)
                 continuation.resume()
             }
         }

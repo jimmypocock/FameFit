@@ -168,7 +168,7 @@ struct WorkoutHistoryView: View {
                     await MainActor.run {
                         self.selectedTransaction = XPTransaction(
                             userID: cloudKitManager.currentUserID ?? "",
-                            workoutRecordID: workout.id.uuidString,
+                            workoutID: workout.id.uuidString,
                             baseXP: result.baseXP,
                             finalXP: result.finalXP,
                             factors: result.factors

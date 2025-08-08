@@ -57,7 +57,7 @@ enum TestAccountPersona: String, CaseIterable {
         case .athlete: return 523
         case .beginner: return 28
         case .influencer: return 892
-        case .coach: return 1247
+        case .coach: return 1_247
         case .casual: return 145
         }
     }
@@ -87,7 +87,7 @@ enum TestAccountPersona: String, CaseIterable {
         case .athlete: return 365
         case .beginner: return 30
         case .influencer: return 730
-        case .coach: return 1095
+        case .coach: return 1_095
         case .casual: return 180
         }
     }

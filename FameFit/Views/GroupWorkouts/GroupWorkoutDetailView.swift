@@ -10,7 +10,7 @@ import HealthKit
 
 struct GroupWorkoutDetailView: View {
     @State var workout: GroupWorkout
-    var onDelete: (() -> Void)? = nil  // Callback for when workout is deleted
+    var onDelete: (() -> Void)?  // Callback for when workout is deleted
     @Environment(\.dependencyContainer) private var container
     @Environment(\.dismiss) private var dismiss
     
@@ -31,8 +31,8 @@ struct GroupWorkoutDetailView: View {
     
     private var isCreator: Bool {
         guard let currentUserID = currentUserID else { return false }
-        let result = workout.hostId == currentUserID
-        print("isCreator check: hostId=\(workout.hostId), currentUserID=\(currentUserID), isCreator=\(result)")
+        let result = workout.hostID == currentUserID
+        print("isCreator check: hostID =\(workout.hostID), currentUserID =\(currentUserID), isCreator=\(result)")
         return result
     }
     
@@ -96,7 +96,7 @@ struct GroupWorkoutDetailView: View {
             }
             .sheet(isPresented: $showHostProfile) {
                 if let hostProfile = hostProfile {
-                    ProfileView(userId: hostProfile.userID)
+                    ProfileView(userID: hostProfile.userID)
                         .environment(\.dependencyContainer, container)
                 }
             }
@@ -412,8 +412,8 @@ struct GroupWorkoutDetailView: View {
             } else {
                 ForEach(participants.sorted(by: { $0.joinedAt < $1.joinedAt })) { participant in
                     // Skip the host in participants list
-                    if participant.userId != workout.hostId,
-                       let profile = participantProfiles[participant.userId] {
+                    if participant.userID != workout.hostID,
+                       let profile = participantProfiles[participant.userID] {
                         ParticipantRow(participant: participant, profile: profile, isCreator: false)
                     }
                 }
@@ -515,17 +515,17 @@ struct GroupWorkoutDetailView: View {
             let loadedParticipants = try await container.groupWorkoutService.getParticipants(workout.id)
             
             // Find my participation
-            let currentUserId = try await container.cloudKitManager.getCurrentUserID()
-            let myPart = loadedParticipants.first { $0.userId == currentUserId }
+            let currentUserID = try await container.cloudKitManager.getCurrentUserID()
+            let myPart = loadedParticipants.first { $0.userID == currentUserID }
             
             // Load host profile
-            let hostProf = try? await container.userProfileService.fetchProfileByUserID(workout.hostId)
+            let hostProf = try? await container.userProfileService.fetchProfileByUserID(workout.hostID)
             
             // Load profiles for participants
             var profiles: [String: UserProfile] = [:]
             for participant in loadedParticipants {
-                if let profile = try? await container.userProfileService.fetchProfileByUserID(participant.userId) {
-                    profiles[participant.userId] = profile
+                if let profile = try? await container.userProfileService.fetchProfileByUserID(participant.userID) {
+                    profiles[participant.userID] = profile
                 }
             }
             
@@ -614,7 +614,7 @@ struct GroupWorkoutDetailView: View {
                     NotificationCenter.default.post(
                         name: Notification.Name("GroupWorkoutDeleted"),
                         object: nil,
-                        userInfo: ["workoutId": workout.id]
+                        userInfo: ["workoutID": workout.id]
                     )
                     onDelete?()  // Notify parent view that workout was deleted (if provided)
                     dismiss()
@@ -636,7 +636,6 @@ struct GroupWorkoutDetailView: View {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first,
            let rootVC = window.rootViewController {
-            
             // For iPad
             if let popover = activityVC.popoverPresentationController {
                 popover.sourceView = rootVC.view
@@ -810,8 +809,8 @@ struct InviteFriendsView: View {
         isLoading = true
         do {
             // Get current user's followers
-            if let userId = container.cloudKitManager.currentUserID {
-                followers = try await container.socialFollowingService.getFollowers(for: userId, limit: 50)
+            if let userID = container.cloudKitManager.currentUserID {
+                followers = try await container.socialFollowingService.getFollowers(for: userID, limit: 50)
             }
         } catch {
             errorMessage = "Failed to load followers"
@@ -972,4 +971,3 @@ private struct InviteFollowerRow: View {
         }
     }
 }
-

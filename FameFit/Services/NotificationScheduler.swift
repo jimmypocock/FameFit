@@ -12,7 +12,7 @@ import UserNotifications
 
 protocol NotificationScheduling {
     func scheduleFameFitNotification(_ notification: NotificationRequest) async throws
-    func cancelFameFitNotification(withId id: String) async
+    func cancelFameFitNotification(withID id: String) async
     func cancelAllNotifications() async
     func getPendingNotifications() async -> [NotificationRequest]
     func updatePreferences(_ preferences: NotificationPreferences)
@@ -28,7 +28,7 @@ struct NotificationRequest {
     let metadata: NotificationMetadataContainer?
     let priority: NotificationPriority
     let actions: [NotificationAction]
-    let groupId: String?
+    let groupID: String?
     let deliveryDate: Date?
     let sound: UNNotificationSound?
 
@@ -39,7 +39,7 @@ struct NotificationRequest {
         metadata: NotificationMetadataContainer? = nil,
         priority: NotificationPriority? = nil,
         actions: [NotificationAction] = [],
-        groupId: String? = nil,
+        groupID: String? = nil,
         deliveryDate: Date? = nil
     ) {
         id = UUID().uuidString
@@ -49,7 +49,7 @@ struct NotificationRequest {
         self.metadata = metadata
         self.priority = priority ?? type.defaultPriority
         self.actions = actions
-        self.groupId = groupId
+        self.groupID = groupID
         self.deliveryDate = deliveryDate
         sound = type.soundEnabled ? .default : nil
     }
@@ -104,7 +104,7 @@ final class NotificationScheduler: NotificationScheduling {
                 metadata: notification.metadata,
                 priority: notification.priority,
                 actions: notification.actions,
-                groupId: notification.groupId,
+                groupID: notification.groupID,
                 deliveryDate: delayedDate
             )
             try await scheduleLocalFameFitNotification(delayedNotification)
@@ -127,7 +127,7 @@ final class NotificationScheduler: NotificationScheduling {
         try await deliverFameFitNotification(notification)
     }
 
-    func cancelFameFitNotification(withId id: String) async {
+    func cancelFameFitNotification(withID id: String) async {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [id])
         notificationCenter.removeDeliveredNotifications(withIdentifiers: [id])
     }
@@ -297,7 +297,7 @@ final class NotificationScheduler: NotificationScheduling {
             body: body,
             metadata: nil,
             priority: .medium,
-            groupId: "\(type.rawValue)_batch_\(Date().timeIntervalSince1970)"
+            groupID: "\(type.rawValue)_batch_\(Date().timeIntervalSince1970)"
         )
     }
 
@@ -317,7 +317,7 @@ final class NotificationScheduler: NotificationScheduling {
             body: notification.body,
             metadata: notification.metadata,
             actions: notification.actions,
-            groupId: notification.groupId
+            groupID: notification.groupID
         )
         Task { @MainActor in
             notificationStore.addFameFitNotification(item)
@@ -342,8 +342,8 @@ final class NotificationScheduler: NotificationScheduling {
         }
 
         // Set thread identifier for grouping
-        if let groupId = notification.groupId {
-            content.threadIdentifier = groupId
+        if let groupID = notification.groupID {
+            content.threadIdentifier = groupID
         }
 
         // Create trigger
@@ -393,7 +393,7 @@ final class MockNotificationScheduler: NotificationScheduling {
         scheduledNotifications.append(notification)
     }
 
-    func cancelFameFitNotification(withId id: String) async {
+    func cancelFameFitNotification(withID id: String) async {
         scheduledNotifications.removeAll { $0.id == id }
     }
 

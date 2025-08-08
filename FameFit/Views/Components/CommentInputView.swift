@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct CommentInputView: View {
-    let workoutId: String
-    let workoutOwnerId: String
-    let parentCommentId: String?
+    let workoutID: String
+    let workoutOwnerID: String
+    let parentCommentID: String?
     let editingComment: ActivityFeedComment?
     let currentUser: UserProfile?
     let onSubmit: (String) -> Void
@@ -25,7 +25,7 @@ struct CommentInputView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Reply context indicator
-            if parentCommentId != nil {
+            if parentCommentID != nil {
                 replyContextView
             }
 
@@ -132,7 +132,7 @@ struct CommentInputView: View {
                 commentText = editingComment.content
             }
             // Auto-focus when replying
-            if parentCommentId != nil {
+            if parentCommentID != nil {
                 isTextFieldFocused = true
             }
         }
@@ -144,7 +144,7 @@ struct CommentInputView: View {
     private var placeholderText: String {
         if editingComment != nil {
             "Edit your comment..."
-        } else if parentCommentId != nil {
+        } else if parentCommentID != nil {
             "Write a reply..."
         } else {
             "Add a comment..."
@@ -254,9 +254,9 @@ struct CommentInputView: View {
     VStack(spacing: 20) {
         // New comment
         CommentInputView(
-            workoutId: "workout1",
-            workoutOwnerId: "owner1",
-            parentCommentId: nil as String?,
+            workoutID: "workout1",
+            workoutOwnerID: "owner1",
+            parentCommentID: nil as String?,
             editingComment: nil as ActivityFeedComment?,
             currentUser: UserProfile(
                 id: "current",
@@ -279,9 +279,9 @@ struct CommentInputView: View {
 
         // Reply to comment
         CommentInputView(
-            workoutId: "workout1",
-            workoutOwnerId: "owner1",
-            parentCommentId: "parent1",
+            workoutID: "workout1",
+            workoutOwnerID: "owner1",
+            parentCommentID: "parent1",
             editingComment: nil,
             currentUser: UserProfile(
                 id: "current",

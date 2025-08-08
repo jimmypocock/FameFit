@@ -16,12 +16,12 @@ struct ChallengeDetailView: View {
     @State private var showingUpdateProgress = false
     @State private var error: String?
 
-    private var currentUserId: String? {
+    private var currentUserID: String? {
         container.cloudKitManager.currentUserID
     }
 
     private var myParticipant: ChallengeParticipant? {
-        challenge.participants.first { $0.id == currentUserId }
+        challenge.participants.first { $0.id == currentUserID}
     }
 
     private var sortedParticipants: [ChallengeParticipant] {
@@ -258,7 +258,7 @@ struct ChallengeDetailView: View {
                         participant: participant,
                         position: index + 1,
                         challenge: challenge,
-                        currentUserId: currentUserId,
+                        currentUserID: currentUserID,
                         positionColor: positionColor(for: index)
                     )
                 }
@@ -337,7 +337,7 @@ struct ChallengeDetailView: View {
                 .disabled(isUpdatingProgress)
             }
 
-            if challenge.creatorId == currentUserId, challenge.status == .active {
+            if challenge.creatorID == currentUserID, challenge.status == .active {
                 Button(action: {
                     cancelChallenge()
                 }) {
@@ -359,9 +359,9 @@ struct ChallengeDetailView: View {
         Task {
             do {
                 try await container.workoutChallengesService.updateProgress(
-                    challengeId: challenge.id,
+                    challengeID: challenge.id,
                     progress: newProgress,
-                    workoutId: nil
+                    workoutID: nil
                 )
 
                 await MainActor.run {
@@ -379,7 +379,7 @@ struct ChallengeDetailView: View {
     private func cancelChallenge() {
         Task {
             do {
-                try await container.workoutChallengesService.cancelChallenge(challengeId: challenge.id)
+                try await container.workoutChallengesService.cancelChallenge(challengeID: challenge.id)
 
                 await MainActor.run {
                     dismiss()
@@ -489,7 +489,7 @@ private struct ChallengeLeaderboardRow: View {
     let participant: ChallengeParticipant
     let position: Int
     let challenge: WorkoutChallenge
-    let currentUserId: String?
+    let currentUserID: String?
     let positionColor: Color
     
     var body: some View {
@@ -511,9 +511,9 @@ private struct ChallengeLeaderboardRow: View {
                 HStack {
                     Text(participant.username)
                         .font(.body)
-                        .fontWeight(participant.id == currentUserId ? .medium : .regular)
+                        .fontWeight(participant.id == currentUserID ? .medium : .regular)
                     
-                    if participant.id == challenge.winnerId {
+                    if participant.id == challenge.winnerID {
                         Image(systemName: "trophy.fill")
                             .font(.caption)
                             .foregroundColor(.yellow)
@@ -542,7 +542,7 @@ private struct ChallengeLeaderboardRow: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(participant.id == currentUserId ? Color.accentColor.opacity(0.1) : Color.clear)
+        .background(participant.id == currentUserID ? Color.accentColor.opacity(0.1) : Color.clear)
         .cornerRadius(8)
     }
 }
@@ -553,7 +553,7 @@ private struct ChallengeLeaderboardRow: View {
     ChallengeDetailView(
         challenge: WorkoutChallenge(
             id: "preview-challenge",
-            creatorId: "preview-creator",
+            creatorID: "preview-creator",
             participants: [
                 ChallengeParticipant(
                     id: "preview-creator",
@@ -577,7 +577,7 @@ private struct ChallengeLeaderboardRow: View {
             endDate: Date().addingTimeInterval(7 * 24 * 3_600),
             createdTimestamp: Date(),
             status: .active,
-            winnerId: nil,
+            winnerID: nil,
             xpStake: 100,
             winnerTakesAll: false,
             isPublic: true,

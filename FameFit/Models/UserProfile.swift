@@ -94,7 +94,6 @@ struct UserProfile: Identifiable, Codable, Equatable {
         return regex?.firstMatch(in: username, options: [], range: range) != nil
     }
 
-
     static func isValidBio(_ bio: String) -> Bool {
         bio.count <= 500
     }

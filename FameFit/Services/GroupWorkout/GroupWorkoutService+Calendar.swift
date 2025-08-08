@@ -45,10 +45,10 @@ extension GroupWorkoutService {
             FameFitLogger.info("Successfully added workout to calendar", category: FameFitLogger.social)
             
             // Store event identifier in UserDefaults for later removal
-            if let eventId = event.eventIdentifier {
+            if let eventID = event.eventIdentifier {
                 let calendarKey = "calendar_event_\(workout.id)"
-                UserDefaults.standard.set(eventId, forKey: calendarKey)
-                FameFitLogger.info("Stored calendar event ID: \(eventId)", category: FameFitLogger.social)
+                UserDefaults.standard.set(eventID, forKey: calendarKey)
+                FameFitLogger.info("Stored calendar event ID: \(eventID)", category: FameFitLogger.social)
             }
         } catch {
             FameFitLogger.error("Failed to save calendar event", error: error, category: FameFitLogger.social)
@@ -61,7 +61,7 @@ extension GroupWorkoutService {
         
         // Retrieve calendar event ID from storage
         let calendarKey = "calendar_event_\(workout.id)"
-        guard let eventId = UserDefaults.standard.string(forKey: calendarKey) else {
+        guard let eventID = UserDefaults.standard.string(forKey: calendarKey) else {
             FameFitLogger.warning("No calendar event ID found for workout", category: FameFitLogger.social)
             throw GroupWorkoutError.calendarEventNotFound
         }
@@ -73,7 +73,7 @@ extension GroupWorkoutService {
         }
         
         // Find and remove the event
-        if let event = eventStore.event(withIdentifier: eventId) {
+        if let event = eventStore.event(withIdentifier: eventID) {
             do {
                 try eventStore.remove(event, span: .thisEvent)
                 UserDefaults.standard.removeObject(forKey: calendarKey)

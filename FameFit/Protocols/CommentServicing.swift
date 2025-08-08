@@ -35,31 +35,31 @@ protocol CommentServicing {
     associatedtype ActivityFeedCommentWithUserType: ActivityFeedCommentWithUserProtocol where ActivityFeedCommentWithUserType.CommentType == CommentType
     
     // Core functionality that all comment services must implement
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [ActivityFeedCommentWithUserType]
+    func fetchComments(for resourceID: String, limit: Int) async throws -> [ActivityFeedCommentWithUserType]
     func postComment(
-        resourceId: String,
-        resourceOwnerId: String,
+        resourceID: String,
+        resourceOwnerID: String,
         content: String,
-        parentCommentId: String?,
+        parentCommentID: String?,
         metadata: CommentMetadata
     ) async throws -> CommentType
-    func updateComment(commentId: String, newContent: String) async throws -> CommentType
-    func deleteComment(commentId: String) async throws
-    func likeComment(commentId: String) async throws -> Int
-    func unlikeComment(commentId: String) async throws -> Int
-    func fetchCommentCount(for resourceId: String) async throws -> Int
+    func updateComment(commentID: String, newContent: String) async throws -> CommentType
+    func deleteComment(commentID: String) async throws
+    func likeComment(commentID: String) async throws -> Int
+    func unlikeComment(commentID: String) async throws -> Int
+    func fetchCommentCount(for resourceID: String) async throws -> Int
 }
 
 // MARK: - Comment Metadata
 
 struct CommentMetadata {
     let resourceType: String // "workout", "achievement", "level_up", etc.
-    let sourceRecordId: String? // For dual reference system
+    let sourceRecordID: String? // For dual reference system
     let context: [String: String] // Additional context data
     
-    init(resourceType: String, sourceRecordId: String? = nil, context: [String: String] = [:]) {
+    init(resourceType: String, sourceRecordID: String? = nil, context: [String: String] = [:]) {
         self.resourceType = resourceType
-        self.sourceRecordId = sourceRecordId
+        self.sourceRecordID = sourceRecordID
         self.context = context
     }
 }
@@ -115,75 +115,75 @@ class AnyCommentService: CommentServicing {
     private let _fetchCommentCount: (String) async throws -> Int
     
     init<Service: CommentServicing>(_ service: Service) {
-        self._fetchComments = { resourceId, limit in
-            let comments = try await service.fetchComments(for: resourceId, limit: limit)
+        self._fetchComments = { resourceID, limit in
+            let comments = try await service.fetchComments(for: resourceID, limit: limit)
             return comments.map { AnyActivityFeedCommentWithUser($0) }
         }
         
-        self._postComment = { resourceId, ownerId, content, parentId, metadata in
+        self._postComment = { resourceID, ownerID, content, parentID, metadata in
             let comment = try await service.postComment(
-                resourceId: resourceId,
-                resourceOwnerId: ownerId,
+                resourceID: resourceID,
+                resourceOwnerID: ownerID,
                 content: content,
-                parentCommentId: parentId,
+                parentCommentID: parentID,
                 metadata: metadata
             )
             return AnyComment(comment)
         }
         
-        self._updateComment = { commentId, newContent in
-            let comment = try await service.updateComment(commentId: commentId, newContent: newContent)
+        self._updateComment = { commentID, newContent in
+            let comment = try await service.updateComment(commentID: commentID, newContent: newContent)
             return AnyComment(comment)
         }
         
-        self._deleteComment = { commentId in
-            try await service.deleteComment(commentId: commentId)
+        self._deleteComment = { commentID in
+            try await service.deleteComment(commentID: commentID)
         }
         
-        self._likeComment = { commentId in
-            try await service.likeComment(commentId: commentId)
+        self._likeComment = { commentID in
+            try await service.likeComment(commentID: commentID)
         }
         
-        self._unlikeComment = { commentId in
-            try await service.unlikeComment(commentId: commentId)
+        self._unlikeComment = { commentID in
+            try await service.unlikeComment(commentID: commentID)
         }
         
-        self._fetchCommentCount = { resourceId in
-            try await service.fetchCommentCount(for: resourceId)
+        self._fetchCommentCount = { resourceID in
+            try await service.fetchCommentCount(for: resourceID)
         }
     }
     
-    func fetchComments(for resourceId: String, limit: Int) async throws -> [AnyActivityFeedCommentWithUser] {
-        try await _fetchComments(resourceId, limit)
+    func fetchComments(for resourceID: String, limit: Int) async throws -> [AnyActivityFeedCommentWithUser] {
+        try await _fetchComments(resourceID, limit)
     }
     
     func postComment(
-        resourceId: String,
-        resourceOwnerId: String,
+        resourceID: String,
+        resourceOwnerID: String,
         content: String,
-        parentCommentId: String?,
+        parentCommentID: String?,
         metadata: CommentMetadata
     ) async throws -> AnyComment {
-        try await _postComment(resourceId, resourceOwnerId, content, parentCommentId, metadata)
+        try await _postComment(resourceID, resourceOwnerID, content, parentCommentID, metadata)
     }
     
-    func updateComment(commentId: String, newContent: String) async throws -> AnyComment {
-        try await _updateComment(commentId, newContent)
+    func updateComment(commentID: String, newContent: String) async throws -> AnyComment {
+        try await _updateComment(commentID, newContent)
     }
     
-    func deleteComment(commentId: String) async throws {
-        try await _deleteComment(commentId)
+    func deleteComment(commentID: String) async throws {
+        try await _deleteComment(commentID)
     }
     
-    func likeComment(commentId: String) async throws -> Int {
-        try await _likeComment(commentId)
+    func likeComment(commentID: String) async throws -> Int {
+        try await _likeComment(commentID)
     }
     
-    func unlikeComment(commentId: String) async throws -> Int {
-        try await _unlikeComment(commentId)
+    func unlikeComment(commentID: String) async throws -> Int {
+        try await _unlikeComment(commentID)
     }
     
-    func fetchCommentCount(for resourceId: String) async throws -> Int {
-        try await _fetchCommentCount(resourceId)
+    func fetchCommentCount(for resourceID: String) async throws -> Int {
+        try await _fetchCommentCount(resourceID)
     }
 }

@@ -11,18 +11,18 @@ import Foundation
 extension GroupWorkoutService {
     // MARK: - Participant Management
     
-    func joinGroupWorkout(_ workoutId: String) async throws {
-        FameFitLogger.info("Joining group workout: \(workoutId)", category: FameFitLogger.social)
+    func joinGroupWorkout(_ workoutID: String) async throws {
+        FameFitLogger.info("Joining group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        var workout = try await fetchWorkout(workoutId)
+        var workout = try await fetchWorkout(workoutID)
         
         // Check if already joined
-        let participants = try await getParticipants(workoutId)
-        guard !participants.contains(where: { $0.userId == userId }) else {
+        let participants = try await getParticipants(workoutID)
+        guard !participants.contains(where: { $0.userID == userID }) else {
             return
         }
         
@@ -37,18 +37,18 @@ extension GroupWorkoutService {
         }
         
         // Check rate limiting
-        _ = try await rateLimiter.checkLimit(for: .followRequest, userId: userId)
+        _ = try await rateLimiter.checkLimit(for: .followRequest, userID: userID)
         
         // Add participant
-        let userProfile = try await userProfileService.fetchProfileByUserID(userId)
+        let userProfile = try await userProfileService.fetchProfileByUserID(userID)
         
         // If workout is already active, participant starts as active
         let initialStatus: ParticipantStatus = workout.status == .active ? .active : .joined
         
         let participant = GroupWorkoutParticipant(
             id: UUID().uuidString,
-            groupWorkoutId: workoutId,
-            userId: userId,
+            groupWorkoutID: workoutID,
+            userID: userID,
             username: userProfile.username,
             profileImageURL: userProfile.profileImageURL,
             status: initialStatus
@@ -60,24 +60,24 @@ extension GroupWorkoutService {
         
         // Update workout participant count and participantIDs
         workout.participantCount += 1
-        if !workout.participantIDs.contains(userId) {
-            workout.participantIDs.append(userId)
+        if !workout.participantIDs.contains(userID) {
+            workout.participantIDs.append(userID)
         }
         _ = try await updateGroupWorkout(workout)
         
         // If workout is active, track start time for this participant
         if workout.status == .active, let processor = workoutProcessor {
-            try await processor.processGroupWorkoutJoin(groupWorkout: workout, participantId: userId)
+            try await processor.processGroupWorkoutJoin(groupWorkout: workout, participantID: userID)
         }
         
         // Record action
-        await rateLimiter.recordAction(.followRequest, userId: userId)
+        await rateLimiter.recordAction(.followRequest, userID: userID)
         
         // Send notification to host
-        await notifyHostOfNewParticipant(workout, participantId: userId)
+        await notifyHostOfNewParticipant(workout, participantID: userID)
         
         // Send real-time update
-        sendUpdate(.participantJoined(workoutId: workoutId, participant: participant))
+        sendUpdate(.participantJoined(workoutID: workoutID, participant: participant))
     }
     
     func joinWithCode(_ code: String) async throws -> GroupWorkout {
@@ -101,24 +101,24 @@ extension GroupWorkoutService {
         return workout
     }
     
-    func leaveGroupWorkout(_ workoutId: String) async throws {
-        FameFitLogger.info("Leaving group workout: \(workoutId)", category: FameFitLogger.social)
+    func leaveGroupWorkout(_ workoutID: String) async throws {
+        FameFitLogger.info("Leaving group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        let workout = try await fetchWorkout(workoutId)
+        let workout = try await fetchWorkout(workoutID)
         
         // Can't leave if host (must cancel instead)
-        guard workout.hostId != userId else {
+        guard workout.hostID != userID else {
             throw GroupWorkoutError.hostCannotLeave
         }
         
         // Find participant record
         let predicate = GroupWorkoutQueryBuilder.participantInWorkoutQuery(
-            workoutId: workoutId,
-            userId: userId
+            workoutID: workoutID,
+            userID: userID
         )
         
         let records = try await cloudKitManager.fetchRecords(
@@ -131,7 +131,7 @@ extension GroupWorkoutService {
         if let record = records.first {
             // If workout is active, process workout completion for this participant
             if workout.status == .active, let processor = workoutProcessor {
-                try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantId: userId)
+                try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantID: userID)
             }
             
             // Update status to dropped
@@ -141,24 +141,24 @@ extension GroupWorkoutService {
             // Update workout participant count and participantIDs
             var updatedWorkout = workout
             updatedWorkout.participantCount = max(0, updatedWorkout.participantCount - 1)
-            updatedWorkout.participantIDs.removeAll { $0 == userId }
+            updatedWorkout.participantIDs.removeAll { $0 == userID }
             _ = try await updateGroupWorkout(updatedWorkout)
             
             // Send real-time update
-            sendUpdate(.participantLeft(workoutId: workoutId, userId: userId))
+            sendUpdate(.participantLeft(workoutID: workoutID, userID: userID))
         }
     }
     
-    func updateParticipantStatus(_ workoutId: String, status: ParticipantStatus) async throws {
-        FameFitLogger.info("Updating participant status: \(workoutId) to \(status.rawValue)", category: FameFitLogger.social)
+    func updateParticipantStatus(_ workoutID: String, status: ParticipantStatus) async throws {
+        FameFitLogger.info("Updating participant status: \(workoutID) to \(status.rawValue)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         let predicate = GroupWorkoutQueryBuilder.participantInWorkoutQuery(
-            workoutId: workoutId,
-            userId: userId
+            workoutID: workoutID,
+            userID: userID
         )
         
         let records = try await cloudKitManager.fetchRecords(
@@ -174,19 +174,19 @@ extension GroupWorkoutService {
         }
     }
     
-    func updateParticipantData(_ workoutId: String, data: GroupWorkoutData) async throws {
-        FameFitLogger.info("Updating participant data: \(workoutId)", category: FameFitLogger.social)
+    func updateParticipantData(_ workoutID: String, data: GroupWorkoutData) async throws {
+        FameFitLogger.info("Updating participant data: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        _ = try await fetchWorkout(workoutId)
+        _ = try await fetchWorkout(workoutID)
         
         // Find participant record
         let predicate = GroupWorkoutQueryBuilder.participantInWorkoutQuery(
-            workoutId: workoutId,
-            userId: userId
+            workoutID: workoutID,
+            userID: userID
         )
         
         let records = try await cloudKitManager.fetchRecords(
@@ -209,20 +209,20 @@ extension GroupWorkoutService {
         // Note: modifiedTimestamp is automatically updated by CloudKit
         
         // Save update (with rate limiting for frequent updates)
-        if await shouldUpdateCloudKit(for: workoutId) {
+        if await shouldUpdateCloudKit(for: workoutID) {
             _ = try await cloudKitManager.save(record)
         }
         
         // Always send real-time update
         if let participant = GroupWorkoutParticipant(from: record) {
-            sendUpdate(.participantDataUpdated(workoutId: workoutId, participant: participant))
+            sendUpdate(.participantDataUpdated(workoutID: workoutID, participant: participant))
         }
     }
     
-    func getParticipants(_ workoutId: String) async throws -> [GroupWorkoutParticipant] {
-        FameFitLogger.info("Getting participants for workout: \(workoutId)", category: FameFitLogger.social)
+    func getParticipants(_ workoutID: String) async throws -> [GroupWorkoutParticipant] {
+        FameFitLogger.info("Getting participants for workout: \(workoutID)", category: FameFitLogger.social)
         
-        let predicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutId: workoutId)
+        let predicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutID: workoutID)
         let sortDescriptors = [GroupWorkoutQueryBuilder.joinedAtAscending]
         
         let records = try await cloudKitManager.fetchRecords(

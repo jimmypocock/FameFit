@@ -160,13 +160,13 @@ class MainViewModel: ObservableObject, MainViewModeling {
     }
 
     func loadFollowerCounts() {
-        guard let userId = userProfile?.id ?? cloudKitManager.currentUserID else { return }
+        guard let userID = userProfile?.id ?? cloudKitManager.currentUserID else { return }
 
         Task {
             do {
                 // Load counts in parallel
-                async let followers = socialFollowingService.getFollowerCount(for: userId)
-                async let following = socialFollowingService.getFollowingCount(for: userId)
+                async let followers = socialFollowingService.getFollowerCount(for: userID)
+                async let following = socialFollowingService.getFollowingCount(for: userID)
 
                 let followerCount = try await followers
                 let followingCount = try await following

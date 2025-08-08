@@ -72,8 +72,8 @@ final class CacheManager: NSObject, CacheManaging, @unchecked Sendable {
     override init() {
         super.init()
         
-        cache.countLimit = 1000
-        cache.totalCostLimit = 50 * 1024 * 1024 // 50MB default
+        cache.countLimit = 1_000
+        cache.totalCostLimit = 50 * 1_024 * 1_024 // 50MB default
         cache.delegate = self
         
         setupMemoryPressureHandling()

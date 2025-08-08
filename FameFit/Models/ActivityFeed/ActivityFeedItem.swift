@@ -14,7 +14,7 @@ struct ActivityFeedItem: Identifiable, Codable {
     let type: ActivityFeedItemType
     let timestamp: Date
     let content: ActivityFeedContent
-    let workoutId: String?
+    let workoutID: String?
     var kudosCount: Int
     var commentCount: Int
     var hasKudoed: Bool

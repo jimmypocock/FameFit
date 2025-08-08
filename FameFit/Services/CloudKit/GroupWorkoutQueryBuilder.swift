@@ -10,12 +10,11 @@ import CloudKit
 import Foundation
 
 enum GroupWorkoutQueryBuilder {
-    
     // MARK: - Reference Helpers
     
     /// Creates a CKRecord.Reference from a workout ID string
-    static func workoutReference(from workoutId: String) -> CKRecord.Reference {
-        let recordID = CKRecord.ID(recordName: workoutId)
+    static func workoutReference(from workoutID: String) -> CKRecord.Reference {
+        let recordID = CKRecord.ID(recordName: workoutID)
         return CKRecord.Reference(recordID: recordID, action: .none)
     }
     
@@ -31,10 +30,10 @@ enum GroupWorkoutQueryBuilder {
     }
     
     /// Query for private workouts where user is host
-    static func privateHostWorkoutsQuery(userId: String, now: Date = Date()) -> NSPredicate {
+    static func privateHostWorkoutsQuery(userID: String, now: Date = Date()) -> NSPredicate {
         NSPredicate(
             format: "hostID == %@ AND scheduledEnd > %@ AND isPublic == 0 AND status != %@",
-            userId,
+            userID,
             now as NSDate,
             GroupWorkoutStatus.completed.rawValue
         )
@@ -55,51 +54,51 @@ enum GroupWorkoutQueryBuilder {
     }
     
     /// Query for workout by ID
-    static func workoutByIdQuery(workoutId: String) -> NSPredicate {
-        NSPredicate(format: "recordName == %@", workoutId)
+    static func workoutByIDQuery(workoutID: String) -> NSPredicate {
+        NSPredicate(format: "recordName == %@", workoutID)
     }
     
     /// Query for workouts by host
-    static func workoutsByHostQuery(userId: String) -> NSPredicate {
-        NSPredicate(format: "hostID == %@", userId)
+    static func workoutsByHostQuery(userID: String) -> NSPredicate {
+        NSPredicate(format: "hostID == %@", userID)
     }
     
     // MARK: - Participant Queries
     
     /// Query for participants of a specific workout
-    static func participantsForWorkoutQuery(workoutId: String) -> NSPredicate {
-        let workoutRef = workoutReference(from: workoutId)
+    static func participantsForWorkoutQuery(workoutID: String) -> NSPredicate {
+        let workoutRef = workoutReference(from: workoutID)
         return NSPredicate(format: "groupWorkoutID == %@", workoutRef)
     }
     
     /// Query for all participant records for a user
-    static func participantRecordsForUserQuery(userId: String) -> NSPredicate {
-        NSPredicate(format: "userID == %@", userId)
+    static func participantRecordsForUserQuery(userID: String) -> NSPredicate {
+        NSPredicate(format: "userID == %@", userID)
     }
     
     /// Query for specific participant in a workout
-    static func participantInWorkoutQuery(workoutId: String, userId: String) -> NSPredicate {
-        let workoutRef = workoutReference(from: workoutId)
+    static func participantInWorkoutQuery(workoutID: String, userID: String) -> NSPredicate {
+        let workoutRef = workoutReference(from: workoutID)
         return NSPredicate(
             format: "groupWorkoutID == %@ AND userID == %@",
             workoutRef,
-            userId
+            userID
         )
     }
     
     // MARK: - Invite Queries
     
     /// Query for invites to a specific workout
-    static func invitesForWorkoutQuery(workoutId: String) -> NSPredicate {
-        let workoutRef = workoutReference(from: workoutId)
+    static func invitesForWorkoutQuery(workoutID: String) -> NSPredicate {
+        let workoutRef = workoutReference(from: workoutID)
         return NSPredicate(format: "groupWorkoutID == %@", workoutRef)
     }
     
     /// Query for user's pending invites
-    static func userInvitesQuery(userId: String, now: Date = Date()) -> NSPredicate {
+    static func userInvitesQuery(userID: String, now: Date = Date()) -> NSPredicate {
         NSPredicate(
             format: "invitedUser == %@ AND expiresAt > %@",
-            userId,
+            userID,
             now as NSDate
         )
     }

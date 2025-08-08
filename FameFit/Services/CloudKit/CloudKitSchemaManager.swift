@@ -81,10 +81,10 @@ class CloudKitSchemaManager {
                     "UserRelationships record type initialized", category: FameFitLogger.cloudKit
                 )
 
-                FameFitLogger.debug("Initializing ActivityFeedItems record type...", category: FameFitLogger.cloudKit)
-                try await initializeActivityFeedItemsRecordType()
+                FameFitLogger.debug("Initializing ActivityFeed record type...", category: FameFitLogger.cloudKit)
+                try await initializeActivityFeedRecordType()
                 FameFitLogger.info(
-                    "ActivityFeedItems record type initialized", category: FameFitLogger.cloudKit
+                    "ActivityFeed record type initialized", category: FameFitLogger.cloudKit
                 )
 
                 FameFitLogger.debug("Initializing WorkoutKudos record type...", category: FameFitLogger.cloudKit)
@@ -195,7 +195,7 @@ class CloudKitSchemaManager {
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "Workouts")
-                dummyRecord["workoutId"] = UUID().uuidString
+                dummyRecord["workoutID"] = UUID().uuidString
                 dummyRecord["workoutType"] = "Running"
                 dummyRecord["startDate"] = Date()
                 dummyRecord["endDate"] = Date()
@@ -346,8 +346,8 @@ class CloudKitSchemaManager {
         }
     }
 
-    private func initializeActivityFeedItemsRecordType() async throws {
-        let query = CKQuery(recordType: "ActivityFeedItems", predicate: NSPredicate(value: true))
+    private func initializeActivityFeedRecordType() async throws {
+        let query = CKQuery(recordType: "ActivityFeed", predicate: NSPredicate(value: true))
 
         do {
             _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
@@ -355,7 +355,7 @@ class CloudKitSchemaManager {
         } catch {
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
-                let dummyRecord = CKRecord(recordType: "ActivityFeedItems")
+                let dummyRecord = CKRecord(recordType: "ActivityFeed")
                 dummyRecord["userID"] = "dummy"
                 dummyRecord["activityType"] = "workout"
                 dummyRecord["content"] = "Schema Init"
@@ -385,9 +385,9 @@ class CloudKitSchemaManager {
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "WorkoutKudos")
-                dummyRecord["workoutId"] = "dummy-workout"
+                dummyRecord["workoutID"] = "dummy-workout"
                 dummyRecord["userID"] = "dummy-user"
-                dummyRecord["workoutOwnerId"] = "dummy-owner"
+                dummyRecord["workoutOwnerID"] = "dummy-owner"
                 dummyRecord["createdTimestamp"] = Date()
 
                 do {
@@ -412,9 +412,9 @@ class CloudKitSchemaManager {
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
                 let dummyRecord = CKRecord(recordType: "WorkoutComments")
-                dummyRecord["workoutId"] = "dummy-workout"
-                dummyRecord["userId"] = "dummy-user"
-                dummyRecord["workoutOwnerId"] = "dummy-owner"
+                dummyRecord["workoutID"] = "dummy-workout"
+                dummyRecord["userID"] = "dummy-user"
+                dummyRecord["workoutOwnerID"] = "dummy-owner"
                 dummyRecord["content"] = "Great workout!"
                 dummyRecord["createdTimestamp"] = Date()
                 dummyRecord["modifiedTimestamp"] = Date()

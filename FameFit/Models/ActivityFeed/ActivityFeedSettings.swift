@@ -142,11 +142,11 @@ struct ActivityFeedSettings: Codable, Equatable {
         guard workoutTypesToShare.contains(workout.workoutActivityType) else { return false }
         
         // Check source
-        let sourceBundleId = workout.sourceRevision.source.bundleIdentifier
-        if !shareFromAllSources && !allowedSources.contains(sourceBundleId) {
+        let sourceBundleID = workout.sourceRevision.source.bundleIdentifier
+        if !shareFromAllSources && !allowedSources.contains(sourceBundleID) {
             return false
         }
-        if blockedSources.contains(sourceBundleId) {
+        if blockedSources.contains(sourceBundleID) {
             return false
         }
         

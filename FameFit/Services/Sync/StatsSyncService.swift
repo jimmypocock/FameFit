@@ -121,7 +121,6 @@ final class StatsSyncService: StatsSyncServicing {
             await updateCachedStats(stats)
             
             FameFitLogger.info("✅ Stats synced for user \(stats.userID)", category: FameFitLogger.sync)
-            
         } catch {
             FameFitLogger.error("❌ Stats sync failed", error: error, category: FameFitLogger.sync)
             

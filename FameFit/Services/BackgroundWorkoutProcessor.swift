@@ -63,7 +63,7 @@ final class BackgroundWorkoutProcessor {
         
         // Get the last processed date
         let lastProcessedKey = "BackgroundProcessor.lastProcessedDate"
-        let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? Date().addingTimeInterval(-3600) // Default to 1 hour ago
+        let lastProcessedDate = UserDefaults.standard.object(forKey: lastProcessedKey) as? Date ?? Date().addingTimeInterval(-3_600) // Default to 1 hour ago
         
         // Fetch workouts since last processed date
         let healthStore = HKHealthStore()

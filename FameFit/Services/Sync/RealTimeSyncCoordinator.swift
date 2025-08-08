@@ -36,11 +36,11 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     private var isRunning = false
 
     // Publishers for UI updates
-    let profileUpdatePublisher = PassthroughSubject<String, Never>() // userId
+    let profileUpdatePublisher = PassthroughSubject<String, Never>() // userID
     let feedUpdatePublisher = PassthroughSubject<Void, Never>()
-    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // challengeId
-    let kudosUpdatePublisher = PassthroughSubject<String, Never>() // workoutId
-    let commentUpdatePublisher = PassthroughSubject<String, Never>() // workoutId
+    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // challengeID
+    let kudosUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
+    let commentUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
 
     // MARK: - Initialization
 
@@ -137,20 +137,20 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     // MARK: - Specific Change Handlers
 
     private func handleUserProfileChange(_ notification: CloudKitNotificationInfo) async {
-        let userId = notification.recordID.recordName
-        print("DEBUG: handleUserProfileChange called for userId: \(userId)")
+        let userID = notification.recordID.recordName
+        print("DEBUG: handleUserProfileChange called for userID: \(userID)")
 
         // Clear cache for this user
         if let service = userProfileService {
-            print("DEBUG: Calling clearCache for userId: \(userId)")
-            service.clearCache(for: userId)
+            print("DEBUG: Calling clearCache for userID: \(userID)")
+            service.clearCache(for: userID)
             print("DEBUG: clearCache called successfully")
         } else {
             print("DEBUG: userProfileService is nil!")
         }
 
         // Notify UI
-        profileUpdatePublisher.send(userId)
+        profileUpdatePublisher.send(userID)
     }
 
     private func handleSocialFollowingChange(_ notification: CloudKitNotificationInfo) async {
@@ -168,37 +168,37 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     }
 
     private func handleWorkoutKudosChange(_ notification: CloudKitNotificationInfo) async {
-        if let workoutId = notification.userInfo["workoutId"] as? String {
-            kudosUpdatePublisher.send(workoutId)
+        if let workoutID = notification.userInfo["workoutID"] as? String {
+            kudosUpdatePublisher.send(workoutID)
         }
     }
 
     private func handleWorkoutCommentsChange(_ notification: CloudKitNotificationInfo) async {
-        if let workoutId = notification.userInfo["workoutId"] as? String {
-            commentUpdatePublisher.send(workoutId)
+        if let workoutID = notification.userInfo["workoutID"] as? String {
+            commentUpdatePublisher.send(workoutID)
         }
     }
 
     private func handleWorkoutChallengeChange(_ notification: CloudKitNotificationInfo) async {
-        let challengeId = notification.recordID.recordName
+        let challengeID = notification.recordID.recordName
 
         // Handle different challenge status changes
         if let status = notification.userInfo["status"] as? String {
             switch status {
             case "active":
                 // Challenge started - refresh challenges view
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(challengeID)
 
             case "completed":
                 // Challenge completed - refresh and potentially show notification
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(challengeID)
 
             default:
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(challengeID)
             }
         } else {
             // General update
-            challengeUpdatePublisher.send(challengeId)
+            challengeUpdatePublisher.send(challengeID)
         }
     }
 

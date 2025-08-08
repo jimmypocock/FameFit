@@ -22,7 +22,7 @@ final class ActivityFeedViewModel: ObservableObject {
     private var activityFeedService: ActivityFeedServicing?
     private var kudosService: WorkoutKudosServicing?
     private var commentsService: ActivityFeedCommentsServicing?
-    private var currentUserId = ""
+    private var currentUserID = ""
     private var followingUsers: Set<String> = []
     private var lastFetchedDate: Date?
     private let pageSize = 20
@@ -70,14 +70,14 @@ final class ActivityFeedViewModel: ObservableObject {
         activityFeedService: ActivityFeedServicing,
         kudosService: WorkoutKudosServicing,
         commentsService: ActivityFeedCommentsServicing,
-        currentUserId: String
+        currentUserID: String
     ) {
         self.socialService = socialService
         self.profileService = profileService
         self.kudosService = kudosService
         self.commentsService = commentsService
         self.activityFeedService = activityFeedService
-        self.currentUserId = currentUserId
+        self.currentUserID = currentUserID
 
         // Subscribe to kudos updates
         setupKudosListener()
@@ -93,16 +93,29 @@ final class ActivityFeedViewModel: ObservableObject {
 
         do {
             // First, get the list of users we're following
-            guard let socialService else { return }
-            let following = try await socialService.getFollowing(for: currentUserId, limit: 1_000)
-            followingUsers = Set(following.map(\.id))
+            if let socialService {
+                let following = try await socialService.getFollowing(for: currentUserID, limit: 1_000)
+                followingUsers = Set(following.map(\.id))
+                FameFitLogger.info("📋 Found \(following.count) following users", category: FameFitLogger.social)
+            } else {
+                FameFitLogger.warning("⚠️ No social service available - will show only own activities", category: FameFitLogger.social)
+                followingUsers = []
+            }
 
-            // Add self to see own activities
-            followingUsers.insert(currentUserId)
+            // ALWAYS add self to see own activities, even with no social service
+            if !currentUserID.isEmpty {
+                followingUsers.insert(currentUserID)
+            }
+            FameFitLogger.info("📋 Loading feed for \(followingUsers.count) users (including self)", category: FameFitLogger.social)
 
-            // Load feed items
-            await loadFeedItems()
+            // Load feed items even if only showing own activities
+            if !followingUsers.isEmpty {
+                await loadFeedItems()
+            } else {
+                FameFitLogger.warning("⚠️ No users to load feed for (not even current user)", category: FameFitLogger.social)
+            }
         } catch {
+            FameFitLogger.error("❌ Failed to load feed: \(error)", category: FameFitLogger.social)
             self.error = "Failed to load feed"
         }
 
@@ -196,14 +209,14 @@ final class ActivityFeedViewModel: ObservableObject {
     private func loadKudosForNewItems(_ items: [ActivityFeedItem]) async {
         guard let kudosService else { return }
 
-        let workoutIds = items
+        let workoutIDs = items
             .filter { $0.type == .workout }
             .map(\.id)
 
-        guard !workoutIds.isEmpty else { return }
+        guard !workoutIDs.isEmpty else { return }
 
         do {
-            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIds)
+            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIDs)
 
             // Update the new items with kudos data
             for (index, item) in feedItems.enumerated() {
@@ -221,23 +234,28 @@ final class ActivityFeedViewModel: ObservableObject {
 
     private func loadFeedItems() async {
         guard let activityFeedService else {
-            // Fallback to mock data if no activity feed service
+            FameFitLogger.warning("⚠️ No activity feed service available - using mock data", category: FameFitLogger.social)
             let mockItems = await createMockFeedItems()
             await processFeedItems(mockItems)
             return
         }
 
         do {
+            FameFitLogger.info("🔍 Fetching feed for users: \(followingUsers)", category: FameFitLogger.social)
             let activityItems = try await activityFeedService.fetchFeed(
                 for: followingUsers,
                 since: lastFetchedDate,
                 limit: pageSize
             )
+            
+            FameFitLogger.info("📥 Received \(activityItems.count) items from CloudKit", category: FameFitLogger.social)
 
             // Convert ActivityFeedRecord to ActivityFeedItem
             let feedItems = await convertActivityItemsToFeedItems(activityItems)
+            FameFitLogger.info("✅ Converted to \(feedItems.count) feed items", category: FameFitLogger.social)
             await processFeedItems(feedItems)
         } catch {
+            FameFitLogger.error("❌ Failed to fetch feed: \(error)", category: FameFitLogger.social)
             // Fall back to mock data on error
             let mockItems = await createMockFeedItems()
             await processFeedItems(mockItems)
@@ -272,7 +290,7 @@ final class ActivityFeedViewModel: ObservableObject {
 
         for activityItem in activityItems {
             // Get user profile for the activity
-            let userProfile = try? await profileService?.fetchProfile(userId: activityItem.userID)
+            let userProfile = try? await profileService?.fetchProfile(userID: activityItem.userID)
 
             // Convert activity type
             let feedItemType: ActivityFeedItemType = switch activityItem.activityType {
@@ -300,7 +318,7 @@ final class ActivityFeedViewModel: ObservableObject {
                 type: feedItemType,
                 timestamp: activityItem.createdTimestamp,
                 content: content,
-                workoutId: feedItemType == .workout ? activityItem.id : nil,
+                workoutID: feedItemType == .workout ? activityItem.id : nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -335,7 +353,7 @@ final class ActivityFeedViewModel: ObservableObject {
         var items: [ActivityFeedItem] = []
 
         // Mock workout activities
-        if let profile = try? await profileService?.fetchProfile(userId: "mock-user-1") {
+        if let profile = try? await profileService?.fetchProfile(userID: "mock-user-1") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
@@ -352,7 +370,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "xpEarned": "45"
                     ]
                 ),
-                workoutId: UUID().uuidString,
+                workoutID: UUID().uuidString,
                 kudosCount: 5,
                 commentCount: 2,
                 hasKudoed: false
@@ -372,7 +390,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "achievementIcon": "medal.fill"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -380,7 +398,7 @@ final class ActivityFeedViewModel: ObservableObject {
         }
 
         // Mock level up
-        if let profile2 = try? await profileService?.fetchProfile(userId: "mock-user-2") {
+        if let profile2 = try? await profileService?.fetchProfile(userID: "mock-user-2") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile2.id,
@@ -395,7 +413,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "newTitle": "Fitness Enthusiast"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -418,7 +436,7 @@ final class ActivityFeedViewModel: ObservableObject {
 
     private func handleKudosUpdate(_ update: KudosUpdate) {
         // Find the feed item for this workout
-        guard let index = feedItems.firstIndex(where: { $0.id == update.workoutId }) else {
+        guard let index = feedItems.firstIndex(where: { $0.id == update.workoutID }) else {
             return
         }
 
@@ -444,7 +462,7 @@ final class ActivityFeedViewModel: ObservableObject {
         }
 
         do {
-            _ = try await kudosService.toggleKudos(for: item.id, ownerId: item.userID)
+            _ = try await kudosService.toggleKudos(for: item.id, ownerID: item.userID)
         } catch {
             self.error = "Failed to update kudos: \(error.localizedDescription)"
         }
@@ -454,14 +472,14 @@ final class ActivityFeedViewModel: ObservableObject {
         guard let kudosService else { return }
 
         // Get workout IDs from feed
-        let workoutIds = feedItems
+        let workoutIDs = feedItems
             .filter { $0.type == .workout }
             .map(\.id)
 
-        guard !workoutIds.isEmpty else { return }
+        guard !workoutIDs.isEmpty else { return }
 
         do {
-            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIds)
+            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIDs)
 
             // Update feed items with kudos data
             for (index, item) in feedItems.enumerated() {

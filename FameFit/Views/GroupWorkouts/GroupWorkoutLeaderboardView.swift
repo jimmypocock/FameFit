@@ -60,14 +60,14 @@ struct GroupWorkoutLeaderboardView: View {
                     connectionStatusBadge
                     
                     // Participant count
-                    if coordinator.participantMetrics.count > 0 {
+                    if !coordinator.participantMetrics.isEmpty {
                         Label("\(coordinator.participantMetrics.count)", systemImage: "person.2.fill")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     
                     // Host badge
-                    if coordinator.currentGroupWorkout?.hostId == container.cloudKitManager.currentUserID {
+                    if coordinator.currentGroupWorkout?.hostID == container.cloudKitManager.currentUserID {
                         Text("HOST")
                             .font(.caption2)
                             .fontWeight(.bold)
@@ -161,7 +161,7 @@ struct GroupWorkoutLeaderboardView: View {
             ForEach(Array(sortedParticipants.prefix(3).enumerated()), id: \.element.0) { index, participant in
                 GroupLeaderboardRow(
                     rank: index + 1,
-                    userId: participant.0,
+                    userID: participant.0,
                     data: participant.1,
                     metric: selectedMetric,
                     isCurrentUser: participant.0 == container.cloudKitManager.currentUserID,
@@ -244,7 +244,7 @@ struct GroupWorkoutLeaderboardView: View {
                 
                 if stats.totalDistance > 0 {
                     StatItem(
-                        value: String(format: "%.1f", stats.totalDistance / 1000),
+                        value: String(format: "%.1f", stats.totalDistance / 1_000),
                         label: "Total km",
                         icon: "location.fill",
                         color: .blue
@@ -292,7 +292,7 @@ struct MetricChip: View {
 
 struct GroupLeaderboardRow: View {
     let rank: Int
-    let userId: String
+    let userID: String
     let data: GroupWorkoutData
     let metric: LeaderboardMetric
     let isCurrentUser: Bool
@@ -410,7 +410,7 @@ struct GroupLeaderboardRow: View {
         case .calories:
             return "\(Int(data.totalEnergyBurned))"
         case .distance:
-            let km = (data.totalDistance ?? 0) / 1000
+            let km = (data.totalDistance ?? 0) / 1_000
             return String(format: "%.2f", km)
         case .heartRate:
             return "\(Int(data.currentHeartRate ?? 0))"
@@ -427,9 +427,9 @@ struct GroupLeaderboardRow: View {
     
     private func loadUserProfile() async {
         do {
-            userProfile = try await container.userProfileService.fetchProfileByUserID(userId)
+            userProfile = try await container.userProfileService.fetchProfileByUserID(userID)
         } catch {
-            FameFitLogger.warning("Failed to load profile for user \(userId)", category: FameFitLogger.ui)
+            FameFitLogger.warning("Failed to load profile for user \(userID)", category: FameFitLogger.ui)
         }
     }
 }
@@ -487,7 +487,7 @@ struct FullLeaderboardView: View {
                     ForEach(Array(sortedParticipants.enumerated()), id: \.element.0) { index, participant in
                         GroupLeaderboardRow(
                             rank: index + 1,
-                            userId: participant.0,
+                            userID: participant.0,
                             data: participant.1,
                             metric: selectedMetric,
                             isCurrentUser: participant.0 == container.cloudKitManager.currentUserID,

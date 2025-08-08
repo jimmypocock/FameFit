@@ -16,7 +16,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var receivedWorkoutType: Int?
     @Published var shouldStartWorkout = false
     
-    private override init() {
+    override private init() {
         super.init()
         
         if WCSession.isSupported() {
@@ -37,11 +37,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
         print("WCSession activated on watch")
     }
     
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         handleMessage(message)
     }
     
-    func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         handleMessage(message)
         replyHandler(["status": "received"])
     }

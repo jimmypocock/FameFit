@@ -15,7 +15,6 @@ struct XPCalculationResult {
 }
 
 class XPCalculator {
-    
     // MARK: - Configuration
     private static let baseXPPerMinute: Double = 1.0
     
@@ -171,7 +170,7 @@ class XPCalculator {
             let totalWorkouts = stats.totalWorkouts + 1
             
             // Workout count milestones
-            let workoutMilestones = [10, 25, 50, 100, 250, 500, 1000]
+            let workoutMilestones = [10, 25, 50, 100, 250, 500, 1_000]
             for milestone in workoutMilestones where totalWorkouts == milestone {
                 milestones.append("\(milestone) workouts completed!")
                 bonuses.append(XPBonus(

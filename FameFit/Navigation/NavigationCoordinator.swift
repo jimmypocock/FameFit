@@ -55,8 +55,8 @@ final class NavigationCoordinator: ObservableObject {
         groupWorkoutsPath.append(NavigationDestination.groupWorkoutDetail(id))
     }
     
-    func navigateToProfile(userId: String) {
-        profilePath.append(NavigationDestination.profile(userId))
+    func navigateToProfile(userID: String) {
+        profilePath.append(NavigationDestination.profile(userID))
     }
     
     func navigateToChallenge(id: String) {
@@ -96,7 +96,7 @@ final class NavigationCoordinator: ObservableObject {
         case "groupworkout":
             navigateToGroupWorkoutDetail(id: pathWithoutSlash)
         case "profile":
-            navigateToProfile(userId: pathWithoutSlash)
+            navigateToProfile(userID: pathWithoutSlash)
         case "challenge":
             navigateToChallenge(id: pathWithoutSlash)
         case "workout":

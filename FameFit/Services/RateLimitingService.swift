@@ -12,7 +12,7 @@ import Foundation
 
 enum RateLimitError: LocalizedError {
     case limitExceeded(action: String, resetTime: Date)
-    case invalidUserId
+    case invalidUserID
     case serviceUnavailable
 
     var errorDescription: String? {
@@ -23,7 +23,7 @@ enum RateLimitError: LocalizedError {
             formatter.maximumUnitCount = 1
             let timeRemaining = formatter.string(from: Date(), to: resetTime) ?? "soon"
             return "Rate limit exceeded for \(action). Try again in \(timeRemaining)."
-        case .invalidUserId:
+        case .invalidUserID:
             return "Invalid user ID"
         case .serviceUnavailable:
             return "Rate limiting service is unavailable"
@@ -59,12 +59,12 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
 
     // MARK: - Public Methods
 
-    func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool {
+    func checkLimit(for action: RateLimitAction, userID: String) async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
             queue.async(flags: .barrier) {
-                self.cleanupIfNeeded(for: userId)
+                self.cleanupIfNeeded(for: userID)
 
-                let history = self.userHistories[userId, default: UserActionHistory()]
+                let history = self.userHistories[userID, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
 
@@ -147,37 +147,37 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 // Record the action before returning success
                 var updatedHistory = history
                 updatedHistory.actions.append(ActionRecord(timestamp: now, action: action))
-                self.userHistories[userId] = updatedHistory
+                self.userHistories[userID] = updatedHistory
 
                 continuation.resume(returning: true)
             }
         }
     }
 
-    func recordAction(_ action: RateLimitAction, userId: String) async {
+    func recordAction(_ action: RateLimitAction, userID: String) async {
         await withCheckedContinuation { continuation in
             queue.async(flags: .barrier) {
-                var history = self.userHistories[userId, default: UserActionHistory()]
+                var history = self.userHistories[userID, default: UserActionHistory()]
                 history.actions.append(ActionRecord(timestamp: Date(), action: action))
-                self.userHistories[userId] = history
+                self.userHistories[userID] = history
                 continuation.resume()
             }
         }
     }
 
-    func resetLimits(for userId: String) async {
+    func resetLimits(for userID: String) async {
         await withCheckedContinuation { continuation in
             queue.async(flags: .barrier) {
-                self.userHistories.removeValue(forKey: userId)
+                self.userHistories.removeValue(forKey: userID)
                 continuation.resume()
             }
         }
     }
 
-    func getRemainingActions(for action: RateLimitAction, userId: String) async -> Int {
+    func getRemainingActions(for action: RateLimitAction, userID: String) async -> Int {
         await withCheckedContinuation { continuation in
             queue.sync {
-                let history = self.userHistories[userId, default: UserActionHistory()]
+                let history = self.userHistories[userID, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
 
@@ -222,10 +222,10 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
         }
     }
 
-    func getResetTime(for action: RateLimitAction, userId: String) async -> Date? {
+    func getResetTime(for action: RateLimitAction, userID: String) async -> Date? {
         await withCheckedContinuation { continuation in
             queue.sync {
-                let history = self.userHistories[userId, default: UserActionHistory()]
+                let history = self.userHistories[userID, default: UserActionHistory()]
                 let now = Date()
                 let limits = action.limits
 
@@ -257,15 +257,15 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
 
     // MARK: - Private Methods
 
-    private func cleanupIfNeeded(for userId: String) {
-        guard var history = userHistories[userId] else { return }
+    private func cleanupIfNeeded(for userID: String) {
+        guard var history = userHistories[userID] else { return }
 
         let now = Date()
         if now.timeIntervalSince(history.lastCleanup) > cleanupInterval {
             let cutoffDate = now.addingTimeInterval(-maxHistoryAge)
             history.actions.removeAll { $0.timestamp < cutoffDate }
             history.lastCleanup = now
-            userHistories[userId] = history
+            userHistories[userID] = history
         }
     }
 
@@ -275,14 +275,14 @@ final class RateLimitingService: RateLimitingServicing, @unchecked Sendable {
                 let now = Date()
                 let cutoffDate = now.addingTimeInterval(-self.maxHistoryAge)
 
-                for (userId, var history) in self.userHistories {
+                for (userID, var history) in self.userHistories {
                     history.actions.removeAll { $0.timestamp < cutoffDate }
                     history.lastCleanup = now
 
                     if history.actions.isEmpty {
-                        self.userHistories.removeValue(forKey: userId)
+                        self.userHistories.removeValue(forKey: userID)
                     } else {
-                        self.userHistories[userId] = history
+                        self.userHistories[userID] = history
                     }
                 }
             }
