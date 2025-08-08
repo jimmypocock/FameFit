@@ -207,8 +207,8 @@ struct CommentsListView: View {
                                 userID: comment.userID,
                                 activityOwnerID: workoutOwnerID,
                                 content: comment.content,
-                                createdTimestamp: comment.createdTimestamp,
-                                modifiedTimestamp: comment.modifiedTimestamp,
+                                creationDate: comment.creationDate,
+                                modificationDate: comment.modificationDate,
                                 parentCommentID: comment.parentCommentID,
                                 isEdited: comment.isEdited,
                                 likeCount: comment.likeCount
@@ -508,9 +508,9 @@ class CommentsViewModel: ObservableObject {
     private func sortComments() {
         switch sortOrder {
         case .newest:
-            comments.sort { $0.comment.createdTimestamp > $1.comment.createdTimestamp }
+            comments.sort { $0.comment.creationDate > $1.comment.creationDate }
         case .oldest:
-            comments.sort { $0.comment.createdTimestamp < $1.comment.createdTimestamp }
+            comments.sort { $0.comment.creationDate < $1.comment.creationDate }
         case .mostLiked:
             comments.sort { $0.comment.likeCount > $1.comment.likeCount }
         }
@@ -531,8 +531,8 @@ class CommentsViewModel: ObservableObject {
                 bio: "Test user",
                 workoutCount: 25,
                 totalXP: 500,
-                createdTimestamp: Date().addingTimeInterval(-86_400 * 90),
-                modifiedTimestamp: Date(),
+                creationDate: Date().addingTimeInterval(-86_400 * 90),
+                modificationDate: Date(),
                 isVerified: false,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
@@ -569,8 +569,8 @@ private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
             userID: "current",
             activityOwnerID: activityOwnerID,
             content: content,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             parentCommentID: parentCommentID,
             isEdited: false,
             likeCount: 0
@@ -586,8 +586,8 @@ private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
             userID: "current",
             activityOwnerID: "owner",
             content: newContent,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             parentCommentID: nil,
             isEdited: true,
             likeCount: 0

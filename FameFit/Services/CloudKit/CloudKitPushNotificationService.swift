@@ -139,8 +139,8 @@ final class CloudKitPushNotificationService {
             appVersion: appVersion,
             osVersion: osVersion,
             environment: environment,
-            createdTimestamp: record.creationDate ?? Date(),
-            modifiedTimestamp: record.modificationDate ?? Date(),
+            creationDate: record.creationDate ?? Date(),
+            modificationDate: record.modificationDate ?? Date(),
             isActive: isActive == 1
         )
     }
@@ -165,7 +165,7 @@ final class CloudKitPushNotificationService {
         record["category"] = request.category
         record["threadID"] = request.threadID
         record["deviceTokens"] = deviceTokens.map(\.deviceToken)
-        record["createdTimestamp"] = Date()
+        
         record["status"] = "pending"
 
         // Add metadata as JSON string

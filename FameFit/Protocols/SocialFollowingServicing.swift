@@ -74,7 +74,7 @@ struct FollowRequest: Codable, Identifiable {
     let requesterProfile: UserProfile?
     let targetID: String
     let status: String // "pending", "accepted", "rejected", "expired"
-    let createdTimestamp: Date
+    let creationDate: Date
     let expiresAt: Date
     let message: String?
 

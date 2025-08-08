@@ -38,7 +38,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     // Publishers for UI updates
     let profileUpdatePublisher = PassthroughSubject<String, Never>() // userID
     let feedUpdatePublisher = PassthroughSubject<Void, Never>()
-    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // challengeID
+    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // workoutChallengeID
     let kudosUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
     let commentUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
 
@@ -180,25 +180,25 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     }
 
     private func handleWorkoutChallengeChange(_ notification: CloudKitNotificationInfo) async {
-        let challengeID = notification.recordID.recordName
+        let workoutChallengeID = notification.recordID.recordName
 
         // Handle different challenge status changes
         if let status = notification.userInfo["status"] as? String {
             switch status {
             case "active":
                 // Challenge started - refresh challenges view
-                challengeUpdatePublisher.send(challengeID)
+                challengeUpdatePublisher.send(workoutChallengeID)
 
             case "completed":
                 // Challenge completed - refresh and potentially show notification
-                challengeUpdatePublisher.send(challengeID)
+                challengeUpdatePublisher.send(workoutChallengeID)
 
             default:
-                challengeUpdatePublisher.send(challengeID)
+                challengeUpdatePublisher.send(workoutChallengeID)
             }
         } else {
             // General update
-            challengeUpdatePublisher.send(challengeID)
+            challengeUpdatePublisher.send(workoutChallengeID)
         }
     }
 

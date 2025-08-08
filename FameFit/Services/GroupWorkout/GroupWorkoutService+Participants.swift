@@ -206,7 +206,7 @@ extension GroupWorkoutService {
         record["totalEnergyBurned"] = data.totalEnergyBurned
         record["averageHeartRate"] = data.averageHeartRate
         record["totalDistance"] = data.totalDistance
-        // Note: modifiedTimestamp is automatically updated by CloudKit
+        // Note: modificationDate is automatically updated by CloudKit
         
         // Save update (with rate limiting for frequent updates)
         if await shouldUpdateCloudKit(for: workoutID) {

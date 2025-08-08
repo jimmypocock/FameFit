@@ -26,6 +26,7 @@ struct GroupWorkoutDetailView: View {
     @State private var showCalendarDeniedAlert = false
     @State private var showCalendarSuccessAlert = false
     @State private var calendarSuccessMessage = ""
+    @State private var showLiveView = false
     
     @State private var currentUserID: String?
     
@@ -99,6 +100,10 @@ struct GroupWorkoutDetailView: View {
                     ProfileView(userID: hostProfile.userID)
                         .environment(\.dependencyContainer, container)
                 }
+            }
+            .sheet(isPresented: $showLiveView) {
+                GroupWorkoutLiveView(workout: workout)
+                    .environment(\.dependencyContainer, container)
             }
             .alert("Delete Workout", isPresented: $showDeleteAlert) {
                 Button("Cancel", role: .cancel) { }
@@ -185,19 +190,57 @@ struct GroupWorkoutDetailView: View {
     @ViewBuilder
     private var quickActionButtons: some View {
         if isCreator {
-            if workout.status == .scheduled {
-                // Host can start workout anytime when it's scheduled
-                Button(action: startWorkout) {
-                    Label("Start Workout", systemImage: "play.circle.fill")
+            if workout.status == .scheduled && workout.isJoinable {
+                // Host can start workout when it's joinable (5 min before start)
+                Button(action: startOnWatch) {
+                    Label("Start Workout", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(BorderedProminentButtonStyle())
                 .tint(.green)
+            } else if workout.status == .active {
+                // Host can view live dashboard for active workout
+                HStack(spacing: 12) {
+                    Button(action: openOnWatch) {
+                        Label("Open on Watch", systemImage: "applewatch")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedButtonStyle())
+                    
+                    Button(action: { showLiveView = true }) {
+                        Label("Live Dashboard", systemImage: "chart.line.uptrend.xyaxis")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BorderedProminentButtonStyle())
+                }
+            } else if workout.status == .scheduled && !workout.isJoinable {
+                // Show countdown until joinable
+                if let timeUntil = workout.timeUntilJoinable {
+                    Text("Ready to start in \(timeRemainingText(timeUntil))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(8)
+                }
             }
             // For active workouts, Complete button is shown in shareSection at bottom
         } else if workout.status == .active && myParticipation != nil {
-            // For active workouts, Complete button is shown in shareSection at bottom
-            EmptyView()
+            // Participant in active workout - show buttons
+            HStack(spacing: 12) {
+                Button(action: openOnWatch) {
+                    Label("Open on Watch", systemImage: "applewatch")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(BorderedButtonStyle())
+                
+                Button(action: { showLiveView = true }) {
+                    Label("Live Dashboard", systemImage: "chart.line.uptrend.xyaxis")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(BorderedProminentButtonStyle())
+            }
         } else if myParticipation == nil && workout.isJoinable {
             joinButtons
         } else if let participation = myParticipation, participation.status != .declined {
@@ -554,6 +597,16 @@ struct GroupWorkoutDetailView: View {
         Task {
             do {
                 try await container.groupWorkoutService.updateParticipantStatus(workout.id, status: status)
+                
+                // Schedule notification if joining
+                if status == .joined {
+                    await NotificationService.shared.scheduleGroupWorkoutStartNotification(
+                        workout: workout,
+                        isHost: false,
+                        minutesBefore: 5
+                    )
+                }
+                
                 await loadData()
             } catch {
                 print("Failed to join workout: \(error)")
@@ -565,6 +618,19 @@ struct GroupWorkoutDetailView: View {
         Task {
             do {
                 try await container.groupWorkoutService.updateParticipantStatus(workout.id, status: status)
+                
+                // Handle notification scheduling based on status
+                if status == .joined {
+                    await NotificationService.shared.scheduleGroupWorkoutStartNotification(
+                        workout: workout,
+                        isHost: false,
+                        minutesBefore: 5
+                    )
+                } else if status == .declined {
+                    // Cancel notification if declining
+                    NotificationService.shared.cancelGroupWorkoutNotification(workoutID: workout.id)
+                }
+                
                 await loadData()
             } catch {
                 print("Failed to update status: \(error)")
@@ -572,19 +638,74 @@ struct GroupWorkoutDetailView: View {
         }
     }
     
-    private func startWorkout() {
+    private func startOnWatch() {
         Task {
             do {
+                // First update workout status to "ready to start"
                 let updatedWorkout = try await container.groupWorkoutService.startGroupWorkout(workout.id)
                 await MainActor.run {
                     self.workout = updatedWorkout
                 }
-                await loadData()
                 
-                // TODO: Navigate to watch workout view or show active workout UI
-                FameFitLogger.info("🏋️ Started group workout: \(workout.name)", category: FameFitLogger.ui)
+                // Show immediate notification for host
+                await NotificationService.shared.showGroupWorkoutNowNotification(
+                    workoutName: updatedWorkout.name,
+                    workoutType: Int(updatedWorkout.workoutType.rawValue),
+                    workoutID: updatedWorkout.id,
+                    isHost: true
+                )
+                
+                // Send command to Watch
+                await sendWorkoutToWatch(updatedWorkout, isHost: true)
+                
+                // Show feedback
+                await MainActor.run {
+                    FameFitLogger.info("🏋️⌚ Sending group workout to Watch: \(workout.name)", category: FameFitLogger.ui)
+                }
+                
+                await loadData()
             } catch {
-                FameFitLogger.error("Failed to start workout", error: error, category: FameFitLogger.ui)
+                FameFitLogger.error("Failed to start workout on Watch", error: error, category: FameFitLogger.ui)
+            }
+        }
+    }
+    
+    private func openOnWatch() {
+        Task {
+            // Show immediate notification for participant
+            await NotificationService.shared.showGroupWorkoutNowNotification(
+                workoutName: workout.name,
+                workoutType: Int(workout.workoutType.rawValue),
+                workoutID: workout.id,
+                isHost: false
+            )
+            
+            // Send command to Watch for participant
+            await sendWorkoutToWatch(workout, isHost: false)
+            
+            // Show feedback
+            await MainActor.run {
+                FameFitLogger.info("🏋️⌚ Opening workout on Watch: \(workout.name)", category: FameFitLogger.ui)
+            }
+        }
+    }
+    
+    private func sendWorkoutToWatch(_ workout: GroupWorkout, isHost: Bool) async {
+        // Use WatchConnectivityManager to send workout to Watch
+        let watchManager = WatchConnectivityManager.shared
+        
+        if watchManager.isReachable {
+            watchManager.sendGroupWorkoutCommand(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                workoutType: Int(workout.workoutType.rawValue),
+                isHost: isHost
+            )
+        } else {
+            // Fallback: Show alert with instructions
+            await MainActor.run {
+                // TODO: Show alert "Please open FameFit on your Apple Watch"
+                FameFitLogger.warning("⌚ Watch not reachable. User needs to open app manually.", category: FameFitLogger.ui)
             }
         }
     }

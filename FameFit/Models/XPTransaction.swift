@@ -16,8 +16,8 @@ struct XPTransaction: Identifiable, Codable {
     let baseXP: Int
     let finalXP: Int
     let factors: XPCalculationFactors
-    let createdTimestamp: Date
-    let modifiedTimestamp: Date
+    let creationDate: Date
+    let modificationDate: Date
     
     init(id: UUID = UUID(),
          userID: String,
@@ -26,8 +26,8 @@ struct XPTransaction: Identifiable, Codable {
          baseXP: Int,
          finalXP: Int,
          factors: XPCalculationFactors,
-         createdTimestamp: Date = Date(),
-         modifiedTimestamp: Date = Date()) {
+         creationDate: Date = Date(),
+         modificationDate: Date = Date()) {
         self.id = id
         self.userID = userID
         self.workoutID = workoutID
@@ -35,8 +35,8 @@ struct XPTransaction: Identifiable, Codable {
         self.baseXP = baseXP
         self.finalXP = finalXP
         self.factors = factors
-        self.createdTimestamp = createdTimestamp
-        self.modifiedTimestamp = modifiedTimestamp
+        self.creationDate = creationDate
+        self.modificationDate = modificationDate
     }
 }
 
@@ -100,8 +100,8 @@ extension XPTransaction {
         self.baseXP = Int(baseXP)
         self.finalXP = Int(finalXP)
         self.factors = factors
-        self.createdTimestamp = record.creationDate ?? Date()
-        self.modifiedTimestamp = record.modificationDate ?? Date()
+        self.creationDate = record.creationDate ?? Date()
+        self.modificationDate = record.modificationDate ?? Date()
     }
     
     func toCKRecord() -> CKRecord {

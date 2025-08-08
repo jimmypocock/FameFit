@@ -149,7 +149,7 @@ final class StatsSyncService: StatsSyncServicing {
         if let lastWorkout = stats.lastWorkoutDate {
             profileRecord["lastWorkoutDate"] = lastWorkout
         }
-        profileRecord["modifiedTimestamp"] = Date()
+        profileRecord["modificationDate"] = Date()
         
         // Add any additional stats
         for (key, value) in stats.additionalStats {

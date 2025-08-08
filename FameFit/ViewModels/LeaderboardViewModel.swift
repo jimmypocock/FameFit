@@ -176,7 +176,7 @@ final class LeaderboardViewModel: ObservableObject {
         }
 
         // Estimate daily XP rate
-        let accountAge = Date().timeIntervalSince(profile.createdTimestamp)
+        let accountAge = Date().timeIntervalSince(profile.creationDate)
         let daysActive = max(1, accountAge / (24 * 3_600))
         let dailyXPRate = Double(profile.totalXP) / daysActive
 
@@ -192,7 +192,7 @@ final class LeaderboardViewModel: ObservableObject {
         // Estimate based on total stats and period
         // In a real implementation, we'd query workout history
 
-        let periodRatio = dateRange.duration / Date().timeIntervalSince(profile.createdTimestamp)
+        let periodRatio = dateRange.duration / Date().timeIntervalSince(profile.creationDate)
         // Estimate based on workout count (since we don't have detailed history)
         let estimatedCount = Int(Double(profile.workoutCount) * periodRatio)
         // Estimate duration assuming average 30 min per workout

@@ -212,7 +212,7 @@ final class CloudKitSeeder {
             record["workoutID"] = activity.workoutID
             record["content"] = activity.content
             record["visibility"] = activity.visibility
-            record["createdTimestamp"] = activity.createdTimestamp
+            
             record["expiresAt"] = activity.expiresAt
             record["xpEarned"] = activity.xpEarned
             record["achievementName"] = activity.achievementName
@@ -316,8 +316,8 @@ final class CloudKitSeeder {
             bio: persona.bio,
             workoutCount: persona.workoutCount,
             totalXP: persona.totalXP,
-            createdTimestamp: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3_600)),
-            modifiedTimestamp: Date(),
+            creationDate: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3_600)),
+            modificationDate: Date(),
             isVerified: persona.isVerified,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -367,7 +367,7 @@ final class CloudKitSeeder {
         record["followerID"] = followerID
         record["followingID"] = followingID
         record["status"] = "active"
-        record["createdTimestamp"] = Date()
+        
         record["notificationsEnabled"] = true
         
         do {
@@ -380,7 +380,7 @@ final class CloudKitSeeder {
                 reverseRecord["followerID"] = followingID
                 reverseRecord["followingID"] = followerID
                 reverseRecord["status"] = "active"
-                reverseRecord["createdTimestamp"] = Date()
+                reverseRecord["creationDate"] = Date()
                 reverseRecord["notificationsEnabled"] = true
                 
                 _ = try await publicDatabase.save(reverseRecord)
@@ -612,7 +612,7 @@ final class CloudKitSeeder {
                 workoutID: workout.id.uuidString,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
-                createdTimestamp: workout.endDate,
+                creationDate: workout.endDate,
                 expiresAt: workout.endDate.addingTimeInterval(90 * 24 * 3_600),
                 xpEarned: workout.xpEarned,
                 achievementName: nil
@@ -637,7 +637,7 @@ final class CloudKitSeeder {
                 workoutID: nil,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
-                createdTimestamp: Date().addingTimeInterval(-7 * 24 * 3_600),
+                creationDate: Date().addingTimeInterval(-7 * 24 * 3_600),
                 expiresAt: Date().addingTimeInterval(83 * 24 * 3_600),
                 xpEarned: 0,
                 achievementName: "Rising Star"

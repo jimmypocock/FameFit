@@ -158,6 +158,12 @@ struct NotificationRowView: View {
             "sparkles"
         case .maintenanceNotice:
             "gear"
+        case .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutUpdated,
+             .groupWorkoutCancelled, .groupWorkoutParticipantJoined,
+             .groupWorkoutParticipantLeft, .groupWorkoutReminder:
+            "person.3.fill"
+        case .workoutVerificationFailed:
+            "xmark.circle.fill"
         }
     }
 
@@ -189,6 +195,12 @@ struct NotificationRowView: View {
             .purple
         case .maintenanceNotice:
             .gray
+        case .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutUpdated,
+             .groupWorkoutCancelled, .groupWorkoutParticipantJoined,
+             .groupWorkoutParticipantLeft, .groupWorkoutReminder:
+            .teal
+        case .workoutVerificationFailed:
+            .red
         }
     }
 
@@ -220,7 +232,11 @@ struct NotificationRowView: View {
         case .xpMilestone, .levelUp, .streakMaintained, .streakAtRisk,
              .challengeInvite, .challengeStarted, .challengeCompleted,
              .leaderboardChange, .securityAlert, .privacyUpdate,
-             .featureAnnouncement, .maintenanceNotice:
+             .featureAnnouncement, .maintenanceNotice,
+             .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutUpdated,
+             .groupWorkoutCancelled, .groupWorkoutParticipantJoined,
+             .groupWorkoutParticipantLeft, .groupWorkoutReminder,
+             .workoutVerificationFailed:
             EmptyView()
         }
     }
@@ -349,6 +365,10 @@ struct NotificationRowView: View {
             .red.opacity(0.2)
         case .view, .dismiss:
             .gray.opacity(0.2)
+        case .join:
+            .teal.opacity(0.2)
+        case .verify:
+            .orange.opacity(0.2)
         }
     }
 
@@ -364,6 +384,10 @@ struct NotificationRowView: View {
             .red
         case .view, .dismiss:
             .gray
+        case .join:
+            .teal
+        case .verify:
+            .orange
         }
     }
 }

@@ -102,7 +102,7 @@ struct WorkoutChallenge: Identifiable, Codable {
     let description: String
     let startDate: Date
     let endDate: Date
-    let createdTimestamp: Date
+    let creationDate: Date
     var status: ChallengeStatus
     var winnerID: String?
 
@@ -202,7 +202,7 @@ extension WorkoutChallenge {
               let description = record["description"] as? String,
               let startDate = record["startTimestamp"] as? Date,
               let endDate = record["endTimestamp"] as? Date,
-              let createdTimestamp = record["createdTimestamp"] as? Date,
+              let creationDate = record.creationDate,
               let statusString = record["status"] as? String,
               let status = ChallengeStatus(rawValue: statusString)
         else {
@@ -219,7 +219,7 @@ extension WorkoutChallenge {
         self.description = description
         self.startDate = startDate
         self.endDate = endDate
-        self.createdTimestamp = createdTimestamp
+        self.creationDate = creationDate
         self.status = status
         winnerID = record["winnerID"] as? String
         xpStake = Int(record["xpStake"] as? Int64 ?? 0)
@@ -252,7 +252,7 @@ extension WorkoutChallenge {
         record["description"] = description
         record["startTimestamp"] = startDate
         record["endTimestamp"] = endDate
-        record["createdTimestamp"] = createdTimestamp
+        
         record["status"] = status.rawValue
 
         if let winnerID {
@@ -275,7 +275,7 @@ extension WorkoutChallenge {
 // MARK: - Challenge Update
 
 struct ChallengeUpdate: Codable {
-    let challengeID: String
+    let workoutChallengeID: String
     let userID: String
     let progressValue: Double
     let timestamp: Date

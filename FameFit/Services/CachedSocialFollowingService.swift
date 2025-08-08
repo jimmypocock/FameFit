@@ -16,6 +16,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     private let cloudKitManager: CloudKitManager
     private let rateLimiter: RateLimitingServicing
     private let profileService: UserProfileServicing
+    private let notificationManager: NotificationManaging?
     private let publicDatabase: CKDatabase
     private let cacheManager: FollowingCacheManager
     
@@ -27,11 +28,13 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     init(
         cloudKitManager: CloudKitManager,
         rateLimiter: RateLimitingServicing,
-        profileService: UserProfileServicing
+        profileService: UserProfileServicing,
+        notificationManager: NotificationManaging? = nil
     ) {
         self.cloudKitManager = cloudKitManager
         self.rateLimiter = rateLimiter
         self.profileService = profileService
+        self.notificationManager = notificationManager
         self.publicDatabase = CKContainer.default().publicCloudDatabase
         self.cacheManager = FollowingCacheManager()
     }
@@ -99,6 +102,12 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         
         // Update caches
         await updateCachesAfterFollow(currentUserID: currentUserID, targetUserID: targetUserID)
+        
+        // Send notification to the followed user
+        if let notificationManager = notificationManager,
+           let followerProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+            await notificationManager.notifyNewFollower(from: followerProfile)
+        }
         
         // Notify subscribers
         relationshipUpdatesSubject.send(relationship)
@@ -390,7 +399,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         let blockRecord = CKRecord(recordType: "BlockedUsers")
         blockRecord["blockerID"] = currentUserID
         blockRecord["blockedID"] = userID
-        blockRecord["createdTimestamp"] = Date()
+        blockRecord["creationDate"] = Date()
         
         // Save to CloudKit
         _ = try await publicDatabase.save(blockRecord)
@@ -497,14 +506,61 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
     // MARK: - Unimplemented Protocol Methods
     
     func requestFollow(userID: String, message: String?) async throws {
-        // For now, just call follow directly
-        // In future, this could create a follow request record for private accounts
-        try await follow(userID: userID)
+        // Check if target user has a private profile
+        let targetProfile = try await profileService.fetchProfile(userID: userID)
+        
+        // If public profile, follow directly
+        if targetProfile.privacyLevel == .publicProfile {
+            try await follow(userID: userID)
+        } else {
+            // For private profiles, create a follow request
+            let currentUserID = try getCurrentUserID()
+            
+            // Create follow request record (would need FollowRequests table in CloudKit)
+            // For now, we'll send a notification and follow directly
+            
+            // Send follow request notification
+            if let notificationManager = notificationManager,
+               let requesterProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+                await notificationManager.notifyFollowRequest(from: requesterProfile)
+            }
+            
+            // TODO: When FollowRequests table is implemented, create pending request instead
+            // For MVP, just follow directly
+            try await follow(userID: userID)
+        }
     }
     
     func respondToFollowRequest(requestID: String, accept: Bool) async throws {
-        // TODO: Implement when follow requests are supported
-        throw SocialServiceError.invalidRequest
+        // Parse the request ID format: "requesterID_targetID_timestamp"
+        let components = requestID.split(separator: "_")
+        guard components.count >= 2 else {
+            throw SocialServiceError.invalidRequest
+        }
+        
+        let requesterID = String(components[0])
+        let targetID = components.count > 1 ? String(components[1]) : try getCurrentUserID()
+        
+        // Verify the current user is the target of this request
+        let currentUserID = try getCurrentUserID()
+        guard targetID == currentUserID else {
+            throw SocialServiceError.unauthorized
+        }
+        
+        if accept {
+            // Create the follow relationship (requester follows current user)
+            try await follow(userID: requesterID)
+            
+            // Send acceptance notification
+            if let notificationManager = notificationManager,
+               let accepterProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+                await notificationManager.notifyFollowAccepted(by: accepterProfile)
+            }
+        }
+        
+        // Update cache for both users
+        cacheManager.invalidateFollowerData(for: currentUserID)
+        cacheManager.invalidateFollowingData(for: requesterID)
     }
     
     func getMutualFollowers(with userID: String, limit: Int) async throws -> [UserProfile] {

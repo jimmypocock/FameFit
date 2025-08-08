@@ -843,7 +843,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             profileRecord["workoutCount"] = totalWorkouts
             profileRecord["totalXP"] = totalXP
-            profileRecord["modifiedTimestamp"] = Date()
+            profileRecord["modificationDate"] = Date()
             
             _ = try await publicDatabase.save(profileRecord)
             FameFitLogger.info("Successfully synced stats to UserProfile", category: FameFitLogger.cloudKit)

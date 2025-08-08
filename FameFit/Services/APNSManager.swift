@@ -75,8 +75,8 @@ struct DeviceTokenRecord {
     let appVersion: String
     let osVersion: String
     let environment: String // "development" or "production"
-    let createdTimestamp: Date
-    let modifiedTimestamp: Date
+    let creationDate: Date
+    let modificationDate: Date
     let isActive: Bool
 }
 
@@ -252,7 +252,7 @@ class APNSManager: NSObject, APNSManaging {
         record["appVersion"] = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         record["osVersion"] = await MainActor.run { UIDevice.current.systemVersion }
         record["environment"] = getAPNSEnvironment()
-        // modifiedTimestamp is managed by CloudKit automatically
+        // modificationDate is managed by CloudKit automatically
         record["isActive"] = 1
 
         do {
@@ -276,7 +276,7 @@ class APNSManager: NSObject, APNSManaging {
             for (recordID, _) in records.matchResults {
                 if let record = try? await cloudKitContainer.privateCloudDatabase.record(for: recordID) {
                     record["isActive"] = 0
-                    // modifiedTimestamp is managed by CloudKit automatically
+                    // modificationDate is managed by CloudKit automatically
                     try await cloudKitContainer.privateCloudDatabase.save(record)
                 }
             }

@@ -15,20 +15,20 @@ struct WorkoutKudos: Identifiable, Codable, Equatable {
     let workoutID: String
     let userID: String // User who gave the kudos
     let workoutOwnerID: String // User who owns the workout
-    let createdTimestamp: Date
+    let creationDate: Date
 
     init(
         id: String = UUID().uuidString,
         workoutID: String,
         userID: String,
         workoutOwnerID: String,
-        createdTimestamp: Date = Date()
+        creationDate: Date = Date()
     ) {
         self.id = id
         self.workoutID = workoutID
         self.userID = userID
         self.workoutOwnerID = workoutOwnerID
-        self.createdTimestamp = createdTimestamp
+        self.creationDate = creationDate
     }
 }
 
@@ -57,7 +57,7 @@ extension WorkoutKudos {
               let workoutID = record["workoutID"] as? String,
               let userID = record["userID"] as? String,
               let workoutOwnerID = record["workoutOwnerID"] as? String,
-              let createdTimestamp = record["createdTimestamp"] as? Date
+              let creationDate = record.creationDate
         else {
             return nil
         }
@@ -66,7 +66,7 @@ extension WorkoutKudos {
         self.workoutID = workoutID
         self.userID = userID
         self.workoutOwnerID = workoutOwnerID
-        self.createdTimestamp = createdTimestamp
+        self.creationDate = creationDate
     }
 
     func toCloudKitRecord(in _: CKDatabase) -> CKRecord {
@@ -76,7 +76,7 @@ extension WorkoutKudos {
         record["workoutID"] = workoutID
         record["userID"] = userID
         record["workoutOwnerID"] = workoutOwnerID
-        record["createdTimestamp"] = createdTimestamp
+        
 
         return record
     }

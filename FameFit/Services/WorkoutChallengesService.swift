@@ -14,18 +14,18 @@ import HealthKit
 
 protocol WorkoutChallengesServicing {
     func createChallenge(_ challenge: WorkoutChallenge) async throws -> WorkoutChallenge
-    func acceptChallenge(challengeID: String) async throws -> WorkoutChallenge
-    func declineChallenge(challengeID: String) async throws
-    func cancelChallenge(challengeID: String) async throws
-    func updateProgress(challengeID: String, progress: Double, workoutID: String?) async throws
-    func completeChallenge(challengeID: String) async throws -> WorkoutChallenge
+    func acceptChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge
+    func declineChallenge(workoutChallengeID: String) async throws
+    func cancelChallenge(workoutChallengeID: String) async throws
+    func updateProgress(workoutChallengeID: String, progress: Double, workoutID: String?) async throws
+    func completeChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge
 
     func fetchActiveChallenge(for userID: String) async throws -> [WorkoutChallenge]
     func fetchPendingChallenge(for userID: String) async throws -> [WorkoutChallenge]
     func fetchCompletedChallenge(for userID: String) async throws -> [WorkoutChallenge]
-    func fetchChallenge(challengeID: String) async throws -> WorkoutChallenge
+    func fetchChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge
 
-    func inviteToChallenge(challengeID: String, userIDs: [String]) async throws
+    func inviteToChallenge(workoutChallengeID: String, userIDs: [String]) async throws
     func getChallengeSuggestions(for userID: String) async throws -> [WorkoutChallenge]
 }
 
@@ -40,6 +40,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
     private let userProfileService: any UserProfileServicing
     private let notificationManager: any NotificationManaging
     private let rateLimiter: any RateLimitingServicing
+    private let workoutChallengeLinksService: WorkoutChallengeLinksServicing?
 
     // Publishers
     @Published private var activeChallenges: [String: [WorkoutChallenge]] = [:] // userID: challenges
@@ -52,6 +53,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         userProfileService: any UserProfileServicing,
         notificationManager: any NotificationManaging,
         rateLimiter: any RateLimitingServicing,
+        workoutChallengeLinksService: WorkoutChallengeLinksServicing? = nil,
         publicDatabase: CKDatabase? = nil,
         privateDatabase: CKDatabase? = nil
     ) {
@@ -59,6 +61,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         self.userProfileService = userProfileService
         self.notificationManager = notificationManager
         self.rateLimiter = rateLimiter
+        self.workoutChallengeLinksService = workoutChallengeLinksService
         self.publicDatabase = publicDatabase ?? CKContainer.default().publicCloudDatabase
         self.privateDatabase = privateDatabase ?? CKContainer.default().privateCloudDatabase
     }
@@ -117,8 +120,10 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
             await rateLimiter.recordAction(.workoutPost, userID: userID)
 
             // Send notifications to invited participants
-            for participant in savedChallenge.participants where participant.id != userID {
-                await sendChallengeInviteFameFitNotification(challenge: savedChallenge, to: participant.id)
+            if let creatorProfile = try? await userProfileService.fetchProfile(userID: userID) {
+                for participant in savedChallenge.participants where participant.id != userID {
+                    await notificationManager.notifyChallengeInvite(challenge: savedChallenge, from: creatorProfile)
+                }
             }
 
             return savedChallenge
@@ -128,13 +133,13 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         }
     }
 
-    func acceptChallenge(challengeID: String) async throws -> WorkoutChallenge {
+    func acceptChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge {
         guard let userID = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
 
         // Fetch challenge
-        var challenge = try await fetchChallenge(challengeID: challengeID)
+        var challenge = try await fetchChallenge(workoutChallengeID: workoutChallengeID)
 
         // Verify user is a participant
         guard challenge.participants.contains(where: { $0.id == userID }) else {
@@ -151,7 +156,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         challenge.status = .active
 
         // Update in CloudKit
-        let recordID = CKRecord.ID(recordName: challengeID)
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
         let record = challenge.toCKRecord(recordID: recordID)
 
         do {
@@ -161,9 +166,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
             }
 
             // Notify all participants that challenge is active
-            for participant in updatedChallenge.participants {
-                await sendChallengeStartedFameFitNotification(challenge: updatedChallenge, to: participant.id)
-            }
+            await notificationManager.notifyChallengeStart(challenge: updatedChallenge)
 
             return updatedChallenge
         } catch {
@@ -171,12 +174,12 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         }
     }
 
-    func declineChallenge(challengeID: String) async throws {
+    func declineChallenge(workoutChallengeID: String) async throws {
         guard let userID = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
 
-        var challenge = try await fetchChallenge(challengeID: challengeID)
+        var challenge = try await fetchChallenge(workoutChallengeID: workoutChallengeID)
 
         // Verify user is a participant
         guard challenge.participants.contains(where: { $0.id == userID }) else {
@@ -187,27 +190,25 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         challenge.status = .declined
 
         // Update in CloudKit
-        let recordID = CKRecord.ID(recordName: challengeID)
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
         let record = challenge.toCKRecord(recordID: recordID)
 
         do {
             _ = try await publicDatabase.save(record)
 
-            // Notify creator
-            if challenge.creatorID != userID {
-                await sendChallengeDeclinedFameFitNotification(challenge: challenge, by: userID)
-            }
+            // Notify creator (could add a specific decline notification in the future)
+            // For now, the creator will see the status change in the UI
         } catch {
             throw ChallengeError.updateFailed
         }
     }
 
-    func cancelChallenge(challengeID: String) async throws {
+    func cancelChallenge(workoutChallengeID: String) async throws {
         guard let userID = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
 
-        var challenge = try await fetchChallenge(challengeID: challengeID)
+        var challenge = try await fetchChallenge(workoutChallengeID: workoutChallengeID)
 
         // Only creator can cancel
         guard challenge.creatorID == userID else {
@@ -218,31 +219,43 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         challenge.status = .cancelled
 
         // Update in CloudKit
-        let recordID = CKRecord.ID(recordName: challengeID)
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
         let record = challenge.toCKRecord(recordID: recordID)
 
         do {
             _ = try await publicDatabase.save(record)
 
-            // Notify participants
-            for participant in challenge.participants where participant.id != userID {
-                await sendChallengeCancelledFameFitNotification(challenge: challenge, to: participant.id)
-            }
+            // Notify participants (could add a specific cancellation notification in the future)
+            // For now, participants will see the status change in the UI
         } catch {
             throw ChallengeError.updateFailed
         }
     }
 
-    func updateProgress(challengeID: String, progress: Double, workoutID: String? = nil) async throws {
+    func updateProgress(workoutChallengeID: String, progress: Double, workoutID: String? = nil) async throws {
         guard let userID = cloudKitManager.currentUserID else {
             throw ChallengeError.notAuthenticated
         }
 
-        var challenge = try await fetchChallenge(challengeID: challengeID)
+        var challenge = try await fetchChallenge(workoutChallengeID: workoutChallengeID)
 
         // Verify challenge is active
         guard challenge.status.isActive else {
             throw ChallengeError.challengeNotActive
+        }
+        
+        // If we have the links service, use it to calculate real progress
+        let actualProgress: Double
+        if let linksService = workoutChallengeLinksService {
+            actualProgress = try await linksService.calculateUserProgress(
+                userID: userID,
+                workoutChallengeID: workoutChallengeID
+            )
+            FameFitLogger.info("📊 Using link-based progress: \(actualProgress)", category: FameFitLogger.social)
+        } else {
+            // Fallback to provided progress (legacy)
+            actualProgress = progress
+            FameFitLogger.warning("⚠️ Using legacy progress tracking", category: FameFitLogger.social)
         }
 
         // Find and update participant progress
@@ -250,20 +263,20 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
             throw ChallengeError.notParticipant
         }
 
-        challenge.participants[participantIndex].progress = progress
+        challenge.participants[participantIndex].progress = actualProgress
         challenge.participants[participantIndex].lastUpdated = Date()
 
         // Check if target reached
-        if progress >= challenge.targetValue {
+        if actualProgress >= challenge.targetValue {
             challenge.participants[participantIndex].isWinning = true
 
             // Complete challenge if someone reached target
-            _ = try await completeChallenge(challengeID: challengeID)
+            _ = try await completeChallenge(workoutChallengeID: workoutChallengeID)
             return
         }
 
         // Update in CloudKit
-        let recordID = CKRecord.ID(recordName: challengeID)
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
         let record = challenge.toCKRecord(recordID: recordID)
 
         do {
@@ -271,7 +284,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
             // Store update for tracking
             let update = ChallengeUpdate(
-                challengeID: challengeID,
+                workoutChallengeID: workoutChallengeID,
                 userID: userID,
                 progressValue: progress,
                 timestamp: Date(),
@@ -283,8 +296,8 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         }
     }
 
-    func completeChallenge(challengeID: String) async throws -> WorkoutChallenge {
-        var challenge = try await fetchChallenge(challengeID: challengeID)
+    func completeChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge {
+        var challenge = try await fetchChallenge(workoutChallengeID: workoutChallengeID)
 
         // Verify challenge is active or expired
         guard challenge.status.isActive || challenge.isExpired else {
@@ -299,7 +312,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         challenge.status = .completed
 
         // Update in CloudKit
-        let recordID = CKRecord.ID(recordName: challengeID)
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
         let record = challenge.toCKRecord(recordID: recordID)
 
         do {
@@ -315,9 +328,8 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
             // Notify all participants
             for participant in completedChallenge.participants {
-                await sendChallengeCompletedFameFitNotification(
+                await notificationManager.notifyChallengeComplete(
                     challenge: completedChallenge,
-                    to: participant.id,
                     isWinner: participant.id == completedChallenge.winnerID
                 )
             }
@@ -357,8 +369,8 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         return try await fetchChallenges(with: predicate, limit: 20)
     }
 
-    func fetchChallenge(challengeID: String) async throws -> WorkoutChallenge {
-        let recordID = CKRecord.ID(recordName: challengeID)
+    func fetchChallenge(workoutChallengeID: String) async throws -> WorkoutChallenge {
+        let recordID = CKRecord.ID(recordName: workoutChallengeID)
 
         do {
             let record = try await publicDatabase.record(for: recordID)
@@ -371,7 +383,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         }
     }
 
-    func inviteToChallenge(challengeID: String, userIDs: [String]) async throws {
+    func inviteToChallenge(workoutChallengeID: String, userIDs: [String]) async throws {
         // Implementation for adding participants to existing challenge
         // This would be used for group challenges
     }
@@ -391,7 +403,7 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
 
     private func fetchChallenges(with predicate: NSPredicate, limit: Int = 50) async throws -> [WorkoutChallenge] {
         let query = CKQuery(recordType: "WorkoutChallenges", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
         do {
             let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
@@ -418,110 +430,6 @@ final class WorkoutChallengesService: WorkoutChallengesServicing {
         // This would need to be implemented in CloudKitManager
     }
 
-    // MARK: - Notifications
-
-    private func sendChallengeInviteFameFitNotification(challenge: WorkoutChallenge, to userID: String) async {
-        guard let inviterProfile = try? await userProfileService.fetchProfile(userID: challenge.creatorID) else {
-            return
-        }
-
-        // For now, we'll create a local notification that works with the current system
-        // In a full implementation, this would be sent via push notifications
-        let notification = FameFitNotification(
-            type: .challengeInvite,
-            title: "New Challenge Invite! \(challenge.type.icon)",
-            body: "\(inviterProfile.username) challenged you: \(challenge.name)",
-            metadata: .challenge(ChallengeNotificationMetadata(
-                challengeID: challenge.id,
-                challengeName: challenge.name,
-                challengeType: challenge.type.rawValue,
-                creatorID: challenge.creatorID,
-                creatorName: inviterProfile.username,
-                targetValue: challenge.targetValue,
-                endDate: challenge.endDate
-            )),
-            actions: [.accept, .decline]
-        )
-
-        // Store notification locally (in a real app, this would be sent via APNS)
-        // For now, we'll just log it or store it in UserDefaults
-        print("Challenge invite notification would be sent to user \(userID): \(notification.title)")
-    }
-
-    private func sendChallengeStartedFameFitNotification(challenge: WorkoutChallenge, to userID: String) async {
-        let notification = FameFitNotification(
-            type: .challengeStarted,
-            title: "Challenge Started! 🏁",
-            body: "\(challenge.name) is now active. Good luck!",
-            metadata: .challenge(ChallengeNotificationMetadata(
-                challengeID: challenge.id,
-                challengeName: challenge.name,
-                challengeType: challenge.type.rawValue,
-                creatorID: challenge.creatorID,
-                creatorName: nil,
-                targetValue: challenge.targetValue,
-                endDate: challenge.endDate
-            )),
-            actions: [.view]
-        )
-
-        print("Challenge started notification would be sent to user \(userID): \(notification.title)")
-    }
-
-    private func sendChallengeDeclinedFameFitNotification(challenge: WorkoutChallenge, by userID: String) async {
-        guard let declinerProfile = try? await userProfileService.fetchProfile(userID: userID) else {
-            return
-        }
-
-        let notification = FameFitNotification(
-            type: .challengeCompleted,
-            title: "Challenge Declined",
-            body: "\(declinerProfile.username) declined your challenge: \(challenge.name)",
-            actions: []
-        )
-
-        print("Challenge declined notification would be sent to user \(challenge.creatorID): \(notification.title)")
-    }
-
-    private func sendChallengeCancelledFameFitNotification(challenge: WorkoutChallenge, to userID: String) async {
-        let notification = FameFitNotification(
-            type: .challengeCompleted,
-            title: "Challenge Cancelled",
-            body: "The challenge '\(challenge.name)' has been cancelled",
-            actions: []
-        )
-
-        print("Challenge cancelled notification would be sent to user \(userID): \(notification.title)")
-    }
-
-    private func sendChallengeCompletedFameFitNotification(
-        challenge: WorkoutChallenge,
-        to userID: String,
-        isWinner: Bool
-    ) async {
-        let title = isWinner ? "You Won! 🏆" : "Challenge Completed!"
-        let body = isWinner
-            ? "Congratulations! You won \(challenge.name)!"
-            : "The challenge '\(challenge.name)' has ended. Check the results!"
-
-        let notification = FameFitNotification(
-            type: .challengeCompleted,
-            title: title,
-            body: body,
-            metadata: .challenge(ChallengeNotificationMetadata(
-                challengeID: challenge.id,
-                challengeName: challenge.name,
-                challengeType: challenge.type.rawValue,
-                creatorID: challenge.creatorID,
-                creatorName: nil,
-                targetValue: challenge.targetValue,
-                endDate: challenge.endDate
-            )),
-            actions: [.view]
-        )
-
-        print("Challenge completed notification would be sent to user \(userID): \(notification.title)")
-    }
 }
 
 // MARK: - Challenge Errors

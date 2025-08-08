@@ -29,7 +29,7 @@ class CloudKitSchemaManager {
         FameFitLogger.info("Checking CloudKit schema...", category: FameFitLogger.cloudKit)
 
         // Check if we've already initialized the schema
-        let schemaInitializedKey = "FameFitCloudKitSchemaInitializedV2" // Bumped version to force re-init with new types
+        let schemaInitializedKey = "FameFitCloudKitSchemaInitializedV4" // Bumped version to force re-init with WorkoutMetrics
         guard !UserDefaults.standard.bool(forKey: schemaInitializedKey) else {
             FameFitLogger.info("CloudKit schema already initialized", category: FameFitLogger.cloudKit)
             return
@@ -115,6 +115,14 @@ class CloudKitSchemaManager {
                 FameFitLogger.debug("Initializing WorkoutChallenges record type...", category: FameFitLogger.cloudKit)
                 try await initializeWorkoutChallengesRecordType()
                 FameFitLogger.info("WorkoutChallenges record type initialized", category: FameFitLogger.cloudKit)
+                
+                FameFitLogger.debug("Initializing WorkoutMetrics record type...", category: FameFitLogger.cloudKit)
+                try await initializeWorkoutMetricsRecordType()
+                FameFitLogger.info("WorkoutMetrics record type initialized", category: FameFitLogger.cloudKit)
+                
+                FameFitLogger.debug("Initializing WorkoutChallengeLinks record type...", category: FameFitLogger.cloudKit)
+                try await initializeWorkoutChallengeLinksRecordType()
+                FameFitLogger.info("WorkoutChallengeLinks record type initialized", category: FameFitLogger.cloudKit)
 
                 // Mark schema as initialized
                 UserDefaults.standard.set(true, forKey: schemaInitializedKey)
@@ -273,7 +281,7 @@ class CloudKitSchemaManager {
                 dummyRecord["appVersion"] = "1.0.0"
                 dummyRecord["osVersion"] = "17.0"
                 dummyRecord["environment"] = "development"
-                // modifiedTimestamp is managed by CloudKit automatically
+                // modificationDate is managed by CloudKit automatically
                 dummyRecord["isActive"] = Int64(1)
 
                 do {
@@ -304,7 +312,7 @@ class CloudKitSchemaManager {
                 dummyRecord["bio"] = ""
                 dummyRecord["workoutCount"] = Int64(0)
                 dummyRecord["totalXP"] = Int64(0)
-                // createdTimestamp and modifiedTimestamp are managed by CloudKit automatically
+                // creationDate and modificationDate are managed by CloudKit automatically
                 dummyRecord["privacyLevel"] = "private"
 
                 do {
@@ -360,7 +368,7 @@ class CloudKitSchemaManager {
                 dummyRecord["activityType"] = "workout"
                 dummyRecord["content"] = "Schema Init"
                 dummyRecord["visibility"] = "private"
-                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["creationDate"] = Date()
                 dummyRecord["expiresAt"] = Date().addingTimeInterval(86_400 * 30) // 30 days
 
                 do {
@@ -388,7 +396,7 @@ class CloudKitSchemaManager {
                 dummyRecord["workoutID"] = "dummy-workout"
                 dummyRecord["userID"] = "dummy-user"
                 dummyRecord["workoutOwnerID"] = "dummy-owner"
-                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["creationDate"] = Date()
 
                 do {
                     let savedRecord = try await publicDatabase.save(dummyRecord)
@@ -416,8 +424,8 @@ class CloudKitSchemaManager {
                 dummyRecord["userID"] = "dummy-user"
                 dummyRecord["workoutOwnerID"] = "dummy-owner"
                 dummyRecord["content"] = "Great workout!"
-                dummyRecord["createdTimestamp"] = Date()
-                dummyRecord["modifiedTimestamp"] = Date()
+                dummyRecord["creationDate"] = Date()
+                dummyRecord["modificationDate"] = Date()
                 dummyRecord["isEdited"] = Int64(0)
                 dummyRecord["likeCount"] = Int64(0)
 
@@ -456,8 +464,8 @@ class CloudKitSchemaManager {
                 dummyRecord["scheduledStart"] = Date().addingTimeInterval(3_600) // 1 hour from now
                 dummyRecord["scheduledEnd"] = Date().addingTimeInterval(7_200) // 2 hours from now
                 dummyRecord["status"] = "scheduled"
-                dummyRecord["createdTimestamp"] = Date()
-                dummyRecord["modifiedTimestamp"] = Date()
+                dummyRecord["creationDate"] = Date()
+                dummyRecord["modificationDate"] = Date()
                 dummyRecord["isPublic"] = Int64(1)
                 dummyRecord["tags"] = [String]()
 
@@ -566,7 +574,7 @@ class CloudKitSchemaManager {
                 dummyRecord["description"] = "Schema initialization"
                 dummyRecord["startTimestamp"] = Date()
                 dummyRecord["endTimestamp"] = Date().addingTimeInterval(7 * 24 * 60 * 60)
-                dummyRecord["createdTimestamp"] = Date()
+                dummyRecord["creationDate"] = Date()
                 dummyRecord["status"] = "pending"
                 dummyRecord["xpStake"] = Int64(0)
                 dummyRecord["winnerTakesAll"] = Int64(0)
@@ -617,5 +625,117 @@ extension CloudKitSchemaManager {
 
         5. See docs/CLOUDKIT_SCHEMA.md for full schema documentation
         """
+    }
+    
+    private func initializeWorkoutMetricsRecordType() async throws {
+        let query = CKQuery(recordType: "WorkoutMetrics", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying WorkoutMetrics record type...", category: FameFitLogger.cloudKit)
+        
+        do {
+            _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("WorkoutMetrics record type already exists", category: FameFitLogger.cloudKit)
+            return
+        } catch {
+            FameFitLogger.debug("WorkoutMetrics record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
+            if error.localizedDescription.contains("Record type")
+                || error.localizedDescription.contains("Did not find record type") {
+                // Create a dummy record to establish the schema
+                let dummyRecord = CKRecord(recordType: "WorkoutMetrics")
+                
+                // Core required fields
+                dummyRecord["workoutID"] = "dummy-workout-id"
+                dummyRecord["userID"] = "dummy-user-id"
+                dummyRecord["creationDate"] = Date()
+                dummyRecord["workoutType"] = "running"
+                
+                // Context fields
+                dummyRecord["groupWorkoutID"] = nil as String?
+                
+                // Privacy fields
+                dummyRecord["sharingLevel"] = "private"
+                dummyRecord["expiredTimestamp"] = Date().addingTimeInterval(86400)
+                dummyRecord["allowedUserIDs"] = nil as [String]?
+                
+                // Metric fields (all optional)
+                dummyRecord["heartRate"] = 0.0
+                dummyRecord["activeEnergyBurned"] = 0.0
+                dummyRecord["distance"] = 0.0
+                dummyRecord["pace"] = 0.0
+                dummyRecord["cadence"] = 0.0
+                dummyRecord["power"] = 0.0
+                dummyRecord["altitude"] = 0.0
+                dummyRecord["speed"] = 0.0
+                
+                // Status fields
+                dummyRecord["elapsedTime"] = 0.0
+                dummyRecord["isActive"] = Int64(1)
+                dummyRecord["isPaused"] = Int64(0)
+                
+                // Device fields
+                dummyRecord["sourceDevice"] = "Apple Watch"
+                // Note: location field requires special handling
+                
+                // Cache fields
+                dummyRecord["username"] = nil as String?
+                dummyRecord["userImageURL"] = nil as String?
+                
+                do {
+                    let savedRecord = try await publicDatabase.save(dummyRecord)
+                    // Delete the dummy record immediately
+                    try await publicDatabase.deleteRecord(withID: savedRecord.recordID)
+                    FameFitLogger.info("WorkoutMetrics record type created successfully", category: FameFitLogger.cloudKit)
+                } catch {
+                    FameFitLogger.error("Failed to create WorkoutMetrics record type", error: error, category: FameFitLogger.cloudKit)
+                    throw error
+                }
+            } else {
+                throw error
+            }
+        }
+    }
+    
+    private func initializeWorkoutChallengeLinksRecordType() async throws {
+        let query = CKQuery(recordType: "WorkoutChallengeLinks", predicate: NSPredicate(value: true))
+        FameFitLogger.debug("Querying WorkoutChallengeLinks record type...", category: FameFitLogger.cloudKit)
+        
+        do {
+            _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            FameFitLogger.debug("WorkoutChallengeLinks record type already exists", category: FameFitLogger.cloudKit)
+            return
+        } catch {
+            FameFitLogger.debug("WorkoutChallengeLinks record type query error: \(error.localizedDescription)", category: FameFitLogger.cloudKit)
+            if error.localizedDescription.contains("Record type")
+                || error.localizedDescription.contains("Did not find record type") {
+                // Create a dummy record to establish the schema
+                let dummyRecord = CKRecord(recordType: "WorkoutChallengeLinks")
+                
+                // Core relationship fields
+                dummyRecord["workoutID"] = "dummy-workout-id"
+                dummyRecord["workoutChallengeID"] = "dummy-challenge-id"
+                dummyRecord["userID"] = "dummy-user-id"
+                
+                // Contribution fields
+                dummyRecord["contributionValue"] = 0.0
+                dummyRecord["contributionType"] = "distance"
+                dummyRecord["workoutDate"] = Date()
+                dummyRecord["creationDate"] = Date()
+                
+                // Validation fields
+                dummyRecord["isVerified"] = Int64(0)
+                dummyRecord["verificationTimestamp"] = nil as Date?
+                
+                do {
+                    let savedRecord = try await publicDatabase.save(dummyRecord)
+                    // Delete the dummy record immediately
+                    try await publicDatabase.deleteRecord(withID: savedRecord.recordID)
+                    FameFitLogger.info("WorkoutChallengeLinks record type created successfully", category: FameFitLogger.cloudKit)
+                } catch {
+                    FameFitLogger.error("Failed to create WorkoutChallengeLinks record type", error: error, category: FameFitLogger.cloudKit)
+                    throw error
+                }
+            } else {
+                throw error
+            }
+        }
     }
 }

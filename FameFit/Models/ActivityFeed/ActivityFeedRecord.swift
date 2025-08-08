@@ -15,7 +15,7 @@ struct ActivityFeedRecord: Codable, Identifiable, Equatable {
     let workoutID: String?
     let content: String // JSON encoded content
     let visibility: String // "private", "friends_only", "public"
-    let createdTimestamp: Date
+    let creationDate: Date
     let expiresAt: Date
     let xpEarned: Int?
     let achievementName: String?
@@ -39,7 +39,7 @@ extension ActivityFeedRecord {
               let activityType = record["activityType"] as? String,
               let content = record["content"] as? String,
               let visibility = record["visibility"] as? String,
-              let createdTimestamp = record["createdTimestamp"] as? Date,
+              let creationDate = record.creationDate,
               let expiresAt = record["expiresAt"] as? Date
         else {
             return nil
@@ -51,7 +51,7 @@ extension ActivityFeedRecord {
         self.workoutID = record["workoutID"] as? String
         self.content = content
         self.visibility = visibility
-        self.createdTimestamp = createdTimestamp
+        self.creationDate = creationDate
         self.expiresAt = expiresAt
         self.xpEarned = record["xpEarned"] as? Int
         self.achievementName = record["achievementName"] as? String
@@ -71,7 +71,7 @@ extension ActivityFeedRecord {
         }
         record["content"] = content
         record["visibility"] = visibility
-        record["createdTimestamp"] = createdTimestamp
+        
         record["expiresAt"] = expiresAt
         
         if let xpEarned {

@@ -429,8 +429,8 @@ struct ProfileCreationView: View {
                     bio: bio,
                     workoutCount: 0, // New profile starts with 0 workouts
                     totalXP: 0, // New profile starts with 0 XP
-                    createdTimestamp: Date(), // New profile joins now
-                    modifiedTimestamp: Date(),
+                    creationDate: Date(), // New profile joins now
+                    modificationDate: Date(),
                     isVerified: false,
                     privacyLevel: privacyLevel,
                     profileImageURL: profileImageURL,

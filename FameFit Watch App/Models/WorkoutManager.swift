@@ -8,6 +8,17 @@
 import Foundation
 import HealthKit
 import os.log
+#if os(watchOS)
+import WatchConnectivity
+#endif
+
+/// Information about a group workout
+struct GroupWorkoutInfo {
+    let id: String
+    let name: String
+    let isHost: Bool
+    let participantCount: Int
+}
 
 class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
@@ -37,11 +48,29 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var isGroupWorkoutHost: Bool = false
     @Published var groupParticipantCount: Int = 0
     private var groupWorkoutMetadata: [String: Any] = [:]
+    private var metricsUploadTimer: Timer?
+    private let metricsUploadInterval: TimeInterval = 5.0 // Upload every 5 seconds
+    private var metricsRetryCount = 0
+    private let maxRetryAttempts = 3
+    private var pendingMetrics: [[String: Any]] = []
 
     // MARK: - Workout Control
-
+    
+    // Protocol conformance method
     func startWorkout(workoutType: HKWorkoutActivityType) {
-        FameFitLogger.info("Starting workout: \(workoutType)", category: FameFitLogger.workout)
+        startWorkout(workoutType: workoutType, groupWorkoutInfo: nil)
+    }
+
+    func startWorkout(workoutType: HKWorkoutActivityType, groupWorkoutInfo: GroupWorkoutInfo? = nil) {
+        // Set group workout properties if provided
+        if let groupInfo = groupWorkoutInfo {
+            FameFitLogger.info("Starting group workout: \(groupInfo.name) (ID: \(groupInfo.id))", category: FameFitLogger.workout)
+            configureGroupWorkout(groupInfo)
+        } else {
+            // Check for pending group workout from iPhone
+            checkForGroupWorkout()
+            FameFitLogger.info("Starting workout: \(workoutType)", category: FameFitLogger.workout)
+        }
 
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
@@ -246,29 +275,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     
     // MARK: - Group Workout Methods
     
-    func startGroupWorkout(workoutType: HKWorkoutActivityType, groupID: String, groupName: String, isHost: Bool, participantCount: Int) {
-        FameFitLogger.info("Starting group workout: \(groupName) (ID: \(groupID))", category: FameFitLogger.workout)
-        
-        // Set group workout properties
-        isGroupWorkout = true
-        groupWorkoutID = groupID
-        groupWorkoutName = groupName
-        isGroupWorkoutHost = isHost
-        groupParticipantCount = participantCount
-        
-        // Prepare metadata for HealthKit
-        groupWorkoutMetadata = [
-            "groupWorkoutID": groupID,
-            "groupWorkoutName": groupName,
-            "isGroupWorkout": true,
-            "isHost": isHost,
-            "participantCount": participantCount,
-            "joinTimestamp": Date()
-        ]
-        
-        // Start regular workout
-        startWorkout(workoutType: workoutType)
-    }
     
     func updateGroupParticipantCount(_ count: Int) {
         groupParticipantCount = count
@@ -497,3 +503,179 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
         }
     }
 #endif
+
+// MARK: - Group Workout Methods
+
+extension WorkoutManager {
+    /// Configure workout manager for a group workout
+    private func configureGroupWorkout(_ info: GroupWorkoutInfo) {
+        isGroupWorkout = true
+        groupWorkoutID = info.id
+        groupWorkoutName = info.name
+        isGroupWorkoutHost = info.isHost
+        groupParticipantCount = info.participantCount
+        
+        // Prepare metadata for HealthKit
+        groupWorkoutMetadata = [
+            "groupWorkoutID": info.id,
+            "groupWorkoutName": info.name,
+            "isGroupWorkout": true,
+            "isHost": info.isHost,
+            "participantCount": info.participantCount,
+            "joinTimestamp": Date()
+        ]
+        
+        // Start metrics upload timer
+        startMetricsUpload()
+    }
+    
+    private func checkForGroupWorkout() {
+        // Check if there's pending group workout info from iPhone
+        if let workoutID = UserDefaults.standard.string(forKey: "pendingGroupWorkoutID"),
+           let workoutName = UserDefaults.standard.string(forKey: "pendingGroupWorkoutName") {
+            
+            let isHost = UserDefaults.standard.bool(forKey: "pendingGroupWorkoutIsHost")
+            let participantCount = UserDefaults.standard.integer(forKey: "pendingGroupWorkoutParticipantCount")
+            
+            let groupInfo = GroupWorkoutInfo(
+                id: workoutID,
+                name: workoutName,
+                isHost: isHost,
+                participantCount: participantCount > 0 ? participantCount : 1
+            )
+            
+            // Clear the pending info
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutID")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutName")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutIsHost")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutParticipantCount")
+            
+            // Configure for group workout
+            configureGroupWorkout(groupInfo)
+            
+            FameFitLogger.info("🏋️ Restored group workout: \(workoutName) (Host: \(isHost))", category: FameFitLogger.workout)
+        }
+    }
+    
+    private func startMetricsUpload() {
+        guard isGroupWorkout else { return }
+        
+        // Start timer to upload metrics every 5 seconds
+        metricsUploadTimer = Timer.scheduledTimer(withTimeInterval: metricsUploadInterval, repeats: true) { [weak self] _ in
+            self?.uploadMetrics()
+        }
+    }
+    
+    private func uploadMetrics() {
+        guard isGroupWorkout,
+              let workoutID = groupWorkoutID else { return }
+        
+        // Prepare metrics
+        let metrics: [String: Any] = [
+            "workoutID": workoutID,
+            "timestamp": Date(),
+            "heartRate": self.heartRate,
+            "activeEnergy": self.activeEnergy,
+            "distance": self.distance,
+            "elapsedTime": self.displayElapsedTime,
+            "averageHeartRate": self.averageHeartRate,
+            "isActive": self.isWorkoutRunning
+        ]
+        
+        #if os(watchOS)
+        // Check if Watch connectivity is available
+        if WCSession.default.isReachable {
+            // Try to send pending metrics first
+            sendPendingMetrics()
+            
+            // Send current metrics
+            WCSession.default.sendMessage([
+                "command": "groupWorkoutMetrics",
+                "metrics": metrics
+            ], replyHandler: { [weak self] response in
+                // Success - reset retry count
+                self?.metricsRetryCount = 0
+                FameFitLogger.debug("✅ Metrics sent successfully", category: FameFitLogger.workout)
+            }, errorHandler: { [weak self] error in
+                self?.handleMetricsUploadError(metrics: metrics, error: error)
+            })
+        } else {
+            // Queue metrics for later
+            queueMetricsForLater(metrics)
+            FameFitLogger.debug("📱 Watch not reachable, queuing metrics", category: FameFitLogger.workout)
+        }
+        #endif
+        
+        FameFitLogger.debug("📊 Processing metrics - HR: \(self.heartRate), Energy: \(self.activeEnergy)", category: FameFitLogger.workout)
+    }
+    
+    private func handleMetricsUploadError(metrics: [String: Any], error: Error) {
+        metricsRetryCount += 1
+        
+        if metricsRetryCount < maxRetryAttempts {
+            // Retry with exponential backoff
+            let delay = Double(metricsRetryCount) * 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.retryMetricsUpload(metrics)
+            }
+            FameFitLogger.warning("⚠️ Metrics upload failed, retrying in \(delay)s (attempt \(metricsRetryCount)/\(maxRetryAttempts))", category: FameFitLogger.workout)
+        } else {
+            // Max retries exceeded, queue for later
+            queueMetricsForLater(metrics)
+            metricsRetryCount = 0
+            FameFitLogger.error("❌ Metrics upload failed after \(maxRetryAttempts) attempts, queuing for later", error: error, category: FameFitLogger.workout)
+        }
+    }
+    
+    private func retryMetricsUpload(_ metrics: [String: Any]) {
+        #if os(watchOS)
+        guard WCSession.default.isReachable else {
+            queueMetricsForLater(metrics)
+            return
+        }
+        
+        WCSession.default.sendMessage([
+            "command": "groupWorkoutMetrics",
+            "metrics": metrics
+        ], replyHandler: { [weak self] _ in
+            self?.metricsRetryCount = 0
+        }, errorHandler: { [weak self] error in
+            self?.handleMetricsUploadError(metrics: metrics, error: error)
+        })
+        #endif
+    }
+    
+    private func queueMetricsForLater(_ metrics: [String: Any]) {
+        pendingMetrics.append(metrics)
+        
+        // Limit queue size to prevent memory issues
+        if pendingMetrics.count > 100 {
+            pendingMetrics.removeFirst()
+        }
+    }
+    
+    private func sendPendingMetrics() {
+        #if os(watchOS)
+        guard !pendingMetrics.isEmpty,
+              WCSession.default.isReachable else { return }
+        
+        let metricsToSend = pendingMetrics
+        pendingMetrics.removeAll()
+        
+        for metrics in metricsToSend {
+            WCSession.default.sendMessage([
+                "command": "groupWorkoutMetrics",
+                "metrics": metrics
+            ], replyHandler: nil, errorHandler: { [weak self] error in
+                // Re-queue failed metrics
+                self?.queueMetricsForLater(metrics)
+            })
+        }
+        #endif
+    }
+    
+    private func stopMetricsUpload() {
+        metricsUploadTimer?.invalidate()
+        metricsUploadTimer = nil
+    }
+}

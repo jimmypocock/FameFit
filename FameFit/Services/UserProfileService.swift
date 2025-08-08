@@ -105,8 +105,8 @@ final class UserProfileService: UserProfileServicing {
                 bio: profile.bio,
                 workoutCount: freshStats.workoutCount,
                 totalXP: freshStats.totalXP,
-                createdTimestamp: profile.createdTimestamp,
-                modifiedTimestamp: profile.modifiedTimestamp,
+                creationDate: profile.creationDate,
+                modificationDate: profile.modificationDate,
                 isVerified: profile.isVerified,
                 privacyLevel: profile.privacyLevel,
                 profileImageURL: profile.profileImageURL,
@@ -149,8 +149,8 @@ final class UserProfileService: UserProfileServicing {
                 bio: profile.bio,
                 workoutCount: freshStats.workoutCount,
                 totalXP: freshStats.totalXP,
-                createdTimestamp: profile.createdTimestamp,
-                modifiedTimestamp: profile.modifiedTimestamp,
+                creationDate: profile.creationDate,
+                modificationDate: profile.modificationDate,
                 isVerified: profile.isVerified,
                 privacyLevel: profile.privacyLevel,
                 profileImageURL: profile.profileImageURL,
@@ -264,7 +264,7 @@ final class UserProfileService: UserProfileServicing {
             existingRecord["bio"] = profile.bio
             existingRecord["workoutCount"] = Int64(profile.workoutCount)
             existingRecord["totalXP"] = Int64(profile.totalXP)
-            // modifiedTimestamp is managed by CloudKit automatically
+            // modificationDate is managed by CloudKit automatically
             existingRecord["privacyLevel"] = profile.privacyLevel.rawValue
 
             if let profileImageURL = profile.profileImageURL {
@@ -462,7 +462,7 @@ final class UserProfileService: UserProfileServicing {
             // Filter profiles that were active in the time period
             let activeProfiles = profiles.filter { profile in
                 // Check if profile was updated within the time range
-                profile.modifiedTimestamp >= startDate && profile.modifiedTimestamp <= endDate
+                profile.modificationDate >= startDate && profile.modificationDate <= endDate
             }
 
             // Cache results
@@ -478,11 +478,11 @@ final class UserProfileService: UserProfileServicing {
         let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
             NSPredicate(format: "privacyLevel == %@", ProfilePrivacyLevel.publicProfile.rawValue),
-            NSPredicate(format: "modifiedTimestamp >= %@", sevenDaysAgo as NSDate)
+            NSPredicate(format: "modificationDate >= %@", sevenDaysAgo as NSDate)
         ])
 
         let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "modifiedTimestamp", ascending: false)]
+        query.sortDescriptors = [NSSortDescriptor(key: "modificationDate", ascending: false)]
 
         do {
             let results = try await publicDatabase.records(matching: query, resultsLimit: limit)
