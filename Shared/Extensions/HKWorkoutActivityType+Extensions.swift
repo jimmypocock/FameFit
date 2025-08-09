@@ -729,7 +729,7 @@ extension HKWorkoutActivityType {
         case .preparationAndRecovery:
             return "figure.strengthtraining.functional"
         case .rowing:
-            return "figure.rowing"
+            return "figure.rower"
         case .rugby:
             return "figure.rugby"
         case .running:

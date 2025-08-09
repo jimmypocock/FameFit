@@ -10,6 +10,7 @@ import Foundation
 import WatchConnectivity
 import SwiftUI
 import UserNotifications
+import os.log
 
 final class WatchConnectivityManager: NSObject, ObservableObject {
     static let shared = WatchConnectivityManager()
@@ -17,6 +18,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var receivedWorkoutType: Int?
     @Published var shouldStartWorkout = false
     @Published var lastReceivedUserData: [String: Any]?
+    @Published var pendingGroupWorkout: (id: String, name: String, type: Int, isHost: Bool)?
     
     override private init() {
         super.init()
@@ -26,16 +28,56 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             WCSession.default.activate()
         }
         
-        // Request notification permissions
+        // Request notification permissions and set up delegate
         requestNotificationPermissions()
+        setupNotificationDelegate()
     }
     
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
-                print("⌚ Notification permissions granted")
+                FameFitLogger.info("⌚ Notification permissions granted", category: FameFitLogger.sync)
             } else if let error = error {
-                print("⌚ Notification permission error: \(error)")
+                FameFitLogger.info("⌚ Notification permission error: \(error)", category: FameFitLogger.sync)
+            }
+        }
+    }
+    
+    private func setupNotificationDelegate() {
+        UNUserNotificationCenter.current().delegate = self
+    }
+    
+    private func forceFetchPendingTransfers() {
+        FameFitLogger.info("⌚ Forcing check for pending transfers", category: FameFitLogger.sync)
+        
+        // Check for outstanding user info transfers
+        let session = WCSession.default
+        
+        // Log current state
+        FameFitLogger.debug("⌚ Outstanding userInfoTransfers: \(session.outstandingUserInfoTransfers.count)", category: FameFitLogger.sync)
+        FameFitLogger.debug("⌚ Outstanding fileTransfers: \(session.outstandingFileTransfers.count)", category: FameFitLogger.sync)
+        
+        // If we have the application context, use it
+        if !session.receivedApplicationContext.isEmpty {
+            FameFitLogger.info("⌚ Using received application context", category: FameFitLogger.sync)
+            handleMessage(session.receivedApplicationContext)
+        }
+        
+        // Schedule another check in case transfers arrive later
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if session.hasContentPending {
+                FameFitLogger.warning("⌚ Still has content pending after 2 seconds", category: FameFitLogger.sync)
+                
+                // Try to trigger delegate methods by reactivating
+                if session.activationState == .activated {
+                    FameFitLogger.info("⌚ Attempting to re-trigger pending content delivery", category: FameFitLogger.sync)
+                    
+                    // Check receivedApplicationContext again
+                    if !session.receivedApplicationContext.isEmpty {
+                        FameFitLogger.info("⌚ Found application context on retry", category: FameFitLogger.sync)
+                        self.handleMessage(session.receivedApplicationContext)
+                    }
+                }
             }
         }
     }
@@ -46,10 +88,25 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 extension WatchConnectivityManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("WCSession activation failed: \(error)")
+            FameFitLogger.info("⌚❌ WCSession activation failed: \(error)", category: FameFitLogger.sync)
             return
         }
-        print("WCSession activated on watch")
+        FameFitLogger.info("⌚✅ WCSession activated - state: \(activationState.rawValue)", category: FameFitLogger.sync)
+        FameFitLogger.debug("⌚ Session details - isReachable: \(session.isReachable), hasContentPending: \(session.hasContentPending), receivedApplicationContext: \(session.receivedApplicationContext)", category: FameFitLogger.sync)
+        
+        // Check for any pending transfers
+        if session.hasContentPending {
+            FameFitLogger.info("⌚ Session has content pending - forcing check for pending transfers", category: FameFitLogger.sync)
+            
+            // Force check for pending user info transfers
+            forceFetchPendingTransfers()
+        }
+        
+        // Also check application context even if empty
+        if !session.receivedApplicationContext.isEmpty {
+            FameFitLogger.info("⌚ Found application context on activation: \(session.receivedApplicationContext)", category: FameFitLogger.sync)
+            handleMessage(session.receivedApplicationContext)
+        }
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
@@ -62,19 +119,12 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
     
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        print("⌚ Received application context: \(applicationContext)")
-        handleMessage(applicationContext)
-    }
-    
-    func sessionReachabilityDidChange(_ session: WCSession) {
-        print("WCSession reachability changed: \(session.isReachable)")
-    }
-    
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        print("⌚ Received application context: \(applicationContext)")
+        FameFitLogger.info("⌚ Received application context: \(applicationContext)", category: FameFitLogger.sync)
         
         guard let command = applicationContext["command"] as? String else { 
-            print("⌚ No command in application context")
+            FameFitLogger.info("⌚ No command in application context", category: FameFitLogger.sync)
+            // Still handle it as a generic message in case it has other content
+            handleMessage(applicationContext)
             return 
         }
         
@@ -84,7 +134,45 @@ extension WatchConnectivityManager: WCSessionDelegate {
         case "startGroupWorkout":
             handleGroupWorkoutCommand(applicationContext)
         default:
-            print("⌚ Unknown command in application context: \(command)")
+            FameFitLogger.info("⌚ Unknown command in application context: \(command)", category: FameFitLogger.sync)
+            // Handle as generic message
+            handleMessage(applicationContext)
+        }
+    }
+    
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        FameFitLogger.info("WCSession reachability changed: \(session.isReachable)", category: FameFitLogger.sync)
+    }
+    
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        FameFitLogger.info("⌚ Received userInfo transfer: \(userInfo)", category: FameFitLogger.sync)
+        handleMessage(userInfo)
+    }
+    
+    func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        if let error = error {
+            FameFitLogger.info("⌚ UserInfo transfer failed: \(error)", category: FameFitLogger.sync)
+        } else {
+            FameFitLogger.info("⌚ UserInfo transfer completed successfully", category: FameFitLogger.sync)
+        }
+    }
+    
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        FameFitLogger.info("⌚ Received file transfer: \(file.fileURL)", category: FameFitLogger.sync)
+        
+        // Check if it's a group workout file
+        if let metadata = file.metadata,
+           metadata["type"] as? String == "groupWorkout" {
+            
+            do {
+                let data = try Data(contentsOf: file.fileURL)
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    FameFitLogger.info("⌚ Received group workout via file transfer", category: FameFitLogger.sync)
+                    handleMessage(json)
+                }
+            } catch {
+                FameFitLogger.error("⌚ Failed to process file transfer: \(error)", category: FameFitLogger.sync)
+            }
         }
     }
     
@@ -107,27 +195,26 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 
             case "ping":
                 // Just respond that we're here
-                print("Received ping from iPhone")
+                FameFitLogger.debug("Received ping from iPhone", category: FameFitLogger.sync)
                 
             default:
-                print("Unknown command: \(command)")
+                FameFitLogger.warning("Unknown command: \(command)", category: FameFitLogger.sync)
             }
         }
     }
     
-    private func handleGroupWorkoutCommand(_ message: [String: Any]) {
-        print("📱⌚ handleGroupWorkoutCommand called with: \(message)")
+    func handleGroupWorkoutCommand(_ message: [String: Any]) {
+        FameFitLogger.info("📱⌚ handleGroupWorkoutCommand called with: \(message)", category: FameFitLogger.sync)
         
         guard let workoutID = message["workoutID"] as? String,
               let workoutName = message["workoutName"] as? String,
               let workoutType = message["workoutType"] as? Int,
               let isHost = message["isHost"] as? Bool else {
-            print("❌ Invalid group workout message - missing required fields")
-            print("Message contents: \(message)")
+            FameFitLogger.error("❌ Invalid group workout message - missing required fields. Message contents: \(message)", category: FameFitLogger.sync)
             return
         }
         
-        print("📱⌚ Group workout details - ID: \(workoutID), Name: \(workoutName), Type: \(workoutType), IsHost: \(isHost)")
+        FameFitLogger.info("📱⌚ Group workout details - ID: \(workoutID), Name: \(workoutName), Type: \(workoutType), IsHost: \(isHost)", category: FameFitLogger.sync)
         
         // Store group workout info
         UserDefaults.standard.set(workoutID, forKey: "pendingGroupWorkoutID")
@@ -138,7 +225,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         
         // Trigger workout start - ensure this happens on main thread
         DispatchQueue.main.async {
-            print("📱⌚ Setting receivedWorkoutType to \(workoutType) and shouldStartWorkout to true")
+            FameFitLogger.info("📱⌚ Setting receivedWorkoutType to \(workoutType) and shouldStartWorkout to true", category: FameFitLogger.sync)
             self.receivedWorkoutType = workoutType
             self.shouldStartWorkout = true
         }
@@ -146,7 +233,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         // Show notification
         showGroupWorkoutNotification(workoutName: workoutName, isHost: isHost)
         
-        print("📱⌚ Successfully processed group workout: \(workoutName) (Host: \(isHost))")
+        FameFitLogger.info("📱⌚ Successfully processed group workout: \(workoutName) (Host: \(isHost))", category: FameFitLogger.sync)
     }
     
     private func handleUserDataUpdate(_ message: [String: Any]) {
@@ -165,7 +252,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             "totalXP": message["totalXP"] ?? 0
         ]
         
-        print("📱⌚ Updated user data: \(message["username"] ?? "Unknown") - \(message["totalXP"] ?? 0) XP")
+        FameFitLogger.info("📱⌚ Updated user data: \(message["username"] ?? "Unknown") - \(message["totalXP"] ?? 0) XP")
     }
     
     private func showGroupWorkoutNotification(workoutName: String, isHost: Bool) {
@@ -191,11 +278,50 @@ extension WatchConnectivityManager: WCSessionDelegate {
         // Schedule notification
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("⌚ Failed to show notification: \(error)")
+                FameFitLogger.info("⌚ Failed to show notification: \(error)", category: FameFitLogger.sync)
             } else {
-                print("⌚ Notification scheduled for group workout: \(workoutName)")
+                FameFitLogger.info("⌚ Notification scheduled for group workout: \(workoutName)", category: FameFitLogger.sync)
             }
         }
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension WatchConnectivityManager: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, 
+                                willPresent notification: UNNotification, 
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, 
+                                didReceive response: UNNotificationResponse, 
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        FameFitLogger.info("⌚ Notification tapped: \(response.notification.request.identifier)", category: FameFitLogger.sync)
+        
+        // Check if this is a group workout notification
+        if response.notification.request.identifier.starts(with: "group_workout_") {
+            // Check for the pending workout in UserDefaults
+            if let workoutID = UserDefaults.standard.string(forKey: "pendingGroupWorkoutID"),
+               let workoutName = UserDefaults.standard.string(forKey: "pendingGroupWorkoutName") {
+                let isHost = UserDefaults.standard.bool(forKey: "pendingGroupWorkoutIsHost")
+                let workoutTypeRaw = UserDefaults.standard.integer(forKey: "pendingGroupWorkoutType")
+                
+                FameFitLogger.info("⌚ Loading group workout from notification: \(workoutName)", category: FameFitLogger.sync)
+                
+                // Set the pending workout
+                DispatchQueue.main.async {
+                    self.pendingGroupWorkout = (id: workoutID, name: workoutName, type: workoutTypeRaw, isHost: isHost)
+                    // Trigger workout start
+                    self.receivedWorkoutType = workoutTypeRaw
+                    self.shouldStartWorkout = true
+                }
+            }
+        }
+        
+        completionHandler()
     }
 }
 #endif
