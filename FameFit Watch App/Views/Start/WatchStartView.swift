@@ -9,6 +9,7 @@
 import HealthKit
 import SwiftUI
 import WatchConnectivity
+import CloudKit
 
 struct WorkoutTypeItem: Identifiable {
     let id = UUID()
@@ -172,6 +173,20 @@ struct WatchStartView: View {
                             }
                             
                             Spacer()
+                            
+                            // Manual refresh button for testing
+                            Button(action: {
+                                Task {
+                                    await refreshGroupWorkouts()
+                                }
+                            }) {
+                                Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                    .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                         .padding(.vertical, 4)
                     }
@@ -217,6 +232,10 @@ struct WatchStartView: View {
             .onAppear {
                 workoutManager.requestAuthorization()
                 loadUserData()
+                // Also refresh group workouts on appear
+                Task {
+                    await refreshGroupWorkouts()
+                }
             }
             .onChange(of: workoutManager.showingSummaryView) { _, isShowing in
                 if !isShowing, !navigationPath.isEmpty {
@@ -225,12 +244,12 @@ struct WatchStartView: View {
                 }
             }
             .onChange(of: watchConnectivity.shouldStartWorkout) { _, shouldStart in
-                print("⌚ onChange shouldStartWorkout: \(shouldStart)")
+                FameFitLogger.debug("⌚ onChange shouldStartWorkout: \(shouldStart)", category: FameFitLogger.sync)
                 if shouldStart, let workoutTypeRawValue = watchConnectivity.receivedWorkoutType {
-                    print("⌚ Received workout type raw value: \(workoutTypeRawValue)")
+                    FameFitLogger.info("⌚ Received workout type raw value: \(workoutTypeRawValue)", category: FameFitLogger.sync)
                     // Convert raw value to HKWorkoutActivityType
                     if let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRawValue)) {
-                        print("⌚ Starting workout: \(workoutType)")
+                        FameFitLogger.info("⌚ Starting workout: \(workoutType)", category: FameFitLogger.sync)
                         // Start the workout
                         workoutManager.selectedWorkout = workoutType
                         navigationPath.append(workoutType)
@@ -241,10 +260,10 @@ struct WatchStartView: View {
                             watchConnectivity.receivedWorkoutType = nil
                         }
                     } else {
-                        print("⌚ Failed to create HKWorkoutActivityType from raw value: \(workoutTypeRawValue)")
+                        FameFitLogger.error("⌚ Failed to create HKWorkoutActivityType from raw value: \(workoutTypeRawValue)", category: FameFitLogger.sync)
                     }
                 } else {
-                    print("⌚ shouldStart: \(shouldStart), receivedWorkoutType: \(String(describing: watchConnectivity.receivedWorkoutType))")
+                    FameFitLogger.debug("⌚ shouldStart: \(shouldStart), receivedWorkoutType: \(String(describing: watchConnectivity.receivedWorkoutType))", category: FameFitLogger.sync)
                 }
             }
         }
@@ -289,13 +308,18 @@ struct WatchStartView: View {
             // Set active group workout
             activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
             
-            print("⌚ Found pending group workout in UserDefaults: \(workoutName)")
+            FameFitLogger.info("⌚ Found pending group workout in UserDefaults: \(workoutName)", category: FameFitLogger.sync)
             return
         }
         
         // Also check application context from iPhone
-        if let context = WCSession.default.receivedApplicationContext as? [String: Any],
-           let command = context["command"] as? String,
+        let context = WCSession.default.receivedApplicationContext
+        FameFitLogger.debug("⌚ Checking application context: \(context.isEmpty ? "empty" : "has data")", category: FameFitLogger.sync)
+        if !context.isEmpty {
+            FameFitLogger.debug("⌚ Application context contents: \(context)", category: FameFitLogger.sync)
+        }
+        
+        if let command = context["command"] as? String,
            command == "startGroupWorkout",
            let workoutID = context["workoutID"] as? String,
            let workoutName = context["workoutName"] as? String,
@@ -314,12 +338,12 @@ struct WatchStartView: View {
             UserDefaults.standard.set(workoutTypeRaw, forKey: "pendingGroupWorkoutType")
             UserDefaults.standard.synchronize()
             
-            print("⌚ Found pending group workout in application context: \(workoutName)")
+            FameFitLogger.info("⌚ Found pending group workout in application context: \(workoutName)", category: FameFitLogger.sync)
         }
     }
     
     private func startGroupWorkout(_ workout: (id: String, name: String, type: HKWorkoutActivityType, isHost: Bool)) {
-        print("⌚ Starting group workout: \(workout.name)")
+        FameFitLogger.info("⌚ Starting group workout: \(workout.name)", category: FameFitLogger.sync)
         
         // Set group workout ID for the manager
         workoutManager.groupWorkoutID = workout.id
@@ -346,6 +370,27 @@ struct WatchStartView: View {
         // First check for pending group workout from UserDefaults
         checkForPendingGroupWorkout()
         
+        // Check if there's pending content that hasn't been delivered
+        if WCSession.default.hasContentPending {
+            FameFitLogger.warning("⌚ WCSession has content pending during refresh - checking for stuck transfers", category: FameFitLogger.sync)
+            
+            // Log what's pending
+            FameFitLogger.debug("⌚ Pending transfers - UserInfo: \(WCSession.default.outstandingUserInfoTransfers.count), Files: \(WCSession.default.outstandingFileTransfers.count)", category: FameFitLogger.sync)
+            
+            // Check received application context
+            if !WCSession.default.receivedApplicationContext.isEmpty {
+                FameFitLogger.info("⌚ Found application context during refresh!", category: FameFitLogger.sync)
+                
+                // Process it if it's a group workout
+                let context = WCSession.default.receivedApplicationContext
+                if let command = context["command"] as? String,
+                   command == "startGroupWorkout" {
+                    FameFitLogger.info("⌚ Processing group workout from application context", category: FameFitLogger.sync)
+                    watchConnectivity.handleGroupWorkoutCommand(context)
+                }
+            }
+        }
+        
         // Also try to sync with iPhone for active workouts
         if WCSession.default.isReachable {
             // Request active group workouts from iPhone
@@ -368,20 +413,85 @@ struct WatchStartView: View {
                         UserDefaults.standard.set(workoutTypeRaw, forKey: "pendingGroupWorkoutType")
                         UserDefaults.standard.synchronize()
                         
-                        print("⌚ Received active group workout from iPhone: \(workoutName)")
+                        FameFitLogger.info("⌚ Received active group workout from iPhone: \(workoutName)", category: FameFitLogger.sync)
                     }
                 }
             }, errorHandler: { error in
-                print("⌚ Failed to get active workout from iPhone: \(error)")
+                FameFitLogger.error("⌚ Failed to get active workout from iPhone: \(error)", category: FameFitLogger.sync)
             })
         }
+        
+        // Also check CloudKit for any pending commands (fallback)
+        await fetchPendingCommandsFromCloudKit()
         
         // Brief delay for UI feedback
         try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
         
         isRefreshing = false
         
-        print("⌚ Refreshed group workouts")
+        FameFitLogger.info("⌚ Refreshed group workouts", category: FameFitLogger.sync)
+    }
+    
+    private func fetchPendingCommandsFromCloudKit() async {
+        FameFitLogger.info("⌚☁️ Checking CloudKit for pending watch commands", category: FameFitLogger.sync)
+        
+        do {
+            // Use the main app's CloudKit container
+            let container = CKContainer(identifier: "iCloud.com.jimmypocock.FameFit")
+            
+            // Get current user ID
+            let userRecordID = try await container.userRecordID()
+            let userID = userRecordID.recordName
+            
+            // Query for unprocessed commands for this user
+            let predicate = NSPredicate(format: "userID == %@ AND processed == 0", userID)
+            let query = CKQuery(recordType: "WatchCommands", predicate: predicate)
+            // Don't sort - CloudKit system fields aren't sortable by default
+            // We'll just process the first unprocessed command we find
+            
+            // Fetch from private database
+            let results = try await container.privateCloudDatabase.records(matching: query)
+            let records = results.matchResults.compactMap { try? $0.1.get() }
+            
+            FameFitLogger.info("⌚☁️ Found \(records.count) pending commands in CloudKit", category: FameFitLogger.sync)
+            
+            // Process each command
+            for record in records {
+                if let command = record["command"] as? String,
+                   command == "startGroupWorkout",
+                   let workoutID = record["workoutID"] as? String,
+                   let workoutName = record["workoutName"] as? String,
+                   let workoutType = record["workoutType"] as? Int,
+                   let isHostValue = record["isHost"] as? Int {
+                    
+                    let isHost = isHostValue == 1
+                    
+                    FameFitLogger.info("⌚☁️ Processing CloudKit command: \(workoutName) (Host: \(isHost))", category: FameFitLogger.sync)
+                    
+                    // Set the active group workout
+                    let workoutActivityType = HKWorkoutActivityType(rawValue: UInt(workoutType)) ?? .running
+                    activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutActivityType, isHost: isHost)
+                    
+                    // Store in UserDefaults for persistence
+                    UserDefaults.standard.set(workoutID, forKey: "pendingGroupWorkoutID")
+                    UserDefaults.standard.set(workoutName, forKey: "pendingGroupWorkoutName")
+                    UserDefaults.standard.set(isHost, forKey: "pendingGroupWorkoutIsHost")
+                    UserDefaults.standard.set(workoutType, forKey: "pendingGroupWorkoutType")
+                    UserDefaults.standard.synchronize()
+                    
+                    // Mark as processed
+                    record["processed"] = 1 as CKRecordValue
+                    try await container.privateCloudDatabase.save(record)
+                    
+                    FameFitLogger.info("⌚☁️ Successfully processed CloudKit command", category: FameFitLogger.sync)
+                    
+                    // Only process the most recent command
+                    break
+                }
+            }
+        } catch {
+            FameFitLogger.error("⌚☁️ Failed to fetch commands from CloudKit: \(error)", category: FameFitLogger.sync)
+        }
     }
 }
 

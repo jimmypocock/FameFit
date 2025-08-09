@@ -8,6 +8,8 @@
 import Foundation
 import WatchConnectivity
 import UIKit
+import CloudKit
+import os.log
 
 final class WatchConnectivityManager: NSObject, ObservableObject {
     static let shared = WatchConnectivityManager()
@@ -22,14 +24,31 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
+            
+            // Debug output for real device
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.debugSessionState()
+            }
         }
+    }
+    
+    private func debugSessionState() {
+        FameFitLogger.info("📱 Initial WCSession Debug State:", category: FameFitLogger.sync)
+        FameFitLogger.info("  - isSupported: \(WCSession.isSupported())", category: FameFitLogger.sync)
+        FameFitLogger.info("  - activationState: \(WCSession.default.activationState.rawValue)", category: FameFitLogger.sync)
+        #if os(iOS)
+        FameFitLogger.info("  - isPaired: \(WCSession.default.isPaired)", category: FameFitLogger.sync)
+        FameFitLogger.info("  - isWatchAppInstalled: \(WCSession.default.isWatchAppInstalled)", category: FameFitLogger.sync)
+        FameFitLogger.info("  - isComplicationEnabled: \(WCSession.default.isComplicationEnabled)", category: FameFitLogger.sync)
+        #endif
+        FameFitLogger.info("  - isReachable: \(WCSession.default.isReachable)", category: FameFitLogger.sync)
     }
     
     // MARK: - Public Methods
     
     func startWorkout(type: Int) {
         guard WCSession.default.isReachable else {
-            print("Watch not reachable")
+            FameFitLogger.warning("Watch not reachable", category: FameFitLogger.sync)
             return
         }
         
@@ -39,14 +58,31 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         ]
         
         WCSession.default.sendMessage(message, replyHandler: { response in
-            print("Watch acknowledged workout start: \(response)")
+            FameFitLogger.info("Watch acknowledged workout start: \(response)", category: FameFitLogger.sync)
         }, errorHandler: { error in
-            print("Error starting workout on watch: \(error)")
+            FameFitLogger.error("Error starting workout on watch: \(error)", category: FameFitLogger.sync)
         })
     }
     
     func sendGroupWorkoutCommand(workoutID: String, workoutName: String, workoutType: Int, isHost: Bool) {
-        print("📱 sendGroupWorkoutCommand called - ID: \(workoutID), Name: \(workoutName), Type: \(workoutType), Host: \(isHost)")
+        FameFitLogger.info("📱 sendGroupWorkoutCommand - ID: \(workoutID), Name: \(workoutName), Type: \(workoutType), Host: \(isHost)", category: FameFitLogger.sync)
+        
+        // Debug WCSession state
+        FameFitLogger.debug("📱 WCSession state: isSupported=\(WCSession.isSupported()), activationState=\(WCSession.default.activationState.rawValue), isPaired=\(WCSession.default.isPaired), isWatchAppInstalled=\(WCSession.default.isWatchAppInstalled), isReachable=\(WCSession.default.isReachable), isComplicationEnabled=\(WCSession.default.isComplicationEnabled)", category: FameFitLogger.sync)
+        
+        // For development: If Watch is paired but app appears not installed, still try to send
+        // This happens when app is installed via Xcode rather than Watch app
+        if WCSession.default.isPaired {
+            if !WCSession.default.isWatchAppInstalled {
+                FameFitLogger.warning("📱 Watch paired but app appears not installed (common in development). Attempting to send anyway...", category: FameFitLogger.sync)
+            }
+        } else {
+            FameFitLogger.error("📱 Watch is not paired with this iPhone!", category: FameFitLogger.sync)
+            return
+        }
+        
+        // ALSO save to CloudKit as fallback
+        saveWatchCommandToCloudKit(workoutID: workoutID, workoutName: workoutName, workoutType: workoutType, isHost: isHost)
         
         // Always try to send via application context first (persistent)
         let context: [String: Any] = [
@@ -55,22 +91,48 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "workoutName": workoutName,
             "workoutType": workoutType,
             "isHost": isHost,
-            "timestamp": Date()
+            "timestamp": Date().timeIntervalSince1970  // Use timestamp as number
         ]
         
         do {
             try WCSession.default.updateApplicationContext(context)
-            print("📱 Sent group workout via application context")
+            FameFitLogger.info("📱✅ Successfully updated application context", category: FameFitLogger.sync)
+            FameFitLogger.debug("📱 Current context: \(WCSession.default.applicationContext)", category: FameFitLogger.sync)
         } catch {
-            print("❌ Failed to update application context: \(error)")
+            FameFitLogger.error("❌ Failed to update application context: \(error)", category: FameFitLogger.sync)
+        }
+        
+        // Also send via transferUserInfo (guaranteed delivery)
+        let userInfo: [String: Any] = [
+            "command": "startGroupWorkout",
+            "workoutID": workoutID,
+            "workoutName": workoutName,
+            "workoutType": workoutType,
+            "isHost": isHost,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        
+        // ALWAYS send via transferUserInfo - this works even if app "isn't installed"
+        let transfer = WCSession.default.transferUserInfo(userInfo)
+        FameFitLogger.info("📱 Sent via transferUserInfo - transferring: \(transfer.isTransferring)", category: FameFitLogger.sync)
+        
+        // Also try sending a file transfer as ultimate fallback
+        if let data = try? JSONSerialization.data(withJSONObject: userInfo, options: []) {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("workout_\(Date().timeIntervalSince1970).json")
+            do {
+                try data.write(to: url)
+                _ = WCSession.default.transferFile(url, metadata: ["type": "groupWorkout"])
+                FameFitLogger.info("📱 Also sent via file transfer as backup", category: FameFitLogger.sync)
+            } catch {
+                FameFitLogger.error("📱 Failed to create file for transfer: \(error)", category: FameFitLogger.sync)
+            }
         }
         
         // Also try immediate message if reachable
         if WCSession.default.isReachable {
-            print("✅ Watch is reachable, sending immediate message")
+            FameFitLogger.info("✅ Watch is reachable, sending immediate message", category: FameFitLogger.sync)
         } else {
-            print("⚠️ Watch not immediately reachable")
-            print("📱 Session state - isPaired: \(WCSession.default.isPaired), isWatchAppInstalled: \(WCSession.default.isWatchAppInstalled), isReachable: \(WCSession.default.isReachable)")
+            FameFitLogger.warning("⚠️ Watch not immediately reachable, but data sent via context and transferUserInfo", category: FameFitLogger.sync)
             return
         }
         
@@ -83,26 +145,26 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             "timestamp": Date()
         ]
         
-        print("📱 Sending message to Watch: \(message)")
+        FameFitLogger.debug("📱 Sending message to Watch: \(message)", category: FameFitLogger.sync)
         
         WCSession.default.sendMessage(message, replyHandler: { response in
-            print("✅ Watch acknowledged group workout: \(response)")
+            FameFitLogger.info("✅ Watch acknowledged group workout: \(response)", category: FameFitLogger.sync)
         }, errorHandler: { error in
-            print("❌ Error sending group workout to watch: \(error)")
+            FameFitLogger.error("❌ Error sending group workout to watch: \(error)", category: FameFitLogger.sync)
             
             // Try application context as fallback
             do {
                 try WCSession.default.updateApplicationContext(message)
-                print("📱 Sent group workout via application context as fallback after error")
+                FameFitLogger.info("📱 Sent group workout via application context as fallback after error", category: FameFitLogger.sync)
             } catch {
-                print("❌ Failed to update application context: \(error)")
+                FameFitLogger.error("❌ Failed to update application context: \(error)", category: FameFitLogger.sync)
             }
         })
     }
     
     func sendUserData(username: String, totalXP: Int) {
         guard WCSession.default.isReachable else {
-            print("Watch not reachable for user data update")
+            FameFitLogger.warning("Watch not reachable for user data update", category: FameFitLogger.sync)
             return
         }
         
@@ -114,14 +176,14 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         ]
         
         WCSession.default.sendMessage(message, replyHandler: { response in
-            print("Watch acknowledged user data update: \(response)")
+            FameFitLogger.info("Watch acknowledged user data update: \(response)", category: FameFitLogger.sync)
         }, errorHandler: { error in
-            print("Error sending user data to watch: \(error)")
+            FameFitLogger.error("Error sending user data to watch: \(error)", category: FameFitLogger.sync)
             // Try to send via application context as fallback
             do {
                 try WCSession.default.updateApplicationContext(message)
             } catch {
-                print("Failed to update application context: \(error)")
+                FameFitLogger.error("Failed to update application context: \(error)", category: FameFitLogger.sync)
             }
         })
     }
@@ -138,6 +200,37 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             completion(false)
         })
     }
+    
+    func forceRefreshSessionState() {
+        FameFitLogger.info("📱 Force refreshing WCSession state...", category: FameFitLogger.sync)
+        
+        // Deactivate and reactivate the session
+        if WCSession.default.activationState == .activated {
+            #if os(iOS)
+            // On iOS, we can deactivate and reactivate
+            WCSession.default.delegate = nil
+            WCSession.default.delegate = self
+            WCSession.default.activate()
+            #endif
+        } else {
+            // If not activated, just activate
+            WCSession.default.activate()
+        }
+        
+        // Update our local state
+        DispatchQueue.main.async {
+            self.isReachable = WCSession.default.isReachable
+            #if os(iOS)
+            self.isPaired = WCSession.default.isPaired
+            self.isWatchAppInstalled = WCSession.default.isWatchAppInstalled
+            
+            FameFitLogger.info("📱 After force refresh:", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isPaired: \(WCSession.default.isPaired)", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isWatchAppInstalled: \(WCSession.default.isWatchAppInstalled)", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isReachable: \(WCSession.default.isReachable)", category: FameFitLogger.sync)
+            #endif
+        }
+    }
 }
 
 // MARK: - WCSessionDelegate
@@ -145,7 +238,14 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 extension WatchConnectivityManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("WCSession activation failed: \(error)")
+            FameFitLogger.error("WCSession activation failed: \(error)", category: FameFitLogger.sync)
+            // Try to reactivate after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                if WCSession.default.activationState != .activated {
+                    FameFitLogger.info("Retrying WCSession activation...", category: FameFitLogger.sync)
+                    WCSession.default.activate()
+                }
+            }
             return
         }
         
@@ -154,19 +254,34 @@ extension WatchConnectivityManager: WCSessionDelegate {
             #if os(iOS)
             self.isPaired = session.isPaired
             self.isWatchAppInstalled = session.isWatchAppInstalled
+            
+            // Log the state for debugging
+            FameFitLogger.info("📱 WCSession state after activation:", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isPaired: \(session.isPaired)", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isWatchAppInstalled: \(session.isWatchAppInstalled)", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isReachable: \(session.isReachable)", category: FameFitLogger.sync)
+            FameFitLogger.info("  - isComplicationEnabled: \(session.isComplicationEnabled)", category: FameFitLogger.sync)
+            
+            // If Watch app appears not installed but we know it should be, try re-activating
+            if !session.isWatchAppInstalled && session.isPaired {
+                FameFitLogger.warning("Watch appears not installed despite being paired. Will retry in 3 seconds...", category: FameFitLogger.sync)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    self.forceRefreshSessionState()
+                }
+            }
             #endif
         }
         
-        print("WCSession activated with state: \(activationState.rawValue)")
+        FameFitLogger.info("WCSession activated with state: \(activationState.rawValue)", category: FameFitLogger.sync)
     }
     
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {
-        print("WCSession became inactive")
+        FameFitLogger.info("WCSession became inactive", category: FameFitLogger.sync)
     }
     
     func sessionDidDeactivate(_ session: WCSession) {
-        print("WCSession deactivated")
+        FameFitLogger.info("WCSession deactivated", category: FameFitLogger.sync)
         // Reactivate the session
         WCSession.default.activate()
     }
@@ -241,7 +356,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
                     }
                 }
             } catch {
-                print("Failed to fetch active workouts: \(error)")
+                FameFitLogger.error("Failed to fetch active workouts: \(error)", category: FameFitLogger.sync)
                 await MainActor.run {
                     replyHandler(["error": "Failed to fetch workouts"])
                 }
@@ -259,11 +374,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
             }
             
         case "workoutStarted":
-            print("Workout started on watch")
+            FameFitLogger.info("Workout started on watch", category: FameFitLogger.sync)
             // Handle workout started notification
             
         case "workoutEnded":
-            print("Workout ended on watch")
+            FameFitLogger.info("Workout ended on watch", category: FameFitLogger.sync)
             // Handle workout ended notification
             
         case "workoutCompleted":
@@ -272,10 +387,10 @@ extension WatchConnectivityManager: WCSessionDelegate {
             }
             
         case "ping":
-            print("Received ping from watch")
+            FameFitLogger.debug("Received ping from watch", category: FameFitLogger.sync)
             
         default:
-            print("Unknown command: \(command)")
+            FameFitLogger.warning("Unknown command: \(command)", category: FameFitLogger.sync)
         }
     }
     
@@ -289,11 +404,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
             )
         }
         
-        print("📊 Received metrics from Watch: HR=\(metrics["heartRate"] ?? 0), Energy=\(metrics["activeEnergy"] ?? 0)")
+        FameFitLogger.info("📊 Received metrics from Watch: HR=\(metrics["heartRate"] ?? 0), Energy=\(metrics["activeEnergy"] ?? 0)", category: FameFitLogger.sync)
     }
     
     private func handleWorkoutCompleted(_ workoutID: String) {
-        print("Workout completed on Watch: \(workoutID)")
+        FameFitLogger.info("Workout completed on Watch: \(workoutID)", category: FameFitLogger.sync)
         
         // Post notification for workout completion
         DispatchQueue.main.async {
@@ -302,6 +417,44 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 object: nil,
                 userInfo: ["workoutID": workoutID]
             )
+        }
+    }
+    
+    // MARK: - CloudKit Fallback
+    
+    private func saveWatchCommandToCloudKit(workoutID: String, workoutName: String, workoutType: Int, isHost: Bool) {
+        FameFitLogger.info("📱☁️ Saving watch command to CloudKit as fallback", category: FameFitLogger.sync)
+        
+        // Get current user ID
+        CKContainer.default().fetchUserRecordID { userRecordID, error in
+            if let error = error {
+                FameFitLogger.error("📱☁️ Failed to get user ID for CloudKit: \(error)", category: FameFitLogger.sync)
+                return
+            }
+            
+            guard let userRecordID = userRecordID else { return }
+            let userID = userRecordID.recordName
+            
+            // Create the command record
+            let record = CKRecord(recordType: "WatchCommands")
+            record["id"] = UUID().uuidString
+            record["userID"] = userID
+            record["command"] = "startGroupWorkout"
+            record["workoutID"] = workoutID
+            record["workoutName"] = workoutName
+            record["workoutType"] = workoutType as CKRecordValue
+            record["isHost"] = (isHost ? 1 : 0) as CKRecordValue
+            record["processed"] = 0 as CKRecordValue
+            // Use system creationDate instead of custom timestamp
+            
+            // Save to private database
+            CKContainer.default().privateCloudDatabase.save(record) { savedRecord, error in
+                if let error = error {
+                    FameFitLogger.error("📱☁️ Failed to save watch command to CloudKit: \(error)", category: FameFitLogger.sync)
+                } else {
+                    FameFitLogger.info("📱☁️ Successfully saved watch command to CloudKit", category: FameFitLogger.sync)
+                }
+            }
         }
     }
 }

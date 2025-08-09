@@ -672,20 +672,23 @@ struct GroupWorkoutDetailView: View {
     
     private func openOnWatch() {
         Task {
-            // Show immediate notification for participant
+            // Determine if current user is host
+            let isHost = workout.hostID == container.cloudKitManager.currentUserID
+            
+            // Show immediate notification 
             await NotificationService.shared.showGroupWorkoutNowNotification(
                 workoutName: workout.name,
                 workoutType: Int(workout.workoutType.rawValue),
                 workoutID: workout.id,
-                isHost: false
+                isHost: isHost
             )
             
-            // Send command to Watch for participant
-            await sendWorkoutToWatch(workout, isHost: false)
+            // Send command to Watch
+            await sendWorkoutToWatch(workout, isHost: isHost)
             
             // Show feedback
             await MainActor.run {
-                FameFitLogger.info("🏋️⌚ Opening workout on Watch: \(workout.name)", category: FameFitLogger.ui)
+                FameFitLogger.info("🏋️⌚ Opening workout on Watch: \(workout.name) (Host: \(isHost))", category: FameFitLogger.ui)
             }
         }
     }
@@ -694,18 +697,20 @@ struct GroupWorkoutDetailView: View {
         // Use WatchConnectivityManager to send workout to Watch
         let watchManager = WatchConnectivityManager.shared
         
-        if watchManager.isReachable {
-            watchManager.sendGroupWorkoutCommand(
-                workoutID: workout.id,
-                workoutName: workout.name,
-                workoutType: Int(workout.workoutType.rawValue),
-                isHost: isHost
-            )
-        } else {
-            // Fallback: Show alert with instructions
-            await MainActor.run {
-                // TODO: Show alert "Please open FameFit on your Apple Watch"
-                FameFitLogger.warning("⌚ Watch not reachable. User needs to open app manually.", category: FameFitLogger.ui)
+        // Always send the command - it will use application context as fallback
+        watchManager.sendGroupWorkoutCommand(
+            workoutID: workout.id,
+            workoutName: workout.name,
+            workoutType: Int(workout.workoutType.rawValue),
+            isHost: isHost
+        )
+        
+        // Log the status
+        await MainActor.run {
+            if watchManager.isReachable {
+                FameFitLogger.info("📱⌚ Sent workout to Watch (reachable)", category: FameFitLogger.ui)
+            } else {
+                FameFitLogger.info("📱⌚ Sent workout to Watch via application context (not immediately reachable)", category: FameFitLogger.ui)
             }
         }
     }
