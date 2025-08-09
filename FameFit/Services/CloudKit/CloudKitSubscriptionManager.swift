@@ -16,7 +16,7 @@ enum SubscriptionType: String, CaseIterable {
     case userProfile = "UserProfile"
     case socialFollowing = "SocialFollowing"
     case workoutKudos = "WorkoutKudos"
-    case workoutComments = "WorkoutComments"
+    case activityFeedComments = "ActivityFeedComments"
     case workoutChallenges = "WorkoutChallenges"
     case groupWorkouts = "GroupWorkouts"
     case activityFeed = "ActivityFeed"
@@ -35,8 +35,8 @@ enum SubscriptionType: String, CaseIterable {
             "social-following-subscription"
         case .workoutKudos:
             "workout-kudos-subscription"
-        case .workoutComments:
-            "workout-comments-subscription"
+        case .activityFeedComments:
+            "activity-feed-comments-subscription"
         case .workoutChallenges:
             "workout-challenges-subscription"
         case .groupWorkouts:
@@ -139,7 +139,7 @@ final class CloudKitSubscriptionManager: CloudKitSubscriptionManaging {
             notificationInfo.desiredKeys = ["followerID", "followingID", "status"]
         case .workoutKudos:
             notificationInfo.desiredKeys = ["workoutID", "userID", "timestamp"]
-        case .workoutComments:
+        case .activityFeedComments:
             notificationInfo.desiredKeys = ["workoutID", "userID", "content", "parentCommentID"]
         case .workoutChallenges:
             notificationInfo.desiredKeys = ["status", "participants", "type", "targetValue"]
@@ -185,7 +185,7 @@ final class CloudKitSubscriptionManager: CloudKitSubscriptionManaging {
             predicate = NSPredicate(value: true)
             options = [.firesOnRecordCreation, .firesOnRecordDeletion]
 
-        case .workoutComments:
+        case .activityFeedComments:
             // Subscribe to new comments
             predicate = NSPredicate(value: true)
             options = [.firesOnRecordCreation, .firesOnRecordUpdate]
@@ -218,7 +218,7 @@ final class CloudKitSubscriptionManager: CloudKitSubscriptionManaging {
         switch type {
         case .workoutHistory:
             privateDatabase
-        case .userProfile, .socialFollowing, .workoutKudos, .workoutComments,
+        case .userProfile, .socialFollowing, .workoutKudos, .activityFeedComments,
              .workoutChallenges, .groupWorkouts, .activityFeed:
             publicDatabase
         }

@@ -355,10 +355,13 @@ final class SmartRefreshManager: ObservableObject {
     private func handleAppDidEnterBackground() {
         print("📱 App entered background - starting background task")
         
-        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask {
+        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask { [weak self] in
             // Background task expired
-            UIApplication.shared.endBackgroundTask(self.backgroundTaskIdentifier)
-            self.backgroundTaskIdentifier = .invalid
+            Task { @MainActor in
+                guard let self = self else { return }
+                UIApplication.shared.endBackgroundTask(self.backgroundTaskIdentifier)
+                self.backgroundTaskIdentifier = .invalid
+            }
         }
         
         // Complete any critical background refreshes

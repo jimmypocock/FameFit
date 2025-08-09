@@ -78,7 +78,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
         // Share the workout
         try await container.activityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: true
         )
@@ -113,7 +113,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
         // When - Try to share publicly (should be blocked)
         try await restrictedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -137,7 +137,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
         // When - Share a yoga workout
         let yogaWorkout = createTestWorkout(workoutType: "yoga")
         try await service.postWorkoutActivity(
-            workoutHistory: yogaWorkout,
+            workout: yogaWorkout,
             privacy: .public, // Try to share publicly
             includeDetails: true
         )
@@ -147,7 +147,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
         // When - Share a running workout
         let runningWorkout = createTestWorkout(workoutType: "running")
         try await service.postWorkoutActivity(
-            workoutHistory: runningWorkout,
+            workout: runningWorkout,
             privacy: .public,
             includeDetails: true
         )
@@ -171,7 +171,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
         // When - Share with details requested
         try await service.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: true // This should be ignored
         )
@@ -225,7 +225,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
         // When/Then
         do {
             try await mockService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: .public,
                 includeDetails: true
             )
@@ -256,7 +256,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
                 for index in 0 ..< 10 {
                     let workout = createTestWorkout(followersEarned: index * 10)
                     try? await mockService.postWorkoutActivity(
-                        workoutHistory: workout,
+                        workout: workout,
                         privacy: .friendsOnly,
                         includeDetails: true
                     )

@@ -101,8 +101,11 @@ final class BackgroundWorkoutProcessor {
         // Process each workout
         var processedCount = 0
         for hkWorkout in workouts {
-            // Convert to our Workout model
-            let workout = Workout(from: hkWorkout, followersEarned: 0)
+            // Extract group workout ID from metadata if present
+            let groupWorkoutID = hkWorkout.metadata?["groupWorkoutID"] as? String
+            
+            // Convert to our Workout model with group workout ID if available
+            let workout = Workout(from: hkWorkout, followersEarned: 0, groupWorkoutID: groupWorkoutID)
             
             // Check if auto-sharing is enabled
             let settings = try await container.activitySharingSettingsService.loadSettings()
@@ -118,7 +121,7 @@ final class BackgroundWorkoutProcessor {
             // Share the workout
             do {
                 try await container.activityFeedService.postWorkoutActivity(
-                    workoutHistory: workout,
+                    workout: workout,
                     privacy: settings.workoutPrivacy,
                     includeDetails: settings.shareWorkoutDetails
                 )

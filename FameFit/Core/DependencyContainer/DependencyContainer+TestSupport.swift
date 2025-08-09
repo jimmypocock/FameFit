@@ -183,7 +183,8 @@ extension DependencyContainer {
             notificationManager: resolvedNotificationManager,
             userProfileService: resolvedUserProfileService,
             workoutChallengesService: resolvedWorkoutChallengesService,
-            workoutChallengeLinksService: workoutChallengeLinksService
+            workoutChallengeLinksService: workoutChallengeLinksService,
+            activitySettingsService: resolvedActivitySharingSettingsService
         )
         
         // Create verification service

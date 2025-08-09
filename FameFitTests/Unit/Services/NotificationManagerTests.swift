@@ -100,7 +100,7 @@ class NotificationManagerTests: XCTestCase {
 
         // Verify metadata
         if case let .workout(metadata) = request.metadata {
-            XCTAssertEqual(metadata.workoutId, workout.id.uuidString)
+            XCTAssertEqual(metadata.workoutId, workout.id)
             XCTAssertEqual(metadata.duration, 30) // 1800 seconds = 30 minutes
             XCTAssertEqual(metadata.calories, 250)
             XCTAssertEqual(metadata.xpEarned, 100)

@@ -10,6 +10,7 @@ import Foundation
 struct ActivityFeedItem: Identifiable, Codable {
     let id: String
     let userID: String
+    let username: String  // Store username directly for optimization
     let userProfile: UserProfile?
     let type: ActivityFeedItemType
     let timestamp: Date
@@ -22,7 +23,7 @@ struct ActivityFeedItem: Identifiable, Codable {
     
     // Convenience computed properties
     var userName: String {
-        userProfile?.username ?? "Unknown User"
+        username.isEmpty ? (userProfile?.username ?? "Unknown User") : username
     }
     
     var userXP: Int {

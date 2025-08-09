@@ -21,7 +21,7 @@ enum CloudKitConfiguration {
         static let userRelationships = "UserRelationships"
         static let activityFeed = "ActivityFeed"
         static let workoutKudos = "WorkoutKudos"
-        static let workoutComments = "WorkoutComments"
+        static let activityFeedComments = "ActivityFeedComments"
         static let groupWorkouts = "GroupWorkouts"
         static let groupWorkoutParticipants = "GroupWorkoutParticipants"
         static let groupWorkoutInvites = "GroupWorkoutInvites"

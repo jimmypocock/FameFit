@@ -363,6 +363,24 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
         } catch {
             FameFitLogger.error("Failed to fetch user record", error: error, category: FameFitLogger.cloudKit)
             
+            // If the record doesn't exist, the user has deleted their account
+            // We should not retry and should clear the user record
+            if error.localizedDescription.contains("Record not found") || 
+               error.localizedDescription.contains("Unknown record") {
+                FameFitLogger.info("User record not found - account may have been deleted", category: FameFitLogger.cloudKit)
+                await MainActor.run {
+                    self.userRecord = nil
+                    self.totalXP = 0
+                    self.userName = ""
+                    self.currentStreak = 0
+                    self.totalWorkouts = 0
+                    self.lastWorkoutTimestamp = nil
+                    self.joinTimestamp = nil
+                }
+                // Don't retry - this is expected after account deletion
+                return
+            }
+            
             if await stateManager.shouldRetryOperation(.userRecordFetch, error: error) {
                 let delay = await stateManager.getRetryDelay(for: .userRecordFetch)
                 
@@ -641,7 +659,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             do {
                 // Create the workout record
                 let record = CKRecord(recordType: "Workouts")
-                record["id"] = workoutHistory.id.uuidString
+                record["id"] = workoutHistory.id
                 record["workoutType"] = workoutHistory.workoutType
                 record["startDate"] = workoutHistory.startDate
                 record["endDate"] = workoutHistory.endDate
@@ -690,7 +708,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
                     }
                     
                     // Extract individual fields to avoid type-checking timeout
-                    let workoutID = UUID(uuidString: id) ?? UUID()
+                    let workoutID = id
                     let duration = record["duration"] as? TimeInterval ?? 0
                     let totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
                     let totalDistance = record["totalDistance"] as? Double
@@ -843,7 +861,7 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
             
             profileRecord["workoutCount"] = totalWorkouts
             profileRecord["totalXP"] = totalXP
-            profileRecord["modificationDate"] = Date()
+            // modificationDate is managed by CloudKit automatically
             
             _ = try await publicDatabase.save(profileRecord)
             FameFitLogger.info("Successfully synced stats to UserProfile", category: FameFitLogger.cloudKit)
@@ -893,5 +911,145 @@ final class CloudKitManager: NSObject, ObservableObject, CloudKitManaging {
     
     var joinTimestampPublisher: AnyPublisher<Date?, Never> {
         $joinTimestamp.eraseToAnyPublisher()
+    }
+    
+    // MARK: - Account Deletion
+    
+    /// Delete all user data from CloudKit
+    func deleteAllUserData() async throws {
+        guard let userID = currentUserID else {
+            throw FameFitError.userNotAuthenticated
+        }
+        
+        FameFitLogger.info("Starting account deletion for user: \(userID)", category: FameFitLogger.cloudKit)
+        
+        // Track deletion progress
+        var deletedRecords = 0
+        var errors: [Error] = []
+        
+        // Record types to delete from private database
+        let privateRecordTypes = [
+            "Users",
+            "Workouts",
+            "XPTransactions",
+            "WorkoutHistory",
+            "WorkoutMetrics",
+            "GroupWorkoutInvites",
+            "Notifications",
+            "NotificationHistory",
+            "WorkoutChallengeLinks",
+            "UserSettings",
+            "ActivityFeedSettings",
+            "DeviceTokens"
+        ]
+        
+        // Record types to delete from public database
+        let publicRecordTypes = [
+            "UserProfiles",
+            "UserRelationships",
+            "ActivityFeed",
+            "WorkoutKudos",
+            "ActivityFeedComments"
+        ]
+        
+        // Delete from private database
+        for recordType in privateRecordTypes {
+            do {
+                let predicate = NSPredicate(format: "userID == %@ OR creatorUserRecordName == %@ OR hostID == %@", userID, userID, userID)
+                let query = CKQuery(recordType: recordType, predicate: predicate)
+                let records = try await privateDatabase.records(matching: query)
+                
+                let recordIDs = records.matchResults.compactMap { result -> CKRecord.ID? in
+                    guard let record = try? result.1.get() else { return nil }
+                    return record.recordID
+                }
+                
+                if !recordIDs.isEmpty {
+                    try await deleteRecords(withIDs: recordIDs)
+                    deletedRecords += recordIDs.count
+                    FameFitLogger.info("Deleted \(recordIDs.count) \(recordType) records", category: FameFitLogger.cloudKit)
+                }
+            } catch {
+                FameFitLogger.error("Failed to delete \(recordType) records", error: error, category: FameFitLogger.cloudKit)
+                errors.append(error)
+            }
+        }
+        
+        // Delete from public database
+        for recordType in publicRecordTypes {
+            do {
+                let predicate = NSPredicate(format: "userID == %@ OR followerID == %@ OR followingID == %@", userID, userID, userID)
+                let query = CKQuery(recordType: recordType, predicate: predicate)
+                let records = try await publicDatabase.records(matching: query)
+                
+                let recordIDs = records.matchResults.compactMap { result -> CKRecord.ID? in
+                    guard let record = try? result.1.get() else { return nil }
+                    return record.recordID
+                }
+                
+                if !recordIDs.isEmpty {
+                    // Delete from public database
+                    for recordID in recordIDs {
+                        _ = try await publicDatabase.deleteRecord(withID: recordID)
+                    }
+                    deletedRecords += recordIDs.count
+                    FameFitLogger.info("Deleted \(recordIDs.count) public \(recordType) records", category: FameFitLogger.cloudKit)
+                }
+            } catch {
+                FameFitLogger.error("Failed to delete public \(recordType) records", error: error, category: FameFitLogger.cloudKit)
+                errors.append(error)
+            }
+        }
+        
+        // Delete any group workouts the user created
+        do {
+            let predicate = NSPredicate(format: "hostID == %@", userID)
+            let query = CKQuery(recordType: "GroupWorkouts", predicate: predicate)
+            let records = try await publicDatabase.records(matching: query)
+            
+            for result in records.matchResults {
+                if let record = try? result.1.get() {
+                    _ = try await publicDatabase.deleteRecord(withID: record.recordID)
+                    deletedRecords += 1
+                }
+            }
+        } catch {
+            FameFitLogger.error("Failed to delete group workouts", error: error, category: FameFitLogger.cloudKit)
+            errors.append(error)
+        }
+        
+        // Clear local cache and state
+        clearLocalData()
+        
+        FameFitLogger.info("Account deletion completed. Deleted \(deletedRecords) records with \(errors.count) errors", category: FameFitLogger.cloudKit)
+        
+        // If there were critical errors, throw
+        if !errors.isEmpty && deletedRecords == 0 {
+            throw FameFitError.cloudKitSyncFailed(errors.first ?? FameFitError.unknownError(NSError(domain: "CloudKit", code: -1)))
+        }
+    }
+    
+    private func clearLocalData() {
+        // Clear all local state
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+        joinTimestamp = nil
+        userName = "FameFit User"
+        currentUserRecordID = nil
+        userRecord = nil
+        isSignedIn = false
+        
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "CloudKit_TotalXP")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_TotalWorkouts")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_CurrentStreak")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_LastWorkoutDate")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_JoinDate")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_UserName")
+        UserDefaults.standard.synchronize()
+        
+        FameFitLogger.info("Cleared all local CloudKit data", category: FameFitLogger.cloudKit)
     }
 }

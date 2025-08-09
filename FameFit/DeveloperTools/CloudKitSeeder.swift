@@ -90,7 +90,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "Workouts")
-            record["id"] = workout.id.uuidString
+            record["id"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -172,7 +172,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "WorkoutHistory")
-            record["id"] = workout.id.uuidString
+            record["id"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -380,7 +380,7 @@ final class CloudKitSeeder {
                 reverseRecord["followerID"] = followingID
                 reverseRecord["followingID"] = followerID
                 reverseRecord["status"] = "active"
-                reverseRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
                 reverseRecord["notificationsEnabled"] = true
                 
                 _ = try await publicDatabase.save(reverseRecord)
@@ -447,7 +447,7 @@ final class CloudKitSeeder {
         
         // Create workout first to calculate XP
         let workout = Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: type,
             startDate: date,
             endDate: date.addingTimeInterval(duration),
@@ -608,8 +608,9 @@ final class CloudKitSeeder {
             let activity = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
+                username: persona.username,
                 activityType: "workout",
-                workoutID: workout.id.uuidString,
+                workoutID: workout.id,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
                 creationDate: workout.endDate,
@@ -633,6 +634,7 @@ final class CloudKitSeeder {
             let achievement = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
+                username: persona.username,
                 activityType: "achievement",
                 workoutID: nil,
                 content: String(data: contentData, encoding: .utf8) ?? "",

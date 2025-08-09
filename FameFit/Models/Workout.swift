@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 struct Workout: Identifiable, Codable {
-    let id: UUID
+    let id: String
     let workoutType: String
     let startDate: Date
     let endDate: Date
@@ -23,7 +23,7 @@ struct Workout: Identifiable, Codable {
     // Custom decoding to handle missing xpEarned and groupWorkoutID
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
+        id = try container.decode(String.self, forKey: .id)
         workoutType = try container.decode(String.self, forKey: .workoutType)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decode(Date.self, forKey: .endDate)
@@ -39,7 +39,7 @@ struct Workout: Identifiable, Codable {
 
     // Standard init
     init(
-        id: UUID,
+        id: String,
         workoutType: String,
         startDate: Date,
         endDate: Date,
@@ -88,7 +88,7 @@ struct Workout: Identifiable, Codable {
 
 extension Workout {
     init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil, groupWorkoutID: String? = nil) {
-        id = UUID()
+        id = UUID().uuidString
         workoutType = workout.workoutActivityType.displayName
         startDate = workout.startDate
         endDate = workout.endDate

@@ -149,7 +149,7 @@ final class StatsSyncService: StatsSyncServicing {
         if let lastWorkout = stats.lastWorkoutDate {
             profileRecord["lastWorkoutDate"] = lastWorkout
         }
-        profileRecord["modificationDate"] = Date()
+        // modificationDate is managed by CloudKit automatically
         
         // Add any additional stats
         for (key, value) in stats.additionalStats {

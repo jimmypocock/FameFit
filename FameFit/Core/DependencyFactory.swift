@@ -197,7 +197,12 @@ class ProductionDependencyFactory: DependencyFactory {
     
     func createActivityFeedService(cloudKitManager: CloudKitManager) -> ActivityFeedServicing {
         let privacySettings = WorkoutPrivacySettings()
-        return ActivityFeedService(cloudKitManager: cloudKitManager, privacySettings: privacySettings)
+        let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
+        return ActivityFeedService(
+            cloudKitManager: cloudKitManager,
+            privacySettings: privacySettings,
+            userProfileService: userProfileService
+        )
     }
     
     func createActivityCommentsService(cloudKitManager: CloudKitManager) -> ActivityFeedCommentsServicing {

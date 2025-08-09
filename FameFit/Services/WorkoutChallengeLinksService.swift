@@ -534,7 +534,7 @@ final class WorkoutChallengeLinksService: WorkoutChallengeLinksServicing {
             
             if contribution.value > 0 {
                 let link = try await createLink(
-                    workoutID: workout.id.uuidString,
+                    workoutID: workout.id,
                     workoutChallengeID: workoutChallengeID,
                     userID: userID,
                     contributionValue: contribution.value,

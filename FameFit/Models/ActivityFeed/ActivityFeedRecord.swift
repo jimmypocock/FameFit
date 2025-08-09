@@ -11,6 +11,7 @@ import CloudKit
 struct ActivityFeedRecord: Codable, Identifiable, Equatable {
     let id: String
     let userID: String
+    let username: String  // Store username directly for optimization
     let activityType: String
     let workoutID: String?
     let content: String // JSON encoded content
@@ -36,6 +37,7 @@ struct ActivityFeedRecord: Codable, Identifiable, Equatable {
 extension ActivityFeedRecord {
     init?(from record: CKRecord) {
         guard let userID = record["userID"] as? String,
+              let username = record["username"] as? String,
               let activityType = record["activityType"] as? String,
               let content = record["content"] as? String,
               let visibility = record["visibility"] as? String,
@@ -47,6 +49,7 @@ extension ActivityFeedRecord {
         
         self.id = record.recordID.recordName
         self.userID = userID
+        self.username = username
         self.activityType = activityType
         self.workoutID = record["workoutID"] as? String
         self.content = content
@@ -65,6 +68,7 @@ extension ActivityFeedRecord {
         }
         
         record["userID"] = userID
+        record["username"] = username
         record["activityType"] = activityType
         if let workoutID {
             record["workoutID"] = workoutID

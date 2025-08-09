@@ -54,7 +54,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -64,7 +64,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         let activity = mockActivityFeedService.postedActivities.first!
         XCTAssertEqual(activity.activityType, "workout")
         XCTAssertEqual(activity.visibility, "public")
-        XCTAssertEqual(activity.workoutId, workout.id.uuidString)
+        XCTAssertEqual(activity.workoutId, workout.id)
         XCTAssertEqual(activity.xpEarned, 25)
     }
 
@@ -86,7 +86,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When - Real service would not post private workouts
         try await activityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .private,
             includeDetails: true
         )
@@ -113,7 +113,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: false
         )
@@ -157,7 +157,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When - Try to post publicly (should be downgraded to friends only)
         try await restrictedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -263,7 +263,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         // Post activities for different users
         mockActivityFeedService.postedActivities = []
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -320,7 +320,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         // When/Then
         do {
             try await mockActivityFeedService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: .public,
                 includeDetails: true
             )

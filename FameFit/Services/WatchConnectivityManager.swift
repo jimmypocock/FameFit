@@ -8,7 +8,6 @@
 import Foundation
 import WatchConnectivity
 import UIKit
-import CloudKit
 import os.log
 
 final class WatchConnectivityManager: NSObject, ObservableObject {
@@ -67,22 +66,22 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     func sendGroupWorkoutCommand(workoutID: String, workoutName: String, workoutType: Int, isHost: Bool) {
         FameFitLogger.info("📱 sendGroupWorkoutCommand - ID: \(workoutID), Name: \(workoutName), Type: \(workoutType), Host: \(isHost)", category: FameFitLogger.sync)
         
+        #if DEBUG
         // Debug WCSession state
         FameFitLogger.debug("📱 WCSession state: isSupported=\(WCSession.isSupported()), activationState=\(WCSession.default.activationState.rawValue), isPaired=\(WCSession.default.isPaired), isWatchAppInstalled=\(WCSession.default.isWatchAppInstalled), isReachable=\(WCSession.default.isReachable), isComplicationEnabled=\(WCSession.default.isComplicationEnabled)", category: FameFitLogger.sync)
         
-        // For development: If Watch is paired but app appears not installed, still try to send
-        // This happens when app is installed via Xcode rather than Watch app
-        if WCSession.default.isPaired {
-            if !WCSession.default.isWatchAppInstalled {
-                FameFitLogger.warning("📱 Watch paired but app appears not installed (common in development). Attempting to send anyway...", category: FameFitLogger.sync)
-            }
-        } else {
+        // Development warning if Watch app appears not installed
+        if WCSession.default.isPaired && !WCSession.default.isWatchAppInstalled {
+            FameFitLogger.warning("⚠️ Watch communication unavailable in Xcode builds. Use TestFlight for testing Watch↔iPhone features.", category: FameFitLogger.sync)
+            // Note: We still try to send as it sometimes works
+        }
+        #endif
+        
+        // Check if Watch is paired
+        if !WCSession.default.isPaired {
             FameFitLogger.error("📱 Watch is not paired with this iPhone!", category: FameFitLogger.sync)
             return
         }
-        
-        // ALSO save to CloudKit as fallback
-        saveWatchCommandToCloudKit(workoutID: workoutID, workoutName: workoutName, workoutType: workoutType, isHost: isHost)
         
         // Always try to send via application context first (persistent)
         let context: [String: Any] = [
@@ -417,44 +416,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 object: nil,
                 userInfo: ["workoutID": workoutID]
             )
-        }
-    }
-    
-    // MARK: - CloudKit Fallback
-    
-    private func saveWatchCommandToCloudKit(workoutID: String, workoutName: String, workoutType: Int, isHost: Bool) {
-        FameFitLogger.info("📱☁️ Saving watch command to CloudKit as fallback", category: FameFitLogger.sync)
-        
-        // Get current user ID
-        CKContainer.default().fetchUserRecordID { userRecordID, error in
-            if let error = error {
-                FameFitLogger.error("📱☁️ Failed to get user ID for CloudKit: \(error)", category: FameFitLogger.sync)
-                return
-            }
-            
-            guard let userRecordID = userRecordID else { return }
-            let userID = userRecordID.recordName
-            
-            // Create the command record
-            let record = CKRecord(recordType: "WatchCommands")
-            record["id"] = UUID().uuidString
-            record["userID"] = userID
-            record["command"] = "startGroupWorkout"
-            record["workoutID"] = workoutID
-            record["workoutName"] = workoutName
-            record["workoutType"] = workoutType as CKRecordValue
-            record["isHost"] = (isHost ? 1 : 0) as CKRecordValue
-            record["processed"] = 0 as CKRecordValue
-            // Use system creationDate instead of custom timestamp
-            
-            // Save to private database
-            CKContainer.default().privateCloudDatabase.save(record) { savedRecord, error in
-                if let error = error {
-                    FameFitLogger.error("📱☁️ Failed to save watch command to CloudKit: \(error)", category: FameFitLogger.sync)
-                } else {
-                    FameFitLogger.info("📱☁️ Successfully saved watch command to CloudKit", category: FameFitLogger.sync)
-                }
-            }
         }
     }
 }

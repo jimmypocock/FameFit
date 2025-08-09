@@ -36,6 +36,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "1",
                 userID: "user1",
+                username: "speedster",
                 userProfile: UserProfile(
                     id: "user1",
                     userID: "user1",
@@ -78,6 +79,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "2",
                 userID: "user2",
+                username: "fitnessguru",
                 userProfile: UserProfile(
                     id: "user2",
                     userID: "user2",
@@ -114,6 +116,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "3",
                 userID: "user3",
+                username: "yogamaster",
                 userProfile: UserProfile(
                     id: "user3",
                     userID: "user3",
@@ -149,6 +152,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "4",
                 userID: "user4",
+                username: "bikerlady",
                 userProfile: UserProfile(
                     id: "user4",
                     userID: "user4",

@@ -9,7 +9,6 @@
 import HealthKit
 import SwiftUI
 import WatchConnectivity
-import CloudKit
 
 struct WorkoutTypeItem: Identifiable {
     let id = UUID()
@@ -421,77 +420,19 @@ struct WatchStartView: View {
             })
         }
         
-        // Also check CloudKit for any pending commands (fallback)
-        await fetchPendingCommandsFromCloudKit()
-        
         // Brief delay for UI feedback
         try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
         
         isRefreshing = false
         
         FameFitLogger.info("⌚ Refreshed group workouts", category: FameFitLogger.sync)
-    }
-    
-    private func fetchPendingCommandsFromCloudKit() async {
-        FameFitLogger.info("⌚☁️ Checking CloudKit for pending watch commands", category: FameFitLogger.sync)
         
-        do {
-            // Use the main app's CloudKit container
-            let container = CKContainer(identifier: "iCloud.com.jimmypocock.FameFit")
-            
-            // Get current user ID
-            let userRecordID = try await container.userRecordID()
-            let userID = userRecordID.recordName
-            
-            // Query for unprocessed commands for this user
-            let predicate = NSPredicate(format: "userID == %@ AND processed == 0", userID)
-            let query = CKQuery(recordType: "WatchCommands", predicate: predicate)
-            // Don't sort - CloudKit system fields aren't sortable by default
-            // We'll just process the first unprocessed command we find
-            
-            // Fetch from private database
-            let results = try await container.privateCloudDatabase.records(matching: query)
-            let records = results.matchResults.compactMap { try? $0.1.get() }
-            
-            FameFitLogger.info("⌚☁️ Found \(records.count) pending commands in CloudKit", category: FameFitLogger.sync)
-            
-            // Process each command
-            for record in records {
-                if let command = record["command"] as? String,
-                   command == "startGroupWorkout",
-                   let workoutID = record["workoutID"] as? String,
-                   let workoutName = record["workoutName"] as? String,
-                   let workoutType = record["workoutType"] as? Int,
-                   let isHostValue = record["isHost"] as? Int {
-                    
-                    let isHost = isHostValue == 1
-                    
-                    FameFitLogger.info("⌚☁️ Processing CloudKit command: \(workoutName) (Host: \(isHost))", category: FameFitLogger.sync)
-                    
-                    // Set the active group workout
-                    let workoutActivityType = HKWorkoutActivityType(rawValue: UInt(workoutType)) ?? .running
-                    activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutActivityType, isHost: isHost)
-                    
-                    // Store in UserDefaults for persistence
-                    UserDefaults.standard.set(workoutID, forKey: "pendingGroupWorkoutID")
-                    UserDefaults.standard.set(workoutName, forKey: "pendingGroupWorkoutName")
-                    UserDefaults.standard.set(isHost, forKey: "pendingGroupWorkoutIsHost")
-                    UserDefaults.standard.set(workoutType, forKey: "pendingGroupWorkoutType")
-                    UserDefaults.standard.synchronize()
-                    
-                    // Mark as processed
-                    record["processed"] = 1 as CKRecordValue
-                    try await container.privateCloudDatabase.save(record)
-                    
-                    FameFitLogger.info("⌚☁️ Successfully processed CloudKit command", category: FameFitLogger.sync)
-                    
-                    // Only process the most recent command
-                    break
-                }
-            }
-        } catch {
-            FameFitLogger.error("⌚☁️ Failed to fetch commands from CloudKit: \(error)", category: FameFitLogger.sync)
+        #if DEBUG
+        // Development warning if Watch connectivity isn't working
+        if WCSession.default.hasContentPending && WCSession.default.outstandingUserInfoTransfers.isEmpty {
+            FameFitLogger.warning("⚠️ Watch has pending content but can't receive it. This is a known Xcode development issue. Use TestFlight for reliable Watch↔iPhone communication.", category: FameFitLogger.sync)
         }
+        #endif
     }
 }
 

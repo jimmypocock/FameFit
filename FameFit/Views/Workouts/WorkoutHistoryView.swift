@@ -147,7 +147,7 @@ struct WorkoutHistoryView: View {
         Task {
             do {
                 let transaction = try await dependencyContainer.xpTransactionService
-                    .fetchTransaction(for: workout.id.uuidString)
+                    .fetchTransaction(for: workout.id)
                 
                 if let transaction = transaction {
                     await MainActor.run {
@@ -168,7 +168,7 @@ struct WorkoutHistoryView: View {
                     await MainActor.run {
                         self.selectedTransaction = XPTransaction(
                             userID: cloudKitManager.currentUserID ?? "",
-                            workoutID: workout.id.uuidString,
+                            workoutID: workout.id,
                             baseXP: result.baseXP,
                             finalXP: result.finalXP,
                             factors: result.factors

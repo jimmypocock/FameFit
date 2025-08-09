@@ -33,7 +33,7 @@ struct WorkoutCommentsView: View {
 
                 // Comments list
                 CommentsListView(
-                    workoutID: workout.id.uuidString,
+                    workoutID: workout.id,
                     workoutOwnerID: workoutOwner?.id ?? "",
                     currentUser: currentUser,
                     commentsService: container.activityCommentsService
@@ -241,7 +241,7 @@ struct WorkoutCommentsView: View {
 #Preview {
     WorkoutCommentsView(
         workout: Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-3_600),
             endDate: Date(),
