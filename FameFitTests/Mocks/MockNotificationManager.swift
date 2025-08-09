@@ -64,7 +64,7 @@ class MockNotificationManager: NotificationManaging {
         notifyWorkoutCompletedCalled = true
         scheduleNotificationCalled = true
         sentNotifications.append("workout_completed")
-        lastWorkoutId = workout.id.uuidString
+        lastWorkoutId = workout.id
 
         // Create mock notification for tracking
         let notification = FameFitNotification(
@@ -89,7 +89,7 @@ class MockNotificationManager: NotificationManaging {
     func notifyWorkoutShared(_ workout: WorkoutItem, privacy: WorkoutPrivacy) async {
         scheduleNotificationCalled = true
         sentNotifications.append("workout_shared")
-        lastWorkoutId = workout.id.uuidString
+        lastWorkoutId = workout.id
         
         // Create mock notification for tracking
         let notification = FameFitNotification(

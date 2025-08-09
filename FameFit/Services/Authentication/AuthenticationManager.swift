@@ -88,6 +88,24 @@ class AuthenticationManager: NSObject, ObservableObject, AuthenticationManaging 
         isAuthenticated = false
         hasCompletedOnboarding = false
     }
+    
+    func deleteAccount() async throws {
+        FameFitLogger.info("Starting account deletion process", category: FameFitLogger.auth)
+        
+        // Use anonymization approach for CloudKit data
+        if let cloudKitManager = cloudKitManager {
+            try await cloudKitManager.deleteAllUserDataWithAnonymization()
+        }
+        
+        // Clear all local data
+        signOut()
+        
+        // Clear any additional app data
+        UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
+        UserDefaults.standard.synchronize()
+        
+        FameFitLogger.info("Account deletion completed", category: FameFitLogger.auth)
+    }
 
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)

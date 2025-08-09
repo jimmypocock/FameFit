@@ -21,6 +21,11 @@ struct EditProfileView: View {
     @State private var saveError: String?
     @State private var hasChanges = false
     @State private var showDiscardAlert = false
+    @State private var showDeleteAccountAlert = false
+    @State private var isDeletingAccount = false
+    @State private var deleteAccountError: String?
+    @State private var showActivitySettings = false
+    @State private var showDataExport = false
 
     let profile: UserProfile
     let onSave: (UserProfile) -> Void
@@ -129,6 +134,20 @@ struct EditProfileView: View {
                     .onChange(of: privacyLevel) { _, _ in
                         hasChanges = true
                     }
+                    
+                    // Activity Sharing Settings
+                    Button(action: {
+                        showActivitySettings = true
+                    }) {
+                        HStack {
+                            Label("Activity Sharing", systemImage: "square.and.arrow.up")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                    }
                 }
 
                 // Character Counter Section
@@ -146,6 +165,53 @@ struct EditProfileView: View {
                     }
                 }
                 .listRowBackground(Color.clear)
+                
+                // Account Settings Section
+                Section(header: Text("Account")) {
+                    // Privacy Policy Link
+                    Link(destination: URL(string: "https://github.com/jimmypocock/FameFit/blob/main/PRIVACY.md")!) {
+                        HStack {
+                            Label("Privacy Policy", systemImage: "lock.shield")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    
+                    // Activity Sharing Settings
+                    Button(action: {
+                        showActivitySettings = true
+                    }) {
+                        Label("Activity Sharing", systemImage: "square.and.arrow.up")
+                    }
+                    
+                    // Export Data
+                    Button(action: {
+                        showDataExport = true
+                    }) {
+                        Label("Export My Data", systemImage: "square.and.arrow.down")
+                    }
+                    
+                    // Sign Out
+                    Button(action: {
+                        container.authenticationManager.signOut()
+                        // This will trigger app to return to onboarding
+                    }) {
+                        Label("Sign Out", systemImage: "arrow.right.square")
+                            .foregroundColor(.red)
+                    }
+                    
+                    // Delete Account
+                    Button(action: {
+                        showDeleteAccountAlert = true
+                    }) {
+                        Label("Delete Account", systemImage: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .disabled(isDeletingAccount)
+                }
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -182,16 +248,51 @@ struct EditProfileView: View {
             } message: {
                 Text("You have unsaved changes. Are you sure you want to discard them?")
             }
+            .alert("Delete Account?", isPresented: $showDeleteAccountAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete Account", role: .destructive) {
+                    Task {
+                        await deleteAccount()
+                    }
+                }
+            } message: {
+                Text("This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you sure you want to delete your FameFit account?")
+            }
+            .alert("Account Deletion Error", isPresented: .constant(deleteAccountError != nil)) {
+                Button("OK") {
+                    deleteAccountError = nil
+                }
+            } message: {
+                Text(deleteAccountError ?? "")
+            }
             .overlay {
-                if isSaving {
+                if isSaving || isDeletingAccount {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
                         .overlay {
-                            ProgressView("Saving...")
+                            ProgressView(isDeletingAccount ? "Deleting Account..." : "Saving...")
                                 .padding()
                                 .background(Color(.systemBackground))
                                 .cornerRadius(10)
                                 .shadow(radius: 5)
+                        }
+                }
+            }
+            .sheet(isPresented: $showActivitySettings) {
+                ActivityFeedSettingsView()
+                    .environment(\.dependencyContainer, container)
+            }
+            .sheet(isPresented: $showDataExport) {
+                NavigationStack {
+                    DataExportView(cloudKitManager: container.cloudKitManager)
+                        .navigationTitle("Export Data")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showDataExport = false
+                                }
+                            }
                         }
                 }
             }
@@ -270,6 +371,34 @@ struct EditProfileView: View {
                     saveError = error.localizedDescription
                 }
             }
+        }
+    }
+    
+    // MARK: - Delete Account
+    
+    private func deleteAccount() async {
+        await MainActor.run {
+            isDeletingAccount = true
+            deleteAccountError = nil
+        }
+        
+        do {
+            // Delete account through authentication manager
+            try await container.authenticationManager.deleteAccount()
+            
+            // Account deleted successfully - the sign out in deleteAccount 
+            // will trigger the app to return to onboarding
+            await MainActor.run {
+                isDeletingAccount = false
+                // The app will automatically transition to onboarding
+                // because isAuthenticated will be false
+            }
+        } catch {
+            await MainActor.run {
+                isDeletingAccount = false
+                deleteAccountError = "Failed to delete account: \(error.localizedDescription)\n\nPlease try again or contact support."
+            }
+            FameFitLogger.error("Account deletion failed", error: error, category: FameFitLogger.auth)
         }
     }
 }

@@ -107,7 +107,7 @@ final class NotificationManager: NotificationManaging {
 
         let metadata = NotificationMetadataContainer.workout(
             WorkoutNotificationMetadata(
-                workoutID: workout.id.uuidString,
+                workoutID: workout.id,
                 workoutType: workout.workoutType,
                 duration: Int(workout.duration / 60),
                 calories: Int(workout.totalEnergyBurned),

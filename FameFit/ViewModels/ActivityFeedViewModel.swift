@@ -414,6 +414,7 @@ final class ActivityFeedViewModel: ObservableObject {
             var feedItem = ActivityFeedItem(
                 id: activityItem.id,
                 userID: activityItem.userID,
+                username: activityItem.username,  // Use username directly from record
                 userProfile: userProfile,
                 type: feedItemType,
                 timestamp: activityItem.creationDate,
@@ -457,6 +458,7 @@ final class ActivityFeedViewModel: ObservableObject {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
+                username: profile.username,
                 userProfile: profile,
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
@@ -479,6 +481,7 @@ final class ActivityFeedViewModel: ObservableObject {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
+                username: profile.username,
                 userProfile: profile,
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
@@ -502,6 +505,7 @@ final class ActivityFeedViewModel: ObservableObject {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile2.id,
+                username: profile2.username,
                 userProfile: profile2,
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),

@@ -23,6 +23,7 @@ final class WorkoutProcessor {
     private let userProfileService: UserProfileServicing
     private let workoutChallengesService: WorkoutChallengesServicing
     private let workoutChallengeLinksService: WorkoutChallengeLinksServicing
+    private let activitySettingsService: ActivityFeedSettingsServicing
     
     // MARK: - Initialization
     
@@ -33,7 +34,8 @@ final class WorkoutProcessor {
         notificationManager: NotificationManaging?,
         userProfileService: UserProfileServicing,
         workoutChallengesService: WorkoutChallengesServicing,
-        workoutChallengeLinksService: WorkoutChallengeLinksServicing
+        workoutChallengeLinksService: WorkoutChallengeLinksServicing,
+        activitySettingsService: ActivityFeedSettingsServicing
     ) {
         self.cloudKitManager = cloudKitManager
         self.xpTransactionService = xpTransactionService
@@ -42,6 +44,7 @@ final class WorkoutProcessor {
         self.userProfileService = userProfileService
         self.workoutChallengesService = workoutChallengesService
         self.workoutChallengeLinksService = workoutChallengeLinksService
+        self.activitySettingsService = activitySettingsService
     }
     
     // MARK: - Public Methods
@@ -50,14 +53,17 @@ final class WorkoutProcessor {
     func processHealthKitWorkout(_ hkWorkout: HKWorkout) async throws {
         FameFitLogger.info("🏋️ Processing HealthKit workout: \(hkWorkout.workoutActivityType.displayName)", category: FameFitLogger.workout)
         
-        // Create workout record
-        let workout = Workout(from: hkWorkout, followersEarned: 0)
+        // Extract group workout ID from metadata if present
+        let groupWorkoutID = hkWorkout.metadata?["groupWorkoutID"] as? String
+        
+        // Create workout record with group workout ID if available
+        let workout = Workout(from: hkWorkout, followersEarned: 0, groupWorkoutID: groupWorkoutID)
         
         // Process using common pipeline
         try await processWorkout(
             workout: workout,
             source: .healthKit,
-            groupWorkoutID: nil
+            groupWorkoutID: groupWorkoutID
         )
     }
     
@@ -66,11 +72,8 @@ final class WorkoutProcessor {
         groupWorkout: GroupWorkout,
         hostID: String
     ) async throws {
-        FameFitLogger.info("🏋️ Processing group workout start for host: \(groupWorkout.name)", category: FameFitLogger.workout)
-        
-        // Store the start time for this user
-        let key = "group_workout_start_\(groupWorkout.id)_\(hostID)"
-        UserDefaults.standard.set(Date(), forKey: key)
+        FameFitLogger.info("🏋️ Group workout started by host: \(groupWorkout.name)", category: FameFitLogger.workout)
+        // No longer storing start time - workouts should only be tracked from Watch/HealthKit
     }
     
     /// Process a group workout start for participant
@@ -78,11 +81,8 @@ final class WorkoutProcessor {
         groupWorkout: GroupWorkout,
         participantID: String
     ) async throws {
-        FameFitLogger.info("🏋️ Processing group workout join for participant: \(groupWorkout.name)", category: FameFitLogger.workout)
-        
-        // Store the join time for this participant
-        let key = "group_workout_start_\(groupWorkout.id)_\(participantID)"
-        UserDefaults.standard.set(Date(), forKey: key)
+        FameFitLogger.info("🏋️ Participant joined group workout: \(groupWorkout.name)", category: FameFitLogger.workout)
+        // No longer storing join time - workouts should only be tracked from Watch/HealthKit
     }
     
     /// Process a group workout completion for host
@@ -90,32 +90,10 @@ final class WorkoutProcessor {
         groupWorkout: GroupWorkout,
         hostID: String
     ) async throws {
-        FameFitLogger.info("🏋️ Processing group workout end for host: \(groupWorkout.name)", category: FameFitLogger.workout)
-        
-        // Get start time
-        let key = "group_workout_start_\(groupWorkout.id)_\(hostID)"
-        guard let startTime = UserDefaults.standard.object(forKey: key) as? Date else {
-            FameFitLogger.error("No start time found for group workout", category: FameFitLogger.workout)
-            throw WorkoutProcessingError.noStartTime
-        }
-        
-        // Create workout record
-        let workout = createWorkoutFromGroupWorkout(
-            groupWorkout: groupWorkout,
-            userID: hostID,
-            startTime: startTime,
-            endTime: Date()
-        )
-        
-        // Process using common pipeline
-        try await processWorkout(
-            workout: workout,
-            source: .groupWorkout,
-            groupWorkoutID: groupWorkout.id
-        )
-        
-        // Clean up stored time
-        UserDefaults.standard.removeObject(forKey: key)
+        FameFitLogger.info("🏋️ Group workout ended by host: \(groupWorkout.name)", category: FameFitLogger.workout)
+        // No longer creating automatic workout records
+        // Actual workouts should only come from Watch/HealthKit tracking
+        // The group workout is just a container/session
     }
     
     /// Process a group workout leave/completion for participant
@@ -123,32 +101,10 @@ final class WorkoutProcessor {
         groupWorkout: GroupWorkout,
         participantID: String
     ) async throws {
-        FameFitLogger.info("🏋️ Processing group workout leave for participant: \(groupWorkout.name)", category: FameFitLogger.workout)
-        
-        // Get start time
-        let key = "group_workout_start_\(groupWorkout.id)_\(participantID)"
-        guard let startTime = UserDefaults.standard.object(forKey: key) as? Date else {
-            FameFitLogger.error("No start time found for participant", category: FameFitLogger.workout)
-            throw WorkoutProcessingError.noStartTime
-        }
-        
-        // Create workout record
-        let workout = createWorkoutFromGroupWorkout(
-            groupWorkout: groupWorkout,
-            userID: participantID,
-            startTime: startTime,
-            endTime: Date()
-        )
-        
-        // Process using common pipeline
-        try await processWorkout(
-            workout: workout,
-            source: .groupWorkout,
-            groupWorkoutID: groupWorkout.id
-        )
-        
-        // Clean up stored time
-        UserDefaults.standard.removeObject(forKey: key)
+        FameFitLogger.info("🏋️ Participant left group workout: \(groupWorkout.name)", category: FameFitLogger.workout)
+        // No longer creating automatic workout records
+        // Actual workouts should only come from Watch/HealthKit tracking
+        // The group workout is just a container/session
     }
     
     // MARK: - Core Processing Pipeline
@@ -189,7 +145,7 @@ final class WorkoutProcessor {
         
         _ = try await xpTransactionService.createTransaction(
             userID: userID,
-            workoutID: workout.id.uuidString,
+            workoutID: workout.id,
             baseXP: xpResult.baseXP,
             finalXP: xpResult.finalXP,
             factors: xpResult.factors
@@ -225,59 +181,6 @@ final class WorkoutProcessor {
     
     // MARK: - Helper Methods
     
-    private func createWorkoutFromGroupWorkout(
-        groupWorkout: GroupWorkout,
-        userID: String,
-        startTime: Date,
-        endTime: Date
-    ) -> Workout {
-        let duration = endTime.timeIntervalSince(startTime)
-        
-        // Estimate calories based on workout type and duration (rough estimates)
-        let caloriesPerMinute: Double = {
-            switch groupWorkout.workoutType {
-            case .running: return 10
-            case .cycling: return 8
-            case .swimming: return 11
-            case .walking: return 4
-            case .hiking: return 6
-            case .yoga: return 3
-            case .functionalStrengthTraining: return 8
-            case .traditionalStrengthTraining: return 6
-            case .crossTraining: return 9
-            case .elliptical: return 8
-            case .rowing: return 10
-            case .stairClimbing: return 9
-            case .highIntensityIntervalTraining: return 12
-            case .dance: return 6
-            case .boxing: return 12
-            case .kickboxing: return 10
-            case .pilates: return 4
-            case .tennis: return 8
-            case .basketball: return 8
-            case .soccer: return 8
-            default: return 5
-            }
-        }()
-        
-        let estimatedCalories = (duration / 60) * caloriesPerMinute
-        
-        return Workout(
-            id: UUID(),
-            workoutType: groupWorkout.workoutType.storageKey,
-            startDate: startTime,
-            endDate: endTime,
-            duration: duration,
-            totalEnergyBurned: estimatedCalories,
-            totalDistance: nil, // Could be added to group workouts later
-            averageHeartRate: nil, // Could be added if we integrate with Watch
-            followersEarned: 0,
-            xpEarned: nil,
-            source: "Group Workout",
-            groupWorkoutID: groupWorkout.id
-        )
-    }
-    
     private func calculateXP(for workout: Workout) -> (baseXP: Int, finalXP: Int, factors: XPCalculationFactors) {
         let currentStreak = cloudKitManager.currentStreak
         let userStats = UserStats(
@@ -305,7 +208,7 @@ final class WorkoutProcessor {
     
     private func saveWorkoutRecord(_ workout: Workout) async throws {
         let record = CKRecord(recordType: "Workouts")
-        record["id"] = workout.id.uuidString
+        record["id"] = workout.id
         record["workoutType"] = workout.workoutType
         record["startDate"] = workout.startDate
         record["endDate"] = workout.endDate
@@ -332,8 +235,27 @@ final class WorkoutProcessor {
     
     private func shouldShareToFeed() async -> Bool {
         // Check user's sharing preferences
-        // This would check ActivityFeedSettings
-        return true // For now, always share
+        do {
+            let settings = try await activitySettingsService.loadSettings()
+            
+            // Check master toggle first
+            guard settings.shareActivitiesToFeed else {
+                FameFitLogger.info("Activity sharing disabled by user", category: FameFitLogger.workout)
+                return false
+            }
+            
+            // Check if workouts are enabled
+            guard settings.shareWorkouts else {
+                FameFitLogger.info("Workout sharing disabled by user", category: FameFitLogger.workout)
+                return false
+            }
+            
+            return true
+        } catch {
+            FameFitLogger.warning("Failed to load activity settings, defaulting to share: \(error)", category: FameFitLogger.workout)
+            // Default to sharing if we can't load settings
+            return true
+        }
     }
     
     private func createFeedItem(
@@ -346,7 +268,7 @@ final class WorkoutProcessor {
         
         do {
             try await activityFeedService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: privacy,
                 includeDetails: includeDetails
             )
@@ -376,7 +298,7 @@ final class WorkoutProcessor {
         NotificationCenter.default.post(
             name: Notification.Name("WorkoutCompleted"),
             object: nil,
-            userInfo: ["workoutID": workout.id.uuidString]
+            userInfo: ["workoutID": workout.id]
         )
         
         // Could add more notification types here

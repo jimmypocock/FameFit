@@ -14,7 +14,7 @@ import HealthKit
 
 protocol ActivityFeedServicing {
     func postWorkoutActivity(
-        workoutHistory: Workout,
+        workout: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws
@@ -45,6 +45,8 @@ protocol ActivityFeedServicing {
 final class ActivityFeedService: ActivityFeedServicing {
     private let cloudKitManager: any CloudKitManaging
     private var privacySettings: WorkoutPrivacySettings
+    private let userProfileService: UserProfileServicing?
+    private var currentUsername: String = "Unknown"
 
     // Publishers
     private let newActivitySubject = PassthroughSubject<ActivityFeedRecord, Never>()
@@ -58,9 +60,28 @@ final class ActivityFeedService: ActivityFeedServicing {
         privacyUpdateSubject.eraseToAnyPublisher()
     }
 
-    init(cloudKitManager: any CloudKitManaging, privacySettings: WorkoutPrivacySettings) {
+    init(cloudKitManager: any CloudKitManaging, privacySettings: WorkoutPrivacySettings, userProfileService: UserProfileServicing? = nil) {
         self.cloudKitManager = cloudKitManager
         self.privacySettings = privacySettings
+        self.userProfileService = userProfileService
+        
+        // Load current username on init
+        Task {
+            await loadCurrentUsername()
+        }
+    }
+    
+    private func loadCurrentUsername() async {
+        guard let userID = cloudKitManager.currentUserID,
+              let profileService = userProfileService else { return }
+        
+        do {
+            let profile = try await profileService.fetchProfile(userID: userID)
+            currentUsername = profile.username
+            FameFitLogger.info("📝 Loaded current username: \(currentUsername)", category: FameFitLogger.social)
+        } catch {
+            FameFitLogger.warning("⚠️ Could not load username for activity feed: \(error)", category: FameFitLogger.social)
+        }
     }
     
     /// Update privacy settings from saved user preferences
@@ -72,15 +93,15 @@ final class ActivityFeedService: ActivityFeedServicing {
     // MARK: - Post Activity Methods
 
     func postWorkoutActivity(
-        workoutHistory: Workout,
+        workout: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
-        FameFitLogger.info("📝 Attempting to post workout activity: type=\(workoutHistory.workoutType)", category: FameFitLogger.social)
+        FameFitLogger.info("📝 Attempting to post workout activity: type=\(workout.workoutType)", category: FameFitLogger.social)
         
         // Validate privacy settings
-        guard let workoutType = HKWorkoutActivityType.from(storageKey: workoutHistory.workoutType) else {
-            FameFitLogger.error("❌ Invalid workout type: \(workoutHistory.workoutType)", category: FameFitLogger.social)
+        guard let workoutType = HKWorkoutActivityType.from(storageKey: workout.workoutType) else {
+            FameFitLogger.error("❌ Invalid workout type: \(workout.workoutType)", category: FameFitLogger.social)
             throw ActivityFeedError.invalidWorkoutType
         }
 
@@ -93,7 +114,7 @@ final class ActivityFeedService: ActivityFeedServicing {
 
         // Create content
         let content = createWorkoutContent(
-            from: workoutHistory,
+            from: workout,
             includeDetails: includeDetails && privacySettings.allowDataSharing
         )
 
@@ -106,13 +127,14 @@ final class ActivityFeedService: ActivityFeedServicing {
         let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
+            username: currentUsername,
             activityType: "workout",
-            workoutID: workoutHistory.id.uuidString,
+            workoutID: workout.id,
             content: contentString,
             visibility: finalPrivacy.rawValue,
             creationDate: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600), // 30 days
-            xpEarned: workoutHistory.followersEarned,
+            xpEarned: workout.followersEarned,
             achievementName: nil
         )
 
@@ -153,6 +175,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
+            username: currentUsername,
             activityType: "achievement",
             workoutID: nil,
             content: contentString,
@@ -193,6 +216,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         let activityItem = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: cloudKitManager.currentUserID ?? "",
+            username: currentUsername,
             activityType: "level_up",
             workoutID: nil,
             content: contentString,
@@ -322,6 +346,7 @@ final class ActivityFeedService: ActivityFeedServicing {
     private func saveToCloudKit(_ item: ActivityFeedRecord) async throws {
         let record = CKRecord(recordType: "ActivityFeed")
         record["userID"] = item.userID
+        record["username"] = item.username
         record["activityType"] = item.activityType
         record["workoutID"] = item.workoutID
         record["content"] = item.content
@@ -352,6 +377,7 @@ final class ActivityFeedService: ActivityFeedServicing {
     private func convertRecordToActivityItem(_ record: CKRecord) -> ActivityFeedRecord? {
         guard
             let userID = record["userID"] as? String,
+            let username = record["username"] as? String,
             let activityType = record["activityType"] as? String,
             let content = record["content"] as? String,
             let visibility = record["visibility"] as? String,
@@ -364,6 +390,7 @@ final class ActivityFeedService: ActivityFeedServicing {
         return ActivityFeedRecord(
             id: record.recordID.recordName,
             userID: userID,
+            username: username,
             activityType: activityType,
             workoutID: record["workoutID"] as? String,
             content: content,

@@ -72,6 +72,7 @@ struct OnboardingContainerView: View {
         }
         .onAppear {
             // If user is already authenticated, skip to the appropriate step
+            // This handles both initial app launch and sign-in after sign-out
             if authManager.isAuthenticated {
                 // Check if user has a profile
                 Task {

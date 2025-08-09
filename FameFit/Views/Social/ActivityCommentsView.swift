@@ -419,6 +419,7 @@ struct ActivityCommentsView: View {
         feedItem: ActivityFeedItem(
             id: "test-feed-item",
             userID: "user123",
+            username: "runner_sam",
             userProfile: UserProfile(
                 id: "user123",
                 userID: "user123",

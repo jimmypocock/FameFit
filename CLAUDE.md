@@ -227,6 +227,25 @@ The app supports launch arguments for UI testing:
 - `--reset-state` - Clears all user data for fresh onboarding tests
 - `--mock-healthkit` - Uses mock HealthKit data
 
+## WatchConnectivity Development Notes
+
+### Known Issue: Watch App Not Detected in Xcode
+When running apps via Xcode on real devices, the iPhone app often reports:
+- `isWatchAppInstalled: false`
+- `WCSession counterpart app not installed`
+
+**This is a known Apple bug** that occurs when apps are installed via Xcode rather than TestFlight/App Store.
+
+### Solutions:
+1. **For Development**: Accept this limitation. Core features can be tested independently on each device.
+2. **For Testing Watch↔iPhone Communication**: Use TestFlight. WatchConnectivity works perfectly when apps are installed via TestFlight or App Store.
+3. **Debug Logs**: The app includes DEBUG-only warnings when this issue is detected.
+
+### Important:
+- Do NOT implement workarounds like CloudKit fallbacks - they add complexity
+- The issue ONLY affects Xcode development builds
+- Production apps work perfectly
+
 ### Common Issues and Solutions
 1. **Test runner crashes**: Run `./Scripts/reset_testing_env.sh`
 2. **Asset catalog errors**: Both iOS and Watch apps have minimal AppIcon.appiconset configurations with only 1024x1024 marketing icons. This may cause command-line build warnings but works in Xcode. For production, add all required icon sizes.

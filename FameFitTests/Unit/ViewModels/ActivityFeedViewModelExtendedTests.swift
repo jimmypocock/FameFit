@@ -229,7 +229,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
 
         // Post some activities
         try? await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -287,11 +287,12 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
 
         // Post activity with specific user
         mockActivityFeedService.postedActivities = []
-        let activity = ActivityFeedItem(
+        let activity = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: testUserId,
+            username: "testuser",
             activityType: "workout",
-            workoutId: workout.id.uuidString,
+            workoutID: workout.id,
             content: try! String(data: JSONEncoder().encode(ActivityFeedContent(
                 title: "Completed a Cycling workout",
                 subtitle: "Great job on that 60-minute session! 💪",
@@ -304,7 +305,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil
@@ -383,7 +384,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         )
 
         try? await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: true
         )
@@ -403,6 +404,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
+            username: "testuser",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
@@ -410,7 +412,11 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]
-            )
+            ),
+            workoutID: workoutId,
+            kudosCount: 0,
+            commentCount: 0,
+            hasKudoed: false
         )
 
         // Pre-configure mock kudos service
@@ -431,6 +437,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let feedItem = ActivityFeedItem(
             id: "achievement123",
             userID: "user456",
+            username: "achiever",
             userProfile: nil,
             type: .achievement,
             timestamp: Date(),
@@ -438,7 +445,11 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 title: "First Workout Achievement",
                 subtitle: nil,
                 details: ["achievementName": "First Workout"]
-            )
+            ),
+            workoutID: nil,
+            kudosCount: 0,
+            commentCount: 0,
+            hasKudoed: false
         )
 
         // When
@@ -454,6 +465,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
+            username: "testuser",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
@@ -461,7 +473,11 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 title: "Morning Run",
                 subtitle: nil,
                 details: ["workoutType": "Running"]
-            )
+            ),
+            workoutID: workoutId,
+            kudosCount: 0,
+            commentCount: 0,
+            hasKudoed: false
         )
 
         mockKudosService.shouldFailToggleKudos = true
@@ -512,11 +528,12 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
             source: "FameFit"
         )
 
-        let activity = ActivityFeedItem(
-            id: workout.id.uuidString,
+        let activity = ActivityFeedRecord(
+            id: workout.id,
             userID: "user1",
+            username: "user1",
             activityType: "workout",
-            workoutId: workout.id.uuidString,
+            workoutID: workout.id,
             content: try! String(data: JSONEncoder().encode(ActivityFeedContent(
                 title: "Completed a Running workout",
                 subtitle: "Great run!",
@@ -528,7 +545,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 ]
             )), encoding: .utf8)!,
             visibility: "public",
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
             xpEarned: 60,
             achievementName: nil
@@ -537,7 +554,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
 
         // Pre-configure kudos for the workout
         mockKudosService.simulateKudos(
-            for: workout.id.uuidString,
+            for: workout.id,
             count: 10,
             hasUserKudos: true,
             recentUsers: [
@@ -576,6 +593,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
+            username: "owner",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
@@ -584,8 +602,12 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 subtitle: nil,
                 details: ["workoutType": "Running"]
             ),
+            workoutID: workoutId,
+            kudosCount: 5,
+            commentCount: 0,
+            hasKudoed: false,
             kudosSummary: WorkoutKudosSummary(
-                workoutId: workoutId,
+                workoutID: workoutId,
                 totalCount: 5,
                 hasUserKudos: false,
                 recentUsers: []
@@ -626,7 +648,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         // Given
         let workoutId = "workout123"
         let initialKudosSummary = WorkoutKudosSummary(
-            workoutId: workoutId,
+            workoutID: workoutId,
             totalCount: 5,
             hasUserKudos: false,
             recentUsers: []
@@ -635,6 +657,7 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
         let feedItem = ActivityFeedItem(
             id: workoutId,
             userID: "owner456",
+            username: "owner",
             userProfile: nil,
             type: .workout,
             timestamp: Date(),
@@ -643,6 +666,10 @@ final class ActivityFeedViewModelExtendedTests: XCTestCase {
                 subtitle: nil,
                 details: ["workoutType": "Running"]
             ),
+            workoutID: workoutId,
+            kudosCount: 5,
+            commentCount: 0,
+            hasKudoed: false,
             kudosSummary: initialKudosSummary
         )
 

@@ -399,7 +399,7 @@ final class CachedSocialFollowingService: SocialFollowingServicing, @unchecked S
         let blockRecord = CKRecord(recordType: "BlockedUsers")
         blockRecord["blockerID"] = currentUserID
         blockRecord["blockedID"] = userID
-        blockRecord["creationDate"] = Date()
+        // creationDate is managed by CloudKit automatically
         
         // Save to CloudKit
         _ = try await publicDatabase.save(blockRecord)

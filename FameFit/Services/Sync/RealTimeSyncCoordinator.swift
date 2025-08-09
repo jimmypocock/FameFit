@@ -113,8 +113,8 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         case SubscriptionType.workoutKudos.recordType:
             await handleWorkoutKudosChange(notification)
 
-        case SubscriptionType.workoutComments.recordType:
-            await handleWorkoutCommentsChange(notification)
+        case SubscriptionType.activityFeedComments.recordType:
+            await handleActivityFeedCommentsChange(notification)
 
         case SubscriptionType.workoutChallenges.recordType:
             await handleWorkoutChallengeChange(notification)
@@ -173,7 +173,7 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         }
     }
 
-    private func handleWorkoutCommentsChange(_ notification: CloudKitNotificationInfo) async {
+    private func handleActivityFeedCommentsChange(_ notification: CloudKitNotificationInfo) async {
         if let workoutID = notification.userInfo["workoutID"] as? String {
             commentUpdatePublisher.send(workoutID)
         }

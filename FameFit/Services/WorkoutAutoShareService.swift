@@ -113,7 +113,7 @@ final class WorkoutAutoShareService: WorkoutAutoShareServicing {
         do {
             // Share the workout
             try await activityFeedService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: privacy,
                 includeDetails: settings.shareWorkoutDetails
             )

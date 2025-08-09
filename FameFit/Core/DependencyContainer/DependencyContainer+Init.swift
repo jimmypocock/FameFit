@@ -127,7 +127,8 @@ extension DependencyContainer {
             notificationManager: notificationManager,
             userProfileService: userProfileService,
             workoutChallengesService: workoutChallengesService,
-            workoutChallengeLinksService: workoutChallengeLinksService
+            workoutChallengeLinksService: workoutChallengeLinksService,
+            activitySettingsService: activitySharingSettingsService
         )
         
         let workoutAutoShareService = factory.createWorkoutAutoShareService(

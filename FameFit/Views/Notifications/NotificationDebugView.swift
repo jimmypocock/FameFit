@@ -348,7 +348,7 @@ struct NotificationDebugView: View {
 
     private func sendTestWorkoutFameFitNotification() {
         let testWorkout = Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-1_800), // 30 minutes ago
             endDate: Date(),

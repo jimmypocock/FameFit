@@ -197,7 +197,7 @@ struct WorkoutCard: View {
             HStack(spacing: 20) {
                 // Kudos button
                 KudosButton(
-                    workoutID: workout.id.uuidString,
+                    workoutID: workout.id,
                     ownerID: userProfile?.id ?? "",
                     kudosSummary: kudosSummary,
                     onTap: onKudosTap

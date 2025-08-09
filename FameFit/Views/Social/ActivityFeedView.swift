@@ -59,7 +59,7 @@ struct ActivityFeedView: View {
                     // Convert ActivityFeedItem to Workout for WorkoutCommentsView
                     WorkoutCommentsView(
                         workout: Workout(
-                            id: UUID(uuidString: workout.id) ?? UUID(),
+                            id: workout.id,
                             workoutType: workout.content.workoutType ?? "Unknown",
                             startDate: workout.timestamp,
                             endDate: workout.timestamp.addingTimeInterval(workout.content.duration ?? 0),

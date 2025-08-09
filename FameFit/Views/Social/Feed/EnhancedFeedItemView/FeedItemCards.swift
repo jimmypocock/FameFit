@@ -18,13 +18,21 @@ struct EnhancedAchievementCard: View {
         VStack(spacing: 16) {
             // User Header
             HStack(spacing: 12) {
-                Button(action: onProfileTap) {
-                    ProfileImageView(profile: item.userProfile)
-                        .frame(width: 40, height: 40)
-                }
+                // Profile image removed for now
+                Circle()
+                    .fill(Color.blue.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(item.username.prefix(1).uppercased())
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                    )
+                    .onTapGesture {
+                        onProfileTap()
+                    }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.username ?? "Unknown")
+                    Text(item.username)
                         .font(.body)
                         .fontWeight(.medium)
 
@@ -80,13 +88,21 @@ struct EnhancedLevelUpCard: View {
         VStack(spacing: 16) {
             // User Header
             HStack(spacing: 12) {
-                Button(action: onProfileTap) {
-                    ProfileImageView(profile: item.userProfile)
-                        .frame(width: 40, height: 40)
-                }
+                // Profile image removed for now
+                Circle()
+                    .fill(Color.blue.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(item.username.prefix(1).uppercased())
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                    )
+                    .onTapGesture {
+                        onProfileTap()
+                    }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.username ?? "Unknown")
+                    Text(item.username)
                         .font(.body)
                         .fontWeight(.medium)
 
@@ -145,13 +161,21 @@ struct EnhancedMilestoneCard: View {
         VStack(spacing: 16) {
             // User Header
             HStack(spacing: 12) {
-                Button(action: onProfileTap) {
-                    ProfileImageView(profile: item.userProfile)
-                        .frame(width: 40, height: 40)
-                }
+                // Profile image removed for now
+                Circle()
+                    .fill(Color.blue.opacity(0.2))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(item.username.prefix(1).uppercased())
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                    )
+                    .onTapGesture {
+                        onProfileTap()
+                    }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.userProfile?.username ?? "Unknown")
+                    Text(item.username)
                         .font(.body)
                         .fontWeight(.medium)
 
@@ -192,38 +216,3 @@ struct EnhancedMilestoneCard: View {
     }
 }
 
-// MARK: - Quick Reactions View
-
-struct QuickReactionsView: View {
-    let onReaction: (String) -> Void
-    @State private var selectedReaction: String?
-
-    let reactions = ["💪", "🔥", "👏", "❤️"]
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(reactions, id: \.self) { emoji in
-                Button(action: {
-                    selectedReaction = emoji
-                    onReaction(emoji)
-
-                    // Reset after animation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        selectedReaction = nil
-                    }
-                }) {
-                    Text(emoji)
-                        .font(.title3)
-                        .scaleEffect(selectedReaction == emoji ? 1.5 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedReaction)
-                }
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.secondary.opacity(0.05))
-        )
-    }
-}

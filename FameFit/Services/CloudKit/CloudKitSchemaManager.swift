@@ -91,10 +91,10 @@ class CloudKitSchemaManager {
                 try await initializeWorkoutKudosRecordType()
                 FameFitLogger.info("WorkoutKudos record type initialized", category: FameFitLogger.cloudKit)
 
-                FameFitLogger.debug("Initializing WorkoutComments record type...", category: FameFitLogger.cloudKit)
-                try await initializeWorkoutCommentsRecordType()
+                FameFitLogger.debug("Initializing ActivityFeedComments record type...", category: FameFitLogger.cloudKit)
+                try await initializeActivityFeedCommentsRecordType()
                 FameFitLogger.info(
-                    "WorkoutComments record type initialized", category: FameFitLogger.cloudKit
+                    "ActivityFeedComments record type initialized", category: FameFitLogger.cloudKit
                 )
 
                 FameFitLogger.debug("Initializing GroupWorkouts record type...", category: FameFitLogger.cloudKit)
@@ -368,7 +368,7 @@ class CloudKitSchemaManager {
                 dummyRecord["activityType"] = "workout"
                 dummyRecord["content"] = "Schema Init"
                 dummyRecord["visibility"] = "private"
-                dummyRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
                 dummyRecord["expiresAt"] = Date().addingTimeInterval(86_400 * 30) // 30 days
 
                 do {
@@ -396,7 +396,7 @@ class CloudKitSchemaManager {
                 dummyRecord["workoutID"] = "dummy-workout"
                 dummyRecord["userID"] = "dummy-user"
                 dummyRecord["workoutOwnerID"] = "dummy-owner"
-                dummyRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
 
                 do {
                     let savedRecord = try await publicDatabase.save(dummyRecord)
@@ -410,8 +410,8 @@ class CloudKitSchemaManager {
         }
     }
 
-    private func initializeWorkoutCommentsRecordType() async throws {
-        let query = CKQuery(recordType: "WorkoutComments", predicate: NSPredicate(value: true))
+    private func initializeActivityFeedCommentsRecordType() async throws {
+        let query = CKQuery(recordType: "ActivityFeedComments", predicate: NSPredicate(value: true))
 
         do {
             _ = try await publicDatabase.records(matching: query, resultsLimit: 1)
@@ -419,13 +419,12 @@ class CloudKitSchemaManager {
         } catch {
             if error.localizedDescription.contains("Record type")
                 || error.localizedDescription.contains("Did not find record type") {
-                let dummyRecord = CKRecord(recordType: "WorkoutComments")
+                let dummyRecord = CKRecord(recordType: "ActivityFeedComments")
                 dummyRecord["workoutID"] = "dummy-workout"
                 dummyRecord["userID"] = "dummy-user"
                 dummyRecord["workoutOwnerID"] = "dummy-owner"
                 dummyRecord["content"] = "Great workout!"
-                dummyRecord["creationDate"] = Date()
-                dummyRecord["modificationDate"] = Date()
+                // creationDate and modificationDate are managed by CloudKit automatically
                 dummyRecord["isEdited"] = Int64(0)
                 dummyRecord["likeCount"] = Int64(0)
 
@@ -464,8 +463,7 @@ class CloudKitSchemaManager {
                 dummyRecord["scheduledStart"] = Date().addingTimeInterval(3_600) // 1 hour from now
                 dummyRecord["scheduledEnd"] = Date().addingTimeInterval(7_200) // 2 hours from now
                 dummyRecord["status"] = "scheduled"
-                dummyRecord["creationDate"] = Date()
-                dummyRecord["modificationDate"] = Date()
+                // creationDate and modificationDate are managed by CloudKit automatically
                 dummyRecord["isPublic"] = Int64(1)
                 dummyRecord["tags"] = [String]()
 
@@ -574,7 +572,7 @@ class CloudKitSchemaManager {
                 dummyRecord["description"] = "Schema initialization"
                 dummyRecord["startTimestamp"] = Date()
                 dummyRecord["endTimestamp"] = Date().addingTimeInterval(7 * 24 * 60 * 60)
-                dummyRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
                 dummyRecord["status"] = "pending"
                 dummyRecord["xpStake"] = Int64(0)
                 dummyRecord["winnerTakesAll"] = Int64(0)
@@ -645,7 +643,7 @@ extension CloudKitSchemaManager {
                 // Core required fields
                 dummyRecord["workoutID"] = "dummy-workout-id"
                 dummyRecord["userID"] = "dummy-user-id"
-                dummyRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
                 dummyRecord["workoutType"] = "running"
                 
                 // Context fields
@@ -718,7 +716,7 @@ extension CloudKitSchemaManager {
                 dummyRecord["contributionValue"] = 0.0
                 dummyRecord["contributionType"] = "distance"
                 dummyRecord["workoutDate"] = Date()
-                dummyRecord["creationDate"] = Date()
+                // creationDate is managed by CloudKit automatically
                 
                 // Validation fields
                 dummyRecord["isVerified"] = Int64(0)
