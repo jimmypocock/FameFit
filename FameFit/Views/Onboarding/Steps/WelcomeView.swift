@@ -16,45 +16,99 @@ struct WelcomeView: View {
     @State private var glowAnimation = false
     
     var body: some View {
-        ZStack {
-            // Premium gradient background - full screen
-            backgroundGradient
-                .ignoresSafeArea()
-            
-            // Subtle animated particles
-            ParticleEffectView()
-                .opacity(0.3)
-                .ignoresSafeArea()
-            
-            VStack {
-                // Top section with logo, tagline, and features
-                VStack(spacing: Spacing.large) {
-                    // Logo and brand
-                    brandSection
-                        .opacity(showContent ? 1 : 0)
-                        .scaleEffect(showContent ? 1 : 0.8)
-                        .padding(.top, Spacing.xxLarge)
-                    
-                    // Tagline
-                    taglineSection
-                        .opacity(showTagline ? 1 : 0)
-                        .offset(y: showTagline ? 0 : 20)
-                    
-                    // Feature highlights
-                    featureSection
-                        .opacity(showFeatures ? 1 : 0)
-                        .offset(y: showFeatures ? 0 : 30)
+        GeometryReader { geometry in
+            ZStack {
+                // Premium gradient background - full screen
+                backgroundGradient
+                    .ignoresSafeArea()
+                
+                // Subtle animated particles
+                ParticleEffectView()
+                    .opacity(0.3)
+                    .ignoresSafeArea()
+                
+                // Check if content would overflow
+                if geometry.size.height < 600 {
+                    // Small screen: Scrollable content with sticky CTA
+                    ZStack(alignment: .bottom) {
+                        ScrollView {
+                            VStack(spacing: Spacing.large) {
+                                // Logo and brand
+                                brandSection
+                                    .opacity(showContent ? 1 : 0)
+                                    .scaleEffect(showContent ? 1 : 0.8)
+                                    .padding(.top, Spacing.xxLarge)
+                                
+                                // Tagline
+                                taglineSection
+                                    .opacity(showTagline ? 1 : 0)
+                                    .offset(y: showTagline ? 0 : 20)
+                                
+                                // Feature highlights
+                                featureSection
+                                    .opacity(showFeatures ? 1 : 0)
+                                    .offset(y: showFeatures ? 0 : 30)
+                                
+                                // Add padding at bottom to prevent content hiding behind CTA
+                                Color.clear
+                                    .frame(height: 120)
+                            }
+                        }
+                        .scrollIndicators(.hidden)
+                        
+                        // Sticky CTA with gradient fade
+                        VStack(spacing: 0) {
+                            // Gradient fade from transparent to background
+                            LinearGradient(
+                                colors: [
+                                    BrandColors.gradientDark.opacity(0),
+                                    BrandColors.gradientDark
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 20)
+                            
+                            // CTA on solid background
+                            ctaSection
+                                .opacity(showCTA ? 1 : 0)
+                                .offset(y: showCTA ? 0 : 40)
+                                .background(BrandColors.gradientDark)
+                        }
+                    }
+                } else {
+                    // Regular screen: Fixed layout
+                    VStack {
+                        // Top section with logo, tagline, and features
+                        VStack(spacing: Spacing.large) {
+                            // Logo and brand
+                            brandSection
+                                .opacity(showContent ? 1 : 0)
+                                .scaleEffect(showContent ? 1 : 0.8)
+                                .padding(.top, Spacing.xxLarge)
+                            
+                            // Tagline
+                            taglineSection
+                                .opacity(showTagline ? 1 : 0)
+                                .offset(y: showTagline ? 0 : 20)
+                            
+                            // Feature highlights
+                            featureSection
+                                .opacity(showFeatures ? 1 : 0)
+                                .offset(y: showFeatures ? 0 : 30)
+                        }
+                        
+                        // This pushes everything apart - the key to flexbox-like behavior
+                        Spacer(minLength: Spacing.xxLarge)
+                        
+                        // CTA section at bottom
+                        ctaSection
+                            .opacity(showCTA ? 1 : 0)
+                            .offset(y: showCTA ? 0 : 40)
+                    }
+                    .frame(maxHeight: .infinity)
                 }
-                
-                // This pushes everything apart - the key to flexbox-like behavior
-                Spacer(minLength: Spacing.xxLarge)
-                
-                // CTA section at bottom
-                ctaSection
-                    .opacity(showCTA ? 1 : 0)
-                    .offset(y: showCTA ? 0 : 40)
             }
-            .frame(maxHeight: .infinity)
         }
         .onAppear {
             animateContent()
@@ -109,7 +163,7 @@ struct WelcomeView: View {
         Text("Where fitness meets influence")
             .taglineTextStyle()
             .multilineTextAlignment(.center)
-            .padding(.horizontal, Spacing.large)
+            .padding(.horizontal, Spacing.medium)
             .padding(.bottom, Spacing.xLarge)
     }
     
