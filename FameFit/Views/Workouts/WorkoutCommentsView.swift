@@ -227,7 +227,8 @@ struct WorkoutCommentsView: View {
         Task {
             do {
                 if let userID = container.cloudKitManager.currentUserID {
-                    currentUser = try await container.userProfileService.fetchProfile(userID: userID)
+                    // userID is from cloudKitManager, so it's a CloudKit user ID
+                    currentUser = try await container.userProfileService.fetchProfileByUserID(userID)
                 }
             } catch {
                 print("Failed to load current user: \(error)")

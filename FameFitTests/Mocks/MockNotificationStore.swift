@@ -157,7 +157,6 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
             let notification = FameFitNotification(
                 title: "Test Notification \(index)",
                 body: "Body \(index)",
-                character: FameFitCharacter.allCases.randomElement()!,
                 workoutDuration: 30 * index,
                 calories: 100 * index,
                 followersEarned: 5

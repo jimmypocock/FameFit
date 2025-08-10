@@ -46,7 +46,8 @@ final class ActivityFeedService: ActivityFeedProtocol {
               let profileService = userProfileService else { return }
         
         do {
-            let profile = try await profileService.fetchProfile(userID: userID)
+            // userID is from cloudKitManager.currentUserID, so it's a CloudKit user ID
+            let profile = try await profileService.fetchProfileByUserID(userID)
             currentUsername = profile.username
             FameFitLogger.info("📝 Loaded current username: \(currentUsername)", category: FameFitLogger.social)
         } catch {

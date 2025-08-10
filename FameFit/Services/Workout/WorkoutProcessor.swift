@@ -123,8 +123,9 @@ final class WorkoutProcessor {
         }
         
         // Try to fetch the user's profile - if it doesn't exist, don't process the workout
+        // Note: userID is the CloudKit user ID (starts with underscore)
         do {
-            _ = try await userProfileService.fetchProfile(userID: userID)
+            _ = try await userProfileService.fetchProfileByUserID(userID)
         } catch {
             FameFitLogger.warning("⚠️ Cannot process workout - user has no profile", category: FameFitLogger.workout)
             throw WorkoutProcessingError.profileRequired

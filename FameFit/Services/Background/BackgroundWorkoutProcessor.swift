@@ -152,7 +152,6 @@ final class BackgroundWorkoutProcessor {
         let notification = FameFitNotification(
             title: "Background Share 🌙",
             body: "Your \(workoutType) was automatically shared while the app was closed",
-            character: FameFitCharacter.defaultCharacter,
             workoutDuration: Int(workout.duration / 60),
             calories: Int(workout.totalEnergyBurned),
             followersEarned: workout.xpEarned ?? 0

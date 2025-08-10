@@ -92,30 +92,7 @@ final class UserProfileService: UserProfileProtocol {
         }
 
         // Try to fetch profile by userID field (not record ID)
-        var profile = try await fetchProfileByUserID(userID)
-        
-        // Fetch fresh stats from Users record
-        do {
-            let freshStats = try await fetchFreshUserStats(userID: userID)
-            // Create updated profile with fresh stats
-            profile = UserProfile(
-                id: profile.id,
-                userID: profile.userID,
-                username: profile.username,
-                bio: profile.bio,
-                workoutCount: freshStats.workoutCount,
-                totalXP: freshStats.totalXP,
-                creationDate: profile.creationDate,
-                modificationDate: profile.modificationDate,
-                isVerified: profile.isVerified,
-                privacyLevel: profile.privacyLevel,
-                profileImageURL: profile.profileImageURL,
-                headerImageURL: profile.headerImageURL
-            )
-        } catch {
-            // If we can't fetch fresh stats, continue with cached values
-            print("Warning: Could not fetch fresh stats: \(error)")
-        }
+        let profile = try await fetchProfileByUserID(userID)
         
         currentProfile = profile
         return profile
@@ -136,30 +113,7 @@ final class UserProfileService: UserProfileProtocol {
         }
 
         // Fetch fresh profile by userID field
-        var profile = try await fetchProfileByUserID(userID)
-        
-        // Always fetch fresh stats from Users record
-        do {
-            let freshStats = try await fetchFreshUserStats(userID: userID)
-            // Create updated profile with fresh stats
-            profile = UserProfile(
-                id: profile.id,
-                userID: profile.userID,
-                username: profile.username,
-                bio: profile.bio,
-                workoutCount: freshStats.workoutCount,
-                totalXP: freshStats.totalXP,
-                creationDate: profile.creationDate,
-                modificationDate: profile.modificationDate,
-                isVerified: profile.isVerified,
-                privacyLevel: profile.privacyLevel,
-                profileImageURL: profile.profileImageURL,
-                headerImageURL: profile.headerImageURL
-            )
-        } catch {
-            // If we can't fetch fresh stats, continue with cached values
-            print("Warning: Could not fetch fresh stats: \(error)")
-        }
+        let profile = try await fetchProfileByUserID(userID)
         
         currentProfile = profile
         return profile
@@ -526,27 +480,6 @@ final class UserProfileService: UserProfileProtocol {
     }
 
     // MARK: - Private Methods
-    
-    private func fetchFreshUserStats(userID: String) async throws -> (workoutCount: Int, totalXP: Int) {
-        // Fetch fresh stats directly from the Users record in private database
-        let recordID = CKRecord.ID(recordName: userID)
-        
-        do {
-            let userRecord = try await privateDatabase.record(for: recordID)
-            let workoutCount = userRecord["totalWorkouts"] as? Int ?? 0
-            let totalXP = userRecord["totalXP"] as? Int ?? 0
-            
-            print("🔍 Fresh stats from Users record:")
-            print("   Record ID: \(recordID.recordName)")
-            print("   totalWorkouts: \(userRecord["totalWorkouts"] ?? "nil")")
-            print("   totalXP: \(userRecord["totalXP"] ?? "nil")")
-            print("   Final values: workouts=\(workoutCount), XP=\(totalXP)")
-            
-            return (workoutCount: workoutCount, totalXP: totalXP)
-        } catch {
-            throw ProfileServiceError.networkError(error)
-        }
-    }
 
     private func getCachedProfile(userID: String) -> UserProfile? {
         guard let cached = profileCache[userID] else { return nil }

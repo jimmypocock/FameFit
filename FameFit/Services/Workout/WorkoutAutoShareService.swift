@@ -130,7 +130,6 @@ final class WorkoutAutoShareService: WorkoutAutoShareProtocol {
         let fameFitNotification = FameFitNotification(
             title: "Workout Shared 📢",
             body: "Your \(workoutType) has been automatically shared to your activity feed with \(privacy.displayName) privacy",
-            character: FameFitCharacter.defaultCharacter,
             workoutDuration: Int(workout.duration / 60),
             calories: Int(workout.totalEnergyBurned),
             followersEarned: workout.xpEarned ?? 0

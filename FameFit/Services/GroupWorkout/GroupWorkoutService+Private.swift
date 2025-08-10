@@ -69,7 +69,8 @@ extension GroupWorkoutService {
         guard workout.hostID != participantID else { return }
         
         // Fetch participant profile
-        guard let participant = try? await userProfileService.fetchProfile(userID: participantID) else {
+        // participantID is a CloudKit user ID (from participant records), use fetchProfileByUserID
+        guard let participant = try? await userProfileService.fetchProfileByUserID(participantID) else {
             FameFitLogger.warning("Could not fetch participant profile for notification", category: FameFitLogger.social)
             return
         }
@@ -99,7 +100,8 @@ extension GroupWorkoutService {
         FameFitLogger.info("Notifying user of workout invite", category: FameFitLogger.social)
         
         // Fetch host profile
-        guard let host = try? await userProfileService.fetchProfile(userID: workout.hostID) else {
+        // workout.hostID is a CloudKit user ID (compared with cloudKitManager.currentUserID), use fetchProfileByUserID
+        guard let host = try? await userProfileService.fetchProfileByUserID(workout.hostID) else {
             FameFitLogger.warning("Could not fetch host profile for notification", category: FameFitLogger.social)
             return
         }

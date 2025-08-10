@@ -58,7 +58,12 @@ final class HealthKitService: HealthKitProtocol {
         ) { success, error in
             // Security: Don't expose internal error details
             if let error {
-                FameFitLogger.error("Background delivery setup error occurred", error: error)
+                // Background delivery requires special entitlement - this is expected in development
+                if error.localizedDescription.contains("background-delivery entitlement") {
+                    FameFitLogger.debug("Background delivery not available (requires entitlement)", category: FameFitLogger.healthKit)
+                } else {
+                    FameFitLogger.error("Background delivery setup error occurred", error: error)
+                }
             }
             completion(success, error)
         }

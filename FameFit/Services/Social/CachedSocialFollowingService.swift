@@ -105,7 +105,8 @@ final class CachedSocialFollowingService: SocialFollowingProtocol, @unchecked Se
         
         // Send notification to the followed user
         if let notificationManager = notificationManager,
-           let followerProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+           // currentUserID is CloudKit user ID, use fetchProfileByUserID
+           let followerProfile = try? await profileService.fetchProfileByUserID(currentUserID) {
             await notificationManager.notifyNewFollower(from: followerProfile)
         }
         
@@ -507,7 +508,8 @@ final class CachedSocialFollowingService: SocialFollowingProtocol, @unchecked Se
     
     func requestFollow(userID: String, message: String?) async throws {
         // Check if target user has a private profile
-        let targetProfile = try await profileService.fetchProfile(userID: userID)
+        // userID parameter is CloudKit user ID, use fetchProfileByUserID
+        let targetProfile = try await profileService.fetchProfileByUserID(userID)
         
         // If public profile, follow directly
         if targetProfile.privacyLevel == .publicProfile {
@@ -521,7 +523,8 @@ final class CachedSocialFollowingService: SocialFollowingProtocol, @unchecked Se
             
             // Send follow request notification
             if let notificationManager = notificationManager,
-               let requesterProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+               // currentUserID is CloudKit user ID, use fetchProfileByUserID
+               let requesterProfile = try? await profileService.fetchProfileByUserID(currentUserID) {
                 await notificationManager.notifyFollowRequest(from: requesterProfile)
             }
             
@@ -553,7 +556,8 @@ final class CachedSocialFollowingService: SocialFollowingProtocol, @unchecked Se
             
             // Send acceptance notification
             if let notificationManager = notificationManager,
-               let accepterProfile = try? await profileService.fetchProfile(userID: currentUserID) {
+               // currentUserID is CloudKit user ID, use fetchProfileByUserID
+               let accepterProfile = try? await profileService.fetchProfileByUserID(currentUserID) {
                 await notificationManager.notifyFollowAccepted(by: accepterProfile)
             }
         }

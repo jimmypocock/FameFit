@@ -91,7 +91,8 @@ final class WorkoutKudosService: WorkoutKudosProtocol {
 
             // Send notification if not own workout
             if currentUserID != ownerID {
-                if let userProfile = try? await userProfileService.fetchProfile(userID: currentUserID) {
+                // currentUserID is from CloudKit, so use fetchProfileByUserID
+                if let userProfile = try? await userProfileService.fetchProfileByUserID(currentUserID) {
                     await notificationManager.notifyWorkoutKudos(
                         from: userProfile,
                         for: workoutID
@@ -159,7 +160,8 @@ final class WorkoutKudosService: WorkoutKudosProtocol {
         var recentUsers: [WorkoutKudosSummary.KudosUser] = []
 
         for userID in recentUserIDs {
-            if let profile = try? await userProfileService.fetchProfile(userID: userID) {
+            // userID is from CloudKit records, so use fetchProfileByUserID
+            if let profile = try? await userProfileService.fetchProfileByUserID(userID) {
                 recentUsers.append(WorkoutKudosSummary.KudosUser(
                     userID: profile.id,
                     username: profile.username,

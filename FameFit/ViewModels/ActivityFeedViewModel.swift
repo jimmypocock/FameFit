@@ -390,7 +390,8 @@ final class ActivityFeedViewModel: ObservableObject {
 
         for activityItem in activityItems {
             // Get user profile for the activity
-            let userProfile = try? await profileService?.fetchProfile(userID: activityItem.userID)
+            // activityItem.userID is a CloudKit user ID (from cloudKitManager.currentUserID)
+            let userProfile = try? await profileService?.fetchProfileByUserID(activityItem.userID)
 
             // Convert activity type
             let feedItemType: ActivityFeedItemType = switch activityItem.activityType {
@@ -454,6 +455,7 @@ final class ActivityFeedViewModel: ObservableObject {
         var items: [ActivityFeedItem] = []
 
         // Mock workout activities
+        // Mock user IDs would be profile record IDs, not CloudKit user IDs
         if let profile = try? await profileService?.fetchProfile(userID: "mock-user-1") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
@@ -501,6 +503,7 @@ final class ActivityFeedViewModel: ObservableObject {
         }
 
         // Mock level up
+        // Mock user IDs would be profile record IDs, not CloudKit user IDs
         if let profile2 = try? await profileService?.fetchProfile(userID: "mock-user-2") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,

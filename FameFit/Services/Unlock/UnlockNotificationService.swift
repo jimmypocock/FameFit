@@ -73,10 +73,9 @@ final class UnlockNotificationService: UnlockNotificationProtocol {
         // Check if we've already notified about this level
         guard !userDefaults.bool(forKey: notificationKey) else { return }
 
-        let character = getCharacterForLevel(newLevel)
         let notification = FameFitNotification(
             type: .levelUp,
-            title: "\(character.emoji) Level Up!",
+            title: "🎉 Level Up!",
             body: "Congratulations! You've reached Level \(newLevel): \(title)",
             metadata: .achievement(AchievementNotificationMetadata(
                 achievementID: "level_\(newLevel)",
@@ -84,7 +83,7 @@ final class UnlockNotificationService: UnlockNotificationProtocol {
                 achievementDescription: "Reached Level \(newLevel)",
                 xpRequired: getLevelThreshold(for: newLevel),
                 category: "level",
-                iconEmoji: character.emoji
+                iconEmoji: "🎉"
             ))
         )
 
@@ -160,18 +159,6 @@ final class UnlockNotificationService: UnlockNotificationProtocol {
         }
     }
 
-    private func getCharacterForLevel(_ level: Int) -> FameFitCharacter {
-        switch level {
-        case 1 ... 4:
-            .zen
-        case 5 ... 9:
-            .sierra
-        case 10 ... 14:
-            .chad
-        default:
-            .chad
-        }
-    }
 
     private func iconForUnlock(_ unlock: XPUnlock) -> String {
         switch unlock.category {

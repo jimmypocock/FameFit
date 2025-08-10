@@ -122,7 +122,13 @@ class WorkoutSyncService: ObservableObject {
             await setupAnchoredQuery()
             
         default:
-            FameFitLogger.error("❌ HealthKit not authorized (status: \(authStatus.rawValue))", category: FameFitLogger.workout)
+            // Only log as error if user has completed onboarding
+            // During onboarding, this is expected
+            if authStatus == .notDetermined {
+                FameFitLogger.info("HealthKit authorization not determined yet", category: FameFitLogger.workout)
+            } else {
+                FameFitLogger.error("❌ HealthKit not authorized (status: \(authStatus.rawValue))", category: FameFitLogger.workout)
+            }
             syncError = .healthKitAuthorizationDenied
         }
     }

@@ -102,7 +102,8 @@ final class WorkoutChallengesService: WorkoutChallengesProtocol {
             await rateLimiter.recordAction(.workoutPost, userID: userID)
 
             // Send notifications to invited participants
-            if let creatorProfile = try? await userProfileService.fetchProfile(userID: userID) {
+            // userID is from cloudKitManager.currentUserID, so it's a CloudKit user ID
+            if let creatorProfile = try? await userProfileService.fetchProfileByUserID(userID) {
                 for participant in savedChallenge.participants where participant.id != userID {
                     await notificationManager.notifyChallengeInvite(challenge: savedChallenge, from: creatorProfile)
                 }

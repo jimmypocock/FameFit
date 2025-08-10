@@ -18,7 +18,6 @@ struct FameFitNotification: Identifiable, Codable {
     let groupID: String?
 
     // Legacy support - will be removed in future
-    let character: FameFitCharacter?
     let workoutDuration: Int? // minutes
     let calories: Int?
     let followersEarned: Int?
@@ -42,7 +41,6 @@ struct FameFitNotification: Identifiable, Codable {
         self.groupID = groupID
 
         // Legacy fields - set to nil for new notifications
-        character = nil
         workoutDuration = nil
         calories = nil
         followersEarned = nil
@@ -52,7 +50,6 @@ struct FameFitNotification: Identifiable, Codable {
     init(
         title: String,
         body: String,
-        character: FameFitCharacter,
         workoutDuration: Int,
         calories: Int,
         followersEarned: Int = 5
@@ -61,7 +58,6 @@ struct FameFitNotification: Identifiable, Codable {
         type = .workoutCompleted // Default to workout completed for legacy
         self.title = title
         self.body = body
-        self.character = character
         timestamp = Date()
         self.workoutDuration = workoutDuration
         self.calories = calories
@@ -102,7 +98,6 @@ struct FameFitNotification: Identifiable, Codable {
         groupID = try? container.decode(String.self, forKey: .groupID)
 
         // Legacy fields - decode if present
-        character = try? container.decode(FameFitCharacter.self, forKey: .character)
         workoutDuration = try? container.decode(Int.self, forKey: .workoutDuration)
         calories = try? container.decode(Int.self, forKey: .calories)
         followersEarned = try? container.decode(Int.self, forKey: .followersEarned)

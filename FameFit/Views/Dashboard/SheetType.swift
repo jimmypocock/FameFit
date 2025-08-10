@@ -2,7 +2,7 @@
 //  SheetType.swift
 //  FameFit
 //
-//  Centralized sheet management for TabMainView
+//  Centralized sheet management for MainView
 //
 
 import SwiftUI

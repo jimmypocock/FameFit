@@ -27,7 +27,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     // MARK: - Published Properties
     
     @Published var isSignedIn = false
-    @Published var userRecord: CKRecord?
+    // @Published var userRecord: CKRecord? // DEPRECATED - We use UserProfile records now
     @Published var totalXP: Int = 0
     @Published var userName: String = ""
     @Published var currentStreak: Int = 0
@@ -46,7 +46,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     // Computed properties for compatibility
     var isAvailable: Bool { isSignedIn }
-    var currentUserID: String? { currentUserRecordID ?? userRecord?.recordID.recordName }
+    var currentUserID: String? { currentUserRecordID }
     var currentUserXP: Int { totalXP }
     
     // Databases
@@ -192,86 +192,43 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     func completeWorkout(xpEarned: Int) async {
         FameFitLogger.info("Completing workout with \(xpEarned) XP", category: FameFitLogger.cloudKit)
         
-        guard let userRecord = userRecord else {
-            FameFitLogger.warning("No user record available", category: FameFitLogger.cloudKit)
-            await fetchUserRecordAsync()
-            return
+        // We no longer use the legacy Users record - just update local state and sync to UserProfile
+        let newTotalXP = totalXP + xpEarned
+        let newTotalWorkouts = totalWorkouts + 1
+        
+        // Update local state immediately
+        await MainActor.run {
+            self.totalXP = newTotalXP
+            self.totalWorkouts = newTotalWorkouts
         }
         
-        do {
-            // Update both XP and workout count
-            let currentXP = userRecord["totalXP"] as? Int ?? 0
-            let currentWorkouts = userRecord["totalWorkouts"] as? Int ?? 0
-            
-            userRecord["totalXP"] = currentXP + xpEarned
-            userRecord["totalWorkouts"] = currentWorkouts + 1
-            
-            // Save the updated record
-            let savedRecord = try await operationQueue.enqueueSave(
-                record: userRecord,
-                database: privateDatabase,
-                priority: .high
-            )
-            
-            // Update local state
-            await processUserRecord(savedRecord)
-            
-            FameFitLogger.info("Successfully completed workout: +\(xpEarned) XP, workout #\(currentWorkouts + 1)", category: FameFitLogger.cloudKit)
-            
-            // Sync updated stats to UserProfiles
-            await syncStatsToUserProfile(totalWorkouts: currentWorkouts + 1, totalXP: currentXP + xpEarned)
-            
-            // Track XP transaction
-            await trackXPTransaction(xp: xpEarned)
-        } catch {
-            FameFitLogger.error("Failed to complete workout", error: error, category: FameFitLogger.cloudKit)
-            await MainActor.run {
-                self.lastError = error.fameFitError
-            }
-        }
+        FameFitLogger.info("Successfully completed workout: +\(xpEarned) XP, workout #\(newTotalWorkouts)", category: FameFitLogger.cloudKit)
+        
+        // Sync updated stats to UserProfiles (the real source of truth)
+        await syncStatsToUserProfile(totalWorkouts: newTotalWorkouts, totalXP: newTotalXP)
+        
+        // Track XP transaction
+        await trackXPTransaction(xp: xpEarned)
     }
     
     func addXPAsync(_ xp: Int) async {
         FameFitLogger.info("Adding \(xp) XP", category: FameFitLogger.cloudKit)
         
-        guard let userRecord = userRecord else {
-            FameFitLogger.warning("No user record available", category: FameFitLogger.cloudKit)
-            await fetchUserRecordAsync()
-            return
+        // We no longer use the legacy Users record - just update local state and sync to UserProfile
+        let newTotalXP = totalXP + xp
+        
+        // Update local state immediately
+        await MainActor.run {
+            self.totalXP = newTotalXP
         }
         
-        do {
-            // Update XP
-            let currentXP = userRecord["totalXP"] as? Int ?? 0
-            userRecord["totalXP"] = currentXP + xp
-            
-            // Save the updated record
-            let savedRecord = try await operationQueue.enqueueSave(
-                record: userRecord,
-                database: privateDatabase,
-                priority: .high
-            )
-            
-            // Update local state
-            await processUserRecord(savedRecord)
-            
-            FameFitLogger.info("Successfully added \(xp) XP, new total: \(currentXP + xp)", category: FameFitLogger.cloudKit)
-            
-            // Sync updated XP to UserProfiles (keep workout count as-is)
-            let currentWorkouts = userRecord["totalWorkouts"] as? Int ?? 0
-            await syncStatsToUserProfile(totalWorkouts: currentWorkouts, totalXP: currentXP + xp)
-            
-            // Unlock notifications if applicable
-            // Note: showFollowerNotification was removed - using notification manager instead
-            
-            // Track XP transaction
-            await trackXPTransaction(xp: xp)
-        } catch {
-            FameFitLogger.error("Failed to add XP", error: error, category: FameFitLogger.cloudKit)
-            await MainActor.run {
-                self.lastError = error.fameFitError
-            }
-        }
+        FameFitLogger.info("Successfully added \(xp) XP, new total: \(newTotalXP)", category: FameFitLogger.cloudKit)
+        
+        // Sync updated XP to UserProfiles (keep workout count as-is)
+        await syncStatsToUserProfile(totalWorkouts: totalWorkouts, totalXP: newTotalXP)
+        
+        // Track XP transaction
+        await trackXPTransaction(xp: xp)
     }
     
     // MARK: - Fetch Methods
@@ -294,44 +251,20 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         }
         
         do {
-            let recordID = try await container.userRecordID()
+            // We no longer use the legacy Users record system
+            // Just get the CloudKit user ID and cache it
+            let actualUserID = try await container.userRecordID().recordName
             
-            // Store the user ID immediately when we get it
+            // Store the user ID
             await MainActor.run {
-                self.currentUserRecordID = recordID.recordName
+                self.currentUserRecordID = actualUserID // Store the actual CloudKit user ID
                 // Post notification from main thread
                 NotificationCenter.default.post(name: Notification.Name("CloudKitUserIDAvailable"), object: nil)
             }
             
-            let record = try await operationQueue.enqueueFetch(
-                recordID: recordID,
-                database: privateDatabase,
-                priority: .high
-            )
-            
-            await processUserRecord(record)
-            
-            FameFitLogger.info("Successfully fetched user record with ID: \(recordID.recordName)", category: FameFitLogger.cloudKit)
+            FameFitLogger.info("Successfully obtained CloudKit user ID: \(actualUserID)", category: FameFitLogger.cloudKit)
         } catch {
-            FameFitLogger.error("Failed to fetch user record", error: error, category: FameFitLogger.cloudKit)
-            
-            // If the record doesn't exist, the user has deleted their account
-            // We should not retry and should clear the user record
-            if error.localizedDescription.contains("Record not found") || 
-               error.localizedDescription.contains("Unknown record") {
-                FameFitLogger.info("User record not found - account may have been deleted", category: FameFitLogger.cloudKit)
-                await MainActor.run {
-                    self.userRecord = nil
-                    self.totalXP = 0
-                    self.userName = ""
-                    self.currentStreak = 0
-                    self.totalWorkouts = 0
-                    self.lastWorkoutTimestamp = nil
-                    self.joinTimestamp = nil
-                }
-                // Don't retry - this is expected after account deletion
-                return
-            }
+            FameFitLogger.error("Failed to get CloudKit user ID", error: error, category: FameFitLogger.cloudKit)
             
             if await stateManager.shouldRetryOperation(.userRecordFetch, error: error) {
                 let delay = await stateManager.getRetryDelay(for: .userRecordFetch)
@@ -397,8 +330,25 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         }
         
         let recordID = try await container.userRecordID()
-        return recordID.recordName
+        let recordName = recordID.recordName
+        
+        // Cache the user record ID for future use
+        await MainActor.run {
+            self.currentUserRecordID = recordName
+        }
+        
+        return recordName
     }
+    
+    // DEPRECATED: We no longer use the legacy Users record system
+    // All user data is now stored in UserProfile records
+    /*
+    /// Get or create the Users record for the current user
+    func getCurrentUser() async throws -> CKRecord {
+        // This method is deprecated - we use UserProfile records exclusively
+        throw FameFitError.deprecated("Users record system is deprecated. Use UserProfile instead.")
+    }
+    */
     
     // MARK: - Private Methods
     
@@ -474,31 +424,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         }
     }
     
+    // DEPRECATED: We no longer use the legacy Users record system
+    /*
     private func processUserRecord(_ record: CKRecord) async {
-        let extractedXP = record["totalXP"] as? Int ?? 0
-        let extractedWorkouts = record["totalWorkouts"] as? Int ?? 0
-        
-        await MainActor.run {
-            self.userRecord = record
-            
-            // Extract user data
-            self.totalXP = extractedXP
-            self.userName = record["displayName"] as? String ?? ""
-            self.currentStreak = record["currentStreak"] as? Int ?? 0
-            self.totalWorkouts = extractedWorkouts
-            self.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
-            self.joinTimestamp = record["joinTimestamp"] as? Date
-            self.lastError = nil
-        }
-        
-        FameFitLogger.info("""
-            🔍 Fresh stats from Users record:
-               Record ID: \(record.recordID.recordName)
-               totalWorkouts: \(extractedWorkouts)
-               totalXP: \(extractedXP)
-               Final values: workouts=\(extractedWorkouts), XP=\(extractedXP)
-            """, category: FameFitLogger.cloudKit)
+        // This method is deprecated - we use UserProfile records exclusively
     }
+    */
     
     private func trackXPTransaction(xp: Int) async {
         // TODO: Update to use new XPTransactionService API
@@ -559,29 +490,32 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             
             let currentStreak = calculateCurrentStreak(from: workoutsByDate)
             
+            // Capture final values as constants for use in async closure
+            let finalXP = totalXP
+            let finalWorkoutCount = workoutRecords.count
+            let finalStreak = currentStreak
+            
             FameFitLogger.info("""
                 📈 Recalculated stats:
-                   Total XP: \(totalXP)
-                   Total Workouts: \(workoutRecords.count)
-                   Current Streak: \(currentStreak)
+                   Total XP: \(finalXP)
+                   Total Workouts: \(finalWorkoutCount)
+                   Current Streak: \(finalStreak)
                 """, category: FameFitLogger.cloudKit)
             
-            guard let userRecord = userRecord else { return }
-            
-            userRecord["totalXP"] = totalXP
-            userRecord["totalWorkouts"] = workoutRecords.count
-            userRecord["currentStreak"] = currentStreak
-            
-            if let lastWorkout = workoutRecords.first,
-               let endDate = lastWorkout["endDate"] as? Date {
-                userRecord["lastWorkoutTimestamp"] = endDate
+            // Update local state with recalculated values
+            await MainActor.run {
+                self.totalXP = finalXP
+                self.totalWorkouts = finalWorkoutCount
+                self.currentStreak = finalStreak
+                
+                if let lastWorkout = workoutRecords.first,
+                   let endDate = lastWorkout["endDate"] as? Date {
+                    self.lastWorkoutTimestamp = endDate
+                }
             }
             
-            let savedRecord = try await save(userRecord)
-            await processUserRecord(savedRecord)
-            
-            // Sync to UserProfiles record
-            await syncStatsToUserProfile(totalWorkouts: workoutRecords.count, totalXP: totalXP)
+            // Sync to UserProfiles record (the real source of truth)
+            await syncStatsToUserProfile(totalWorkouts: finalWorkoutCount, totalXP: finalXP)
         } catch {
             FameFitLogger.error("❌ Failed to recalculate stats", error: error, category: FameFitLogger.cloudKit)
         }
@@ -736,21 +670,15 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     func forceResetStats() async throws {
         FameFitLogger.warning("Forcing stats reset to zero", category: FameFitLogger.cloudKit)
         
-        guard let userRecord = userRecord else {
-            throw FameFitError.cloudKitNotAvailable
+        // Reset local state to zero
+        await MainActor.run {
+            self.totalXP = 0
+            self.totalWorkouts = 0
+            self.currentStreak = 0
+            self.lastWorkoutTimestamp = nil
         }
         
-        // Reset all stats to zero
-        userRecord["totalXP"] = 0
-        userRecord["totalWorkouts"] = 0
-        userRecord["currentStreak"] = 0
-        userRecord["lastWorkoutTimestamp"] = nil
-        
-        // Save the updated record
-        let savedRecord = try await save(userRecord)
-        await processUserRecord(savedRecord)
-        
-        // Sync zeroed stats to UserProfiles
+        // Sync zeroed stats to UserProfiles (the real source of truth)
         await syncStatsToUserProfile(totalWorkouts: 0, totalXP: 0)
         
         FameFitLogger.info("Stats reset completed", category: FameFitLogger.cloudKit)
@@ -759,21 +687,15 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     func updateUserStats(totalWorkouts: Int, totalXP: Int) async throws {
         FameFitLogger.info("Updating user stats - Workouts: \(totalWorkouts), XP: \(totalXP)", category: FameFitLogger.cloudKit)
         
-        guard let userRecord = userRecord else {
-            throw FameFitError.cloudKitNotAvailable
+        // Update local state
+        await MainActor.run {
+            self.totalWorkouts = totalWorkouts
+            self.totalXP = totalXP
         }
-        
-        // Update the stats in Users record
-        userRecord["totalWorkouts"] = totalWorkouts
-        userRecord["totalXP"] = totalXP
-        
-        // Save the updated record
-        let savedRecord = try await save(userRecord)
-        await processUserRecord(savedRecord)
         
         FameFitLogger.info("User stats updated successfully", category: FameFitLogger.cloudKit)
         
-        // Sync to UserProfiles record
+        // Sync to UserProfiles record (the real source of truth)
         await syncStatsToUserProfile(totalWorkouts: totalWorkouts, totalXP: totalXP)
     }
     
@@ -994,7 +916,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         joinTimestamp = nil
         userName = "FameFit User"
         currentUserRecordID = nil
-        userRecord = nil
+        // userRecord = nil // DEPRECATED - We use UserProfile records now
         isSignedIn = false
         
         // Clear UserDefaults

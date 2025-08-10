@@ -13,12 +13,12 @@ import SwiftUI
 class MainViewModel: ObservableObject, MainViewModelProtocol {
     // MARK: - Dependencies
 
-    private let authManager: any AuthenticationProtocol
-    private let cloudKitManager: any CloudKitProtocol
-    private let notificationStore: any NotificationStoringProtocol
-    private let userProfileService: any UserProfileProtocol
-    private let socialFollowingService: any SocialFollowingProtocol
-    private let watchConnectivityManager: any WatchConnectivityProtocol
+    private var authManager: (any AuthenticationProtocol)?
+    private var cloudKitManager: (any CloudKitProtocol)?
+    private var notificationStore: (any NotificationStoringProtocol)?
+    private var userProfileService: (any UserProfileProtocol)?
+    private var socialFollowingService: (any SocialFollowingProtocol)?
+    private var watchConnectivityManager: (any WatchConnectivityProtocol)?
 
     // MARK: - Published Properties
 
@@ -37,9 +37,16 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     // MARK: - Cancellables
 
     private var cancellables = Set<AnyCancellable>()
+    private var isConfigured = false
 
     // MARK: - Initialization
 
+    /// Default initializer for StateObject creation
+    init() {
+        // Dependencies will be configured later via configure method
+    }
+    
+    /// Legacy initializer for backwards compatibility
     init(
         authManager: any AuthenticationProtocol,
         cloudKitManager: any CloudKitProtocol,
@@ -55,6 +62,28 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         self.socialFollowingService = socialFollowingService
         self.watchConnectivityManager = watchConnectivityManager
 
+        setupBindings()
+    }
+    
+    /// Configure the view model with dependencies
+    func configure(
+        authManager: any AuthenticationProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        notificationStore: any NotificationStoringProtocol,
+        userProfileService: any UserProfileProtocol,
+        socialFollowingService: any SocialFollowingProtocol,
+        watchConnectivityManager: any WatchConnectivityProtocol
+    ) {
+        guard !isConfigured else { return } // Only configure once
+        
+        self.authManager = authManager
+        self.cloudKitManager = cloudKitManager
+        self.notificationStore = notificationStore
+        self.userProfileService = userProfileService
+        self.socialFollowingService = socialFollowingService
+        self.watchConnectivityManager = watchConnectivityManager
+        
+        isConfigured = true
         setupBindings()
     }
 
@@ -82,6 +111,8 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     // MARK: - Protocol Methods
 
     func refreshData() {
+        guard let cloudKitManager = cloudKitManager else { return }
+        
         cloudKitManager.fetchUserRecord()
         refreshFromDependencies()
         
@@ -96,14 +127,17 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     }
 
     func signOut() {
-        authManager.signOut()
+        authManager?.signOut()
     }
 
     func markNotificationsAsRead() {
-        notificationStore.markAllAsRead()
+        notificationStore?.markAllAsRead()
     }
 
     func loadUserProfile() {
+        guard let userProfileService = userProfileService,
+              let watchConnectivityManager = watchConnectivityManager else { return }
+        
         Task {
             // First ensure CloudKit is ready
             await ensureCloudKitReady()
@@ -128,6 +162,9 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     }
     
     func refreshUserProfile() {
+        guard let userProfileService = userProfileService,
+              let watchConnectivityManager = watchConnectivityManager else { return }
+        
         Task {
             // First ensure CloudKit is ready
             await ensureCloudKitReady()
@@ -156,6 +193,8 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         var attempts = 0
         let maxAttempts = 30 // 3 seconds max wait
 
+        guard let cloudKitManager = cloudKitManager else { return }
+        
         while !cloudKitManager.isAvailable || cloudKitManager.currentUserID == nil {
             if attempts >= maxAttempts {
                 print("⚠️ CloudKit initialization timeout after 3 seconds")
@@ -173,7 +212,8 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     }
 
     func loadFollowerCounts() {
-        guard let userID = userProfile?.id ?? cloudKitManager.currentUserID else { return }
+        guard let socialFollowingService = socialFollowingService,
+              let userID = userProfile?.id ?? cloudKitManager?.currentUserID else { return }
 
         Task {
             do {
@@ -202,42 +242,42 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         refreshFromDependencies()
 
         // Set up reactive bindings with protocol publishers
-        cloudKitManager.userNamePublisher
+        cloudKitManager?.userNamePublisher
             .assign(to: &$_userName)
 
-        cloudKitManager.totalXPPublisher
+        cloudKitManager?.totalXPPublisher
             .assign(to: &$_totalXP)
 
-        cloudKitManager.totalWorkoutsPublisher
+        cloudKitManager?.totalWorkoutsPublisher
             .assign(to: &$_totalWorkouts)
 
-        cloudKitManager.currentStreakPublisher
+        cloudKitManager?.currentStreakPublisher
             .assign(to: &$_currentStreak)
 
-        cloudKitManager.joinTimestampPublisher
+        cloudKitManager?.joinTimestampPublisher
             .assign(to: &$_creationDate)
 
-        cloudKitManager.lastWorkoutTimestampPublisher
+        cloudKitManager?.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
 
-        cloudKitManager.totalXPPublisher
+        cloudKitManager?.totalXPPublisher
             .map { [weak self] _ in
-                self?.cloudKitManager.getXPTitle() ?? ""
+                self?.cloudKitManager?.getXPTitle() ?? ""
             }
             .assign(to: &$_xpTitle)
 
-        notificationStore.unreadCountPublisher
+        notificationStore?.unreadCountPublisher
             .assign(to: &$_unreadCount)
     }
 
     private func refreshFromDependencies() {
-        _userName = cloudKitManager.userName
-        _totalXP = cloudKitManager.totalXP
-        _totalWorkouts = cloudKitManager.totalWorkouts
-        _currentStreak = cloudKitManager.currentStreak
-        _creationDate = cloudKitManager.joinTimestamp
-        _lastWorkoutDate = cloudKitManager.lastWorkoutTimestamp
-        _xpTitle = cloudKitManager.getXPTitle()
-        _unreadCount = notificationStore.unreadCount
+        _userName = cloudKitManager?.userName ?? ""
+        _totalXP = cloudKitManager?.totalXP ?? 0
+        _totalWorkouts = cloudKitManager?.totalWorkouts ?? 0
+        _currentStreak = cloudKitManager?.currentStreak ?? 0
+        _creationDate = cloudKitManager?.joinTimestamp
+        _lastWorkoutDate = cloudKitManager?.lastWorkoutTimestamp
+        _xpTitle = cloudKitManager?.getXPTitle() ?? ""
+        _unreadCount = notificationStore?.unreadCount ?? 0
     }
 }

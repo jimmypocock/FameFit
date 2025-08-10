@@ -187,7 +187,8 @@ final class ActivityFeedCommentsService: ActivityFeedCommentsProtocol {
     private func sendCommentFameFitNotification(to userID: String, sourceType: String, sourceID: String) async {
         // Get the commenter's profile
         guard let currentUserID = cloudKitManager.currentUserID,
-              let commenterProfile = try? await userProfileService.fetchProfile(userID: currentUserID) else {
+              // currentUserID is from cloudKitManager, so it's a CloudKit user ID
+              let commenterProfile = try? await userProfileService.fetchProfileByUserID(currentUserID) else {
             return
         }
         

@@ -424,8 +424,15 @@ struct ProfileView: View {
                     // Use the same method as MainViewModel for current user
                     try await profileService.fetchCurrentUserProfile()
                 } else {
-                    // For other users, we need to use the correct method (this should be fixed in ProfileService)
-                    try await profileService.fetchProfile(userID: userID)
+                    // For other users, determine if userID is CloudKit ID or profile record ID
+                    // CloudKit user IDs start with underscore, profile IDs are UUIDs
+                    if userID.hasPrefix("_") {
+                        // It's a CloudKit user ID
+                        try await profileService.fetchProfileByUserID(userID)
+                    } else {
+                        // It's a profile record ID
+                        try await profileService.fetchProfile(userID: userID)
+                    }
                 }
                 await MainActor.run {
                     profile = loadedProfile

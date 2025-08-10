@@ -82,8 +82,24 @@ final class AppInitializer: ObservableObject {
             return
         }
         
+        // Verify we have authentication and a user profile before starting services
+        guard dependencyContainer.authenticationManager.isAuthenticated,
+              let userID = dependencyContainer.authenticationManager.userID else {
+            FameFitLogger.warning("Cannot start user services - user not authenticated", category: FameFitLogger.app)
+            return
+        }
+        
+        // Verify profile exists in CloudKit before starting services
+        // Note: userID is the CloudKit user ID (starts with underscore)
+        do {
+            _ = try await dependencyContainer.userProfileService.fetchProfileByUserID(userID)
+        } catch {
+            FameFitLogger.warning("Cannot start user services - user profile not found in CloudKit", category: FameFitLogger.app)
+            return
+        }
+        
         userServicesStarted = true
-        FameFitLogger.info("Starting user services...", category: FameFitLogger.app)
+        FameFitLogger.info("Starting user services for user: \(userID)", category: FameFitLogger.app)
         
         // Setup push notifications (handles both local and remote permissions)
         await setupPushNotifications()
@@ -122,6 +138,7 @@ final class AppInitializer: ObservableObject {
     private func startWorkoutSync() {
         // Start the reliable sync manager using HKAnchoredObjectQuery
         // This provides more reliable workout tracking than observer queries
+        // Note: WorkoutSyncManager handles its own HealthKit authorization checks
         dependencyContainer.workoutSyncManager.startReliableSync()
     }
     
@@ -142,7 +159,16 @@ final class AppInitializer: ObservableObject {
         // Verify counts if needed (runs in background)
         guard dependencyContainer.countVerificationService.shouldVerifyOnAppLaunch() else { return }
         
+        // Ensure we have valid CloudKit user before attempting verification
+        guard dependencyContainer.authenticationManager.userID != nil else {
+            FameFitLogger.info("Skipping count verification - no user ID available", category: FameFitLogger.data)
+            return
+        }
+        
         do {
+            // No longer need to create Users record - we use UserProfile exclusively
+            // Just verify counts directly
+            
             let result = try await dependencyContainer.countVerificationService.verifyAllCounts()
             if result.xpCorrected || result.workoutCountCorrected {
                 FameFitLogger.info("🔢 Count verification completed: \(result.summary)", category: FameFitLogger.data)

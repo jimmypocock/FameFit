@@ -244,7 +244,8 @@ struct CreateChallengeView: View {
                 var participants = [ChallengeParticipant]()
 
                 // Add creator
-                if let creatorProfile = try? await container.userProfileService.fetchProfile(userID: currentUserID) {
+                // currentUserID is from cloudKitManager, so it's a CloudKit user ID
+                if let creatorProfile = try? await container.userProfileService.fetchProfileByUserID(currentUserID) {
                     participants.append(ChallengeParticipant(
                         id: currentUserID,
                         username: creatorProfile.username,
@@ -254,6 +255,8 @@ struct CreateChallengeView: View {
 
                 // Add selected friends
                 for friendID in selectedFriends {
+                    // friendID from selectedFriends - need to check if it's CloudKit ID or profile ID
+                    // Since selectedFriends likely comes from social service, it's probably profile IDs
                     if let profile = try? await container.userProfileService.fetchProfile(userID: friendID) {
                         participants.append(ChallengeParticipant(
                             id: friendID,

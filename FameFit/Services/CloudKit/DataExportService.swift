@@ -227,14 +227,8 @@ class DataExportService: ObservableObject {
     // MARK: - Private Data Fetching Methods
     
     private func fetchUserInfo(userID: String) async throws -> ExportedUserData.UserInfo {
-        if let userRecord = cloudKitManager.userRecord {
-            return ExportedUserData.UserInfo(
-                userID: userID,
-                username: userRecord["displayName"] as? String,
-                joinDate: userRecord.creationDate
-            )
-        }
-        
+        // We no longer have access to the legacy Users record
+        // Just return basic info with the user ID
         return ExportedUserData.UserInfo(
             userID: userID,
             username: nil,

@@ -1,5 +1,5 @@
 //
-//  TabMainView.swift
+//  MainView.swift
 //  FameFit
 //
 //  Main tabbed interface with activity feed as home
@@ -8,7 +8,7 @@
 import Combine
 import SwiftUI
 
-struct TabMainView: View {
+struct MainView: View {
     @StateObject private var viewModel: MainViewModel
     @StateObject private var navigationCoordinator = NavigationCoordinator()
     @State private var showingFilters = false
@@ -323,5 +323,5 @@ struct TabMainView: View {
         socialFollowingService: container.socialFollowingService,
         watchConnectivityManager: container.watchConnectivityManager
     )
-    TabMainView(viewModel: viewModel)
+    MainView(viewModel: viewModel)
 }
