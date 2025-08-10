@@ -17,34 +17,74 @@ struct OnboardingView: View {
     }
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.purple, Color.blue],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
+        Group {
             if viewModel.isLoading {
-                LoadingView()
+                ZStack {
+                    LinearGradient(
+                        colors: [Color.purple, Color.blue],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                    
+                    LoadingView()
+                }
             } else {
-                VStack {
-                    switch viewModel.currentStep {
-                    case .welcome:
-                        WelcomeView(viewModel: viewModel)
-                    case .signIn:
-                        // SignIn is now integrated into WelcomeView
-                        // This case should not be reached, but show HealthKit as fallback
+                switch viewModel.currentStep {
+                case .welcome:
+                    // WelcomeView has its own background
+                    WelcomeView(viewModel: viewModel)
+                case .signIn:
+                    // SignIn is now integrated into WelcomeView
+                    // This case should not be reached, but show HealthKit as fallback
+                    ZStack {
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        
                         HealthKitPermissionView(viewModel: viewModel)
-                    case .healthKit:
+                            .padding()
+                    }
+                case .healthKit:
+                    ZStack {
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        
                         HealthKitPermissionView(viewModel: viewModel)
-                    case .profile:
+                            .padding()
+                    }
+                case .profile:
+                    ZStack {
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        
                         ProfileCreationView(viewModel: viewModel)
-                    case .gameMechanics:
+                            .padding()
+                    }
+                case .gameMechanics:
+                    ZStack {
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        
                         GameMechanicsView(viewModel: viewModel)
+                            .padding()
                     }
                 }
-                .padding()
             }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {

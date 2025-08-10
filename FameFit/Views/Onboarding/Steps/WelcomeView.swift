@@ -9,146 +9,257 @@ import SwiftUI
 
 struct WelcomeView: View {
     @ObservedObject var viewModel: OnboardingViewModel
-    @State private var visibleLines: Set<Int> = []
-    @State private var showButton = false
-    @State private var logoScale: CGFloat = 0.8
-    @State private var logoOpacity: Double = 0
-    
-    let messages = [
-        ("Welcome to FameFit!", 0.3),
-        ("The only app where", 0.8),
-        ("gains get you fame", 1.3),
-        ("Turn sweat into social currency", 2.1),
-        ("Every workout earns XP", 2.9),
-        ("Climb from Fitness Newbie", 3.7),
-        ("to Verified Legend", 4.2),
-        ("Because working out without XP?", 5.2),
-        ("That's just exercise.", 5.8)
-    ]
+    @State private var showContent = false
+    @State private var showTagline = false
+    @State private var showFeatures = false
+    @State private var showCTA = false
+    @State private var glowAnimation = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Logo section
-            VStack(spacing: 8) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.orange, .pink],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .scaleEffect(logoScale)
-                    .opacity(logoOpacity)
-                
-                Text("FAMEFIT")
-                    .font(.system(size: 42, weight: .black, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0.9)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .scaleEffect(logoScale)
-                    .opacity(logoOpacity)
-            }
-            .padding(.top, 40)
+        ZStack {
+            // Premium gradient background - full screen
+            backgroundGradient
+                .ignoresSafeArea()
             
-            Spacer()
+            // Subtle animated particles
+            ParticleEffectView()
+                .opacity(0.3)
+                .ignoresSafeArea()
             
-            // Animated messages
-            VStack(alignment: .leading, spacing: 20) {
-                ForEach(Array(messages.enumerated()), id: \.offset) { index, message in
-                    MessageLine(
-                        text: message.0,
-                        index: index,
-                        isVisible: visibleLines.contains(index),
-                        isMainMessage: index == 0 || index == 2 || index == 8
-                    )
-                }
-            }
-            .padding(.horizontal, 30)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Spacer()
-            
-            // Sign in section
-            if showButton {
-                VStack(spacing: 20) {
-                    Text("Let's get you set up with an account so we can track your journey to fitness fame!")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 10)
+            VStack {
+                // Top section with logo, tagline, and features
+                VStack(spacing: Spacing.large) {
+                    // Logo and brand
+                    brandSection
+                        .opacity(showContent ? 1 : 0)
+                        .scaleEffect(showContent ? 1 : 0.8)
+                        .padding(.top, Spacing.xxLarge)
                     
-                    SignInWithAppleButton()
-                        .frame(height: 50)
-                        .cornerRadius(10)
+                    // Tagline
+                    taglineSection
+                        .opacity(showTagline ? 1 : 0)
+                        .offset(y: showTagline ? 0 : 20)
+                    
+                    // Feature highlights
+                    featureSection
+                        .opacity(showFeatures ? 1 : 0)
+                        .offset(y: showFeatures ? 0 : 30)
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 40)
-                .transition(
-                    .asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    )
-                )
+                
+                // This pushes everything apart - the key to flexbox-like behavior
+                Spacer(minLength: Spacing.xxLarge)
+                
+                // CTA section at bottom
+                ctaSection
+                    .opacity(showCTA ? 1 : 0)
+                    .offset(y: showCTA ? 0 : 40)
             }
+            .frame(maxHeight: .infinity)
         }
         .onAppear {
             animateContent()
         }
     }
     
+    // MARK: - Components
+    
+    private var backgroundGradient: some View {
+        BrandColors.premiumGradient
+    }
+    
+    private var brandSection: some View {
+        VStack(spacing: Spacing.small) {
+            ZStack {
+                // Subtle glow effect
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                BrandColors.glowColor,
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 50
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                    .blur(radius: 15)
+                    .scaleEffect(glowAnimation ? 1.1 : 0.9)
+                    .animation(
+                        .easeInOut(duration: 3).repeatForever(autoreverses: true),
+                        value: glowAnimation
+                    )
+                
+                // App icon/logo
+                Image("AppIconTitle")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 70)
+                    .foregroundColor(BrandColors.textPrimary)
+            }
+            
+            // Brand name - properly capitalized
+            Text("Welcome to FameFit")
+                .heroTextStyle()
+        }
+    }
+    
+    private var taglineSection: some View {
+        Text("Where fitness meets influence")
+            .taglineTextStyle()
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Spacing.large)
+            .padding(.bottom, Spacing.xLarge)
+    }
+    
+    private var featureSection: some View {
+        VStack(spacing: Spacing.large) {
+            WelcomeFeatureRow(
+                icon: "chart.line.uptrend.xyaxis",
+                text: "Turn sweat into social currency",
+                delay: 0.1
+            )
+            
+            WelcomeFeatureRow(
+                icon: "star.fill",
+                text: "Every workout earns you XP",
+                delay: 0.2
+            )
+            
+            WelcomeFeatureRow(
+                icon: "person.3.fill",
+                text: "Host group workouts",
+                delay: 0.3
+            )
+            
+            WelcomeFeatureRow(
+                icon: "trophy.fill",
+                text: "Challenge your followers",
+                delay: 0.4
+            )
+        }
+        .padding(.horizontal, Spacing.xxLarge)
+    }
+    
+    private var ctaSection: some View {
+        VStack(spacing: Spacing.medium) {
+            // Subtle descriptive text
+            Text("Working out without XP? That's just exercise.")
+                .ctaTextStyle()
+            
+            // Sign in with Apple button
+            SignInWithAppleButton()
+                .frame(height: 54)
+                .padding(.horizontal, Spacing.xxLarge)
+        }
+        .padding(.bottom, Spacing.xLarge)
+    }
+    
+    // MARK: - Animation
+    
     private func animateContent() {
-        // Animate logo
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-            logoScale = 1.0
-            logoOpacity = 1.0
+        withAnimation(.easeOut(duration: 0.8)) {
+            showContent = true
         }
         
-        // Animate each message line
-        for (index, message) in messages.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + message.1) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    _ = visibleLines.insert(index)
+        withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
+            showTagline = true
+        }
+        
+        withAnimation(.easeOut(duration: 0.8).delay(0.6)) {
+            showFeatures = true
+        }
+        
+        withAnimation(.easeOut(duration: 0.8).delay(1.0)) {
+            showCTA = true
+        }
+        
+        glowAnimation = true
+    }
+}
+
+// MARK: - Supporting Views
+
+struct WelcomeFeatureRow: View {
+    let icon: String
+    let text: String
+    let delay: Double
+    @State private var isVisible = false
+    
+    var body: some View {
+        OnboardingFeatureRow(icon: icon, text: text)
+            .opacity(isVisible ? 1 : 0)
+            .offset(x: isVisible ? 0 : -20)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.6).delay(delay)) {
+                    isVisible = true
                 }
             }
+    }
+}
+
+struct ParticleEffectView: View {
+    @State private var particles: [Particle] = []
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ForEach(particles) { particle in
+                Circle()
+                    .fill(Color.white.opacity(particle.opacity))
+                    .frame(width: particle.size, height: particle.size)
+                    .position(particle.position)
+                    .blur(radius: particle.blur)
+            }
         }
-        
-        // Show button after all messages
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.8) {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                showButton = true
+        .onAppear {
+            createParticles()
+        }
+    }
+    
+    private func createParticles() {
+        for _ in 0..<15 {
+            let particle = Particle()
+            particles.append(particle)
+            animateParticle(particle)
+        }
+    }
+    
+    private func animateParticle(_ particle: Particle) {
+        withAnimation(.linear(duration: Double.random(in: 15...25)).repeatForever(autoreverses: false)) {
+            if let index = particles.firstIndex(where: { $0.id == particle.id }) {
+                particles[index].position.y = -100
             }
         }
     }
 }
 
-struct MessageLine: View {
-    let text: String
-    let index: Int
-    let isVisible: Bool
-    let isMainMessage: Bool
+struct Particle: Identifiable {
+    let id = UUID()
+    var position: CGPoint
+    let size: CGFloat
+    let opacity: Double
+    let blur: CGFloat
     
-    var body: some View {
-        Text(text)
-            .font(.system(
-                size: isMainMessage ? 28 : 22,
-                weight: isMainMessage ? .black : .semibold,
-                design: .rounded
-            ))
-            .foregroundColor(
-                isMainMessage ? .white : .white.opacity(0.85)
-            )
-            .opacity(isVisible ? 1 : 0)
-            .offset(x: isVisible ? 0 : 20)
-            .scaleEffect(isVisible ? 1 : 0.9, anchor: .leading)
-            .animation(
-                .spring(response: 0.5, dampingFraction: 0.8),
-                value: isVisible
-            )
+    init() {
+        position = CGPoint(
+            x: CGFloat.random(in: 0...UIScreen.main.bounds.width),
+            y: CGFloat.random(in: 0...UIScreen.main.bounds.height)
+        )
+        size = CGFloat.random(in: 2...4)
+        opacity = Double.random(in: 0.1...0.3)
+        blur = CGFloat.random(in: 0...2)
     }
 }
+
+// MARK: - Preview
+
+#Preview {
+    let container = DependencyContainer()
+    return WelcomeView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
+}
+
