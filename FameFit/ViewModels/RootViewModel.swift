@@ -137,7 +137,7 @@ final class RootViewModel: ObservableObject {
         }
         
         // Check if we have a Sign in with Apple user ID
-        guard let _ = authManager.userID else {
+        guard let _ = authManager.authUserID else {
             FameFitLogger.debug("No user ID available, showing onboarding", category: FameFitLogger.auth)
             navigationState = .onboarding
             return
@@ -150,22 +150,31 @@ final class RootViewModel: ObservableObject {
             return
         }
         
-        // Get the CloudKit user ID (not the Sign in with Apple ID)
-        // This is what the profile was created with
+        // Get CloudKit user ID and verify profile
         do {
+            // This will fetch the CloudKit user ID if not cached, or return cached value
             let cloudKitUserID = try await cloudKitManager.getCurrentUserID()
+            FameFitLogger.info("Got CloudKit user ID: \(cloudKitUserID)", category: FameFitLogger.auth)
             
             // Verify profile exists in CloudKit using the CloudKit user ID
-            _ = try await container.userProfileService.fetchProfileByUserID(cloudKitUserID)
-            FameFitLogger.info("User profile verified with CloudKit user ID, showing main app", category: FameFitLogger.auth)
+            let profile = try await container.userProfileService.fetchProfileByUserID(cloudKitUserID)
+            FameFitLogger.info("✅ User profile verified: \(profile.username), showing main app", category: FameFitLogger.auth)
+            
+            // Load the profile into MainViewModel before showing main screen
+            mainViewModel.loadUserProfile()
+            
             navigationState = .main
         } catch {
-            // Profile doesn't exist, but user might be in the middle of onboarding
-            FameFitLogger.info("User profile not found in CloudKit, continuing onboarding", category: FameFitLogger.auth)
-            // Don't reset hasCompletedOnboarding - let OnboardingViewModel handle the flow
-            // Only show onboarding if not already showing it
-            if navigationState != .onboarding {
+            // Check if this is actually a profile not found error vs network/CloudKit error
+            let errorString = error.localizedDescription.lowercased()
+            if errorString.contains("profile not found") || errorString.contains("record not found") {
+                FameFitLogger.info("Profile doesn't exist, user needs to complete onboarding", category: FameFitLogger.auth)
                 navigationState = .onboarding
+            } else {
+                // This is a different error (network, CloudKit not ready, etc)
+                FameFitLogger.error("Failed to verify user profile due to error: \(error)", category: FameFitLogger.auth)
+                // Show main screen anyway - the app will try to load the profile again
+                navigationState = .main
             }
         }
     }

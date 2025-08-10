@@ -5,12 +5,12 @@ import SwiftUI
 
 class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol {
     @Published var isAuthenticated = false
-    @Published var userID: String?
+    @Published var authUserID: String?  // Sign in with Apple ID
     @Published var userName: String?
     @Published var lastError: FameFitError?
     @Published var hasCompletedOnboarding = false
 
-    private let userIDKey = "FameFitUserID"
+    private let authUserIDKey = "FameFitAuthUserID"
     private let userNameKey = "FameFitUserName"
     private weak var cloudKitManager: CloudKitService?
 
@@ -20,8 +20,8 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         $isAuthenticated.eraseToAnyPublisher()
     }
 
-    var userIDPublisher: AnyPublisher<String?, Never> {
-        $userID.eraseToAnyPublisher()
+    var authUserIDPublisher: AnyPublisher<String?, Never> {
+        $authUserID.eraseToAnyPublisher()
     }
 
     var userNamePublisher: AnyPublisher<String?, Never> {
@@ -43,9 +43,9 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
     }
 
     func checkAuthenticationStatus() {
-        if let savedUserID = UserDefaults.standard.string(forKey: userIDKey),
+        if let savedAuthUserID = UserDefaults.standard.string(forKey: authUserIDKey),
            let savedUserName = UserDefaults.standard.string(forKey: userNameKey) {
-            userID = savedUserID
+            authUserID = savedAuthUserID
             userName = savedUserName
             isAuthenticated = true
             hasCompletedOnboarding = UserDefaults.standard.bool(
@@ -57,7 +57,7 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
     }
 
     func handleSignInWithApple(credential: ASAuthorizationAppleIDCredential) {
-        let userID = credential.user
+        let authUserID = credential.user
 
         var displayName = "FameFit User"
         if let fullName = credential.fullName {
@@ -68,22 +68,22 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
             }
         }
 
-        UserDefaults.standard.set(userID, forKey: userIDKey)
+        UserDefaults.standard.set(authUserID, forKey: authUserIDKey)
         UserDefaults.standard.set(displayName, forKey: userNameKey)
 
-        self.userID = userID
+        self.authUserID = authUserID
         userName = displayName
         isAuthenticated = true
 
-        cloudKitManager?.setupUserRecord(userID: userID, displayName: displayName)
+        cloudKitManager?.setupUserRecord(userID: authUserID, displayName: displayName)
     }
 
     func signOut() {
-        UserDefaults.standard.removeObject(forKey: userIDKey)
+        UserDefaults.standard.removeObject(forKey: authUserIDKey)
         UserDefaults.standard.removeObject(forKey: userNameKey)
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
 
-        userID = nil
+        authUserID = nil
         userName = nil
         isAuthenticated = false
         hasCompletedOnboarding = false
@@ -193,7 +193,7 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
 extension AuthenticationService {
     /// Set UI testing state - only available in DEBUG builds
     func setUITestingState(isAuthenticated: Bool, hasCompletedOnboarding: Bool, userID: String) {
-        self.userID = userID
+        self.authUserID = userID
         self.isAuthenticated = isAuthenticated
         self.hasCompletedOnboarding = hasCompletedOnboarding
         

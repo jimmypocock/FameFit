@@ -74,29 +74,18 @@ struct WelcomeView: View {
             
             Spacer()
             
-            // CTA Button
+            // Sign in section
             if showButton {
-                Button(action: {
-                    viewModel.moveToNextStep()
-                }) {
-                    HStack {
-                        Text("Let's Get FameFit")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 16, weight: .bold))
-                    }
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0.95)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .cornerRadius(16)
-                    .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
+                VStack(spacing: 20) {
+                    Text("Let's get you set up with an account so we can track your journey to fitness fame!")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 10)
+                    
+                    SignInWithAppleButton()
+                        .frame(height: 50)
+                        .cornerRadius(10)
                 }
                 .padding(.horizontal, 30)
                 .padding(.bottom, 40)

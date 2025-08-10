@@ -38,6 +38,9 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     @Published private(set) var isInitialized = false
     @Published private(set) var currentUserRecordID: String?
     
+    // Single initialization task to prevent race conditions
+    private var initializationTask: Task<Void, Error>?
+    
     // Services
     weak var authenticationManager: AuthenticationService?
     weak var unlockNotificationService: UnlockNotificationProtocol?
@@ -140,17 +143,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             
             // Initialize if newly available
             if status == .available && !isInitialized {
-                let currentState = await stateManager.getInitializationState()
-                if case .inProgress = currentState {
-                    FameFitLogger.debug("Initialization already in progress, skipping", category: FameFitLogger.cloudKit)
-                } else if case .completed = currentState {
-                    // Update isInitialized flag if state shows completed
-                    await MainActor.run {
-                        self.isInitialized = true
-                    }
-                } else {
-                    await performInitialization()
-                }
+                await ensureInitialized()
             }
         } catch {
             FameFitLogger.error("Failed to check account status", error: error, category: FameFitLogger.cloudKit)
@@ -162,13 +155,13 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     }
     
     /// Setup user record with display name
-    func setupUserRecord(userID: String, displayName: String) {
+    func setupUserRecord(userID authUserID: String, displayName: String) {
         // Deprecated: We no longer create Users records
         // UserProfile is created during onboarding instead
         FameFitLogger.info("Skipping Users record creation (deprecated)", category: FameFitLogger.cloudKit)
     }
     
-    private func setupUserRecordAsync(userID: String, displayName: String) async {
+    private func setupUserRecordAsync(authUserID: String, displayName: String) async {
         // Deprecated: We no longer create Users records
         // This function is kept for backwards compatibility but does nothing
         return
@@ -362,7 +355,40 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             .store(in: &cancellables)
     }
     
+    /// Ensures CloudKit is initialized, using a single shared task to prevent race conditions
+    private func ensureInitialized() async {
+        // If already initialized, return immediately
+        if isInitialized {
+            return
+        }
+        
+        // If there's an existing initialization task, wait for it
+        if let existingTask = initializationTask {
+            FameFitLogger.debug("Waiting for existing initialization task", category: FameFitLogger.cloudKit)
+            do {
+                try await existingTask.value
+            } catch {
+                FameFitLogger.error("Initialization task failed", error: error, category: FameFitLogger.cloudKit)
+            }
+            return
+        }
+        
+        // Create a new initialization task
+        initializationTask = Task {
+            await performInitialization()
+        }
+        
+        // Wait for it to complete
+        do {
+            try await initializationTask?.value
+        } catch {
+            FameFitLogger.error("Failed to initialize CloudKit", error: error, category: FameFitLogger.cloudKit)
+        }
+    }
+    
     private func performInitialization() async {
+        let initStart = Date()
+        
         guard await stateManager.canStartInitialization() else {
             FameFitLogger.debug("Cannot start initialization at this time", category: FameFitLogger.cloudKit)
             return
@@ -372,12 +398,18 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         
         do {
             // Initialize schema if needed
+            let schemaStart = Date()
             try await initializeSchemaWithRetry()
+            let schemaDuration = Date().timeIntervalSince(schemaStart)
+            FameFitLogger.info("Schema check completed in \(String(format: "%.2f", schemaDuration))s", category: FameFitLogger.cloudKit)
             
             // Only fetch user record if authentication manager indicates user has completed onboarding
             if let authManager = authenticationManager, authManager.hasCompletedOnboarding {
                 // Fetch user record
+                let userRecordStart = Date()
                 await fetchUserRecordAsync()
+                let userRecordDuration = Date().timeIntervalSince(userRecordStart)
+                FameFitLogger.info("User record fetch completed in \(String(format: "%.2f", userRecordDuration))s", category: FameFitLogger.cloudKit)
                 
                 // Check if stats recalculation is needed
                 await checkAndRecalculateStatsIfNeeded()
@@ -389,9 +421,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             await stateManager.setInitializationState(.completed)
             await MainActor.run {
                 self.isInitialized = true
+                // Clear the initialization task reference
+                self.initializationTask = nil
             }
             
-            FameFitLogger.info("CloudKit initialization completed successfully", category: FameFitLogger.cloudKit)
+            let totalDuration = Date().timeIntervalSince(initStart)
+            FameFitLogger.info("✅ CloudKit initialization completed successfully in \(String(format: "%.2f", totalDuration))s", category: FameFitLogger.cloudKit)
         } catch {
             FameFitLogger.error("CloudKit initialization failed", error: error, category: FameFitLogger.cloudKit)
             await stateManager.setInitializationState(.failed(error))

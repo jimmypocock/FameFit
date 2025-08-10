@@ -32,7 +32,7 @@ protocol CloudKitProtocol: ObservableObject {
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }
 
     func checkAccountStatus()
-    func setupUserRecord(userID: String, displayName: String)
+    func setupUserRecord(userID authUserID: String, displayName: String)  // Deprecated - uses Sign in with Apple ID
     func fetchUserRecord()
     func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)

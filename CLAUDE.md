@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Implementation Guidelines
+
+### When to Ask Before Implementing
+
+**Always ask for approval BEFORE implementing:**
+- New features or significant functionality changes
+- Database schema changes or migrations
+- Major refactoring that affects multiple files
+- Changes to authentication or security flows
+- Adding new dependencies or third-party libraries
+- Significant UI/UX changes
+- Any solution that has multiple viable approaches
+
+**Go ahead and implement directly:**
+- Bug fixes with clear solutions
+- Small UI tweaks or copy changes
+- Test additions or improvements
+- Documentation updates
+- Performance optimizations that don't change behavior
+- Error handling improvements
+- Code cleanup and formatting
+
+**When presenting options:**
+- Clearly outline 2-3 approaches with pros/cons
+- Recommend the best approach with reasoning
+- Keep explanations concise but complete
+- Wait for confirmation before proceeding with implementation
+
 ## Project Overview
 
 FameFit is a companion iOS and Apple Watch application built with SwiftUI, HealthKit, and CloudKit. The iOS app handles user onboarding, authentication, and displays progress, while the Watch app provides real-time workout tracking. The apps work together as companions, sharing data through CloudKit.

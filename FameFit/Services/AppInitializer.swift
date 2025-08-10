@@ -82,19 +82,27 @@ final class AppInitializer: ObservableObject {
             return
         }
         
-        // Verify we have authentication and a user profile before starting services
-        guard dependencyContainer.authenticationManager.isAuthenticated,
-              let userID = dependencyContainer.authenticationManager.userID else {
+        // Verify we have authentication
+        guard dependencyContainer.authenticationManager.isAuthenticated else {
             FameFitLogger.warning("Cannot start user services - user not authenticated", category: FameFitLogger.app)
             return
         }
         
+        // Get the CloudKit user ID (NOT the Sign in with Apple ID)
+        guard let userID = dependencyContainer.cloudKitManager.currentUserID else {
+            FameFitLogger.warning("Cannot start user services - CloudKit user ID not available", category: FameFitLogger.app)
+            return
+        }
+        
         // Verify profile exists in CloudKit before starting services
-        // Note: userID is the CloudKit user ID (starts with underscore)
+        let profileFetchStart = Date()
         do {
-            _ = try await dependencyContainer.userProfileService.fetchProfileByUserID(userID)
+            let profile = try await dependencyContainer.userProfileService.fetchProfileByUserID(userID)
+            let fetchDuration = Date().timeIntervalSince(profileFetchStart)
+            FameFitLogger.info("✅ User profile verified in \(String(format: "%.2f", fetchDuration))s - username: \(profile.username)", category: FameFitLogger.app)
         } catch {
-            FameFitLogger.warning("Cannot start user services - user profile not found in CloudKit", category: FameFitLogger.app)
+            let fetchDuration = Date().timeIntervalSince(profileFetchStart)
+            FameFitLogger.warning("⚠️ Cannot start user services - profile fetch failed after \(String(format: "%.2f", fetchDuration))s. Error: \(error.localizedDescription)", category: FameFitLogger.app)
             return
         }
         
@@ -160,7 +168,7 @@ final class AppInitializer: ObservableObject {
         guard dependencyContainer.countVerificationService.shouldVerifyOnAppLaunch() else { return }
         
         // Ensure we have valid CloudKit user before attempting verification
-        guard dependencyContainer.authenticationManager.userID != nil else {
+        guard dependencyContainer.authenticationManager.authUserID != nil else {
             FameFitLogger.info("Skipping count verification - no user ID available", category: FameFitLogger.data)
             return
         }

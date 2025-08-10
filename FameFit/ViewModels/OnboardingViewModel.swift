@@ -46,7 +46,7 @@ final class OnboardingViewModel: ObservableObject {
     
     enum OnboardingStep: Int, CaseIterable {
         case welcome = 0
-        case signIn = 1
+        case signIn = 1  // Deprecated - Sign in is now part of WelcomeView
         case healthKit = 2
         case profile = 3
         case gameMechanics = 4

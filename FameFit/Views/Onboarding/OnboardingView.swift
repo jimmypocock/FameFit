@@ -33,7 +33,9 @@ struct OnboardingView: View {
                     case .welcome:
                         WelcomeView(viewModel: viewModel)
                     case .signIn:
-                        SignInView(viewModel: viewModel)
+                        // SignIn is now integrated into WelcomeView
+                        // This case should not be reached, but show HealthKit as fallback
+                        HealthKitPermissionView(viewModel: viewModel)
                     case .healthKit:
                         HealthKitPermissionView(viewModel: viewModel)
                     case .profile:
