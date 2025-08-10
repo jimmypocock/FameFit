@@ -270,6 +270,15 @@ final class UserProfileService: UserProfileProtocol {
         }
     }
 
+    // MARK: - Cache Management
+    
+    /// Clear all cached profiles (used during account deletion)
+    func clearAllCaches() {
+        profileCache.removeAll()
+        currentProfile = nil
+        FameFitLogger.info("Cleared all profile caches", category: FameFitLogger.social)
+    }
+    
     // MARK: - Username Validation
 
     func isUsernameAvailable(_ username: String) async throws -> Bool {

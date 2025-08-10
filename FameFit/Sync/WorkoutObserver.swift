@@ -251,6 +251,17 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
         }
     }
 
+    func checkHealthKitAuthorization() -> Bool {
+        guard healthKitService.isHealthDataAvailable else {
+            return false
+        }
+        
+        // Check if we have authorization for workout type
+        let workoutType = HKObjectType.workoutType()
+        let status = healthKitService.authorizationStatus(for: workoutType)
+        return status == .sharingAuthorized
+    }
+    
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void) {
         guard healthKitService.isHealthDataAvailable else {
             DispatchQueue.main.async {

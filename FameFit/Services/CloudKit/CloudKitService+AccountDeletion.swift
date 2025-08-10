@@ -43,13 +43,11 @@ extension CloudKitService {
             // "Users" removed - handled separately above
             "Workouts", 
             "XPTransactions",
-            "Notifications",
+            // "Notifications" removed - doesn't exist as a record type
             "NotificationHistory",  // Push notification history
             "WorkoutChallengeLinks",
-            "GroupWorkoutInvites",
             "UserSettings",  // User's app settings
             "ActivityFeedSettings",  // User's privacy settings
-            // "WorkoutHistory" removed - doesn't exist as a record type
             "WorkoutMetrics",  // Detailed workout metrics
             "DeviceTokens"  // Push notification tokens
         ]
@@ -68,6 +66,33 @@ extension CloudKitService {
                 errors.append(error)
                 FameFitLogger.error("Failed to delete \(recordType)", error: error, category: FameFitLogger.cloudKit)
             }
+        }
+        
+        // Handle GroupWorkoutInvites separately with correct field names
+        do {
+            let predicate1 = NSPredicate(format: "invitedByID == %@", userID)
+            let predicate2 = NSPredicate(format: "invitedUserID == %@", userID)
+            
+            // Delete invites sent by user
+            let sentInvites = try await fetchAndDelete(
+                recordType: "GroupWorkoutInvites",
+                predicate: predicate1,
+                database: privateDatabase
+            )
+            
+            // Delete invites received by user
+            let receivedInvites = try await fetchAndDelete(
+                recordType: "GroupWorkoutInvites",
+                predicate: predicate2,
+                database: privateDatabase
+            )
+            
+            let totalInvites = sentInvites + receivedInvites
+            deletedRecords += totalInvites
+            FameFitLogger.info("Deleted \(totalInvites) GroupWorkoutInvites records", category: FameFitLogger.cloudKit)
+        } catch {
+            errors.append(error)
+            FameFitLogger.error("Failed to delete GroupWorkoutInvites", error: error, category: FameFitLogger.cloudKit)
         }
         
         // MARK: - Public Database - Anonymization
@@ -129,16 +154,27 @@ extension CloudKitService {
             errors.append(error)
         }
         
-        // Delete social relationships
+        // Delete social relationships (CloudKit doesn't support OR in predicates, so run two queries)
         do {
-            let predicate = NSPredicate(format: "followerID == %@ OR followingID == %@", userID, userID)
-            let deleted = try await fetchAndDelete(
-                recordType: "UserRelationships",  // Fixed to plural
-                predicate: predicate,
+            // Delete where user is the follower
+            let followerPredicate = NSPredicate(format: "followerID == %@", userID)
+            let followerDeleted = try await fetchAndDelete(
+                recordType: "UserRelationships",
+                predicate: followerPredicate,
                 database: publicDatabase
             )
-            deletedRecords += deleted
-            FameFitLogger.info("Deleted \(deleted) UserRelationships records", category: FameFitLogger.cloudKit)
+            
+            // Delete where user is being followed
+            let followingPredicate = NSPredicate(format: "followingID == %@", userID)
+            let followingDeleted = try await fetchAndDelete(
+                recordType: "UserRelationships",
+                predicate: followingPredicate,
+                database: publicDatabase
+            )
+            
+            let totalDeleted = followerDeleted + followingDeleted
+            deletedRecords += totalDeleted
+            FameFitLogger.info("Deleted \(totalDeleted) UserRelationships records", category: FameFitLogger.cloudKit)
         } catch {
             errors.append(error)
             FameFitLogger.error("Failed to delete UserRelationships records", error: error, category: FameFitLogger.cloudKit)

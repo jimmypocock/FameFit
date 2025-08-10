@@ -13,7 +13,12 @@ import HealthKit
 final class OnboardingViewModel: ObservableObject {
     // MARK: - Published Properties
     
-    @Published var currentStep: OnboardingStep = .welcome
+    @Published var currentStep: OnboardingStep = .welcome {
+        didSet {
+            // Always save the current step
+            UserDefaults.standard.set(currentStep.rawValue, forKey: "OnboardingCurrentStep")
+        }
+    }
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -86,13 +91,16 @@ final class OnboardingViewModel: ObservableObject {
     
     // MARK: - Setup
     
+    private var isInitializing = true
+    
     private func setupBindings() {
         // Listen for authentication changes
         authManager.$isAuthenticated
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isAuthenticated in
                 self?.isAuthenticated = isAuthenticated
-                if isAuthenticated {
+                // Only handle auth changes after initial setup
+                if isAuthenticated && !(self?.isInitializing ?? true) {
                     Task { [weak self] in
                         await self?.handleAuthenticationComplete()
                     }
@@ -105,7 +113,10 @@ final class OnboardingViewModel: ObservableObject {
     private func determineStartingStep() {
         Task {
             isLoading = true
-            defer { isLoading = false }
+            defer { 
+                isLoading = false
+                isInitializing = false
+            }
             
             // Check authentication
             if authManager.isAuthenticated {
@@ -127,16 +138,35 @@ final class OnboardingViewModel: ObservableObject {
                 }
                 
                 // For authenticated users without profile, we need to complete onboarding
-                // Don't jump ahead - let them go through the proper flow
-                // They just signed in, so show them the next step after sign-in
                 FameFitLogger.info("Authenticated user without profile, continuing onboarding flow", category: FameFitLogger.auth)
                 
-                // Check if we're coming from a fresh sign-in (no profile yet)
-                // In this case, show HealthKit step next
-                currentStep = .healthKit
+                // Check current HealthKit status
+                hasHealthKitPermission = workoutObserver.checkHealthKitAuthorization()
+                
+                // Check if we have a saved step from a previous session
+                let savedStep = UserDefaults.standard.integer(forKey: "OnboardingCurrentStep")
+                FameFitLogger.info("Saved step value: \(savedStep), HealthKit authorized: \(hasHealthKitPermission)", category: FameFitLogger.auth)
+                
+                if savedStep > 0, let step = OnboardingStep(rawValue: savedStep) {
+                    // Resume from saved step
+                    FameFitLogger.info("Resuming onboarding from saved step: \(step.title)", category: FameFitLogger.auth)
+                    currentStep = step
+                    
+                    // If resuming at HealthKit step, check if already granted
+                    if step == .healthKit {
+                        FameFitLogger.info("At HealthKit step, checking permissions...", category: FameFitLogger.auth)
+                        checkHealthKitPermissions()
+                    }
+                } else {
+                    // No saved step, start at HealthKit (already authenticated)
+                    FameFitLogger.info("No saved step, starting at HealthKit", category: FameFitLogger.auth)
+                    currentStep = .healthKit
+                    checkHealthKitPermissions()
+                }
             } else {
                 // Not authenticated, start from beginning
                 currentStep = .welcome
+                isInitializing = false
             }
         }
     }
@@ -144,13 +174,6 @@ final class OnboardingViewModel: ObservableObject {
     // MARK: - Navigation
     
     func moveToNextStep() {
-        // Validate before moving to certain steps
-        if currentStep == .profile && !hasProfile {
-            // Can't leave profile step without creating a profile
-            errorMessage = "Please create your profile to continue"
-            return
-        }
-        
         guard let nextStep = OnboardingStep(rawValue: currentStep.rawValue + 1) else {
             // We're at the last step
             Task {
@@ -161,6 +184,11 @@ final class OnboardingViewModel: ObservableObject {
         
         withAnimation(.easeInOut(duration: 0.3)) {
             currentStep = nextStep
+        }
+        
+        // When we arrive at HealthKit step, check if already authorized
+        if nextStep == .healthKit {
+            checkHealthKitPermissions()
         }
     }
     
@@ -196,29 +224,61 @@ final class OnboardingViewModel: ObservableObject {
                 return
             }
             
-            // New user - move to HealthKit permissions step
-            FameFitLogger.info("New user detected, moving to HealthKit step", category: FameFitLogger.auth)
-            currentStep = .healthKit
+            // New user - only set step if we're not already in onboarding
+            // This prevents overwriting the restored step
+            if currentStep == .welcome {
+                FameFitLogger.info("New user detected after sign-in, moving to HealthKit step", category: FameFitLogger.auth)
+                currentStep = .healthKit
+                // Check if HealthKit is already authorized
+                checkHealthKitPermissions()
+            }
         } catch {
             errorMessage = "Failed to connect to iCloud. Please check your connection."
             FameFitLogger.error("Failed to get CloudKit user ID", error: error, category: FameFitLogger.auth)
         }
     }
     
+    /// Check if HealthKit permissions are already granted
+    func checkHealthKitPermissions() {
+        hasHealthKitPermission = workoutObserver.checkHealthKitAuthorization()
+        FameFitLogger.info("checkHealthKitPermissions: hasPermission = \(hasHealthKitPermission), currentStep = \(currentStep.title)", category: FameFitLogger.auth)
+        
+        if hasHealthKitPermission {
+            // Already authorized, immediately advance
+            FameFitLogger.info("HealthKit already authorized, moving to next step", category: FameFitLogger.auth)
+            moveToNextStep()
+        } else {
+            FameFitLogger.info("HealthKit not authorized, staying on current step", category: FameFitLogger.auth)
+        }
+    }
+    
     /// Request HealthKit permissions
     func requestHealthKitPermissions() {
+        // First check if already authorized
+        if workoutObserver.checkHealthKitAuthorization() {
+            hasHealthKitPermission = true
+            FameFitLogger.info("HealthKit already authorized, moving to next step", category: FameFitLogger.auth)
+            moveToNextStep()
+            return
+        }
+        
+        // Request authorization
         workoutObserver.requestHealthKitAuthorization { [weak self] success, error in
             DispatchQueue.main.async {
                 if success {
                     self?.hasHealthKitPermission = true
+                    FameFitLogger.info("HealthKit authorization granted, moving to next step", category: FameFitLogger.auth)
                     self?.moveToNextStep()
-                } else if let error = error {
-                    self?.errorMessage = "Failed to get health permissions: \(error.localizedDescription)"
                 } else {
-                    // User denied permissions
+                    // User denied or error occurred
                     self?.hasHealthKitPermission = false
-                    // Allow them to continue anyway
-                    self?.moveToNextStep()
+                    
+                    if let error = error, case .healthKitAuthorizationDenied = error {
+                        FameFitLogger.info("User denied HealthKit permissions", category: FameFitLogger.auth)
+                    } else if let error = error {
+                        self?.errorMessage = "Failed to get health permissions: \(error.localizedDescription)"
+                    }
+                    // Don't auto-advance - let user decide to skip
                 }
             }
         }
@@ -381,6 +441,9 @@ final class OnboardingViewModel: ObservableObject {
             await MainActor.run {
                 isLoading = false
                 
+                // Clear saved onboarding step since we're done (but keep HealthKit permission state)
+                UserDefaults.standard.removeObject(forKey: "OnboardingCurrentStep")
+                
                 // Mark onboarding as complete ONLY after verifying everything
                 authManager.completeOnboarding()
                 FameFitLogger.info("✅ Onboarding completed successfully for user: \(profile.username)", category: FameFitLogger.auth)
@@ -400,6 +463,8 @@ final class OnboardingViewModel: ObservableObject {
     
     /// Sign out and reset onboarding
     func signOut() {
+        // Clear saved onboarding progress
+        UserDefaults.standard.removeObject(forKey: "OnboardingCurrentStep")
         authManager.signOut()
         // This will trigger navigation back to onboarding automatically
     }

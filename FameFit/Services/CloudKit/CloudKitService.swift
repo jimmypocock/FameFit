@@ -274,6 +274,28 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         }
     }
     
+    // MARK: - Account Deletion Support
+    
+    /// Clear all local caches after account deletion
+    func clearAllCaches() async {
+        await MainActor.run {
+            // Clear CloudKit state
+            self.currentUserRecordID = nil
+            self.totalXP = 0
+            self.userName = ""
+            self.currentStreak = 0
+            self.totalWorkouts = 0
+            self.lastWorkoutTimestamp = nil
+            self.joinTimestamp = nil
+            self.isInitialized = false
+            
+            // Clear initialization task
+            self.initializationTask = nil
+        }
+        
+        FameFitLogger.info("Cleared all CloudKit caches", category: FameFitLogger.cloudKit)
+    }
+    
     // MARK: - CloudKit Operations
     
     func save(_ record: CKRecord) async throws -> CKRecord {

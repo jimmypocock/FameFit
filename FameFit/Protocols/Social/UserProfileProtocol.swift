@@ -97,5 +97,6 @@ protocol UserProfileProtocol {
     // Caching
     func clearCache()
     func clearCache(for userID: String)
+    func clearAllCaches()  // Clear all caches (for account deletion)
     func preloadProfiles(_ userIDs: [String]) async
 }

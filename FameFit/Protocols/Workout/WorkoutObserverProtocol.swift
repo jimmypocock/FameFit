@@ -18,6 +18,7 @@ protocol WorkoutObserverProtocol: ObservableObject {
     // Publisher for workout completion events
     var workoutCompletedPublisher: AnyPublisher<Workout, Never> { get }
 
+    func checkHealthKitAuthorization() -> Bool
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void)
     func startObservingWorkouts()
     func fetchInitialWorkouts()

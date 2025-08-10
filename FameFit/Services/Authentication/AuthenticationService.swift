@@ -95,6 +95,9 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         // Use anonymization approach for CloudKit data
         if let cloudKitManager = cloudKitManager {
             try await cloudKitManager.deleteAllUserDataWithAnonymization()
+            
+            // Clear CloudKit caches after deletion
+            await cloudKitManager.clearAllCaches()
         }
         
         // Clear all local data

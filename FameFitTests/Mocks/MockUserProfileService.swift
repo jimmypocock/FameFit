@@ -300,6 +300,13 @@ final class MockUserProfileService: UserProfileProtocol {
         // Mock implementation - track cleared cache user IDs
         clearedCacheUserIds.append(userId)
     }
+    
+    func clearAllCaches() {
+        // Clear all mock data
+        profiles.removeAll()
+        currentProfile = nil
+        clearedCacheUserIds.removeAll()
+    }
 
     func preloadProfiles(_: [String]) async {
         // No-op for mock

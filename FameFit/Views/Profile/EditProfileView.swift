@@ -26,6 +26,8 @@ struct EditProfileView: View {
     @State private var deleteAccountError: String?
     @State private var showActivitySettings = false
     @State private var showDataExport = false
+    @State private var showHealthKitSettings = false
+    @State private var hasHealthKitPermission = false
 
     let profile: UserProfile
     let onSave: (UserProfile) -> Void
@@ -168,6 +170,20 @@ struct EditProfileView: View {
                 
                 // Account Settings Section
                 Section(header: Text("Account")) {
+                    // HealthKit Permissions
+                    Button(action: {
+                        showHealthKitSettings = true
+                    }) {
+                        HStack {
+                            Label("Health Access", systemImage: "heart.fill")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text(hasHealthKitPermission ? "Enabled" : "Disabled")
+                                .foregroundColor(hasHealthKitPermission ? .green : .secondary)
+                                .font(.caption)
+                        }
+                    }
+                    
                     // Privacy Policy Link
                     Link(destination: URL(string: "https://github.com/jimmypocock/FameFit/blob/main/PRIVACY.md")!) {
                         HStack {
@@ -296,6 +312,15 @@ struct EditProfileView: View {
                         }
                 }
             }
+            .sheet(isPresented: $showHealthKitSettings) {
+                HealthKitSettingsView(hasPermission: hasHealthKitPermission) { granted in
+                    hasHealthKitPermission = granted
+                }
+                .environment(\.dependencyContainer, container)
+            }
+        }
+        .onAppear {
+            checkHealthKitPermission()
         }
     }
 
@@ -335,6 +360,12 @@ struct EditProfileView: View {
         hasChanges && isBioValid
     }
 
+    // MARK: - Health Kit
+    
+    private func checkHealthKitPermission() {
+        hasHealthKitPermission = container.workoutObserver.checkHealthKitAuthorization()
+    }
+    
     // MARK: - Save Profile
 
     private func saveProfile() {
@@ -386,12 +417,15 @@ struct EditProfileView: View {
             // Delete account through authentication manager
             try await container.authenticationManager.deleteAccount()
             
+            // Clear profile caches to prevent stale data
+            await MainActor.run {
+                container.userProfileService.clearAllCaches()
+            }
+            
             // Account deleted successfully - the sign out in deleteAccount 
             // will trigger the app to return to onboarding
             await MainActor.run {
                 isDeletingAccount = false
-                // The app will automatically transition to onboarding
-                // because isAuthenticated will be false
             }
         } catch {
             await MainActor.run {

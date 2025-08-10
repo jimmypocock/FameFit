@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HealthKitPermissionView: View {
     @ObservedObject var viewModel: OnboardingViewModel
+    @State private var permissionStatus: String = ""
 
     var body: some View {
         VStack(spacing: 30) {
@@ -39,32 +40,45 @@ struct HealthKitPermissionView: View {
 
             Spacer()
 
-            Button(action: {
-                viewModel.requestHealthKitPermissions()
-            }, label: {
-                Text("Grant Access")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red)
-                    .cornerRadius(15)
-            })
-
-            if viewModel.hasHealthKitPermission {
-                Text("✅ Access Granted!")
-                    .foregroundColor(.green)
-                    .font(.headline)
+            // Only show button if we don't have permission
+            if !viewModel.hasHealthKitPermission {
+                Button(action: {
+                    viewModel.requestHealthKitPermissions()
+                }, label: {
+                    Text("Grant Access")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.red)
+                        .cornerRadius(15)
+                })
+                .disabled(viewModel.isLoading)
             }
             
             if !viewModel.hasHealthKitPermission {
                 Button(action: {
                     viewModel.skipCurrentStep()
                 }) {
-                    Text("Skip for now")
+                    Text("Continue Without Health Access")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
                 }
+                
+                Text("You can enable this later in Settings")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .onAppear {
+            // Check permission status when view appears
+            viewModel.checkHealthKitPermissions()
+        }
+        .onChange(of: viewModel.hasHealthKitPermission) { _, hasPermission in
+            // If permission granted, immediately move to next step
+            if hasPermission {
+                viewModel.moveToNextStep()
             }
         }
     }
