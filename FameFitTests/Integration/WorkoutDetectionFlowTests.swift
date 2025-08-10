@@ -5,7 +5,7 @@ import XCTest
 /// Tests the complete workout detection flow from HealthKit to XP updates
 class WorkoutDetectionFlowTests: XCTestCase {
     private var mockHealthKitService: MockHealthKitService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var workoutObserver: WorkoutObserver!
 
     override func setUp() {
@@ -19,9 +19,9 @@ class WorkoutDetectionFlowTests: XCTestCase {
         mockHealthKitService.isHealthDataAvailableValue = true
         mockHealthKitService.authorizationSuccess = true
 
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         workoutObserver = WorkoutObserver(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             healthKitService: mockHealthKitService
         )
 
@@ -35,7 +35,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
 
     override func tearDown() {
         mockHealthKitService.reset()
-        mockCloudKitManager.reset()
+        mockCloudKitService.reset()
         workoutObserver = nil
 
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.lastProcessedWorkoutDate)
@@ -48,7 +48,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
 
     func testNewWorkoutTriggersXPIncrease() {
         // Given - User has authorized HealthKit and is signed in
-        mockCloudKitManager.isSignedIn = true
+        mockCloudKitService.isSignedIn = true
 
         let expectation = XCTestExpectation(description: "Workout processed")
 
@@ -76,35 +76,35 @@ class WorkoutDetectionFlowTests: XCTestCase {
         // Then
         wait(for: [expectation], timeout: 3.0)
 
-        XCTAssertTrue(mockCloudKitManager.addXPCalled, "addXP should have been called")
+        XCTAssertTrue(mockCloudKitService.addXPCalled, "addXP should have been called")
 
         // 30-minute run should give approximately 36 XP (30 * 1.0 base * 1.2 running multiplier)
         // Plus potential time bonuses and first workout bonus (50 XP)
         // The actual XP will vary based on when test runs, so check it's reasonable
-        let earnedXP = mockCloudKitManager.lastAddedXPCount
+        let earnedXP = mockCloudKitService.lastAddedXPCount
         XCTAssertGreaterThan(earnedXP, 30, "Should earn at least 30 XP for 30-minute run")
         XCTAssertLessThan(earnedXP, 150, "Should earn less than 150 XP (even with bonuses)")
 
         // Check that total XP increased
-        XCTAssertEqual(mockCloudKitManager.totalXP, 100 + earnedXP, "XP count should increase by earned amount")
+        XCTAssertEqual(mockCloudKitService.totalXP, 100 + earnedXP, "XP count should increase by earned amount")
     }
 
     func testMultipleWorkoutsProcessedInOrder() {
         // Test that multiple calls to addXP work correctly
 
         // Given
-        let initialXP = mockCloudKitManager.totalXP
-        let initialWorkouts = mockCloudKitManager.totalWorkouts
+        let initialXP = mockCloudKitService.totalXP
+        let initialWorkouts = mockCloudKitService.totalWorkouts
 
         // When - Simulate processing 3 workouts
         for _ in 1 ... 3 {
-            mockCloudKitManager.addXP(5)
+            mockCloudKitService.addXP(5)
         }
 
         // Then
-        XCTAssertEqual(mockCloudKitManager.totalXP, initialXP + 15, "Should add 5 XP per workout")
-        XCTAssertEqual(mockCloudKitManager.totalWorkouts, initialWorkouts + 3, "Should increment workout count by 3")
-        XCTAssertEqual(mockCloudKitManager.addXPCallCount, 3, "Should be called 3 times")
+        XCTAssertEqual(mockCloudKitService.totalXP, initialXP + 15, "Should add 5 XP per workout")
+        XCTAssertEqual(mockCloudKitService.totalWorkouts, initialWorkouts + 3, "Should increment workout count by 3")
+        XCTAssertEqual(mockCloudKitService.addXPCallCount, 3, "Should be called 3 times")
     }
 
     func testWorkoutBeforeAppInstallIgnored() {
@@ -113,7 +113,7 @@ class WorkoutDetectionFlowTests: XCTestCase {
         UserDefaults.standard.set(installDate, forKey: UserDefaultsKeys.appInstallDate)
 
         let expectation = XCTestExpectation(description: "Old workout ignored")
-        _ = mockCloudKitManager.totalXP
+        _ = mockCloudKitService.totalXP
 
         // Create a workout from before install (2 hours ago)
         let oldWorkout = TestWorkoutBuilder.createRunWorkout(
@@ -143,10 +143,10 @@ class WorkoutDetectionFlowTests: XCTestCase {
         wait(for: [expectation], timeout: 3.0)
 
         // Only the new workout should be processed
-        XCTAssertEqual(mockCloudKitManager.addXPCallCount, 1, "Should only process 1 workout")
+        XCTAssertEqual(mockCloudKitService.addXPCallCount, 1, "Should only process 1 workout")
 
         // Verify XP increased (amount depends on workout calculation)
-        XCTAssertGreaterThan(mockCloudKitManager.totalXP, 100, "XP should increase from base 100")
+        XCTAssertGreaterThan(mockCloudKitService.totalXP, 100, "XP should increase from base 100")
     }
 
     func testWorkoutProcessingUpdatesLastProcessedDate() {
@@ -174,15 +174,15 @@ class WorkoutDetectionFlowTests: XCTestCase {
         // This test verifies that CloudKit errors are handled gracefully
 
         // Given
-        mockCloudKitManager.shouldFailAddXP = true
-        let initialXP = mockCloudKitManager.totalXP
+        mockCloudKitService.shouldFailAddXP = true
+        let initialXP = mockCloudKitService.totalXP
 
         // When - Directly test the CloudKit manager behavior
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Then
-        XCTAssertEqual(mockCloudKitManager.totalXP, initialXP, "XP should not change on error")
-        XCTAssertTrue(mockCloudKitManager.addXPCalled, "addXP should have been called")
-        XCTAssertNotNil(mockCloudKitManager.lastError, "Should have an error set")
+        XCTAssertEqual(mockCloudKitService.totalXP, initialXP, "XP should not change on error")
+        XCTAssertTrue(mockCloudKitService.addXPCalled, "addXP should have been called")
+        XCTAssertNotNil(mockCloudKitService.lastError, "Should have an error set")
     }
 }

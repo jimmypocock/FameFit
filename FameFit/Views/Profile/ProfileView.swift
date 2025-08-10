@@ -29,11 +29,11 @@ struct ProfileView: View {
 
     let userID: String
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 
-    private var socialService: SocialFollowingServicing {
+    private var socialService: SocialFollowingProtocol {
         container.socialFollowingService
     }
 
@@ -616,7 +616,7 @@ struct ProfileView: View {
         do {
             let result = try await container.countVerificationService.verifyAllCounts()
             
-            if result.hadCorrections {
+            if result.xpCorrected || result.workoutCountCorrected {
                 statsVerificationMessage = "Stats updated: \(result.summary)"
                 
                 // Reload profile to show new counts

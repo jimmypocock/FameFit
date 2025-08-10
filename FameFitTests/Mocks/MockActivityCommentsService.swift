@@ -2,13 +2,13 @@
 //  MockActivityFeedCommentsService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivityFeedCommentsServicing for testing
+//  Mock implementation of ActivityFeedCommentsProtocol for testing
 //
 
 @testable import FameFit
 import Foundation
 
-final class MockActivityFeedCommentsService: ActivityFeedCommentsServicing {
+final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
     var shouldFail = false
     var error: Error = NSError(domain: "MockError", code: 0, userInfo: nil)
     

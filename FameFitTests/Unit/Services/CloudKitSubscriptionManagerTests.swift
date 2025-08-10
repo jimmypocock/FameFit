@@ -1,8 +1,8 @@
 //
-//  CloudKitSubscriptionManagerTests.swift
+//  CloudKitSubscriptionServiceTests.swift
 //  FameFitTests
 //
-//  Tests for CloudKitSubscriptionManager
+//  Tests for CloudKitSubscriptionService
 //
 
 import CloudKit
@@ -10,14 +10,14 @@ import Combine
 @testable import FameFit
 import XCTest
 
-final class CloudKitSubscriptionManagerTests: XCTestCase {
-    private var sut: CloudKitSubscriptionManager!
+final class CloudKitSubscriptionServiceTests: XCTestCase {
+    private var sut: CloudKitSubscriptionService!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
         super.setUp()
         // Use default container since CKContainer subclassing is complex
-        sut = CloudKitSubscriptionManager()
+        sut = CloudKitSubscriptionService()
         cancellables = Set<AnyCancellable>()
     }
 
@@ -29,9 +29,9 @@ final class CloudKitSubscriptionManagerTests: XCTestCase {
 
     // MARK: - Basic Tests
 
-    func testCloudKitSubscriptionManagerInitialization() {
+    func testCloudKitSubscriptionServiceInitialization() {
         // Given/When
-        let manager = CloudKitSubscriptionManager()
+        let manager = CloudKitSubscriptionService()
 
         // Then
         XCTAssertNotNil(manager)

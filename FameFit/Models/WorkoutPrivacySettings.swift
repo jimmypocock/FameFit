@@ -8,7 +8,7 @@
 import Foundation
 import HealthKit
 
-// NOTE: RelationshipStatus is defined in SocialFollowingServicing.swift
+// NOTE: RelationshipStatus is defined in SocialFollowingProtocol.swift
 // If you get "ambiguous for type lookup" errors, ensure proper imports
 
 // MARK: - Workout Privacy Levels

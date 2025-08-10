@@ -321,7 +321,7 @@ class GroupWorkoutsViewModel: ObservableObject {
     @Published var participatingWorkouts: [GroupWorkout] = []
     @Published var publicWorkouts: [GroupWorkout] = []
 
-    private var groupWorkoutService: GroupWorkoutServiceProtocol?
+    private var groupWorkoutService: GroupWorkoutProtocol?
     var currentUserID: String?
     private var navigationCoordinator: NavigationCoordinator?
 
@@ -329,7 +329,7 @@ class GroupWorkoutsViewModel: ObservableObject {
     private var hasMoreActive = true
     private var hasMoreMyWorkouts = true
 
-    func setup(groupWorkoutService: GroupWorkoutServiceProtocol, currentUserID: String?, navigationCoordinator: NavigationCoordinator?) {
+    func setup(groupWorkoutService: GroupWorkoutProtocol, currentUserID: String?, navigationCoordinator: NavigationCoordinator?) {
         self.groupWorkoutService = groupWorkoutService
         self.currentUserID = currentUserID
         self.navigationCoordinator = navigationCoordinator

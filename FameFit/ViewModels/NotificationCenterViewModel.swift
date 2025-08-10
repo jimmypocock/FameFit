@@ -16,12 +16,12 @@ final class NotificationCenterViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
 
-    private var notificationStore: (any NotificationStoring)?
+    private var notificationStore: (any NotificationStoringProtocol)?
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Configuration
 
-    func configure(notificationStore: any NotificationStoring) {
+    func configure(notificationStore: any NotificationStoringProtocol) {
         self.notificationStore = notificationStore
 
         // Subscribe to notification updates

@@ -10,7 +10,7 @@ import UserNotifications
 import XCTest
 
 class NotificationFlowTests: XCTestCase {
-    private var notificationManager: NotificationManager!
+    private var notificationManager: NotificationService!
     private var mockScheduler: IntegrationTestScheduler!
     private var mockStore: MockNotificationStore!
     private var mockUnlockService: IntegrationTestUnlockService!
@@ -25,7 +25,7 @@ class NotificationFlowTests: XCTestCase {
         mockUnlockService = IntegrationTestUnlockService()
         mockMessageProvider = MockMessageProvider()
 
-        notificationManager = NotificationManager(
+        notificationManager = NotificationService(
             scheduler: mockScheduler,
             notificationStore: mockStore,
             unlockService: mockUnlockService,

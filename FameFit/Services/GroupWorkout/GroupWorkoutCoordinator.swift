@@ -32,11 +32,11 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     
     // MARK: - Dependencies
     
-    private let groupWorkoutService: any GroupWorkoutServiceProtocol
-    private let healthKitService: any HealthKitService
-    private let cloudKitManager: any CloudKitManaging
-    private let userProfileService: any UserProfileServicing
-    private let notificationManager: any NotificationManaging
+    private let groupWorkoutService: any GroupWorkoutProtocol
+    private let healthKitService: any HealthKitProtocol
+    private let cloudKitManager: any CloudKitProtocol
+    private let userProfileService: any UserProfileProtocol
+    private let notificationManager: any NotificationProtocol
     
     // MARK: - Private Properties
     
@@ -57,11 +57,11 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     // MARK: - Initialization
     
     init(
-        groupWorkoutService: any GroupWorkoutServiceProtocol,
-        healthKitService: any HealthKitService,
-        cloudKitManager: any CloudKitManaging,
-        userProfileService: any UserProfileServicing,
-        notificationManager: any NotificationManaging
+        groupWorkoutService: any GroupWorkoutProtocol,
+        healthKitService: any HealthKitProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        userProfileService: any UserProfileProtocol,
+        notificationManager: any NotificationProtocol
     ) {
         self.groupWorkoutService = groupWorkoutService
         self.healthKitService = healthKitService

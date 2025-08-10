@@ -17,11 +17,11 @@ final class ActivityFeedViewModel: ObservableObject {
     @Published var filters = ActivityFeedFilters()
     @Published var hasMoreItems = true
 
-    private var socialService: SocialFollowingServicing?
-    private var profileService: UserProfileServicing?
-    private var activityFeedService: ActivityFeedServicing?
-    private var kudosService: WorkoutKudosServicing?
-    private var commentsService: ActivityFeedCommentsServicing?
+    private var socialService: SocialFollowingProtocol?
+    private var profileService: UserProfileProtocol?
+    private var activityFeedService: ActivityFeedProtocol?
+    private var kudosService: WorkoutKudosProtocol?
+    private var commentsService: ActivityFeedCommentsProtocol?
     private var currentUserID = ""
     private var followingUsers: Set<String> = []
     private var lastFetchedDate: Date?
@@ -71,11 +71,11 @@ final class ActivityFeedViewModel: ObservableObject {
     }
 
     func configure(
-        socialService: SocialFollowingServicing,
-        profileService: UserProfileServicing,
-        activityFeedService: ActivityFeedServicing,
-        kudosService: WorkoutKudosServicing,
-        commentsService: ActivityFeedCommentsServicing,
+        socialService: SocialFollowingProtocol,
+        profileService: UserProfileProtocol,
+        activityFeedService: ActivityFeedProtocol,
+        kudosService: WorkoutKudosProtocol,
+        commentsService: ActivityFeedCommentsProtocol,
         currentUserID: String
     ) {
         self.socialService = socialService
@@ -599,4 +599,4 @@ final class ActivityFeedViewModel: ObservableObject {
 
 // MARK: - Legacy Mock Protocol (kept for compatibility)
 
-// Note: ActivityFeedServicing and ActivityFeedItem are now defined in ActivityFeedService.swift
+// Note: ActivityFeedProtocol and ActivityFeedItem are now defined in ActivityFeedService.swift

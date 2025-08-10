@@ -2,7 +2,7 @@
 //  MockUserProfileService.swift
 //  FameFitTests
 //
-//  Mock implementation of UserProfileServicing for testing
+//  Mock implementation of UserProfileProtocol for testing
 //
 
 import CloudKit
@@ -10,7 +10,7 @@ import Combine
 @testable import FameFit
 import Foundation
 
-final class MockUserProfileService: UserProfileServicing {
+final class MockUserProfileService: UserProfileProtocol {
     @Published private var currentProfile: UserProfile?
     @Published private var isLoading = false
 

@@ -2,8 +2,8 @@ import HealthKit
 import SwiftUI
 
 struct OnboardingView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var authManager: AuthenticationService
+    @EnvironmentObject var cloudKitManager: CloudKitService
     @EnvironmentObject var workoutObserver: WorkoutObserver
     @Environment(\.dependencyContainer) var container
 
@@ -234,7 +234,7 @@ struct ConversationBubbleView: View {
 struct SignInView: View {
     @Binding var onboardingStep: Int
     @Binding var showSignIn: Bool
-    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var authManager: AuthenticationService
 
     var body: some View {
         VStack(spacing: 30) {
@@ -368,16 +368,8 @@ struct ProfileSetupView: View {
                     .cornerRadius(15)
             })
         }
-        .task {
-            // Check if user already has a profile
-            do {
-                _ = try await container.userProfileService.fetchCurrentUserProfile()
-                // Profile exists, skip to next step
-                onboardingStep = 4
-            } catch {
-                // No profile, stay on this step
-            }
-        }
+        // Removed auto-advance - user must create profile manually
+        // Even if they have an old profile, they should create a new one during onboarding
     }
 }
 
@@ -385,7 +377,7 @@ struct GameMechanicsView: View {
     @Binding var onboardingStep: Int
     @State private var displayedMessages: [ConversationMessage] = []
     @State private var conversationComplete = false
-    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var authManager: AuthenticationService
     @Environment(\.dependencyContainer) var container
 
     let dialogues = [
@@ -476,10 +468,8 @@ struct GameMechanicsView: View {
             // Show button only when conversation is complete
             if conversationComplete {
                 Button(action: {
-                    // Complete onboarding
+                    // Complete onboarding and start services
                     authManager.completeOnboarding()
-                    
-                    // Now that onboarding is complete, start health services
                     container.workoutObserver.startObservingWorkouts()
                     container.workoutAutoShareService.setupAutoSharing()
                 }, label: {

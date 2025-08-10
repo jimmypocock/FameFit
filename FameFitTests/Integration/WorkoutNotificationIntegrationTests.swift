@@ -14,9 +14,9 @@ import XCTest
 final class WorkoutNotificationIntegrationTests: XCTestCase {
     private var dependencyContainer: DependencyContainer!
     private var mockHealthKitService: MockHealthKitService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockNotificationStore: MockNotificationStore!
-    private var workoutSyncManager: WorkoutSyncManager!
+    private var workoutSyncManager: WorkoutSyncService!
 
     @MainActor
     override func setUpWithError() throws {
@@ -24,16 +24,16 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // Create mocks
         mockHealthKitService = MockHealthKitService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockNotificationStore = MockNotificationStore()
 
         // Create container with mocks
         dependencyContainer = DependencyContainer(
-            authenticationManager: AuthenticationManager(cloudKitManager: CloudKitManager()),
-            cloudKitManager: CloudKitManager(),
-            workoutObserver: WorkoutObserver(cloudKitManager: CloudKitManager()),
+            authenticationManager: AuthenticationService(cloudKitManager: CloudKitService()),
+            cloudKitManager: CloudKitService(),
+            workoutObserver: WorkoutObserver(cloudKitManager: CloudKitService()),
             healthKitService: mockHealthKitService,
-            notificationManager: mockNotificationManager
+            notificationManager: mockNotificationService
         )
 
         // Set the mock notification store on the sync manager and observer
@@ -53,7 +53,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
     override func tearDown() {
         dependencyContainer = nil
         mockHealthKitService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockNotificationStore = nil
         workoutSyncManager = nil
         super.tearDown()
@@ -231,7 +231,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test that notifications work with different permission states
 
         // When: Permission is granted, add a notification
-        mockNotificationManager.currentAuthStatus = .authorized
+        mockNotificationService.currentAuthStatus = .authorized
 
         let runningNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
@@ -254,7 +254,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         )
 
         // When: Permission is denied, add another notification
-        mockNotificationManager.currentAuthStatus = .denied
+        mockNotificationService.currentAuthStatus = .denied
 
         let cyclingNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
@@ -368,7 +368,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Simulate the anchored query callback for incremental updates
         await withCheckedContinuation { continuation in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                // This simulates the incremental update path in WorkoutSyncManager
+                // This simulates the incremental update path in WorkoutSyncService
                 // In real implementation, this would be called by HKAnchoredObjectQuery
                 continuation.resume()
             }
@@ -398,9 +398,9 @@ private extension MockNotificationStore {
     }
 }
 
-private extension CloudKitManager {
+private extension CloudKitService {
     func setTotalXP(_: Int) {
-        // This would need to be implemented in CloudKitManager for testing
+        // This would need to be implemented in CloudKitService for testing
         // For now, this is a placeholder
     }
 }

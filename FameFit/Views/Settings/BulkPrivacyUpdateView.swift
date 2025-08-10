@@ -239,8 +239,8 @@ private struct UpdateProgressOverlay: View {
 @MainActor
 final class BulkPrivacyUpdateViewModel: ObservableObject {
     // Dependencies
-    private let bulkPrivacyService: BulkPrivacyUpdateServicing
-    private let activityFeedService: ActivityFeedServicing
+    private let bulkPrivacyService: BulkPrivacyUpdateProtocol
+    private let activityFeedService: ActivityFeedProtocol
     
     // Published State
     @Published var updateScope: BulkUpdateScope = .all
@@ -272,7 +272,7 @@ final class BulkPrivacyUpdateViewModel: ObservableObject {
         }
     }
     
-    init(bulkPrivacyService: BulkPrivacyUpdateServicing, activityFeedService: ActivityFeedServicing) {
+    init(bulkPrivacyService: BulkPrivacyUpdateProtocol, activityFeedService: ActivityFeedProtocol) {
         self.bulkPrivacyService = bulkPrivacyService
         self.activityFeedService = activityFeedService
         

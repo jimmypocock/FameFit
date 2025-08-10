@@ -30,7 +30,7 @@ struct EditProfileView: View {
     let profile: UserProfile
     let onSave: (UserProfile) -> Void
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 

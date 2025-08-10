@@ -2,7 +2,7 @@
 //  MockWorkoutKudosService.swift
 //  FameFitTests
 //
-//  Mock implementation of WorkoutKudosServicing for unit testing
+//  Mock implementation of WorkoutKudosProtocol for unit testing
 //
 
 import Combine
@@ -10,7 +10,7 @@ import Combine
 import Foundation
 
 /// Mock workout kudos service for testing
-class MockWorkoutKudosService: WorkoutKudosServicing {
+class MockWorkoutKudosService: WorkoutKudosProtocol {
     // Test control properties
     var toggleKudosCalled = false
     var removeKudosCalled = false

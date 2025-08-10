@@ -4,23 +4,23 @@ import XCTest
 
 class WorkoutObserverTests: XCTestCase {
     private var mockHealthKitService: MockHealthKitService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var workoutObserver: WorkoutObserver!
 
     override func setUp() {
         super.setUp()
 
         mockHealthKitService = MockHealthKitService()
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         workoutObserver = WorkoutObserver(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             healthKitService: mockHealthKitService
         )
     }
 
     override func tearDown() {
         mockHealthKitService.reset()
-        mockCloudKitManager.reset()
+        mockCloudKitService.reset()
         workoutObserver = nil
 
         super.tearDown()
@@ -67,8 +67,8 @@ class WorkoutObserverTests: XCTestCase {
     func testWorkoutDetection_AddsXP() {
         // Given
         let expectation = XCTestExpectation(description: "Workout processed")
-        mockCloudKitManager.reset()
-        _ = mockCloudKitManager.totalXP // Verify starts at 0
+        mockCloudKitService.reset()
+        _ = mockCloudKitService.totalXP // Verify starts at 0
 
         // Create a mock workout
         let workout = TestWorkoutBuilder.createRunWorkout()

@@ -4,12 +4,12 @@ import HealthKit
 import os.log
 import UserNotifications
 
-class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
-    private let healthKitService: HealthKitService
+class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
+    private let healthKitService: HealthKitProtocol
     private var observerQuery: HKObserverQuery?
-    weak var cloudKitManager: CloudKitManager?
-    weak var notificationStore: (any NotificationStoring)?
-    weak var apnsManager: (any APNSManaging)?
+    weak var cloudKitManager: CloudKitService?
+    weak var notificationStore: (any NotificationStoringProtocol)?
+    weak var apnsManager: (any APNSProtocol)?
     weak var workoutProcessor: WorkoutProcessor?
     private var preferences: NotificationPreferences = .load()
 
@@ -27,9 +27,9 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         workoutCompletedSubject.eraseToAnyPublisher()
     }
 
-    init(cloudKitManager: CloudKitManager, healthKitService: HealthKitService? = nil) {
+    init(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) {
         self.cloudKitManager = cloudKitManager
-        self.healthKitService = healthKitService ?? RealHealthKitService()
+        self.healthKitService = healthKitService
         super.init()
         requestNotificationPermissions()
     }
@@ -203,7 +203,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
         // Use WorkoutProcessor for all processing
         guard let processor = workoutProcessor else {
             FameFitLogger.error("WorkoutProcessor not available, falling back to legacy processing", category: FameFitLogger.workout)
-            // Fallback to legacy CloudKitManager saveWorkout
+            // Fallback to legacy CloudKitService saveWorkout
             let historyItem = Workout(from: workout, followersEarned: 0)
             cloudKitManager?.saveWorkout(historyItem)
             return
@@ -411,7 +411,8 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserving {
                     self?.isAuthorized = true
                     self?.lastError = nil
                     completion(true, nil)
-                    self?.startObservingWorkouts()
+                    // Don't automatically start observing - let onboarding control this
+                    // self?.startObservingWorkouts()
                 }
             }
         }

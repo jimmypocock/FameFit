@@ -600,7 +600,7 @@ struct GroupWorkoutDetailView: View {
                 
                 // Schedule notification if joining
                 if status == .joined {
-                    await NotificationService.shared.scheduleGroupWorkoutStartNotification(
+                    await GroupWorkoutNotificationService.shared.scheduleGroupWorkoutStartNotification(
                         workout: workout,
                         isHost: false,
                         minutesBefore: 5
@@ -621,14 +621,14 @@ struct GroupWorkoutDetailView: View {
                 
                 // Handle notification scheduling based on status
                 if status == .joined {
-                    await NotificationService.shared.scheduleGroupWorkoutStartNotification(
+                    await GroupWorkoutNotificationService.shared.scheduleGroupWorkoutStartNotification(
                         workout: workout,
                         isHost: false,
                         minutesBefore: 5
                     )
                 } else if status == .declined {
                     // Cancel notification if declining
-                    NotificationService.shared.cancelGroupWorkoutNotification(workoutID: workout.id)
+                    GroupWorkoutNotificationService.shared.cancelGroupWorkoutNotification(workoutID: workout.id)
                 }
                 
                 await loadData()
@@ -648,7 +648,7 @@ struct GroupWorkoutDetailView: View {
                 }
                 
                 // Show immediate notification for host
-                await NotificationService.shared.showGroupWorkoutNowNotification(
+                await GroupWorkoutNotificationService.shared.showGroupWorkoutNowNotification(
                     workoutName: updatedWorkout.name,
                     workoutType: Int(updatedWorkout.workoutType.rawValue),
                     workoutID: updatedWorkout.id,
@@ -676,7 +676,7 @@ struct GroupWorkoutDetailView: View {
             let isHost = workout.hostID == container.cloudKitManager.currentUserID
             
             // Show immediate notification 
-            await NotificationService.shared.showGroupWorkoutNowNotification(
+            await GroupWorkoutNotificationService.shared.showGroupWorkoutNowNotification(
                 workoutName: workout.name,
                 workoutType: Int(workout.workoutType.rawValue),
                 workoutID: workout.id,
@@ -694,8 +694,8 @@ struct GroupWorkoutDetailView: View {
     }
     
     private func sendWorkoutToWatch(_ workout: GroupWorkout, isHost: Bool) async {
-        // Use WatchConnectivityManager to send workout to Watch
-        let watchManager = WatchConnectivityManager.shared
+        // Use WatchConnectivityManager from dependency container
+        let watchManager = container.watchConnectivityManager
         
         // Always send the command - it will use application context as fallback
         watchManager.sendGroupWorkoutCommand(

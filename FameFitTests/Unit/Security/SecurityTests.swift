@@ -169,8 +169,8 @@ class SecurityTests: XCTestCase {
     // MARK: - Permission Scoping Tests
 
     func testMinimalHealthKitPermissions() {
-        // Test that we're using minimal permissions through RealHealthKitService
-        let readTypes = RealHealthKitService.readTypes
+        // Test that we're using minimal permissions through HealthKitService
+        let readTypes = HealthKitService.readTypes
 
         // Should only request what we need
         XCTAssertTrue(readTypes.contains(HKObjectType.workoutType()))

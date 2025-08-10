@@ -11,22 +11,22 @@ import XCTest
 
 class MainViewModelReactiveTests: XCTestCase {
     private var viewModel: MainViewModel!
-    private var mockAuthManager: MockAuthenticationManager!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockAuthManager: MockAuthenticationService!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockNotificationStore: MockNotificationStore!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
         super.setUp()
 
-        mockAuthManager = MockAuthenticationManager()
-        mockCloudKitManager = MockCloudKitManager()
+        mockAuthManager = MockAuthenticationService()
+        mockCloudKitService = MockCloudKitService()
         mockNotificationStore = MockNotificationStore()
         cancellables = Set<AnyCancellable>()
 
         viewModel = MainViewModel(
             authManager: mockAuthManager,
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             notificationStore: mockNotificationStore,
             userProfileService: MockUserProfileService(),
             socialFollowingService: MockSocialFollowingService()
@@ -36,7 +36,7 @@ class MainViewModelReactiveTests: XCTestCase {
     override func tearDown() {
         viewModel = nil
         mockAuthManager = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockNotificationStore = nil
         cancellables = nil
         super.tearDown()
@@ -49,7 +49,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialUserName = viewModel.userName
 
         // When
-        mockCloudKitManager.userName = "New User Name"
+        mockCloudKitService.userName = "New User Name"
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -68,7 +68,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialCount = viewModel.totalXP
 
         // When
-        mockCloudKitManager.totalXP = 250
+        mockCloudKitService.totalXP = 250
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -88,7 +88,7 @@ class MainViewModelReactiveTests: XCTestCase {
         XCTAssertEqual(initialTitle, "Micro-Influencer") // 100 XP (from mock init)
 
         // When
-        mockCloudKitManager.totalXP = 3_000 // Should trigger "Rising Star" title
+        mockCloudKitService.totalXP = 3_000 // Should trigger "Rising Star" title
 
         // Force a manual refresh to ensure the reactive binding picks up the change
         viewModel.refreshData()
@@ -110,7 +110,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialCount = viewModel.totalWorkouts
 
         // When
-        mockCloudKitManager.totalWorkouts = 50
+        mockCloudKitService.totalWorkouts = 50
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -129,7 +129,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialStreak = viewModel.currentStreak
 
         // When
-        mockCloudKitManager.currentStreak = 15
+        mockCloudKitService.currentStreak = 15
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -148,7 +148,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let newJoinDate = Date().addingTimeInterval(-30 * 24 * 60 * 60) // 30 days ago
 
         // When
-        mockCloudKitManager.joinTimestamp = newJoinDate
+        mockCloudKitService.joinTimestamp = newJoinDate
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -167,7 +167,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let newWorkoutDate = Date().addingTimeInterval(-2 * 60 * 60) // 2 hours ago
 
         // When
-        mockCloudKitManager.lastWorkoutTimestamp = newWorkoutDate
+        mockCloudKitService.lastWorkoutTimestamp = newWorkoutDate
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -246,9 +246,9 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialTotalWorkouts = viewModel.totalWorkouts
 
         // When - Simulate a workout being recorded
-        mockCloudKitManager.userName = "Active User"
-        mockCloudKitManager.totalXP = 150
-        mockCloudKitManager.totalWorkouts = 25
+        mockCloudKitService.userName = "Active User"
+        mockCloudKitService.totalXP = 150
+        mockCloudKitService.totalWorkouts = 25
 
         // Allow time for publishers to propagate
         let expectation = XCTestExpectation(description: "Publishers update")
@@ -274,7 +274,7 @@ class MainViewModelReactiveTests: XCTestCase {
         let initialDaysAsMember = viewModel.daysAsMember
 
         // When
-        mockCloudKitManager.joinTimestamp = thirtyDaysAgo
+        mockCloudKitService.joinTimestamp = thirtyDaysAgo
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")

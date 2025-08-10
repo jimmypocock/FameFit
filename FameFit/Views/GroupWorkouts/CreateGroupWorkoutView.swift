@@ -276,7 +276,7 @@ struct CreateGroupWorkoutView: View {
                 FameFitLogger.info("✅ Group workout created successfully: \(createdWorkout.id)", category: FameFitLogger.social)
                 
                 // Schedule notification for the host
-                await NotificationService.shared.scheduleGroupWorkoutStartNotification(
+                await GroupWorkoutNotificationService.shared.scheduleGroupWorkoutStartNotification(
                     workout: createdWorkout,
                     isHost: true,
                     minutesBefore: 5

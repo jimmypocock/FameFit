@@ -11,9 +11,9 @@ import XCTest
 
 final class WorkoutChallengesServiceTests: XCTestCase {
     private var sut: TestableWorkoutChallengesService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockUserProfileService: MockUserProfileService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockRateLimiter: MockRateLimitingService!
     private var mockPublicDatabase: MockCKDatabase!
     private var mockPrivateDatabase: MockCKDatabase!
@@ -21,28 +21,28 @@ final class WorkoutChallengesServiceTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        mockCloudKitManager = MockCloudKitManager()
-        mockCloudKitManager.currentUserID = "test-user"
+        mockCloudKitService = MockCloudKitService()
+        mockCloudKitService.currentUserID = "test-user"
 
         mockUserProfileService = MockUserProfileService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockRateLimiter = MockRateLimitingService()
         mockPublicDatabase = MockCKDatabase()
         mockPrivateDatabase = MockCKDatabase()
 
         sut = TestableWorkoutChallengesService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             userProfileService: mockUserProfileService,
-            notificationManager: mockNotificationManager,
+            notificationManager: mockNotificationService,
             rateLimiter: mockRateLimiter
         )
     }
 
     override func tearDown() {
         sut = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockUserProfileService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockRateLimiter = nil
         mockPublicDatabase = nil
         mockPrivateDatabase = nil
@@ -86,14 +86,14 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         XCTAssertEqual(createdChallenge.status, ChallengeStatus.pending)
         XCTAssertEqual(mockRateLimiter.recordActionCallCount, 1)
         XCTAssertGreaterThanOrEqual(
-            mockNotificationManager.scheduleNotificationCallCount,
+            mockNotificationService.scheduleNotificationCallCount,
             1
         ) // At least one notification
     }
 
     func testCreateChallenge_NotAuthenticated() async {
         // Given
-        mockCloudKitManager.currentUserID = nil
+        mockCloudKitService.currentUserID = nil
         let challenge = MockWorkoutChallengesService.createMockChallenge()
 
         // When/Then
@@ -165,7 +165,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
 
         // Then
         XCTAssertEqual(acceptedChallenge.status, .active)
-        XCTAssertEqual(mockNotificationManager.scheduleNotificationCallCount, 2) // Notify both participants
+        XCTAssertEqual(mockNotificationService.scheduleNotificationCallCount, 2) // Notify both participants
     }
 
     func testAcceptChallenge_NotParticipant() async {
@@ -238,7 +238,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         try await sut.updateProgress(challengeId: challengeId, progress: 25.5, workoutId: "workout-123")
 
         // Then
-        XCTAssertEqual(mockCloudKitManager.saveCallCount, 1)
+        XCTAssertEqual(mockCloudKitService.saveCallCount, 1)
     }
 
     func testUpdateProgress_ReachesTarget_CompletesChallenge() async throws {
@@ -266,7 +266,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
 
         // Then - Should trigger completion
         XCTAssertGreaterThanOrEqual(
-            mockNotificationManager.scheduleNotificationCallCount,
+            mockNotificationService.scheduleNotificationCallCount,
             2
         ) // Completion notifications
     }
@@ -321,7 +321,7 @@ final class WorkoutChallengesServiceTests: XCTestCase {
         // Then
         XCTAssertEqual(completedChallenge.status, .completed)
         XCTAssertEqual(completedChallenge.winnerId, "test-user") // Highest progress
-        XCTAssertGreaterThanOrEqual(mockNotificationManager.scheduleNotificationCallCount, 2) // Notify all participants
+        XCTAssertGreaterThanOrEqual(mockNotificationService.scheduleNotificationCallCount, 2) // Notify all participants
     }
 
     // MARK: - Fetch Challenges Tests

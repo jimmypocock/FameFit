@@ -20,13 +20,13 @@ import HealthKit
 
 /// Main service for managing group workouts
 /// Implements thread-safe operations with proper error handling
-final class GroupWorkoutService: GroupWorkoutServiceProtocol, @unchecked Sendable {
+final class GroupWorkoutService: GroupWorkoutProtocol, @unchecked Sendable {
     // MARK: - Properties
     
-    let cloudKitManager: any CloudKitManaging
-    let userProfileService: any UserProfileServicing
-    let notificationManager: any NotificationManaging
-    let rateLimiter: any RateLimitingServicing
+    let cloudKitManager: any CloudKitProtocol
+    let userProfileService: any UserProfileProtocol
+    let notificationManager: any NotificationProtocol
+    let rateLimiter: any RateLimitingProtocol
     let eventStore = EKEventStore()
     var workoutProcessor: WorkoutProcessor?
     
@@ -43,16 +43,22 @@ final class GroupWorkoutService: GroupWorkoutServiceProtocol, @unchecked Sendabl
     // MARK: - Initialization
     
     init(
-        cloudKitManager: any CloudKitManaging,
-        userProfileService: any UserProfileServicing,
-        notificationManager: any NotificationManaging,
-        rateLimiter: any RateLimitingServicing
+        cloudKitManager: any CloudKitProtocol,
+        userProfileService: any UserProfileProtocol,
+        notificationManager: any NotificationProtocol,
+        rateLimiter: any RateLimitingProtocol
     ) {
         self.cloudKitManager = cloudKitManager
         self.userProfileService = userProfileService
         self.notificationManager = notificationManager
         self.rateLimiter = rateLimiter
         
+        // Don't setup subscriptions in init - wait for explicit start
+        // This prevents unnecessary CloudKit calls before user is authenticated
+    }
+    
+    /// Start the group workout service (should be called after authentication)
+    func startService() {
         Task {
             await setupSubscriptions()
         }

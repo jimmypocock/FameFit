@@ -12,42 +12,41 @@ import CloudKit
 
 protocol DependencyFactory: AnyObject {
     // Core Services
-    func createCloudKitManager() -> CloudKitManager
-    func createAuthenticationManager(cloudKitManager: CloudKitManager) -> AuthenticationManager
-    func createHealthKitService() -> HealthKitService
-    func createModernHealthKitService() -> ModernHealthKitServicing
-    func createWatchConnectivityManager() -> WatchConnectivityManaging
+    func createCloudKitService() -> CloudKitService
+    func createAuthenticationService(cloudKitManager: CloudKitService) -> AuthenticationService
+    func createHealthKitService() -> HealthKitProtocol
+    func createWatchConnectivityManager() -> WatchConnectivityProtocol
     func createNotificationStore() -> NotificationStore
     func createUnlockStorageService() -> UnlockStorageService
     func createUnlockNotificationService(notificationStore: NotificationStore, unlockStorage: UnlockStorageService) -> UnlockNotificationService
-    func createNotificationScheduler() -> NotificationScheduling
-    func createAPNSManager(cloudKitManager: CloudKitManager) -> APNSManaging
+    func createNotificationScheduler() -> NotificationSchedulingProtocol
+    func createAPNSService(cloudKitManager: CloudKitService) -> APNSProtocol
     
     // Workflow Services
-    func createWorkoutObserver(cloudKitManager: CloudKitManager, healthKitService: HealthKitService) -> WorkoutObserver
-    func createWorkoutSyncManager(cloudKitManager: CloudKitManager, healthKitService: HealthKitService) -> WorkoutSyncManager
-    func createWorkoutSyncQueue(cloudKitManager: CloudKitManager) -> WorkoutSyncQueue
+    func createWorkoutObserver(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutObserver
+    func createWorkoutSyncService(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutSyncService
+    func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue
     
     // Social Services
-    func createUserProfileService(cloudKitManager: CloudKitManager) -> UserProfileServicing
+    func createUserProfileService(cloudKitManager: CloudKitService) -> UserProfileProtocol
     func createRateLimitingService() -> RateLimitingService
-    func createNotificationManager(notificationStore: NotificationStore, scheduler: NotificationScheduling) -> NotificationManaging
-    func createSocialFollowingService(cloudKitManager: CloudKitManager, rateLimiter: RateLimitingServicing, profileService: UserProfileServicing) -> SocialFollowingServicing
-    func createBulkPrivacyUpdateService(cloudKitManager: CloudKitManager, userProfileService: UserProfileServicing) -> BulkPrivacyUpdateServicing
-    func createWorkoutChallengesService(cloudKitManager: CloudKitManager) -> WorkoutChallengesServicing
-    func createActivityFeedService(cloudKitManager: CloudKitManager) -> ActivityFeedServicing
-    func createActivityCommentsService(cloudKitManager: CloudKitManager) -> ActivityFeedCommentsServicing
-    func createSubscriptionManager(cloudKitManager: CloudKitManager) -> CloudKitSubscriptionManaging
-    func createPushNotificationService(cloudKitManager: CloudKitManager, subscriptionManager: CloudKitSubscriptionManaging) -> CloudKitPushNotificationService
-    func createWorkoutKudosService(cloudKitManager: CloudKitManager) -> WorkoutKudosServicing
-    func createActivitySharingSettingsService(cloudKitManager: CloudKitManager) -> ActivityFeedSettingsServicing
-    func createWorkoutAutoShareService(activityFeedService: ActivityFeedServicing, settingsService: ActivityFeedSettingsServicing, notificationManager: NotificationManaging) -> WorkoutAutoShareServicing
+    func createNotificationService(notificationStore: NotificationStore, scheduler: NotificationSchedulingProtocol) -> NotificationProtocol
+    func createSocialFollowingService(cloudKitManager: CloudKitService, rateLimiter: RateLimitingProtocol, profileService: UserProfileProtocol) -> SocialFollowingProtocol
+    func createBulkPrivacyUpdateService(cloudKitManager: CloudKitService, userProfileService: UserProfileProtocol) -> BulkPrivacyUpdateProtocol
+    func createWorkoutChallengesService(cloudKitManager: CloudKitService) -> WorkoutChallengesProtocol
+    func createActivityFeedService(cloudKitManager: CloudKitService) -> ActivityFeedProtocol
+    func createActivityCommentsService(cloudKitManager: CloudKitService) -> ActivityFeedCommentsProtocol
+    func createSubscriptionManager(cloudKitManager: CloudKitService) -> CloudKitSubscriptionProtocol
+    func createPushNotificationService(cloudKitManager: CloudKitService, subscriptionManager: CloudKitSubscriptionProtocol) -> CloudKitPushNotificationService
+    func createWorkoutKudosService(cloudKitManager: CloudKitService) -> WorkoutKudosProtocol
+    func createActivitySharingSettingsService(cloudKitManager: CloudKitService) -> ActivityFeedSettingsProtocol
+    func createWorkoutAutoShareService(activityFeedService: ActivityFeedProtocol, settingsService: ActivityFeedSettingsProtocol, notificationManager: NotificationProtocol) -> WorkoutAutoShareProtocol
     func createXPTransactionService(container: CKContainer) -> XPTransactionService
-    func createGroupWorkoutService(cloudKitManager: CloudKitManager, userProfileService: UserProfileServicing, notificationManager: NotificationManaging) -> GroupWorkoutServiceProtocol
-    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionManaging, cloudKitManager: CloudKitManager, socialFollowingService: SocialFollowingServicing, userProfileService: UserProfileServicing, workoutKudosService: WorkoutKudosServicing, activityCommentsService: ActivityFeedCommentsServicing, workoutChallengesService: WorkoutChallengesServicing, groupWorkoutService: GroupWorkoutServiceProtocol, activityFeedService: ActivityFeedServicing) -> RealTimeSyncCoordinating
+    func createGroupWorkoutService(cloudKitManager: CloudKitService, userProfileService: UserProfileProtocol, notificationManager: NotificationProtocol) -> GroupWorkoutProtocol
+    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionProtocol, cloudKitManager: CloudKitService, socialFollowingService: SocialFollowingProtocol, userProfileService: UserProfileProtocol, workoutKudosService: WorkoutKudosProtocol, activityCommentsService: ActivityFeedCommentsProtocol, workoutChallengesService: WorkoutChallengesProtocol, groupWorkoutService: GroupWorkoutProtocol, activityFeedService: ActivityFeedProtocol) -> RealTimeSyncCoordinatorProtocol
     
     // Utilities
-    func createMessageProvider() -> MessageProviding
+    func createMessageProvider() -> MessageProvidingProtocol
 }
 
 // MARK: - Production Dependency Factory
@@ -55,23 +54,19 @@ protocol DependencyFactory: AnyObject {
 class ProductionDependencyFactory: DependencyFactory {
     // MARK: - Core Services
     
-    func createCloudKitManager() -> CloudKitManager {
-        CloudKitManager()
+    func createCloudKitService() -> CloudKitService {
+        CloudKitService()
     }
     
-    func createAuthenticationManager(cloudKitManager: CloudKitManager) -> AuthenticationManager {
-        AuthenticationManager(cloudKitManager: cloudKitManager)
+    func createAuthenticationService(cloudKitManager: CloudKitService) -> AuthenticationService {
+        AuthenticationService(cloudKitManager: cloudKitManager)
     }
     
-    func createHealthKitService() -> HealthKitService {
-        RealHealthKitService()
+    func createHealthKitService() -> HealthKitProtocol {
+        HealthKitService()
     }
     
-    func createModernHealthKitService() -> ModernHealthKitServicing {
-        ModernHealthKitService()
-    }
-    
-    func createWatchConnectivityManager() -> WatchConnectivityManaging {
+    func createWatchConnectivityManager() -> WatchConnectivityProtocol {
         // WatchConnectivity should be a singleton since WCSession is a singleton
         // We still return it through the factory for consistency and testability
         return WatchConnectivitySingleton.shared
@@ -92,19 +87,19 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createNotificationScheduler() -> NotificationScheduling {
+    func createNotificationScheduler() -> NotificationSchedulingProtocol {
         NotificationScheduler(notificationStore: NotificationStore())
     }
     
-    func createAPNSManager(cloudKitManager: CloudKitManager) -> APNSManaging {
-        APNSManager(cloudKitManager: cloudKitManager)
+    func createAPNSService(cloudKitManager: CloudKitService) -> APNSProtocol {
+        APNSService(cloudKitManager: cloudKitManager)
     }
     
     // MARK: - Workflow Services
     
     func createWorkoutObserver(
-        cloudKitManager: CloudKitManager,
-        healthKitService: HealthKitService
+        cloudKitManager: CloudKitService,
+        healthKitService: HealthKitProtocol
     ) -> WorkoutObserver {
         WorkoutObserver(
             cloudKitManager: cloudKitManager,
@@ -112,22 +107,22 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createWorkoutSyncManager(
-        cloudKitManager: CloudKitManager,
-        healthKitService: HealthKitService
-    ) -> WorkoutSyncManager {
-        // Note: WorkoutSyncManager is @MainActor, so it must be created on the main actor
-        // This factory method is not used anymore - WorkoutSyncManager is created directly in DependencyContainer+Init
-        fatalError("WorkoutSyncManager must be created on MainActor. Use DependencyContainer init instead.")
+    func createWorkoutSyncService(
+        cloudKitManager: CloudKitService,
+        healthKitService: HealthKitProtocol
+    ) -> WorkoutSyncService {
+        // Note: WorkoutSyncService is @MainActor, so it must be created on the main actor
+        // This factory method is not used anymore - WorkoutSyncService is created directly in DependencyContainer+Init
+        fatalError("WorkoutSyncService must be created on MainActor. Use DependencyContainer init instead.")
     }
     
-    func createWorkoutSyncQueue(cloudKitManager: CloudKitManager) -> WorkoutSyncQueue {
+    func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue {
         WorkoutSyncQueue(cloudKitManager: cloudKitManager)
     }
     
     // MARK: - Social Services
     
-    func createUserProfileService(cloudKitManager: CloudKitManager) -> UserProfileServicing {
+    func createUserProfileService(cloudKitManager: CloudKitService) -> UserProfileProtocol {
         UserProfileService(cloudKitManager: cloudKitManager)
     }
     
@@ -135,14 +130,14 @@ class ProductionDependencyFactory: DependencyFactory {
         RateLimitingService()
     }
     
-    func createNotificationManager(notificationStore: NotificationStore, scheduler: NotificationScheduling) -> NotificationManaging {
+    func createNotificationService(notificationStore: NotificationStore, scheduler: NotificationSchedulingProtocol) -> NotificationProtocol {
         let unlockService = createUnlockNotificationService(
             notificationStore: notificationStore,
             unlockStorage: createUnlockStorageService()
         )
         let messageProvider = createMessageProvider()
         
-        return NotificationManager(
+        return NotificationService(
             scheduler: scheduler,
             notificationStore: notificationStore,
             unlockService: unlockService,
@@ -151,13 +146,13 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createSocialFollowingService(
-        cloudKitManager: CloudKitManager, 
-        rateLimiter: RateLimitingServicing, 
-        profileService: UserProfileServicing
-    ) -> SocialFollowingServicing {
+        cloudKitManager: CloudKitService, 
+        rateLimiter: RateLimitingProtocol, 
+        profileService: UserProfileProtocol
+    ) -> SocialFollowingProtocol {
         let notificationStore = createNotificationStore()
         let scheduler = createNotificationScheduler()
-        let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
+        let notificationManager = createNotificationService(notificationStore: notificationStore, scheduler: scheduler)
         
         return CachedSocialFollowingService(
             cloudKitManager: cloudKitManager,
@@ -168,9 +163,9 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createBulkPrivacyUpdateService(
-        cloudKitManager: CloudKitManager,
-        userProfileService: UserProfileServicing
-    ) -> BulkPrivacyUpdateServicing {
+        cloudKitManager: CloudKitService,
+        userProfileService: UserProfileProtocol
+    ) -> BulkPrivacyUpdateProtocol {
         // First need to create ActivityFeedService for BulkPrivacyUpdateService
         let activityFeedService = createActivityFeedService(cloudKitManager: cloudKitManager)
         return BulkPrivacyUpdateService(
@@ -179,11 +174,11 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createWorkoutChallengesService(cloudKitManager: CloudKitManager) -> WorkoutChallengesServicing {
+    func createWorkoutChallengesService(cloudKitManager: CloudKitService) -> WorkoutChallengesProtocol {
         let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
         let notificationStore = createNotificationStore()
         let scheduler = createNotificationScheduler()
-        let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
+        let notificationManager = createNotificationService(notificationStore: notificationStore, scheduler: scheduler)
         let rateLimiter = createRateLimitingService()
         let workoutChallengeLinksService = WorkoutChallengeLinksService(cloudKitManager: cloudKitManager)
         return WorkoutChallengesService(
@@ -195,7 +190,7 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createActivityFeedService(cloudKitManager: CloudKitManager) -> ActivityFeedServicing {
+    func createActivityFeedService(cloudKitManager: CloudKitService) -> ActivityFeedProtocol {
         let privacySettings = WorkoutPrivacySettings()
         let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
         return ActivityFeedService(
@@ -205,11 +200,11 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createActivityCommentsService(cloudKitManager: CloudKitManager) -> ActivityFeedCommentsServicing {
+    func createActivityCommentsService(cloudKitManager: CloudKitService) -> ActivityFeedCommentsProtocol {
         let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
         let notificationStore = createNotificationStore()
         let scheduler = createNotificationScheduler()
-        let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
+        let notificationManager = createNotificationService(notificationStore: notificationStore, scheduler: scheduler)
         let rateLimiter = createRateLimitingService()
         return ActivityFeedCommentsService(
             cloudKitManager: cloudKitManager,
@@ -219,22 +214,22 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createSubscriptionManager(cloudKitManager: CloudKitManager) -> CloudKitSubscriptionManaging {
-        CloudKitSubscriptionManager()
+    func createSubscriptionManager(cloudKitManager: CloudKitService) -> CloudKitSubscriptionProtocol {
+        CloudKitSubscriptionService()
     }
     
     func createPushNotificationService(
-        cloudKitManager: CloudKitManager,
-        subscriptionManager: CloudKitSubscriptionManaging
+        cloudKitManager: CloudKitService,
+        subscriptionManager: CloudKitSubscriptionProtocol
     ) -> CloudKitPushNotificationService {
         CloudKitPushNotificationService()
     }
     
-    func createWorkoutKudosService(cloudKitManager: CloudKitManager) -> WorkoutKudosServicing {
+    func createWorkoutKudosService(cloudKitManager: CloudKitService) -> WorkoutKudosProtocol {
         let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
         let notificationStore = createNotificationStore()
         let scheduler = createNotificationScheduler()
-        let notificationManager = createNotificationManager(notificationStore: notificationStore, scheduler: scheduler)
+        let notificationManager = createNotificationService(notificationStore: notificationStore, scheduler: scheduler)
         let rateLimiter = createRateLimitingService()
         return WorkoutKudosService(
             userProfileService: userProfileService,
@@ -243,16 +238,16 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
-    func createActivitySharingSettingsService(cloudKitManager: CloudKitManager) -> ActivityFeedSettingsServicing {
+    func createActivitySharingSettingsService(cloudKitManager: CloudKitService) -> ActivityFeedSettingsProtocol {
         ActivityFeedSettingsService(cloudKitManager: cloudKitManager)
     }
     
     func createWorkoutAutoShareService(
-        activityFeedService: ActivityFeedServicing,
-        settingsService: ActivityFeedSettingsServicing,
-        notificationManager: NotificationManaging
-    ) -> WorkoutAutoShareServicing {
-        let workoutObserver = createWorkoutObserver(cloudKitManager: CloudKitManager(), healthKitService: RealHealthKitService())
+        activityFeedService: ActivityFeedProtocol,
+        settingsService: ActivityFeedSettingsProtocol,
+        notificationManager: NotificationProtocol
+    ) -> WorkoutAutoShareProtocol {
+        let workoutObserver = createWorkoutObserver(cloudKitManager: CloudKitService(), healthKitService: HealthKitService())
         let notificationStore = NotificationStore()
         return WorkoutAutoShareService(
             workoutObserver: workoutObserver,
@@ -268,10 +263,10 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createGroupWorkoutService(
-        cloudKitManager: CloudKitManager,
-        userProfileService: UserProfileServicing,
-        notificationManager: NotificationManaging
-    ) -> GroupWorkoutServiceProtocol {
+        cloudKitManager: CloudKitService,
+        userProfileService: UserProfileProtocol,
+        notificationManager: NotificationProtocol
+    ) -> GroupWorkoutProtocol {
         let rateLimiter = createRateLimitingService()
         return GroupWorkoutService(
             cloudKitManager: cloudKitManager,
@@ -282,16 +277,16 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createRealTimeSyncCoordinator(
-        subscriptionManager: CloudKitSubscriptionManaging,
-        cloudKitManager: CloudKitManager,
-        socialFollowingService: SocialFollowingServicing,
-        userProfileService: UserProfileServicing,
-        workoutKudosService: WorkoutKudosServicing,
-        activityCommentsService: ActivityFeedCommentsServicing,
-        workoutChallengesService: WorkoutChallengesServicing,
-        groupWorkoutService: GroupWorkoutServiceProtocol,
-        activityFeedService: ActivityFeedServicing
-    ) -> RealTimeSyncCoordinating {
+        subscriptionManager: CloudKitSubscriptionProtocol,
+        cloudKitManager: CloudKitService,
+        socialFollowingService: SocialFollowingProtocol,
+        userProfileService: UserProfileProtocol,
+        workoutKudosService: WorkoutKudosProtocol,
+        activityCommentsService: ActivityFeedCommentsProtocol,
+        workoutChallengesService: WorkoutChallengesProtocol,
+        groupWorkoutService: GroupWorkoutProtocol,
+        activityFeedService: ActivityFeedProtocol
+    ) -> RealTimeSyncCoordinatorProtocol {
         RealTimeSyncCoordinator(
             subscriptionManager: subscriptionManager,
             cloudKitManager: cloudKitManager,
@@ -307,7 +302,7 @@ class ProductionDependencyFactory: DependencyFactory {
     
     // MARK: - Utilities
     
-    func createMessageProvider() -> MessageProviding {
+    func createMessageProvider() -> MessageProvidingProtocol {
         FameFitMessageProvider()
     }
 }

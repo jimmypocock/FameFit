@@ -143,12 +143,12 @@ struct ExportedUserData: Codable {
 }
 
 class DataExportService: ObservableObject {
-    private let cloudKitManager: CloudKitManager
+    private let cloudKitManager: CloudKitService
     @Published var isExporting = false
     @Published var exportProgress: Double = 0
     @Published var exportError: Error?
     
-    init(cloudKitManager: CloudKitManager) {
+    init(cloudKitManager: CloudKitService) {
         self.cloudKitManager = cloudKitManager
     }
     
@@ -587,7 +587,7 @@ struct DataExportView: View {
     @State private var exportedData: Data?
     @State private var showError = false
     
-    init(cloudKitManager: CloudKitManager) {
+    init(cloudKitManager: CloudKitService) {
         _exportService = StateObject(wrappedValue: DataExportService(cloudKitManager: cloudKitManager))
     }
     

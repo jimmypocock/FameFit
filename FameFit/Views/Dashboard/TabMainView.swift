@@ -320,7 +320,8 @@ struct TabMainView: View {
         cloudKitManager: container.cloudKitManager,
         notificationStore: container.notificationStore,
         userProfileService: container.userProfileService,
-        socialFollowingService: container.socialFollowingService
+        socialFollowingService: container.socialFollowingService,
+        watchConnectivityManager: container.watchConnectivityManager
     )
-    return TabMainView(viewModel: viewModel)
+    TabMainView(viewModel: viewModel)
 }

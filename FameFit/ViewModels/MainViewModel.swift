@@ -10,14 +10,15 @@ import Foundation
 import SwiftUI
 
 /// View model that handles MainView business logic and data formatting
-class MainViewModel: ObservableObject, MainViewModeling {
+class MainViewModel: ObservableObject, MainViewModelProtocol {
     // MARK: - Dependencies
 
-    private let authManager: any AuthenticationManaging
-    private let cloudKitManager: any CloudKitManaging
-    private let notificationStore: any NotificationStoring
-    private let userProfileService: any UserProfileServicing
-    private let socialFollowingService: any SocialFollowingServicing
+    private let authManager: any AuthenticationProtocol
+    private let cloudKitManager: any CloudKitProtocol
+    private let notificationStore: any NotificationStoringProtocol
+    private let userProfileService: any UserProfileProtocol
+    private let socialFollowingService: any SocialFollowingProtocol
+    private let watchConnectivityManager: any WatchConnectivityProtocol
 
     // MARK: - Published Properties
 
@@ -40,17 +41,19 @@ class MainViewModel: ObservableObject, MainViewModeling {
     // MARK: - Initialization
 
     init(
-        authManager: any AuthenticationManaging,
-        cloudKitManager: any CloudKitManaging,
-        notificationStore: any NotificationStoring,
-        userProfileService: any UserProfileServicing,
-        socialFollowingService: any SocialFollowingServicing
+        authManager: any AuthenticationProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        notificationStore: any NotificationStoringProtocol,
+        userProfileService: any UserProfileProtocol,
+        socialFollowingService: any SocialFollowingProtocol,
+        watchConnectivityManager: any WatchConnectivityProtocol
     ) {
         self.authManager = authManager
         self.cloudKitManager = cloudKitManager
         self.notificationStore = notificationStore
         self.userProfileService = userProfileService
         self.socialFollowingService = socialFollowingService
+        self.watchConnectivityManager = watchConnectivityManager
 
         setupBindings()
     }
@@ -110,7 +113,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
                 await MainActor.run {
                     self.userProfile = profile
                     // Send user data to Watch
-                    WatchConnectivityManager.shared.sendUserData(
+                    watchConnectivityManager.sendUserData(
                         username: profile.username,
                         totalXP: profile.totalXP
                     )
@@ -134,7 +137,7 @@ class MainViewModel: ObservableObject, MainViewModeling {
                 await MainActor.run {
                     self.userProfile = profile
                     // Send updated user data to Watch
-                    WatchConnectivityManager.shared.sendUserData(
+                    watchConnectivityManager.sendUserData(
                         username: profile.username,
                         totalXP: profile.totalXP
                     )

@@ -13,7 +13,6 @@ enum CloudKitConfiguration {
     // MARK: - Record Types
     
     enum RecordType {
-        static let users = "Users"
         static let workouts = "Workouts"
         static let userSettings = "UserSettings"
         static let deviceTokens = "DeviceTokens"

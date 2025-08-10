@@ -396,7 +396,7 @@ struct DeveloperMenu: View {
                 // Force verification (marks as verified after completion)
                 let result = try await verificationService.verifyAllCounts()
                 
-                if result.hadCorrections {
+                if result.xpCorrected || result.workoutCountCorrected {
                     message = "✅ Counts corrected!\n\(result.summary)"
                 } else {
                     message = "✅ All counts verified correctly!"

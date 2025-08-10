@@ -12,22 +12,22 @@ import SwiftUI
 /// Main dependency container following modern Swift patterns and security best practices
 /// The container is split into extensions for better maintainability:
 /// - DependencyContainer+Init.swift: Production initialization
-/// - DependencyContainer+Test.swift: Test initialization
+/// - DependencyContainer+TestSupport.swift: Test initialization
 /// - DependencyContainer+Environment.swift: SwiftUI environment integration
 final class DependencyContainer: ObservableObject {
-    // MARK: - Core Services
     
-    let authenticationManager: AuthenticationManager
-    let cloudKitManager: CloudKitManager
-    let healthKitService: HealthKitService
-    let modernHealthKitService: ModernHealthKitServicing
-    let watchConnectivityManager: WatchConnectivityManaging
+    // MARK: - Core Services
+
+    let authenticationManager: AuthenticationService
+    let cloudKitManager: CloudKitService
+    let healthKitService: HealthKitProtocol
+    let watchConnectivityManager: WatchConnectivityProtocol
     
     // MARK: - Workout Services
     
     let workoutObserver: WorkoutObserver
     let workoutProcessor: WorkoutProcessor
-    let workoutSyncManager: WorkoutSyncManager
+    let workoutSyncManager: WorkoutSyncService
     let workoutSyncQueue: WorkoutSyncQueue
     
     // MARK: - Notification Services
@@ -35,39 +35,39 @@ final class DependencyContainer: ObservableObject {
     let notificationStore: NotificationStore
     let unlockNotificationService: UnlockNotificationService
     let unlockStorageService: UnlockStorageService
-    let notificationScheduler: NotificationScheduling
-    let notificationManager: NotificationManaging
-    let messageProvider: MessageProviding
-    let apnsManager: APNSManaging
+    let notificationScheduler: NotificationSchedulingProtocol
+    let notificationManager: NotificationProtocol
+    let messageProvider: MessageProvidingProtocol
+    let apnsManager: APNSProtocol
     
     // MARK: - Social & Profile Services
     
-    let userProfileService: UserProfileServicing
-    let rateLimitingService: RateLimitingServicing
-    let socialFollowingService: SocialFollowingServicing
+    let userProfileService: UserProfileProtocol
+    let rateLimitingService: RateLimitingProtocol
+    let socialFollowingService: SocialFollowingProtocol
     
     // MARK: - Activity Feed Services
     
-    let activityFeedService: ActivityFeedServicing
-    let activityCommentsService: ActivityFeedCommentsServicing
-    let workoutKudosService: WorkoutKudosServicing
-    let activitySharingSettingsService: ActivityFeedSettingsServicing
-    let workoutAutoShareService: WorkoutAutoShareServicing
+    let activityFeedService: ActivityFeedProtocol
+    let activityCommentsService: ActivityFeedCommentsProtocol
+    let workoutKudosService: WorkoutKudosProtocol
+    let activitySharingSettingsService: ActivityFeedSettingsProtocol
+    let workoutAutoShareService: WorkoutAutoShareProtocol
     
     // MARK: - Privacy & Settings Services
     
-    let bulkPrivacyUpdateService: BulkPrivacyUpdateServicing
+    let bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol
     
     // MARK: - Challenge & Group Services
     
-    let workoutChallengesService: WorkoutChallengesServicing
-    let workoutChallengeLinksService: WorkoutChallengeLinksServicing
-    let groupWorkoutService: GroupWorkoutServiceProtocol
+    let workoutChallengesService: WorkoutChallengesProtocol
+    let workoutChallengeLinksService: WorkoutChallengeLinksProtocol
+    let groupWorkoutService: GroupWorkoutProtocol
     
     // MARK: - Sync & Real-time Services
     
-    let subscriptionManager: CloudKitSubscriptionManaging
-    let realTimeSyncCoordinator: RealTimeSyncCoordinating
+    let subscriptionManager: CloudKitSubscriptionProtocol
+    let realTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol
     
     // MARK: - Transaction Services
     
@@ -75,57 +75,55 @@ final class DependencyContainer: ObservableObject {
     
     // MARK: - Verification Services
     
-    let countVerificationService: CountVerificationServicing
+    let countVerificationService: CountVerificationProtocol
     
     // MARK: - Sync Services
     
-    let statsSyncService: StatsSyncServicing
+    let statsSyncService: StatsSyncProtocol
     
     // MARK: - Base Initializer
     
     /// Base initializer that accepts all dependencies
     /// Used by both production and test initializers
     init(
-        authenticationManager: AuthenticationManager,
-        cloudKitManager: CloudKitManager,
+        authenticationManager: AuthenticationService,
+        cloudKitManager: CloudKitService,
         workoutObserver: WorkoutObserver,
         workoutProcessor: WorkoutProcessor,
-        healthKitService: HealthKitService,
-        modernHealthKitService: ModernHealthKitServicing,
-        watchConnectivityManager: WatchConnectivityManaging,
-        workoutSyncManager: WorkoutSyncManager,
+        healthKitService: HealthKitProtocol,
+        watchConnectivityManager: WatchConnectivityProtocol,
+        workoutSyncManager: WorkoutSyncService,
         workoutSyncQueue: WorkoutSyncQueue,
         notificationStore: NotificationStore,
         unlockNotificationService: UnlockNotificationService,
         unlockStorageService: UnlockStorageService,
-        userProfileService: UserProfileServicing,
-        rateLimitingService: RateLimitingServicing,
-        socialFollowingService: SocialFollowingServicing,
-        activityFeedService: ActivityFeedServicing,
-        notificationScheduler: NotificationScheduling,
-        notificationManager: NotificationManaging,
-        messageProvider: MessageProviding,
-        workoutKudosService: WorkoutKudosServicing,
-        apnsManager: APNSManaging,
-        groupWorkoutService: GroupWorkoutServiceProtocol,
-        workoutChallengesService: WorkoutChallengesServicing,
-        workoutChallengeLinksService: WorkoutChallengeLinksServicing,
-        subscriptionManager: CloudKitSubscriptionManaging,
-        realTimeSyncCoordinator: RealTimeSyncCoordinating,
-        activityCommentsService: ActivityFeedCommentsServicing,
-        activitySharingSettingsService: ActivityFeedSettingsServicing,
-        bulkPrivacyUpdateService: BulkPrivacyUpdateServicing,
-        workoutAutoShareService: WorkoutAutoShareServicing,
+        userProfileService: UserProfileProtocol,
+        rateLimitingService: RateLimitingProtocol,
+        socialFollowingService: SocialFollowingProtocol,
+        activityFeedService: ActivityFeedProtocol,
+        notificationScheduler: NotificationSchedulingProtocol,
+        notificationManager: NotificationProtocol,
+        messageProvider: MessageProvidingProtocol,
+        workoutKudosService: WorkoutKudosProtocol,
+        apnsManager: APNSProtocol,
+        groupWorkoutService: GroupWorkoutProtocol,
+        workoutChallengesService: WorkoutChallengesProtocol,
+        workoutChallengeLinksService: WorkoutChallengeLinksProtocol,
+        subscriptionManager: CloudKitSubscriptionProtocol,
+        realTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol,
+        activityCommentsService: ActivityFeedCommentsProtocol,
+        activitySharingSettingsService: ActivityFeedSettingsProtocol,
+        bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol,
+        workoutAutoShareService: WorkoutAutoShareProtocol,
         xpTransactionService: XPTransactionService,
-        countVerificationService: CountVerificationServicing,
-        statsSyncService: StatsSyncServicing
+        countVerificationService: CountVerificationProtocol,
+        statsSyncService: StatsSyncProtocol
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
         self.workoutObserver = workoutObserver
         self.workoutProcessor = workoutProcessor
         self.healthKitService = healthKitService
-        self.modernHealthKitService = modernHealthKitService
         self.watchConnectivityManager = watchConnectivityManager
         self.workoutSyncManager = workoutSyncManager
         self.workoutSyncQueue = workoutSyncQueue

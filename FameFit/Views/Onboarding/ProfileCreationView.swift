@@ -26,7 +26,7 @@ struct ProfileCreationView: View {
     @State private var isCreatingProfile = false
     @State private var creationError: String?
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 

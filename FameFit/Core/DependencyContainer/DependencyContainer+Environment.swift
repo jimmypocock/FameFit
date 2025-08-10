@@ -12,9 +12,11 @@ import SwiftUI
 private struct DependencyContainerKey: EnvironmentKey {
     // Use a singleton for the default container to prevent multiple initializations
     private static let sharedDefault: DependencyContainer = {
-        FameFitLogger.warning("Creating default DependencyContainer - this should be injected at app level", category: FameFitLogger.general)
+        // Note: This is accessed during SwiftUI view initialization before environment injection.
+        // This is normal SwiftUI behavior and not a cause for concern.
+        // The actual container will be injected by FameFitApp before any views use it.
         return MainActor.assumeIsolated {
-            let container = DependencyContainer()
+            let container = DependencyContainer(skipInitialization: true)
             // Don't start initialization for the default container - it's just a fallback
             // The app should inject the proper container which will handle initialization
             return container
@@ -22,8 +24,9 @@ private struct DependencyContainerKey: EnvironmentKey {
     }()
     
     static var defaultValue: DependencyContainer {
-        // Log warning each time it's accessed
-        FameFitLogger.warning("Using default DependencyContainer - this should be injected at app level", category: FameFitLogger.general)
+        // Return the shared default container
+        // This is accessed during SwiftUI's view property initialization phase
+        // before the actual container is injected via .environment()
         return sharedDefault
     }
 }

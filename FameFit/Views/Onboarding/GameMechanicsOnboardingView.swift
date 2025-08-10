@@ -12,7 +12,7 @@ struct GameMechanicsOnboardingView: View {
     @State private var visibleMessages = 0
     @State private var showContinueButton = false
     @State private var isCompletingOnboarding = false
-    @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var authManager: AuthenticationService
     @Environment(\.dependencyContainer) var container
     
     struct ChatMessage {
@@ -208,6 +208,6 @@ struct GameChatBubble: View {
         .ignoresSafeArea()
         
         GameMechanicsOnboardingView(onboardingStep: .constant(4))
-            .environmentObject(AuthenticationManager(cloudKitManager: CloudKitManager()))
+            .environmentObject(AuthenticationService(cloudKitManager: CloudKitService()))
     }
 }

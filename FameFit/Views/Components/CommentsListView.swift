@@ -22,7 +22,7 @@ struct CommentsListView: View {
         workoutID: String,
         workoutOwnerID: String,
         currentUser: UserProfile?,
-        commentsService: ActivityFeedCommentsServicing
+        commentsService: ActivityFeedCommentsProtocol
     ) {
         self.workoutID = workoutID
         self.workoutOwnerID = workoutOwnerID
@@ -375,7 +375,7 @@ class CommentsViewModel: ObservableObject {
     @Published var sortOrder: CommentSortOrder = .newest
 
     private let workoutID: String
-    private let commentsService: ActivityFeedCommentsServicing
+    private let commentsService: ActivityFeedCommentsProtocol
     private let pageSize = 20
 
     enum CommentSortOrder: CaseIterable {
@@ -390,7 +390,7 @@ class CommentsViewModel: ObservableObject {
         }
     }
 
-    init(workoutID: String, commentsService: ActivityFeedCommentsServicing) {
+    init(workoutID: String, commentsService: ActivityFeedCommentsProtocol) {
         self.workoutID = workoutID
         self.commentsService = commentsService
     }
@@ -544,7 +544,7 @@ class CommentsViewModel: ObservableObject {
 
 // MARK: - Preview Mock
 
-private class PreviewMockCommentsService: ActivityFeedCommentsServicing {
+private class PreviewMockCommentsService: ActivityFeedCommentsProtocol {
     func fetchComments(for activityFeedID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         []
     }

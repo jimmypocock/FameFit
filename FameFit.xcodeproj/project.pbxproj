@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		54065FF62E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
-		540660032E2052620026B8F7 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* Logger.swift */; };
+		54065FF62E2052620026B8F7 /* FameFitLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* FameFitLogger.swift */; };
+		540660032E2052620026B8F7 /* FameFitLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54065FE92E2052620026B8F7 /* FameFitLogger.swift */; };
 		54190BD82E205CA200C82874 /* DataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD62E205CA200C82874 /* DataValidator.swift */; };
 		54190BD92E205CA200C82874 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */; };
 		54190BDA2E205CA200C82874 /* DataValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54190BD62E205CA200C82874 /* DataValidator.swift */; };
@@ -71,7 +71,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		54065FE92E2052620026B8F7 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		54065FE92E2052620026B8F7 /* FameFitLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FameFitLogger.swift; sourceTree = "<group>"; };
 		54190BD62E205CA200C82874 /* DataValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataValidator.swift; sourceTree = "<group>"; };
 		54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
 		54603EFB2E1E03D0008D4778 /* FameFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FameFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -194,7 +194,7 @@
 			children = (
 				54190BD62E205CA200C82874 /* DataValidator.swift */,
 				54190BD72E205CA200C82874 /* UserDefaultsKeys.swift */,
-				54065FE92E2052620026B8F7 /* Logger.swift */,
+				54065FE92E2052620026B8F7 /* FameFitLogger.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -488,7 +488,7 @@
 				548D7B142E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */,
 				54190BDB2E205CA200C82874 /* UserDefaultsKeys.swift in Sources */,
 				54C99A8E2E20548F0051571C /* FameFitError.swift in Sources */,
-				54065FF62E2052620026B8F7 /* Logger.swift in Sources */,
+				54065FF62E2052620026B8F7 /* FameFitLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -512,7 +512,7 @@
 			files = (
 				548D7B152E2ECEA6008AC512 /* HKWorkoutActivityType+Extensions.swift in Sources */,
 				54C99A8F2E20548F0051571C /* FameFitError.swift in Sources */,
-				540660032E2052620026B8F7 /* Logger.swift in Sources */,
+				540660032E2052620026B8F7 /* FameFitLogger.swift in Sources */,
 				54190BD82E205CA200C82874 /* DataValidator.swift in Sources */,
 				54190BD92E205CA200C82874 /* UserDefaultsKeys.swift in Sources */,
 			);

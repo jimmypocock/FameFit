@@ -15,8 +15,8 @@ final class LeaderboardViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
 
-    private var userProfileService: UserProfileServicing?
-    private var socialFollowingService: SocialFollowingServicing?
+    private var userProfileService: UserProfileProtocol?
+    private var socialFollowingService: SocialFollowingProtocol?
     private var currentUserID = ""
     private var cancellables = Set<AnyCancellable>()
 
@@ -25,8 +25,8 @@ final class LeaderboardViewModel: ObservableObject {
     private var lastFriendsFetch: Date = .distantPast
 
     func configure(
-        userProfileService: UserProfileServicing,
-        socialFollowingService: SocialFollowingServicing,
+        userProfileService: UserProfileProtocol,
+        socialFollowingService: SocialFollowingProtocol,
         currentUserID: String
     ) {
         self.userProfileService = userProfileService

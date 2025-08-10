@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct OnboardingContainerView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var authManager: AuthenticationService
+    @EnvironmentObject var cloudKitManager: CloudKitService
     @EnvironmentObject var workoutObserver: WorkoutObserver
     @Environment(\.dependencyContainer) var container
 
@@ -99,8 +99,8 @@ struct OnboardingContainerView: View {
 
 #Preview {
     OnboardingContainerView()
-        .environmentObject(AuthenticationManager(cloudKitManager: CloudKitManager()))
-        .environmentObject(CloudKitManager())
-        .environmentObject(WorkoutObserver(cloudKitManager: CloudKitManager(), healthKitService: RealHealthKitService()))
+        .environmentObject(AuthenticationService(cloudKitManager: CloudKitService()))
+        .environmentObject(CloudKitService())
+        .environmentObject(WorkoutObserver(cloudKitManager: CloudKitService(), healthKitService: HealthKitService()))
         .environment(\.dependencyContainer, DependencyContainer())
 }

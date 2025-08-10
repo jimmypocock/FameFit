@@ -12,7 +12,7 @@ import XCTest
 
 class WorkoutSyncQueueTests: XCTestCase {
     private var syncQueue: WorkoutSyncQueue!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
@@ -21,8 +21,8 @@ class WorkoutSyncQueueTests: XCTestCase {
         // Clear persistent storage to ensure test isolation
         UserDefaults.standard.removeObject(forKey: "FameFitWorkoutSyncQueue")
 
-        mockCloudKitManager = MockCloudKitManager()
-        syncQueue = WorkoutSyncQueue(cloudKitManager: mockCloudKitManager)
+        mockCloudKitService = MockCloudKitService()
+        syncQueue = WorkoutSyncQueue(cloudKitManager: mockCloudKitService)
         cancellables = Set<AnyCancellable>()
     }
 
@@ -31,7 +31,7 @@ class WorkoutSyncQueueTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "FameFitWorkoutSyncQueue")
 
         syncQueue = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         cancellables = nil
         super.tearDown()
     }
@@ -104,7 +104,7 @@ class WorkoutSyncQueueTests: XCTestCase {
 
     func testProcessQueueWhenCloudKitAvailable() {
         // Given
-        mockCloudKitManager.mockIsAvailable = true
+        mockCloudKitService.mockIsAvailable = true
 
         // Track all state changes
         var stateChanges: [Bool] = []
@@ -156,7 +156,7 @@ class WorkoutSyncQueueTests: XCTestCase {
 
     func testProcessQueueWhenCloudKitNotAvailable() {
         // Given
-        mockCloudKitManager.mockIsAvailable = false
+        mockCloudKitService.mockIsAvailable = false
         let workout = TestWorkoutBuilder.createRunWorkout()
 
         // Wait for enqueue to complete
@@ -179,7 +179,7 @@ class WorkoutSyncQueueTests: XCTestCase {
 
     func testProcessQueueDoesNotRunConcurrently() {
         // Given
-        mockCloudKitManager.mockIsAvailable = true
+        mockCloudKitService.mockIsAvailable = true
 
         // Manually set processing state to true to simulate ongoing processing
         syncQueue.isProcessing = true
@@ -320,7 +320,7 @@ class WorkoutSyncQueueTests: XCTestCase {
 
     func testIsProcessingPublisherEmitsStateChanges() {
         // Given
-        mockCloudKitManager.mockIsAvailable = true
+        mockCloudKitService.mockIsAvailable = true
 
         var states: [Bool] = []
 
@@ -399,8 +399,8 @@ class WorkoutSyncQueueTests: XCTestCase {
         )
 
         // Ensure the mock will succeed
-        mockCloudKitManager.mockIsAvailable = true
-        mockCloudKitManager.shouldFailAddFollowers = false
+        mockCloudKitService.mockIsAvailable = true
+        mockCloudKitService.shouldFailAddFollowers = false
 
         // Track state changes
         var processingStates: [Bool] = []

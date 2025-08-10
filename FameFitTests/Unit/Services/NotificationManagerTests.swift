@@ -1,16 +1,16 @@
 //
-//  NotificationManagerTests.swift
+//  NotificationServiceTests.swift
 //  FameFitTests
 //
-//  Tests for NotificationManager coordination and message generation
+//  Tests for NotificationService coordination and message generation
 //
 
 @testable import FameFit
 import UserNotifications
 import XCTest
 
-class NotificationManagerTests: XCTestCase {
-    private var sut: NotificationManager!
+class NotificationServiceTests: XCTestCase {
+    private var sut: NotificationService!
     private var mockScheduler: MockNotificationScheduler!
     private var mockStore: MockNotificationStore!
     private var mockUnlockService: MockUnlockNotificationService!
@@ -26,7 +26,7 @@ class NotificationManagerTests: XCTestCase {
         mockUnlockService = MockUnlockNotificationService()
         mockMessageProvider = MockMessageProvider()
 
-        sut = NotificationManager(
+        sut = NotificationService(
             scheduler: mockScheduler,
             notificationStore: mockStore,
             unlockService: mockUnlockService,

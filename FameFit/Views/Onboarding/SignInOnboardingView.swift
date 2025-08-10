@@ -11,8 +11,8 @@ import SwiftUI
 struct SignInOnboardingView: View {
     @Binding var onboardingStep: Int
     @Binding var showSignIn: Bool
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var authManager: AuthenticationService
+    @EnvironmentObject var cloudKitManager: CloudKitService
 
     var body: some View {
         VStack(spacing: 30) {
@@ -29,7 +29,7 @@ struct SignInOnboardingView: View {
 
             Spacer()
 
-            // Use the custom SignInWithAppleButton from AuthenticationManager
+            // Use the custom SignInWithAppleButton from AuthenticationService
             SignInWithAppleButton()
                 .frame(height: 55)
                 .padding(.horizontal, 40)
@@ -64,7 +64,7 @@ struct SignInOnboardingView: View {
         .ignoresSafeArea()
         
         SignInOnboardingView(onboardingStep: .constant(1), showSignIn: .constant(false))
-            .environmentObject(AuthenticationManager(cloudKitManager: CloudKitManager()))
-            .environmentObject(CloudKitManager())
+            .environmentObject(AuthenticationService(cloudKitManager: CloudKitService()))
+            .environmentObject(CloudKitService())
     }
 }

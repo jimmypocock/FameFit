@@ -92,7 +92,10 @@ extension WatchConnectivityManager: WCSessionDelegate {
             return
         }
         FameFitLogger.info("⌚✅ WCSession activated - state: \(activationState.rawValue)", category: FameFitLogger.sync)
-        FameFitLogger.debug("⌚ Session details - isReachable: \(session.isReachable), hasContentPending: \(session.hasContentPending), receivedApplicationContext: \(session.receivedApplicationContext)", category: FameFitLogger.sync)
+        // Only log context if it's not empty to reduce noise
+        if !session.receivedApplicationContext.isEmpty {
+            FameFitLogger.debug("⌚ Session has application context: \(session.receivedApplicationContext)", category: FameFitLogger.sync)
+        }
         
         // Check for any pending transfers
         if session.hasContentPending {

@@ -1,95 +1,164 @@
 import Foundation
 import HealthKit
+import os.log
 
-/// Protocol defining all HealthKit operations used by FameFit
-/// This allows for easy mocking and testing
-protocol HealthKitService {
-    /// Check if HealthKit is available on this device
-    var isHealthDataAvailable: Bool { get }
+// MARK: - HealthKit Service Implementation
 
-    /// Request authorization for required HealthKit types
-    func requestAuthorization(completion: @escaping (Bool, Error?) -> Void)
+/// Production implementation of HealthKit service that interacts with real HealthKit
+final class HealthKitService: HealthKitProtocol {
+    let healthStore: HKHealthStore
 
-    /// Check authorization status for a specific type
-    func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus
+    init(healthStore: HKHealthStore = HKHealthStore()) {
+        self.healthStore = healthStore
+    }
 
-    /// Start observing for new workouts
+    var isHealthDataAvailable: Bool {
+        HKHealthStore.isHealthDataAvailable()
+    }
+
+    func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
+        // Security: Only request the permissions we actually need
+        healthStore.requestAuthorization(
+            toShare: Self.shareTypes,
+            read: Self.readTypes
+        ) { success, error in
+            // Security: Never log the specific error details in production
+            if let error {
+                FameFitLogger.error("HealthKit authorization error occurred", error: error)
+            }
+            completion(success, error)
+        }
+    }
+
+    func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus {
+        healthStore.authorizationStatus(for: type)
+    }
+
     func startObservingWorkouts(
         updateHandler: @escaping (HKObserverQuery, HKObserverQueryCompletionHandler?, Error?) -> Void
-    ) -> HKObserverQuery?
+    ) -> HKObserverQuery? {
+        let query = HKObserverQuery(
+            sampleType: HKObjectType.workoutType(),
+            predicate: nil,
+            updateHandler: updateHandler
+        )
 
-    /// Stop a specific query
-    func stop(_ query: HKQuery)
+        healthStore.execute(query)
+        return query
+    }
 
-    /// Enable background delivery for workout updates
-    func enableBackgroundDelivery(completion: @escaping (Bool, Error?) -> Void)
+    func stop(_ query: HKQuery) {
+        healthStore.stop(query)
+    }
 
-    /// Fetch recent workouts
-    func fetchWorkouts(
-        limit: Int,
-        completion: @escaping ([HKSample]?, Error?) -> Void
-    )
+    func enableBackgroundDelivery(completion: @escaping (Bool, Error?) -> Void) {
+        healthStore.enableBackgroundDelivery(
+            for: HKObjectType.workoutType(),
+            frequency: .immediate
+        ) { success, error in
+            // Security: Don't expose internal error details
+            if let error {
+                FameFitLogger.error("Background delivery setup error occurred", error: error)
+            }
+            completion(success, error)
+        }
+    }
 
-    /// Fetch workouts with custom predicate and sort descriptors
+    func fetchWorkouts(limit: Int, completion: @escaping ([HKSample]?, Error?) -> Void) {
+        let sortDescriptor = NSSortDescriptor(
+            key: HKSampleSortIdentifierStartDate,
+            ascending: false
+        )
+
+        let query = HKSampleQuery(
+            sampleType: HKObjectType.workoutType(),
+            predicate: nil,
+            limit: limit,
+            sortDescriptors: [sortDescriptor]
+        ) { _, samples, error in
+            // Security: Validate data before passing it along
+            if let error {
+                FameFitLogger.error("Workout fetch error occurred", error: error, category: FameFitLogger.workout)
+                completion(nil, error)
+                return
+            }
+
+            completion(samples, nil)
+        }
+
+        healthStore.execute(query)
+    }
+
     func fetchWorkoutsWithPredicate(
         _ predicate: NSPredicate?,
         limit: Int,
         sortDescriptors: [NSSortDescriptor],
         completion: @escaping ([HKSample]?, Error?) -> Void
-    )
+    ) {
+        let query = HKSampleQuery(
+            sampleType: HKObjectType.workoutType(),
+            predicate: predicate,
+            limit: limit,
+            sortDescriptors: sortDescriptors
+        ) { _, samples, error in
+            // Security: Validate data before passing it along
+            if let error {
+                FameFitLogger.error("Workout fetch error occurred", error: error, category: FameFitLogger.workout)
+                completion(nil, error)
+                return
+            }
 
-    /// Save a workout
-    func save(_ workout: HKWorkout, completion: @escaping (Bool, Error?) -> Void)
+            completion(samples, nil)
+        }
 
-    /// Create a workout session (Watch only)
-    func createWorkoutSession(
-        configuration: HKWorkoutConfiguration
-    ) -> HKWorkoutSession?
+        healthStore.execute(query)
+    }
 
-    /// Execute an anchored object query for reliable workout sync
+    func save(_ workout: HKWorkout, completion: @escaping (Bool, Error?) -> Void) {
+        healthStore.save(workout) { success, error in
+            // Security: Don't log workout details
+            if let error {
+                FameFitLogger.error("Workout save error occurred", error: error, category: FameFitLogger.workout)
+            }
+            completion(success, error)
+        }
+    }
+
+    func createWorkoutSession(configuration: HKWorkoutConfiguration) -> HKWorkoutSession? {
+        #if os(watchOS)
+            do {
+                return try HKWorkoutSession(
+                    healthStore: healthStore,
+                    configuration: configuration
+                )
+            } catch {
+                FameFitLogger.error("Failed to create workout session", error: error, category: FameFitLogger.workout)
+                return nil
+            }
+        #else
+            // Workout sessions are only available on watchOS
+            return nil
+        #endif
+    }
+
     func executeAnchoredQuery(
         anchor: HKQueryAnchor?,
         initialHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?)
             -> Void,
         updateHandler: @escaping (HKAnchoredObjectQuery, [HKSample]?, [HKDeletedObject]?, HKQueryAnchor?, Error?)
             -> Void
-    ) -> HKAnchoredObjectQuery
-}
+    ) -> HKAnchoredObjectQuery {
+        let query = HKAnchoredObjectQuery(
+            type: HKObjectType.workoutType(),
+            predicate: nil,
+            anchor: anchor,
+            limit: HKObjectQueryNoLimit,
+            resultsHandler: initialHandler
+        )
 
-/// Extension to define the types we need authorization for
-extension HealthKitService {
-    static var workoutType: HKObjectType {
-        HKObjectType.workoutType()
-    }
+        query.updateHandler = updateHandler
+        healthStore.execute(query)
 
-    static var heartRateType: HKQuantityType {
-        HKQuantityType.quantityType(forIdentifier: .heartRate)!
-    }
-
-    static var activeEnergyType: HKQuantityType {
-        HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
-    }
-
-    static var distanceType: HKQuantityType {
-        HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!
-    }
-
-    static var readTypes: Set<HKObjectType> {
-        [
-            workoutType,
-            heartRateType,
-            activeEnergyType,
-            distanceType,
-            HKObjectType.activitySummaryType()
-        ]
-    }
-
-    static var shareTypes: Set<HKSampleType> {
-        [
-            HKObjectType.workoutType(),
-            heartRateType,
-            activeEnergyType,
-            distanceType
-        ]
+        return query
     }
 }

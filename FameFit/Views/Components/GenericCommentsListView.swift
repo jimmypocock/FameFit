@@ -2,7 +2,7 @@
 //  GenericCommentsListView.swift
 //  FameFit
 //
-//  Generic comments list view that works with any CommentServicing implementation
+//  Generic comments list view that works with any CommentServiceProtocol implementation
 //
 
 import SwiftUI

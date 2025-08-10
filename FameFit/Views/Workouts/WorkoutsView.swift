@@ -22,7 +22,7 @@ private extension Date {
 }
 
 struct WorkoutsView: View {
-    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var cloudKitManager: CloudKitService
     @State private var workouts: [Workout] = []
     @State private var isLoading = true
     @State private var errorMessage: String?

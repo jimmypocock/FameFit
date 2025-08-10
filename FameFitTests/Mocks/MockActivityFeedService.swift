@@ -2,14 +2,14 @@
 //  MockActivityFeedService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivityFeedServicing for testing
+//  Mock implementation of ActivityFeedProtocol for testing
 //
 
 import Combine
 @testable import FameFit
 import Foundation
 
-final class MockActivityFeedService: ActivityFeedServicing {
+final class MockActivityFeedService: ActivityFeedProtocol {
     var postedActivities: [ActivityFeedRecord] = []
     var shouldFail = false
     var mockError: ActivityFeedError = .networkError("Mock error")

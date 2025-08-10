@@ -1,5 +1,5 @@
 //
-//  GroupWorkoutSyncManager.swift
+//  GroupWorkoutSyncService.swift
 //  FameFit
 //
 //  Manages group workout synchronization between Watch and iPhone
@@ -18,7 +18,7 @@ import WatchKit
 
 /// Manages synchronization of group workouts between devices
 @MainActor
-public final class GroupWorkoutSyncManager: ObservableObject {
+public final class GroupWorkoutSyncService: ObservableObject {
     
     // MARK: - Published Properties
     
@@ -50,7 +50,7 @@ public final class GroupWorkoutSyncManager: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let cloudKitManager: any CloudKitManaging
+    private let cloudKitManager: any CloudKitProtocol
     private var cancellables = Set<AnyCancellable>()
     private var syncTimer: Timer?
     private let syncInterval: TimeInterval = 5.0
@@ -60,7 +60,7 @@ public final class GroupWorkoutSyncManager: ObservableObject {
     
     // MARK: - Initialization
     
-    public init(cloudKitManager: any CloudKitManaging) {
+    public init(cloudKitManager: any CloudKitProtocol) {
         self.cloudKitManager = cloudKitManager
         
         setupTestingModeIfNeeded()

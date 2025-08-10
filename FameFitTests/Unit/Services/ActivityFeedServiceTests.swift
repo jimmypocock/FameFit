@@ -12,15 +12,15 @@ import XCTest
 final class ActivityFeedServiceTests: XCTestCase {
     private var activityFeedService: ActivityFeedService!
     private var mockActivityFeedService: MockActivityFeedService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var privacySettings: WorkoutPrivacySettings!
 
     override func setUp() {
         super.setUp()
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         privacySettings = WorkoutPrivacySettings()
         activityFeedService = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             privacySettings: privacySettings
         )
         mockActivityFeedService = MockActivityFeedService()
@@ -29,7 +29,7 @@ final class ActivityFeedServiceTests: XCTestCase {
     override func tearDown() {
         activityFeedService = nil
         mockActivityFeedService = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         privacySettings = nil
         super.tearDown()
     }
@@ -137,7 +137,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         restrictedSettings.allowPublicSharing = false
 
         let restrictedService = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             privacySettings: restrictedSettings
         )
 
@@ -190,7 +190,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         settings.shareAchievements = false
 
         let service = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             privacySettings: settings
         )
 

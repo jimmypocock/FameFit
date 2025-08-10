@@ -22,7 +22,7 @@ private extension Date {
 }
 
 struct WorkoutHistoryView: View {
-    @EnvironmentObject var cloudKitManager: CloudKitManager
+    @EnvironmentObject var cloudKitManager: CloudKitService
     @Environment(\.dependencyContainer) var dependencyContainer
     @State private var workoutHistory: [Workout] = []
     @State private var isLoading = true

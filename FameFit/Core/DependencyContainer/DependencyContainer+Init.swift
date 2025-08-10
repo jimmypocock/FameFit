@@ -11,14 +11,15 @@ import Foundation
 
 extension DependencyContainer {
     /// Initialize container with a dependency factory
-    /// - Parameter factory: Factory to create dependencies (defaults to production)
+    /// - Parameters:
+    ///   - factory: Factory to create dependencies (defaults to production)
+    ///   - skipInitialization: Skip CloudKit initialization (for default/fallback containers)
     @MainActor
-    convenience init(factory: DependencyFactory = ProductionDependencyFactory()) {
+    convenience init(factory: DependencyFactory = ProductionDependencyFactory(), skipInitialization: Bool = false) {
         // Phase 1: Core Services
-        let cloudKitManager = factory.createCloudKitManager()
-        let authenticationManager = factory.createAuthenticationManager(cloudKitManager: cloudKitManager)
+        let cloudKitManager = factory.createCloudKitService()
+        let authenticationManager = factory.createAuthenticationService(cloudKitManager: cloudKitManager)
         let healthKitService = factory.createHealthKitService()
-        let modernHealthKitService = factory.createModernHealthKitService()
         let watchConnectivityManager = factory.createWatchConnectivityManager()
         let notificationStore = factory.createNotificationStore()
         let unlockStorageService = factory.createUnlockStorageService()
@@ -29,7 +30,7 @@ extension DependencyContainer {
             healthKitService: healthKitService
         )
         
-        let workoutSyncManager = WorkoutSyncManager(
+        let workoutSyncManager = WorkoutSyncService(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
@@ -46,9 +47,9 @@ extension DependencyContainer {
         
         let messageProvider = factory.createMessageProvider()
         let notificationScheduler = factory.createNotificationScheduler()
-        let apnsManager = factory.createAPNSManager(cloudKitManager: cloudKitManager)
+        let apnsManager = factory.createAPNSService(cloudKitManager: cloudKitManager)
         
-        let notificationManager = factory.createNotificationManager(
+        let notificationManager = factory.createNotificationService(
             notificationStore: notificationStore,
             scheduler: notificationScheduler
         )
@@ -170,16 +171,25 @@ extension DependencyContainer {
         }
         
         // Load and apply saved user privacy settings
-        Task {
-            do {
-                let savedSettings = try await activitySharingSettingsService.loadSettings()
-                let privacySettings = WorkoutPrivacySettings(from: savedSettings)
-                if let concreteActivityFeedService = activityFeedService as? ActivityFeedService {
-                    concreteActivityFeedService.updatePrivacySettings(privacySettings)
+        // Only do this for properly initialized containers, not fallback ones
+        if !skipInitialization {
+            Task {
+                // Wait for CloudKit to be ready and user to be authenticated
+                guard cloudKitManager.currentUserID != nil else {
+                    FameFitLogger.info("Skipping privacy settings load - no user authenticated yet", category: FameFitLogger.social)
+                    return
                 }
-                FameFitLogger.info("✅ Loaded saved privacy settings from CloudKit", category: FameFitLogger.social)
-            } catch {
-                FameFitLogger.warning("⚠️ Could not load saved privacy settings: \(error)", category: FameFitLogger.social)
+                
+                do {
+                    let savedSettings = try await activitySharingSettingsService.loadSettings()
+                    let privacySettings = WorkoutPrivacySettings(from: savedSettings)
+                    if let concreteActivityFeedService = activityFeedService as? ActivityFeedService {
+                        concreteActivityFeedService.updatePrivacySettings(privacySettings)
+                    }
+                    FameFitLogger.info("✅ Loaded saved privacy settings from CloudKit", category: FameFitLogger.social)
+                } catch {
+                    FameFitLogger.warning("⚠️ Could not load saved privacy settings: \(error)", category: FameFitLogger.social)
+                }
             }
         }
         
@@ -190,7 +200,6 @@ extension DependencyContainer {
             workoutObserver: workoutObserver,
             workoutProcessor: workoutProcessor,
             healthKitService: healthKitService,
-            modernHealthKitService: modernHealthKitService,
             watchConnectivityManager: watchConnectivityManager,
             workoutSyncManager: workoutSyncManager,
             workoutSyncQueue: workoutSyncQueue,
@@ -231,6 +240,9 @@ extension DependencyContainer {
         workoutSyncManager.notificationManager = notificationManager
         
         // Start CloudKit initialization after all dependencies are wired up
-        cloudKitManager.startInitialization()
+        // Skip for default/fallback containers to avoid duplicate initialization
+        if !skipInitialization {
+            cloudKitManager.startInitialization()
+        }
     }
 }

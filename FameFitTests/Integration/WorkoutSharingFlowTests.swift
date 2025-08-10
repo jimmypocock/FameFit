@@ -18,14 +18,14 @@ final class WorkoutSharingFlowTests: XCTestCase {
         super.setUp()
 
         // Create mocks for testing
-        let mockCloudKitManager = MockCloudKitManager()
-        let mockAuthManager = AuthenticationManager(cloudKitManager: mockCloudKitManager)
-        let mockWorkoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitManager)
+        let mockCloudKitService = MockCloudKitService()
+        let mockAuthManager = AuthenticationService(cloudKitManager: mockCloudKitService)
+        let mockWorkoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitService)
         let mockActivityFeedService = MockActivityFeedService()
 
         container = DependencyContainer(
             authenticationManager: mockAuthManager,
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             workoutObserver: mockWorkoutObserver,
             activityFeedService: mockActivityFeedService
         )

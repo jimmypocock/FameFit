@@ -18,63 +18,61 @@ extension DependencyContainer {
     /// All parameters are optional to allow partial mocking
     @MainActor
     convenience init(
-        authenticationManager: AuthenticationManager,
-        cloudKitManager: CloudKitManager,
+        authenticationManager: AuthenticationService,
+        cloudKitManager: CloudKitService,
         workoutObserver: WorkoutObserver,
-        healthKitService: HealthKitService? = nil,
-        modernHealthKitService: ModernHealthKitServicing? = nil,
-        watchConnectivityManager: WatchConnectivityManaging? = nil,
-        workoutSyncManager: WorkoutSyncManager? = nil,
+        healthKitService: HealthKitProtocol? = nil,
+        watchConnectivityManager: WatchConnectivityProtocol? = nil,
+        workoutSyncManager: WorkoutSyncService? = nil,
         workoutSyncQueue: WorkoutSyncQueue? = nil,
         notificationStore: NotificationStore? = nil,
         unlockNotificationService: UnlockNotificationService? = nil,
         unlockStorageService: UnlockStorageService? = nil,
-        userProfileService: UserProfileServicing? = nil,
-        rateLimitingService: RateLimitingServicing? = nil,
-        socialFollowingService: SocialFollowingServicing? = nil,
-        activityFeedService: ActivityFeedServicing? = nil,
-        notificationScheduler: NotificationScheduling? = nil,
-        notificationManager: NotificationManaging? = nil,
-        messageProvider: MessageProviding? = nil,
-        workoutKudosService: WorkoutKudosServicing? = nil,
-        apnsManager: APNSManaging? = nil,
-        groupWorkoutService: GroupWorkoutServiceProtocol? = nil,
-        workoutChallengesService: WorkoutChallengesServicing? = nil,
-        subscriptionManager: CloudKitSubscriptionManaging? = nil,
-        realTimeSyncCoordinator: (any RealTimeSyncCoordinating)? = nil,
-        activityCommentsService: ActivityFeedCommentsServicing? = nil,
-        activitySharingSettingsService: ActivityFeedSettingsServicing? = nil,
-        bulkPrivacyUpdateService: BulkPrivacyUpdateServicing? = nil,
-        workoutAutoShareService: WorkoutAutoShareServicing? = nil,
+        userProfileService: UserProfileProtocol? = nil,
+        rateLimitingService: RateLimitingProtocol? = nil,
+        socialFollowingService: SocialFollowingProtocol? = nil,
+        activityFeedService: ActivityFeedProtocol? = nil,
+        notificationScheduler: NotificationSchedulingProtocol? = nil,
+        notificationManager: NotificationProtocol? = nil,
+        messageProvider: MessageProvidingProtocol? = nil,
+        workoutKudosService: WorkoutKudosProtocol? = nil,
+        apnsManager: APNSProtocol? = nil,
+        groupWorkoutService: GroupWorkoutProtocol? = nil,
+        workoutChallengesService: WorkoutChallengesProtocol? = nil,
+        subscriptionManager: CloudKitSubscriptionProtocol? = nil,
+        realTimeSyncCoordinator: (any RealTimeSyncCoordinatorProtocol)? = nil,
+        activityCommentsService: ActivityFeedCommentsProtocol? = nil,
+        activitySharingSettingsService: ActivityFeedSettingsProtocol? = nil,
+        bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol? = nil,
+        workoutAutoShareService: WorkoutAutoShareProtocol? = nil,
         xpTransactionService: XPTransactionService? = nil,
-        countVerificationService: CountVerificationServicing? = nil,
-        statsSyncService: StatsSyncServicing? = nil
+        countVerificationService: CountVerificationProtocol? = nil,
+        statsSyncService: StatsSyncProtocol? = nil
     ) {
         // Create default instances for optional dependencies
-        let resolvedHealthKitService = healthKitService ?? RealHealthKitService()
-        let resolvedModernHealthKitService = modernHealthKitService ?? ModernHealthKitService()
-        let resolvedWatchConnectivityManager: WatchConnectivityManaging = watchConnectivityManager ?? WatchConnectivitySingleton.shared
+        let resolvedHealthKitService = healthKitService ?? HealthKitService()
+        let resolvedWatchConnectivityManager: WatchConnectivityProtocol = watchConnectivityManager ?? WatchConnectivitySingleton.shared
         let resolvedNotificationStore = notificationStore ?? NotificationStore()
         let resolvedUnlockStorageService = unlockStorageService ?? UnlockStorageService()
         let resolvedMessageProvider = messageProvider ?? FameFitMessageProvider()
         let resolvedNotificationScheduler = notificationScheduler ?? NotificationScheduler(
             notificationStore: resolvedNotificationStore
         )
-        let resolvedApnsManager = apnsManager ?? APNSManager(cloudKitManager: cloudKitManager)
+        let resolvedApnsManager = apnsManager ?? APNSService(cloudKitManager: cloudKitManager)
         
         let resolvedUnlockNotificationService = unlockNotificationService ?? UnlockNotificationService(
             notificationStore: resolvedNotificationStore,
             unlockStorage: resolvedUnlockStorageService
         )
         
-        let resolvedNotificationManager = notificationManager ?? NotificationManager(
+        let resolvedNotificationService = notificationManager ?? NotificationService(
             scheduler: resolvedNotificationScheduler,
             notificationStore: resolvedNotificationStore,
             unlockService: resolvedUnlockNotificationService,
             messageProvider: resolvedMessageProvider
         )
         
-        let resolvedWorkoutSyncManager = workoutSyncManager ?? WorkoutSyncManager(
+        let resolvedWorkoutSyncService = workoutSyncManager ?? WorkoutSyncService(
             cloudKitManager: cloudKitManager,
             healthKitService: resolvedHealthKitService
         )
@@ -92,7 +90,7 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager,
             rateLimiter: resolvedRateLimitingService,
             profileService: resolvedUserProfileService,
-            notificationManager: resolvedNotificationManager
+            notificationManager: resolvedNotificationService
         )
         
         // Create activity feed services
@@ -105,13 +103,13 @@ extension DependencyContainer {
         let resolvedActivityCommentsService = activityCommentsService ?? ActivityFeedCommentsService(
             cloudKitManager: cloudKitManager,
             userProfileService: resolvedUserProfileService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             rateLimiter: resolvedRateLimitingService
         )
         
         let resolvedWorkoutKudosService = workoutKudosService ?? WorkoutKudosService(
             userProfileService: resolvedUserProfileService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             rateLimiter: resolvedRateLimitingService
         )
         
@@ -134,7 +132,7 @@ extension DependencyContainer {
         let resolvedWorkoutChallengesService = workoutChallengesService ?? WorkoutChallengesService(
             cloudKitManager: cloudKitManager,
             userProfileService: resolvedUserProfileService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             rateLimiter: resolvedRateLimitingService,
             workoutChallengeLinksService: workoutChallengeLinksService
         )
@@ -142,12 +140,12 @@ extension DependencyContainer {
         let resolvedGroupWorkoutService = groupWorkoutService ?? GroupWorkoutService(
             cloudKitManager: cloudKitManager,
             userProfileService: resolvedUserProfileService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             rateLimiter: resolvedRateLimitingService
         )
         
         // Create subscription and push notification services
-        let resolvedSubscriptionManager = subscriptionManager ?? CloudKitSubscriptionManager()
+        let resolvedSubscriptionManager = subscriptionManager ?? CloudKitSubscriptionService()
         
         // Create transaction and auto-share services
         let resolvedXpTransactionService = xpTransactionService ?? XPTransactionService(
@@ -158,7 +156,7 @@ extension DependencyContainer {
             workoutObserver: workoutObserver,
             activityFeedService: resolvedActivityFeedService,
             activityFeedSettingsService: resolvedActivitySharingSettingsService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             notificationStore: resolvedNotificationStore
         )
         
@@ -180,7 +178,7 @@ extension DependencyContainer {
             cloudKitManager: cloudKitManager,
             xpTransactionService: resolvedXpTransactionService,
             activityFeedService: resolvedActivityFeedService,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             userProfileService: resolvedUserProfileService,
             workoutChallengesService: resolvedWorkoutChallengesService,
             workoutChallengeLinksService: workoutChallengeLinksService,
@@ -207,9 +205,8 @@ extension DependencyContainer {
             workoutObserver: workoutObserver,
             workoutProcessor: resolvedWorkoutProcessor,
             healthKitService: resolvedHealthKitService,
-            modernHealthKitService: resolvedModernHealthKitService,
             watchConnectivityManager: resolvedWatchConnectivityManager,
-            workoutSyncManager: resolvedWorkoutSyncManager,
+            workoutSyncManager: resolvedWorkoutSyncService,
             workoutSyncQueue: resolvedWorkoutSyncQueue,
             notificationStore: resolvedNotificationStore,
             unlockNotificationService: resolvedUnlockNotificationService,
@@ -219,7 +216,7 @@ extension DependencyContainer {
             socialFollowingService: resolvedSocialFollowingService,
             activityFeedService: resolvedActivityFeedService,
             notificationScheduler: resolvedNotificationScheduler,
-            notificationManager: resolvedNotificationManager,
+            notificationManager: resolvedNotificationService,
             messageProvider: resolvedMessageProvider,
             workoutKudosService: resolvedWorkoutKudosService,
             apnsManager: resolvedApnsManager,

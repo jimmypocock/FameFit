@@ -1,0 +1,1011 @@
+//
+//  CloudKitService.swift
+//  FameFit
+//
+//  Modern CloudKit manager using async/await and actors
+//
+
+import AuthenticationServices
+import CloudKit
+import Combine
+import Foundation
+import HealthKit
+import os.log
+
+final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
+    // MARK: - Properties
+    
+    let container = CKContainer(identifier: "iCloud.com.jimmypocock.FameFit")
+    private let stateManager = CloudKitStateManager()
+    private let operationQueue = CloudKitOperationQueue()
+    private let schemaManager: CloudKitSchemaService
+    
+    // Recalculation tracking
+    private let recalculationIntervalKey = "FameFitLastStatsRecalculation"
+    private let recalculationInterval: TimeInterval = 24 * 60 * 60 // 24 hours
+    
+    // MARK: - Published Properties
+    
+    @Published var isSignedIn = false
+    @Published var userRecord: CKRecord?
+    @Published var totalXP: Int = 0
+    @Published var userName: String = ""
+    @Published var currentStreak: Int = 0
+    @Published var totalWorkouts: Int = 0
+    @Published var lastWorkoutTimestamp: Date?
+    @Published var joinTimestamp: Date?
+    @Published var lastError: FameFitError?
+    @Published private(set) var isInitialized = false
+    @Published private(set) var currentUserRecordID: String?
+    
+    // Services
+    weak var authenticationManager: AuthenticationService?
+    weak var unlockNotificationService: UnlockNotificationProtocol?
+    var xpTransactionService: XPTransactionService?
+    var statsSyncService: StatsSyncProtocol?
+    
+    // Computed properties for compatibility
+    var isAvailable: Bool { isSignedIn }
+    var currentUserID: String? { currentUserRecordID ?? userRecord?.recordID.recordName }
+    var currentUserXP: Int { totalXP }
+    
+    // Databases
+    var privateDatabase: CKDatabase { container.privateCloudDatabase }
+    var publicDatabase: CKDatabase { container.publicCloudDatabase }
+    var database: CKDatabase { privateDatabase } // Default for compatibility
+    
+    // MARK: - Publisher Properties
+    
+    var isAvailablePublisher: AnyPublisher<Bool, Never> {
+        $isSignedIn.eraseToAnyPublisher()
+    }
+    
+    var totalXPPublisher: AnyPublisher<Int, Never> {
+        $totalXP.eraseToAnyPublisher()
+    }
+    
+    var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
+        $lastError.eraseToAnyPublisher()
+    }
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Initialization
+    
+    override init() {
+        self.schemaManager = CloudKitSchemaService(container: container)
+        super.init()
+    }
+    
+    /// Start CloudKit initialization (should be called after DependencyContainer is ready)
+    func startInitialization() {
+        Task {
+            await initialize()
+        }
+    }
+    
+    // MARK: - Public Methods
+    
+    /// Initialize CloudKit and set up account monitoring
+    private func initialize() async {
+        // Set up account change notifications
+        setupAccountChangeNotifications()
+        
+        // Check initial account status
+        await checkAccountStatusAsync()
+        
+        // Initialize if account is available
+        if isSignedIn {
+            let currentState = await stateManager.getInitializationState()
+            if case .completed = currentState {
+                await MainActor.run {
+                    self.isInitialized = true
+                }
+                FameFitLogger.debug("CloudKit already initialized", category: FameFitLogger.cloudKit)
+            } else if case .inProgress = currentState {
+                FameFitLogger.debug("CloudKit initialization already in progress", category: FameFitLogger.cloudKit)
+            } else {
+                FameFitLogger.info("Initializing CloudKit manager", category: FameFitLogger.cloudKit)
+                await performInitialization()
+            }
+        }
+    }
+    
+    /// Check account status (protocol requirement)
+    func checkAccountStatus() {
+        Task {
+            await checkAccountStatusAsync()
+        }
+    }
+    
+    /// Check account status async
+    private func checkAccountStatusAsync() async {
+        guard await stateManager.shouldCheckAccountStatus() else {
+            return
+        }
+        
+        do {
+            let status = try await container.accountStatus()
+            await stateManager.updateAccountStatus(status)
+            
+            await MainActor.run {
+                self.isSignedIn = (status == .available)
+                
+                if !self.isSignedIn {
+                    self.lastError = .cloudKitNotAvailable
+                }
+            }
+            
+            FameFitLogger.info("CloudKit account status: \(String(describing: status))", category: FameFitLogger.cloudKit)
+            
+            // Initialize if newly available
+            if status == .available && !isInitialized {
+                let currentState = await stateManager.getInitializationState()
+                if case .inProgress = currentState {
+                    FameFitLogger.debug("Initialization already in progress, skipping", category: FameFitLogger.cloudKit)
+                } else if case .completed = currentState {
+                    // Update isInitialized flag if state shows completed
+                    await MainActor.run {
+                        self.isInitialized = true
+                    }
+                } else {
+                    await performInitialization()
+                }
+            }
+        } catch {
+            FameFitLogger.error("Failed to check account status", error: error, category: FameFitLogger.cloudKit)
+            await MainActor.run {
+                self.isSignedIn = false
+                self.lastError = error.fameFitError
+            }
+        }
+    }
+    
+    /// Setup user record with display name
+    func setupUserRecord(userID: String, displayName: String) {
+        // Deprecated: We no longer create Users records
+        // UserProfile is created during onboarding instead
+        FameFitLogger.info("Skipping Users record creation (deprecated)", category: FameFitLogger.cloudKit)
+    }
+    
+    private func setupUserRecordAsync(userID: String, displayName: String) async {
+        // Deprecated: We no longer create Users records
+        // This function is kept for backwards compatibility but does nothing
+        return
+    }
+    
+    /// Add followers (legacy method)
+    func addFollowers(_ count: Int = 5) {
+        Task {
+            await addXPAsync(count)
+        }
+    }
+    
+    /// Add XP to user's total
+    func addXP(_ xp: Int) {
+        Task {
+            await addXPAsync(xp)
+        }
+    }
+    
+    /// Complete a workout - increments both XP and workout count
+    func completeWorkout(xpEarned: Int) async {
+        FameFitLogger.info("Completing workout with \(xpEarned) XP", category: FameFitLogger.cloudKit)
+        
+        guard let userRecord = userRecord else {
+            FameFitLogger.warning("No user record available", category: FameFitLogger.cloudKit)
+            await fetchUserRecordAsync()
+            return
+        }
+        
+        do {
+            // Update both XP and workout count
+            let currentXP = userRecord["totalXP"] as? Int ?? 0
+            let currentWorkouts = userRecord["totalWorkouts"] as? Int ?? 0
+            
+            userRecord["totalXP"] = currentXP + xpEarned
+            userRecord["totalWorkouts"] = currentWorkouts + 1
+            
+            // Save the updated record
+            let savedRecord = try await operationQueue.enqueueSave(
+                record: userRecord,
+                database: privateDatabase,
+                priority: .high
+            )
+            
+            // Update local state
+            await processUserRecord(savedRecord)
+            
+            FameFitLogger.info("Successfully completed workout: +\(xpEarned) XP, workout #\(currentWorkouts + 1)", category: FameFitLogger.cloudKit)
+            
+            // Sync updated stats to UserProfiles
+            await syncStatsToUserProfile(totalWorkouts: currentWorkouts + 1, totalXP: currentXP + xpEarned)
+            
+            // Track XP transaction
+            await trackXPTransaction(xp: xpEarned)
+        } catch {
+            FameFitLogger.error("Failed to complete workout", error: error, category: FameFitLogger.cloudKit)
+            await MainActor.run {
+                self.lastError = error.fameFitError
+            }
+        }
+    }
+    
+    func addXPAsync(_ xp: Int) async {
+        FameFitLogger.info("Adding \(xp) XP", category: FameFitLogger.cloudKit)
+        
+        guard let userRecord = userRecord else {
+            FameFitLogger.warning("No user record available", category: FameFitLogger.cloudKit)
+            await fetchUserRecordAsync()
+            return
+        }
+        
+        do {
+            // Update XP
+            let currentXP = userRecord["totalXP"] as? Int ?? 0
+            userRecord["totalXP"] = currentXP + xp
+            
+            // Save the updated record
+            let savedRecord = try await operationQueue.enqueueSave(
+                record: userRecord,
+                database: privateDatabase,
+                priority: .high
+            )
+            
+            // Update local state
+            await processUserRecord(savedRecord)
+            
+            FameFitLogger.info("Successfully added \(xp) XP, new total: \(currentXP + xp)", category: FameFitLogger.cloudKit)
+            
+            // Sync updated XP to UserProfiles (keep workout count as-is)
+            let currentWorkouts = userRecord["totalWorkouts"] as? Int ?? 0
+            await syncStatsToUserProfile(totalWorkouts: currentWorkouts, totalXP: currentXP + xp)
+            
+            // Unlock notifications if applicable
+            // Note: showFollowerNotification was removed - using notification manager instead
+            
+            // Track XP transaction
+            await trackXPTransaction(xp: xp)
+        } catch {
+            FameFitLogger.error("Failed to add XP", error: error, category: FameFitLogger.cloudKit)
+            await MainActor.run {
+                self.lastError = error.fameFitError
+            }
+        }
+    }
+    
+    // MARK: - Fetch Methods
+    
+    func fetchUserRecord() {
+        Task {
+            await fetchUserRecordAsync()
+        }
+    }
+    
+    private func fetchUserRecordAsync() async {
+        guard await stateManager.startOperation(.userRecordFetch) else {
+            return
+        }
+        
+        defer {
+            Task {
+                await stateManager.completeOperation(.userRecordFetch)
+            }
+        }
+        
+        do {
+            let recordID = try await container.userRecordID()
+            
+            // Store the user ID immediately when we get it
+            await MainActor.run {
+                self.currentUserRecordID = recordID.recordName
+                // Post notification from main thread
+                NotificationCenter.default.post(name: Notification.Name("CloudKitUserIDAvailable"), object: nil)
+            }
+            
+            let record = try await operationQueue.enqueueFetch(
+                recordID: recordID,
+                database: privateDatabase,
+                priority: .high
+            )
+            
+            await processUserRecord(record)
+            
+            FameFitLogger.info("Successfully fetched user record with ID: \(recordID.recordName)", category: FameFitLogger.cloudKit)
+        } catch {
+            FameFitLogger.error("Failed to fetch user record", error: error, category: FameFitLogger.cloudKit)
+            
+            // If the record doesn't exist, the user has deleted their account
+            // We should not retry and should clear the user record
+            if error.localizedDescription.contains("Record not found") || 
+               error.localizedDescription.contains("Unknown record") {
+                FameFitLogger.info("User record not found - account may have been deleted", category: FameFitLogger.cloudKit)
+                await MainActor.run {
+                    self.userRecord = nil
+                    self.totalXP = 0
+                    self.userName = ""
+                    self.currentStreak = 0
+                    self.totalWorkouts = 0
+                    self.lastWorkoutTimestamp = nil
+                    self.joinTimestamp = nil
+                }
+                // Don't retry - this is expected after account deletion
+                return
+            }
+            
+            if await stateManager.shouldRetryOperation(.userRecordFetch, error: error) {
+                let delay = await stateManager.getRetryDelay(for: .userRecordFetch)
+                
+                Task {
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    await fetchUserRecordAsync()
+                }
+            } else {
+                await MainActor.run {
+                    lastError = error.fameFitError
+                }
+            }
+        }
+    }
+    
+    // MARK: - CloudKit Operations
+    
+    func save(_ record: CKRecord) async throws -> CKRecord {
+        return try await operationQueue.enqueueSave(
+            record: record,
+            database: publicDatabase, // All user data now in public database via UserProfile
+            priority: .medium
+        )
+    }
+    
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate, sortDescriptors: [NSSortDescriptor]?, limit: Int) async throws -> [CKRecord] {
+        let query = CKQuery(recordType: recordType, predicate: predicate)
+        if let sortDescriptors = sortDescriptors {
+            query.sortDescriptors = sortDescriptors
+        }
+        
+        return try await operationQueue.enqueueQuery(
+            query: query,
+            database: publicDatabase,
+            limit: limit,
+            priority: .medium
+        )
+    }
+    
+    func delete(withRecordID recordID: CKRecord.ID) async throws {
+        await operationQueue.enqueue(
+            priority: .medium,
+            description: "Delete record \(recordID.recordName)"
+        ) {
+            _ = try await self.publicDatabase.deleteRecord(withID: recordID)
+        }
+    }
+    
+    func deleteRecords(withIDs recordIDs: [CKRecord.ID]) async throws {
+        await operationQueue.enqueue(
+            priority: .medium,
+            description: "Delete \(recordIDs.count) records"
+        ) {
+            let operation = CKModifyRecordsOperation(recordsToSave: nil, recordIDsToDelete: recordIDs)
+            self.publicDatabase.add(operation)
+        }
+    }
+    
+    func getCurrentUserID() async throws -> String {
+        if let currentUserID = currentUserID {
+            return currentUserID
+        }
+        
+        let recordID = try await container.userRecordID()
+        return recordID.recordName
+    }
+    
+    // MARK: - Private Methods
+    
+    private func setupAccountChangeNotifications() {
+        NotificationCenter.default.publisher(for: .CKAccountChanged)
+            .sink { [weak self] _ in
+                Task { [weak self] in
+                    await self?.checkAccountStatusAsync()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func performInitialization() async {
+        guard await stateManager.canStartInitialization() else {
+            FameFitLogger.debug("Cannot start initialization at this time", category: FameFitLogger.cloudKit)
+            return
+        }
+        
+        await stateManager.setInitializationState(.inProgress)
+        
+        do {
+            // Initialize schema if needed
+            try await initializeSchemaWithRetry()
+            
+            // Only fetch user record if authentication manager indicates user has completed onboarding
+            if let authManager = authenticationManager, authManager.hasCompletedOnboarding {
+                // Fetch user record
+                await fetchUserRecordAsync()
+                
+                // Check if stats recalculation is needed
+                await checkAndRecalculateStatsIfNeeded()
+            } else {
+                FameFitLogger.debug("Skipping user record fetch - user not authenticated or onboarding incomplete", category: FameFitLogger.cloudKit)
+            }
+            
+            // Mark as initialized
+            await stateManager.setInitializationState(.completed)
+            await MainActor.run {
+                self.isInitialized = true
+            }
+            
+            FameFitLogger.info("CloudKit initialization completed successfully", category: FameFitLogger.cloudKit)
+        } catch {
+            FameFitLogger.error("CloudKit initialization failed", error: error, category: FameFitLogger.cloudKit)
+            await stateManager.setInitializationState(.failed(error))
+            
+            // Schedule retry if appropriate
+            if await stateManager.shouldRetryOperation(.schemaInitialization, error: error) {
+                let delay = await stateManager.getRetryDelay(for: .schemaInitialization)
+                
+                Task {
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    await performInitialization()
+                }
+            }
+        }
+    }
+    
+    private func initializeSchemaWithRetry() async throws {
+        // For now, we'll skip schema initialization if CloudKit isn't ready
+        // The schema will be created automatically when records are first saved
+        do {
+            // Quick check if CloudKit is accessible
+            _ = try await container.privateCloudDatabase.recordZone(for: .default)
+            FameFitLogger.info("CloudKit is accessible, schema will be created on demand", category: FameFitLogger.cloudKit)
+        } catch {
+            if error.localizedDescription.contains("Can't query system types") {
+                FameFitLogger.info("CloudKit not ready for schema check, will initialize on first use", category: FameFitLogger.cloudKit)
+                return
+            }
+            throw error
+        }
+    }
+    
+    private func processUserRecord(_ record: CKRecord) async {
+        let extractedXP = record["totalXP"] as? Int ?? 0
+        let extractedWorkouts = record["totalWorkouts"] as? Int ?? 0
+        
+        await MainActor.run {
+            self.userRecord = record
+            
+            // Extract user data
+            self.totalXP = extractedXP
+            self.userName = record["displayName"] as? String ?? ""
+            self.currentStreak = record["currentStreak"] as? Int ?? 0
+            self.totalWorkouts = extractedWorkouts
+            self.lastWorkoutTimestamp = record["lastWorkoutTimestamp"] as? Date
+            self.joinTimestamp = record["joinTimestamp"] as? Date
+            self.lastError = nil
+        }
+        
+        FameFitLogger.info("""
+            🔍 Fresh stats from Users record:
+               Record ID: \(record.recordID.recordName)
+               totalWorkouts: \(extractedWorkouts)
+               totalXP: \(extractedXP)
+               Final values: workouts=\(extractedWorkouts), XP=\(extractedXP)
+            """, category: FameFitLogger.cloudKit)
+    }
+    
+    private func trackXPTransaction(xp: Int) async {
+        // TODO: Update to use new XPTransactionService API
+        // xpTransactionService?.createTransaction(...)
+    }
+    
+    // MARK: - Stats Recalculation
+    
+    func checkAndRecalculateStatsIfNeeded() async {
+        let lastRecalculation = UserDefaults.standard.object(forKey: recalculationIntervalKey) as? Date
+        let now = Date()
+        
+        if let lastDate = lastRecalculation {
+            let timeSince = now.timeIntervalSince(lastDate)
+            if timeSince < recalculationInterval {
+                FameFitLogger.info("⏰ Stats recalculation not needed yet", category: FameFitLogger.cloudKit)
+                return
+            }
+        }
+        
+        FameFitLogger.info("♻️ Starting stats recalculation", category: FameFitLogger.cloudKit)
+        await recalculateStatsFromWorkouts()
+        UserDefaults.standard.set(now, forKey: recalculationIntervalKey)
+    }
+    
+    private func recalculateStatsFromWorkouts() async {
+        do {
+            let predicate = NSPredicate(value: true)
+            let sortDescriptors = [NSSortDescriptor(key: "endDate", ascending: false)]
+            
+            // Fetch from PRIVATE database where workouts are stored
+            let query = CKQuery(recordType: "Workouts", predicate: predicate)
+            query.sortDescriptors = sortDescriptors
+            
+            let workoutRecords = try await operationQueue.enqueueQuery(
+                query: query,
+                database: privateDatabase,
+                limit: 1_000,
+                priority: .medium
+            )
+            
+            FameFitLogger.info("📊 Found \(workoutRecords.count) workouts to analyze", category: FameFitLogger.cloudKit)
+            
+            var totalXP = 0
+            var workoutsByDate: [Date: Int] = [:]
+            
+            for record in workoutRecords {
+                if let xpEarned = record["xpEarned"] as? Int {
+                    totalXP += xpEarned
+                }
+                
+                if let endDate = record["endDate"] as? Date {
+                    let calendar = Calendar.current
+                    let dayStart = calendar.startOfDay(for: endDate)
+                    workoutsByDate[dayStart] = (workoutsByDate[dayStart] ?? 0) + 1
+                }
+            }
+            
+            let currentStreak = calculateCurrentStreak(from: workoutsByDate)
+            
+            FameFitLogger.info("""
+                📈 Recalculated stats:
+                   Total XP: \(totalXP)
+                   Total Workouts: \(workoutRecords.count)
+                   Current Streak: \(currentStreak)
+                """, category: FameFitLogger.cloudKit)
+            
+            guard let userRecord = userRecord else { return }
+            
+            userRecord["totalXP"] = totalXP
+            userRecord["totalWorkouts"] = workoutRecords.count
+            userRecord["currentStreak"] = currentStreak
+            
+            if let lastWorkout = workoutRecords.first,
+               let endDate = lastWorkout["endDate"] as? Date {
+                userRecord["lastWorkoutTimestamp"] = endDate
+            }
+            
+            let savedRecord = try await save(userRecord)
+            await processUserRecord(savedRecord)
+            
+            // Sync to UserProfiles record
+            await syncStatsToUserProfile(totalWorkouts: workoutRecords.count, totalXP: totalXP)
+        } catch {
+            FameFitLogger.error("❌ Failed to recalculate stats", error: error, category: FameFitLogger.cloudKit)
+        }
+    }
+    
+    private func calculateCurrentStreak(from workoutsByDate: [Date: Int]) -> Int {
+        let calendar = Calendar.current
+        var streak = 0
+        var currentDate = calendar.startOfDay(for: Date())
+        
+        while true {
+            if workoutsByDate[currentDate] != nil {
+                streak += 1
+                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
+            } else if streak > 0 {
+                break
+            } else {
+                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
+                if calendar.dateComponents([.day], from: currentDate, to: Date()).day! > 30 {
+                    break
+                }
+            }
+        }
+        
+        return streak
+    }
+    
+    // MARK: - Legacy Protocol Methods
+    
+    func saveWorkout(_ workoutHistory: Workout) {
+        Task {
+            do {
+                // Create the workout record
+                let record = CKRecord(recordType: "Workouts")
+                record["id"] = workoutHistory.id
+                record["workoutType"] = workoutHistory.workoutType
+                record["startDate"] = workoutHistory.startDate
+                record["endDate"] = workoutHistory.endDate
+                record["duration"] = workoutHistory.duration
+                record["totalEnergyBurned"] = workoutHistory.totalEnergyBurned
+                record["totalDistance"] = workoutHistory.totalDistance
+                record["averageHeartRate"] = workoutHistory.averageHeartRate
+                record["followersEarned"] = workoutHistory.followersEarned
+                record["xpEarned"] = workoutHistory.xpEarned
+                record["source"] = workoutHistory.source
+                
+                // Save to CloudKit
+                _ = try await privateDatabase.save(record)
+                
+                FameFitLogger.info("✅ Saved workout to CloudKit: \(workoutHistory.workoutType)", category: FameFitLogger.cloudKit)
+            } catch {
+                FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.cloudKit)
+            }
+        }
+    }
+    
+    func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
+        Task {
+            do {
+                let predicate = NSPredicate(value: true)
+                let query = CKQuery(recordType: "Workouts", predicate: predicate)
+                query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
+                
+                // Fetch from PRIVATE database
+                let records = try await operationQueue.enqueueQuery(
+                    query: query,
+                    database: privateDatabase,
+                    limit: 100,
+                    priority: .medium
+                )
+                
+                FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
+                
+                let workouts = records.compactMap { record -> Workout? in
+                    guard let id = record["id"] as? String,
+                          let type = record["workoutType"] as? String,
+                          let startDate = record["startDate"] as? Date,
+                          let endDate = record["endDate"] as? Date else {
+                        FameFitLogger.warning("⚠️ Skipping workout record with missing required fields", category: FameFitLogger.cloudKit)
+                        return nil
+                    }
+                    
+                    // Extract individual fields to avoid type-checking timeout
+                    let workoutID = id
+                    let duration = record["duration"] as? TimeInterval ?? 0
+                    let totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
+                    let totalDistance = record["totalDistance"] as? Double
+                    let averageHeartRate = record["averageHeartRate"] as? Double
+                    let followersEarned = record["followersEarned"] as? Int ?? 5
+                    let xpEarned = record["xpEarned"] as? Int
+                    let source = record["source"] as? String ?? "Unknown"
+                    let groupWorkoutID = record["groupWorkoutID"] as? String
+                    
+                    return Workout(
+                        id: workoutID,
+                        workoutType: type,
+                        startDate: startDate,
+                        endDate: endDate,
+                        duration: duration,
+                        totalEnergyBurned: totalEnergyBurned,
+                        totalDistance: totalDistance,
+                        averageHeartRate: averageHeartRate,
+                        followersEarned: followersEarned,
+                        xpEarned: xpEarned,
+                        source: source,
+                        groupWorkoutID: groupWorkoutID
+                    )
+                }
+                
+                completion(.success(workouts))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void) {
+        // Legacy method - no longer used
+        FameFitLogger.warning("recordWorkout called - this is a legacy method", category: FameFitLogger.cloudKit)
+        completion(true)
+    }
+    
+    func getXPTitle() -> String {
+        let levelInfo = XPCalculator.getLevel(for: totalXP)
+        return levelInfo.title
+    }
+    
+    func recalculateStatsIfNeeded() async throws {
+        await checkAndRecalculateStatsIfNeeded()
+    }
+    
+    func recalculateUserStats() async throws {
+        await recalculateStatsFromWorkouts()
+    }
+    
+    func clearAllWorkoutsAndResetStats() async throws {
+        // Implementation for clearing all workouts
+        FameFitLogger.warning("clearAllWorkoutsAndResetStats - not implemented", category: FameFitLogger.cloudKit)
+    }
+    
+    func debugCloudKitEnvironment() async throws {
+        FameFitLogger.info("""
+            CloudKit Debug Info:
+            - Container: \(container.containerIdentifier ?? "Unknown")
+            - Is Signed In: \(isSignedIn)
+            - User ID: \(currentUserID ?? "None")
+            - Total XP: \(totalXP)
+            - Total Workouts: \(totalWorkouts)
+            """, category: FameFitLogger.cloudKit)
+    }
+    
+    func forceResetStats() async throws {
+        FameFitLogger.warning("Forcing stats reset to zero", category: FameFitLogger.cloudKit)
+        
+        guard let userRecord = userRecord else {
+            throw FameFitError.cloudKitNotAvailable
+        }
+        
+        // Reset all stats to zero
+        userRecord["totalXP"] = 0
+        userRecord["totalWorkouts"] = 0
+        userRecord["currentStreak"] = 0
+        userRecord["lastWorkoutTimestamp"] = nil
+        
+        // Save the updated record
+        let savedRecord = try await save(userRecord)
+        await processUserRecord(savedRecord)
+        
+        // Sync zeroed stats to UserProfiles
+        await syncStatsToUserProfile(totalWorkouts: 0, totalXP: 0)
+        
+        FameFitLogger.info("Stats reset completed", category: FameFitLogger.cloudKit)
+    }
+    
+    func updateUserStats(totalWorkouts: Int, totalXP: Int) async throws {
+        FameFitLogger.info("Updating user stats - Workouts: \(totalWorkouts), XP: \(totalXP)", category: FameFitLogger.cloudKit)
+        
+        guard let userRecord = userRecord else {
+            throw FameFitError.cloudKitNotAvailable
+        }
+        
+        // Update the stats in Users record
+        userRecord["totalWorkouts"] = totalWorkouts
+        userRecord["totalXP"] = totalXP
+        
+        // Save the updated record
+        let savedRecord = try await save(userRecord)
+        await processUserRecord(savedRecord)
+        
+        FameFitLogger.info("User stats updated successfully", category: FameFitLogger.cloudKit)
+        
+        // Sync to UserProfiles record
+        await syncStatsToUserProfile(totalWorkouts: totalWorkouts, totalXP: totalXP)
+    }
+    
+    private func syncStatsToUserProfile(totalWorkouts: Int, totalXP: Int) async {
+        guard let userID = currentUserID else {
+            FameFitLogger.warning("Cannot sync to profile - no user ID", category: FameFitLogger.cloudKit)
+            return
+        }
+        
+        // Use centralized sync service if available
+        if let syncService = statsSyncService {
+            let stats = UserStatsSnapshot(
+                userID: userID,
+                totalWorkouts: totalWorkouts,
+                totalXP: totalXP,
+                currentStreak: currentStreak,
+                lastWorkoutDate: lastWorkoutTimestamp
+            )
+            
+            // Queue for batch sync (more efficient)
+            syncService.queueStatsSync(stats)
+        } else {
+            // Fallback to direct sync if service not available
+            await performDirectStatsSync(totalWorkouts: totalWorkouts, totalXP: totalXP)
+        }
+    }
+    
+    private func performDirectStatsSync(totalWorkouts: Int, totalXP: Int) async {
+        // Original implementation as fallback
+        guard let userID = currentUserID else { return }
+        
+        do {
+            let predicate = NSPredicate(format: "userID == %@", userID)
+            let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
+            let results = try await publicDatabase.records(matching: query)
+            
+            guard let (_, profileResult) = results.matchResults.first,
+                  let profileRecord = try? profileResult.get() else {
+                FameFitLogger.warning("No UserProfile found to sync stats", category: FameFitLogger.cloudKit)
+                return
+            }
+            
+            profileRecord["workoutCount"] = totalWorkouts
+            profileRecord["totalXP"] = totalXP
+            // modificationDate is managed by CloudKit automatically
+            
+            _ = try await publicDatabase.save(profileRecord)
+            FameFitLogger.info("Successfully synced stats to UserProfile", category: FameFitLogger.cloudKit)
+        } catch {
+            FameFitLogger.error("Failed to sync stats to UserProfile", error: error, category: FameFitLogger.cloudKit)
+        }
+    }
+    
+    // MARK: - Additional CloudKit Operations
+    
+    func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord] {
+        let database = zoneID != nil ? privateDatabase : publicDatabase
+        let results = try await database.records(matching: query)
+        return results.matchResults.compactMap { try? $0.1.get() }
+    }
+    
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate?, sortDescriptors: [NSSortDescriptor]?, limit: Int?) async throws -> [CKRecord] {
+        let predicate = predicate ?? NSPredicate(value: true)
+        let query = CKQuery(recordType: recordType, predicate: predicate)
+        query.sortDescriptors = sortDescriptors
+        
+        return try await operationQueue.enqueueQuery(
+            query: query,
+            database: publicDatabase,
+            limit: limit ?? 100,
+            priority: .medium
+        )
+    }
+    
+    // MARK: - Missing Publishers
+    
+    var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
+        $totalWorkouts.eraseToAnyPublisher()
+    }
+    
+    var currentStreakPublisher: AnyPublisher<Int, Never> {
+        $currentStreak.eraseToAnyPublisher()
+    }
+    
+    var userNamePublisher: AnyPublisher<String, Never> {
+        $userName.eraseToAnyPublisher()
+    }
+    
+    var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
+        $lastWorkoutTimestamp.eraseToAnyPublisher()
+    }
+    
+    var joinTimestampPublisher: AnyPublisher<Date?, Never> {
+        $joinTimestamp.eraseToAnyPublisher()
+    }
+    
+    // MARK: - Account Deletion
+    
+    /// Delete all user data from CloudKit
+    func deleteAllUserData() async throws {
+        guard let userID = currentUserID else {
+            throw FameFitError.userNotAuthenticated
+        }
+        
+        FameFitLogger.info("Starting account deletion for user: \(userID)", category: FameFitLogger.cloudKit)
+        
+        // Track deletion progress
+        var deletedRecords = 0
+        var errors: [Error] = []
+        
+        // Record types to delete from private database
+        let privateRecordTypes = [
+            "Workouts",
+            "XPTransactions",
+            "WorkoutHistory",
+            "WorkoutMetrics",
+            "GroupWorkoutInvites",
+            "Notifications",
+            "NotificationHistory",
+            "WorkoutChallengeLinks",
+            "UserSettings",
+            "ActivityFeedSettings",
+            "DeviceTokens"
+        ]
+        
+        // Record types to delete from public database
+        let publicRecordTypes = [
+            "UserProfiles",
+            "UserRelationships",
+            "ActivityFeed",
+            "WorkoutKudos",
+            "ActivityFeedComments"
+        ]
+        
+        // Delete from private database
+        for recordType in privateRecordTypes {
+            do {
+                let predicate = NSPredicate(format: "userID == %@ OR creatorUserRecordName == %@ OR hostID == %@", userID, userID, userID)
+                let query = CKQuery(recordType: recordType, predicate: predicate)
+                let records = try await privateDatabase.records(matching: query)
+                
+                let recordIDs = records.matchResults.compactMap { result -> CKRecord.ID? in
+                    guard let record = try? result.1.get() else { return nil }
+                    return record.recordID
+                }
+                
+                if !recordIDs.isEmpty {
+                    try await deleteRecords(withIDs: recordIDs)
+                    deletedRecords += recordIDs.count
+                    FameFitLogger.info("Deleted \(recordIDs.count) \(recordType) records", category: FameFitLogger.cloudKit)
+                }
+            } catch {
+                FameFitLogger.error("Failed to delete \(recordType) records", error: error, category: FameFitLogger.cloudKit)
+                errors.append(error)
+            }
+        }
+        
+        // Delete from public database
+        for recordType in publicRecordTypes {
+            do {
+                let predicate = NSPredicate(format: "userID == %@ OR followerID == %@ OR followingID == %@", userID, userID, userID)
+                let query = CKQuery(recordType: recordType, predicate: predicate)
+                let records = try await publicDatabase.records(matching: query)
+                
+                let recordIDs = records.matchResults.compactMap { result -> CKRecord.ID? in
+                    guard let record = try? result.1.get() else { return nil }
+                    return record.recordID
+                }
+                
+                if !recordIDs.isEmpty {
+                    // Delete from public database
+                    for recordID in recordIDs {
+                        _ = try await publicDatabase.deleteRecord(withID: recordID)
+                    }
+                    deletedRecords += recordIDs.count
+                    FameFitLogger.info("Deleted \(recordIDs.count) public \(recordType) records", category: FameFitLogger.cloudKit)
+                }
+            } catch {
+                FameFitLogger.error("Failed to delete public \(recordType) records", error: error, category: FameFitLogger.cloudKit)
+                errors.append(error)
+            }
+        }
+        
+        // Delete any group workouts the user created
+        do {
+            let predicate = NSPredicate(format: "hostID == %@", userID)
+            let query = CKQuery(recordType: "GroupWorkouts", predicate: predicate)
+            let records = try await publicDatabase.records(matching: query)
+            
+            for result in records.matchResults {
+                if let record = try? result.1.get() {
+                    _ = try await publicDatabase.deleteRecord(withID: record.recordID)
+                    deletedRecords += 1
+                }
+            }
+        } catch {
+            FameFitLogger.error("Failed to delete group workouts", error: error, category: FameFitLogger.cloudKit)
+            errors.append(error)
+        }
+        
+        // Clear local cache and state
+        clearLocalData()
+        
+        FameFitLogger.info("Account deletion completed. Deleted \(deletedRecords) records with \(errors.count) errors", category: FameFitLogger.cloudKit)
+        
+        // If there were critical errors, throw
+        if !errors.isEmpty && deletedRecords == 0 {
+            throw FameFitError.cloudKitSyncFailed(errors.first ?? FameFitError.unknownError(NSError(domain: "CloudKit", code: -1)))
+        }
+    }
+    
+    private func clearLocalData() {
+        // Clear all local state
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+        joinTimestamp = nil
+        userName = "FameFit User"
+        currentUserRecordID = nil
+        userRecord = nil
+        isSignedIn = false
+        
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "CloudKit_TotalXP")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_TotalWorkouts")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_CurrentStreak")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_LastWorkoutDate")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_JoinDate")
+        UserDefaults.standard.removeObject(forKey: "CloudKit_UserName")
+        UserDefaults.standard.synchronize()
+        
+        FameFitLogger.info("Cleared all local CloudKit data", category: FameFitLogger.cloudKit)
+    }
+}

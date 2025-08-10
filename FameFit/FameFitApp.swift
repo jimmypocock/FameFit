@@ -11,132 +11,44 @@ import SwiftUI
 struct FameFitApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var dependencyContainer: DependencyContainer
+    @StateObject private var appInitializer: AppInitializer
 
     init() {
         // Create the dependency container
         let container = DependencyContainer()
         _dependencyContainer = StateObject(wrappedValue: container)
-
-        // Share it with AppDelegate
-        // Note: We'll handle this in onAppear since init is too early
+        
+        // Create app initializer
+        let initializer = AppInitializer(dependencyContainer: container)
+        _appInitializer = StateObject(wrappedValue: initializer)
         
         #if DEBUG
-        // Handle UI test launch arguments
-        handleUITestLaunchArguments(container: container)
+            // Configure for UI testing if applicable
+            configureForUITesting(with: container)
         #endif
     }
-    
-    #if DEBUG
-    private func handleUITestLaunchArguments(container: DependencyContainer) {
-        let arguments = ProcessInfo.processInfo.arguments
-        
-        if arguments.contains("UI-Testing") {
-            if arguments.contains("--reset-state") {
-                // Reset all user data for clean onboarding test
-                container.authenticationManager.signOut()
-                UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
-                UserDefaults.standard.removeObject(forKey: "isAuthenticated")
-                UserDefaults.standard.synchronize()
-            } else if arguments.contains("--skip-onboarding") {
-                // Set up authenticated state with mock data
-                container.authenticationManager.setUITestingState(
-                    isAuthenticated: true,
-                    hasCompletedOnboarding: true,
-                    userID: "ui-test-user"
-                )
-            } else if arguments.contains("--mock-auth-for-onboarding") {
-                // Set authenticated but not completed onboarding
-                container.authenticationManager.setUITestingState(
-                    isAuthenticated: true,
-                    hasCompletedOnboarding: false,
-                    userID: "ui-test-user"
-                )
-            }
-        }
-    }
-    #endif
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environmentObject(dependencyContainer.authenticationManager)
                 .environmentObject(dependencyContainer.cloudKitManager)
                 .environmentObject(dependencyContainer.workoutObserver)
                 .environmentObject(dependencyContainer.notificationStore)
                 .environment(\.dependencyContainer, dependencyContainer)
-                .onAppear {
-                    // Share container with AppDelegate if it doesn't have one
+                .task {
+                    // Configure AppDelegate with dependencies on first launch
                     if appDelegate.dependencyContainer == nil {
-                        appDelegate.dependencyContainer = dependencyContainer
-                        
-                        // Configure BackgroundWorkoutProcessor first (done via AppDelegate.didSet)
-                        // Then configure BackgroundTaskManager
-                        BackgroundTaskManager.shared.configure(with: dependencyContainer)
-
-                        // Only start health-related services if user has completed onboarding
-                        if dependencyContainer.authenticationManager.hasCompletedOnboarding {
-                            // Request notification permissions for group workouts
-                            Task {
-                                _ = await NotificationService.shared.requestAuthorization()
-                            }
-                            
-                            // Start the reliable sync manager using HKAnchoredObjectQuery
-                            // This provides more reliable workout tracking than observer queries
-                            dependencyContainer.workoutSyncManager.startReliableSync()
-                            
-                            // Start auto-sharing service for workouts
-                            dependencyContainer.workoutAutoShareService.setupAutoSharing()
-                            
-                            // Verify counts if needed (runs in background)
-                            if dependencyContainer.countVerificationService.shouldVerifyOnAppLaunch() {
-                                Task {
-                                    do {
-                                        let result = try await dependencyContainer.countVerificationService.verifyAllCounts()
-                                        if result.hadCorrections {
-                                            FameFitLogger.info("🔢 Count verification completed: \(result.summary)", category: FameFitLogger.data)
-                                        }
-                                    } catch {
-                                        FameFitLogger.error("🔢 Count verification failed", error: error, category: FameFitLogger.data)
-                                    }
-                                }
-                            }
-                            
-                            Task {
-                                do {
-                                    let granted = try await dependencyContainer.apnsManager
-                                        .requestNotificationPermissions()
-                                    if granted {
-                                        dependencyContainer.apnsManager.registerForRemoteNotifications()
-                                    }
-                                } catch {
-                                    print("Failed to request APNS permissions: \(error)")
-                                }
-                            }
-                        }
+                        appDelegate.configure(with: dependencyContainer)
                     }
                 }
-        }
-    }
-}
-
-struct ContentView: View {
-    @EnvironmentObject var authManager: AuthenticationManager
-    @EnvironmentObject var cloudKitManager: CloudKitManager
-    @EnvironmentObject var notificationStore: NotificationStore
-    @Environment(\.dependencyContainer) var container
-
-    var body: some View {
-        if authManager.isAuthenticated, authManager.hasCompletedOnboarding {
-            let viewModel = MainViewModel(
-                authManager: authManager,
-                cloudKitManager: cloudKitManager,
-                notificationStore: notificationStore,
-                userProfileService: container.userProfileService,
-                socialFollowingService: container.socialFollowingService
-            )
-            TabMainView(viewModel: viewModel)
-        } else {
-            OnboardingView()
+                .onChange(of: dependencyContainer.authenticationManager.hasCompletedOnboarding) { _, hasCompleted in
+                    // Handle authentication state changes
+                    appInitializer.handleAuthenticationChange(
+                        isAuthenticated: dependencyContainer.authenticationManager.isAuthenticated,
+                        hasCompletedOnboarding: hasCompleted
+                    )
+                }
         }
     }
 }

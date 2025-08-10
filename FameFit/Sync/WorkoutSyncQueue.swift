@@ -11,7 +11,7 @@ import HealthKit
 import os.log
 
 /// Manages a persistent queue of workouts waiting to be synced
-class WorkoutSyncQueue: ObservableObject, WorkoutSyncQueuing {
+class WorkoutSyncQueue: ObservableObject, WorkoutSyncQueueProtocol {
     private let queueKey = "FameFitWorkoutSyncQueue"
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 300 // 5 minutes
@@ -42,9 +42,9 @@ class WorkoutSyncQueue: ObservableObject, WorkoutSyncQueuing {
         $failedCount.eraseToAnyPublisher()
     }
 
-    private weak var cloudKitManager: (any CloudKitManaging)?
+    private weak var cloudKitManager: (any CloudKitProtocol)?
 
-    init(cloudKitManager: any CloudKitManaging) {
+    init(cloudKitManager: any CloudKitProtocol) {
         self.cloudKitManager = cloudKitManager
         loadQueue()
     }

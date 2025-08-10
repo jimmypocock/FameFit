@@ -38,28 +38,11 @@ private actor StatsSyncStateManager {
 
 // MARK: - Stats Sync Service Protocol
 
-protocol StatsSyncServicing {
-    func syncStats(_ stats: UserStatsSnapshot) async
-    func queueStatsSync(_ stats: UserStatsSnapshot)
-    func processPendingSyncs() async
-}
 
-// MARK: - User Stats Snapshot Model
-
-struct UserStatsSnapshot {
-    let userID: String
-    let totalWorkouts: Int
-    let totalXP: Int
-    let currentStreak: Int?
-    let lastWorkoutDate: Date?
-    
-    // Extensible - add new fields here
-    var additionalStats: [String: Any] = [:]
-}
 
 // MARK: - Stats Sync Service
 
-final class StatsSyncService: StatsSyncServicing {
+final class StatsSyncService: StatsSyncProtocol {
     private let publicDatabase: CKDatabase
     private let privateDatabase: CKDatabase
     private let operationQueue: CloudKitOperationQueue
@@ -151,9 +134,21 @@ final class StatsSyncService: StatsSyncServicing {
         }
         // modificationDate is managed by CloudKit automatically
         
-        // Add any additional stats
-        for (key, value) in stats.additionalStats {
-            profileRecord[key] = value as? CKRecordValue
+        // Add optional stats if available
+        if let longestStreak = stats.longestStreak {
+            profileRecord["longestStreak"] = longestStreak as CKRecordValue
+        }
+        if let favoriteWorkoutType = stats.favoriteWorkoutType {
+            profileRecord["favoriteWorkoutType"] = favoriteWorkoutType as CKRecordValue
+        }
+        if let totalDistance = stats.totalDistance {
+            profileRecord["totalDistance"] = totalDistance as CKRecordValue
+        }
+        if let totalCalories = stats.totalCalories {
+            profileRecord["totalCalories"] = totalCalories as CKRecordValue
+        }
+        if let achievements = stats.achievements {
+            profileRecord["achievements"] = achievements as CKRecordValue
         }
         
         // Save with retry logic built into operation queue

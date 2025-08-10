@@ -9,18 +9,18 @@ import CloudKit
 @testable import FameFit
 
 // Create a test-friendly version of WorkoutChallengesService
-class TestableWorkoutChallengesService: WorkoutChallengesServicing {
+class TestableWorkoutChallengesService: WorkoutChallengesProtocol {
     // Dependencies
-    let cloudKitManager: any CloudKitManaging
-    let userProfileService: any UserProfileServicing
-    let notificationManager: any NotificationManaging
-    let rateLimiter: any RateLimitingServicing
+    let cloudKitManager: any CloudKitProtocol
+    let userProfileService: any UserProfileProtocol
+    let notificationManager: any NotificationProtocol
+    let rateLimiter: any RateLimitingProtocol
 
     init(
-        cloudKitManager: any CloudKitManaging,
-        userProfileService: any UserProfileServicing,
-        notificationManager: any NotificationManaging,
-        rateLimiter: any RateLimitingServicing
+        cloudKitManager: any CloudKitProtocol,
+        userProfileService: any UserProfileProtocol,
+        notificationManager: any NotificationProtocol,
+        rateLimiter: any RateLimitingProtocol
     ) {
         self.cloudKitManager = cloudKitManager
         self.userProfileService = userProfileService
@@ -72,7 +72,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         // Send notifications
         for participant in newChallenge.participants where participant.id != cloudKitManager.currentUserID {
             // Track notification for testing
-            if let mockManager = notificationManager as? MockNotificationManager {
+            if let mockManager = notificationManager as? MockNotificationService {
                 mockManager.scheduleNotificationCallCount += 1
             }
         }
@@ -120,7 +120,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         // Notify all participants
         for _ in challenge.participants {
             // Track notification for testing
-            if let mockManager = notificationManager as? MockNotificationManager {
+            if let mockManager = notificationManager as? MockNotificationService {
                 mockManager.scheduleNotificationCallCount += 1
             }
         }
@@ -156,7 +156,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         let record = challenge.toCKRecord(recordID: CKRecord.ID(recordName: challengeId))
         mockRecords[challengeId] = record
 
-        if let manager = cloudKitManager as? MockCloudKitManager {
+        if let manager = cloudKitManager as? MockCloudKitService {
             manager.saveCallCount += 1
         }
     }
@@ -181,7 +181,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         // Notify all participants
         for _ in challenge.participants {
             // Track notification for testing
-            if let mockManager = notificationManager as? MockNotificationManager {
+            if let mockManager = notificationManager as? MockNotificationService {
                 mockManager.scheduleNotificationCallCount += 1
             }
         }
@@ -268,7 +268,7 @@ class TestableWorkoutChallengesService: WorkoutChallengesServicing {
         // Send notifications
         for _ in userIds {
             // Track notification for testing
-            if let mockManager = notificationManager as? MockNotificationManager {
+            if let mockManager = notificationManager as? MockNotificationService {
                 mockManager.scheduleNotificationCallCount += 1
             }
         }

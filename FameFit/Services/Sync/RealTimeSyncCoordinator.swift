@@ -9,28 +9,20 @@ import CloudKit
 import Combine
 import Foundation
 
-// MARK: - Protocol
-
-protocol RealTimeSyncCoordinating {
-    func startRealTimeSync() async
-    func stopRealTimeSync() async
-    func handleRemoteChange(_ notification: CloudKitNotificationInfo) async
-}
-
 // MARK: - Implementation
 
-final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
+final class RealTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol {
     // MARK: - Properties
 
-    private let subscriptionManager: CloudKitSubscriptionManaging
-    private let cloudKitManager: any CloudKitManaging
-    private let socialFollowingService: SocialFollowingServicing?
-    private let userProfileService: UserProfileServicing?
-    private let workoutKudosService: WorkoutKudosServicing?
-    private let activityCommentsService: ActivityFeedCommentsServicing?
-    private let workoutChallengesService: WorkoutChallengesServicing?
-    private let groupWorkoutService: GroupWorkoutServiceProtocol?
-    private let activityFeedService: ActivityFeedServicing?
+    private let subscriptionManager: CloudKitSubscriptionProtocol
+    private let cloudKitManager: any CloudKitProtocol
+    private let socialFollowingService: SocialFollowingProtocol?
+    private let userProfileService: UserProfileProtocol?
+    private let workoutKudosService: WorkoutKudosProtocol?
+    private let activityCommentsService: ActivityFeedCommentsProtocol?
+    private let workoutChallengesService: WorkoutChallengesProtocol?
+    private let groupWorkoutService: GroupWorkoutProtocol?
+    private let activityFeedService: ActivityFeedProtocol?
 
     private var cancellables = Set<AnyCancellable>()
     private var isRunning = false
@@ -45,15 +37,15 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     // MARK: - Initialization
 
     init(
-        subscriptionManager: CloudKitSubscriptionManaging,
-        cloudKitManager: any CloudKitManaging,
-        socialFollowingService: SocialFollowingServicing? = nil,
-        userProfileService: UserProfileServicing? = nil,
-        workoutKudosService: WorkoutKudosServicing? = nil,
-        activityCommentsService: ActivityFeedCommentsServicing? = nil,
-        workoutChallengesService: WorkoutChallengesServicing? = nil,
-        groupWorkoutService: GroupWorkoutServiceProtocol? = nil,
-        activityFeedService: ActivityFeedServicing? = nil
+        subscriptionManager: CloudKitSubscriptionProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        socialFollowingService: SocialFollowingProtocol? = nil,
+        userProfileService: UserProfileProtocol? = nil,
+        workoutKudosService: WorkoutKudosProtocol? = nil,
+        activityCommentsService: ActivityFeedCommentsProtocol? = nil,
+        workoutChallengesService: WorkoutChallengesProtocol? = nil,
+        groupWorkoutService: GroupWorkoutProtocol? = nil,
+        activityFeedService: ActivityFeedProtocol? = nil
     ) {
         self.subscriptionManager = subscriptionManager
         self.cloudKitManager = cloudKitManager

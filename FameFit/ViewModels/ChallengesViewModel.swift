@@ -16,14 +16,14 @@ final class ChallengesViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
 
-    private var challengesService: WorkoutChallengesServicing?
-    private var userProfileService: UserProfileServicing?
+    private var challengesService: WorkoutChallengesProtocol?
+    private var userProfileService: UserProfileProtocol?
     private(set) var currentUserID = ""
     private var cancellables = Set<AnyCancellable>()
 
     func configure(
-        challengesService: WorkoutChallengesServicing,
-        userProfileService: UserProfileServicing,
+        challengesService: WorkoutChallengesProtocol,
+        userProfileService: UserProfileProtocol,
         currentUserID: String
     ) {
         self.challengesService = challengesService

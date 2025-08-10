@@ -14,9 +14,9 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
     // MARK: - Properties
 
     private var sut: MockGroupWorkoutService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockUserProfileService: MockUserProfileService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockRateLimiter: MockRateLimitingService!
 
     // MARK: - Setup & Teardown
@@ -24,23 +24,23 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         mockUserProfileService = MockUserProfileService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockRateLimiter = MockRateLimitingService()
 
         sut = MockGroupWorkoutService()
-        sut.notificationManager = mockNotificationManager
+        sut.notificationManager = mockNotificationService
 
         // Set up test user
-        mockCloudKitManager.currentUserID = "test-user-123"
+        mockCloudKitService.currentUserID = "test-user-123"
     }
 
     override func tearDown() {
         sut = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockUserProfileService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockRateLimiter = nil
         super.tearDown()
     }
@@ -77,8 +77,8 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
         XCTAssertTrue(joinedWorkout.participantIds.contains("test-user-123"))
 
         // Verify notification sent to host
-        XCTAssertTrue(mockNotificationManager.scheduleNotificationCalled)
-        XCTAssertEqual(mockNotificationManager.lastScheduledUserId, "host-456")
+        XCTAssertTrue(mockNotificationService.scheduleNotificationCalled)
+        XCTAssertEqual(mockNotificationService.lastScheduledUserId, "host-456")
     }
 
     func testJoinGroupWorkout_AlreadyJoined_ReturnsExisting() async throws {
@@ -113,7 +113,7 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
 
         // Then
         XCTAssertEqual(workout.participants.count, 2) // No change
-        XCTAssertFalse(mockNotificationManager.scheduleNotificationCalled) // No notification
+        XCTAssertFalse(mockNotificationService.scheduleNotificationCalled) // No notification
     }
 
     func testJoinGroupWorkout_Full_ThrowsError() async {
@@ -257,7 +257,7 @@ final class GroupWorkoutServiceParticipantTests: XCTestCase {
         XCTAssertEqual(startedWorkout.participants.first(where: { $0.userId == "test-user-123" })?.status, .active)
 
         // Verify notifications sent
-        XCTAssertTrue(mockNotificationManager.scheduleNotificationCalled)
+        XCTAssertTrue(mockNotificationService.scheduleNotificationCalled)
     }
 
     func testStartGroupWorkout_AsParticipant_Success() async throws {

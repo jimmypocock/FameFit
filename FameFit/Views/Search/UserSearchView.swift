@@ -24,11 +24,11 @@ struct UserSearchView: View {
     @State private var searchDebounceTimer: Timer?
     @State private var remainingSearches = 20
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 
-    private var rateLimiter: RateLimitingServicing {
+    private var rateLimiter: RateLimitingProtocol {
         container.rateLimitingService
     }
 

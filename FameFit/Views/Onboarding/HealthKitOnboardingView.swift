@@ -168,6 +168,6 @@ struct HealthKitOnboardingView: View {
         .ignoresSafeArea()
         
         HealthKitOnboardingView(onboardingStep: .constant(2), healthKitAuthorized: .constant(false))
-            .environmentObject(WorkoutObserver(cloudKitManager: CloudKitManager(), healthKitService: RealHealthKitService()))
+            .environmentObject(WorkoutObserver(cloudKitManager: CloudKitService(), healthKitService: HealthKitService()))
     }
 }

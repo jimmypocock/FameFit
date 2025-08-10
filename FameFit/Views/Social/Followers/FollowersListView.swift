@@ -43,11 +43,11 @@ struct FollowersListView: View {
     @State private var followerCount = 0
     @State private var followingCount = 0
 
-    private var socialService: SocialFollowingServicing {
+    private var socialService: SocialFollowingProtocol {
         container.socialFollowingService
     }
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 

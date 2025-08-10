@@ -11,19 +11,19 @@ import CloudKit
 
 class CachedSocialFollowingServiceTests: XCTestCase {
     private var sut: CachedSocialFollowingService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockRateLimiter: MockRateLimitingService!
     private var mockProfileService: MockUserProfileService!
     
     override func setUp() {
         super.setUp()
         
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         mockRateLimiter = MockRateLimitingService()
         mockProfileService = MockUserProfileService()
         
         sut = CachedSocialFollowingService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             rateLimiter: mockRateLimiter,
             profileService: mockProfileService
         )
@@ -31,7 +31,7 @@ class CachedSocialFollowingServiceTests: XCTestCase {
     
     override func tearDown() {
         sut = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockRateLimiter = nil
         mockProfileService = nil
         
@@ -73,11 +73,11 @@ class CachedSocialFollowingServiceTests: XCTestCase {
         
         // First call should hit the service
         let count1 = try await sut.getFollowersCount(for: userID)
-        XCTAssertEqual(mockCloudKitManager.countQueryCalls, 1)
+        XCTAssertEqual(mockCloudKitService.countQueryCalls, 1)
         
         // Second call should use cache
         let count2 = try await sut.getFollowersCount(for: userID)
-        XCTAssertEqual(mockCloudKitManager.countQueryCalls, 1) // No additional calls
+        XCTAssertEqual(mockCloudKitService.countQueryCalls, 1) // No additional calls
         XCTAssertEqual(count1, count2)
     }
     
@@ -102,11 +102,11 @@ class CachedSocialFollowingServiceTests: XCTestCase {
         
         // First call should hit the service
         let followers1 = try await sut.getFollowers(for: userID)
-        XCTAssertEqual(mockCloudKitManager.queryCallCount, 1)
+        XCTAssertEqual(mockCloudKitService.queryCallCount, 1)
         
         // Second call should use cache
         let followers2 = try await sut.getFollowers(for: userID)
-        XCTAssertEqual(mockCloudKitManager.queryCallCount, 1) // No additional calls
+        XCTAssertEqual(mockCloudKitService.queryCallCount, 1) // No additional calls
         XCTAssertEqual(followers1.count, followers2.count)
     }
     
@@ -118,7 +118,7 @@ class CachedSocialFollowingServiceTests: XCTestCase {
         _ = try await sut.getFollowersCount(for: followingID)
         _ = try await sut.getFollowingCount(for: followerID)
         
-        let initialQueryCount = mockCloudKitManager.countQueryCalls
+        let initialQueryCount = mockCloudKitService.countQueryCalls
         
         // Follow action should invalidate caches
         try await sut.follow(userId: followingID)
@@ -127,7 +127,7 @@ class CachedSocialFollowingServiceTests: XCTestCase {
         _ = try await sut.getFollowersCount(for: followingID)
         _ = try await sut.getFollowingCount(for: followerID)
         
-        XCTAssertGreaterThan(mockCloudKitManager.countQueryCalls, initialQueryCount)
+        XCTAssertGreaterThan(mockCloudKitService.countQueryCalls, initialQueryCount)
     }
     
     // MARK: - Relationship Tests
@@ -139,7 +139,7 @@ class CachedSocialFollowingServiceTests: XCTestCase {
         let status = try await sut.checkRelationship(between: userID1, and: userID2)
         
         // Verify the query used CloudKit user IDs
-        XCTAssertTrue(mockCloudKitManager.lastQueryPredicate?.contains(userID1) ?? false)
-        XCTAssertTrue(mockCloudKitManager.lastQueryPredicate?.contains(userID2) ?? false)
+        XCTAssertTrue(mockCloudKitService.lastQueryPredicate?.contains(userID1) ?? false)
+        XCTAssertTrue(mockCloudKitService.lastQueryPredicate?.contains(userID2) ?? false)
     }
 }

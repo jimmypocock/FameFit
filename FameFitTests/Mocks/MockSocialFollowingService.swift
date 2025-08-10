@@ -2,14 +2,14 @@
 //  MockSocialFollowingService.swift
 //  FameFitTests
 //
-//  Mock implementation of SocialFollowingServicing for testing
+//  Mock implementation of SocialFollowingProtocol for testing
 //
 
 import Combine
 @testable import FameFit
 import Foundation
 
-final class MockSocialFollowingService: SocialFollowingServicing {
+final class MockSocialFollowingService: SocialFollowingProtocol {
     // Mock data storage
     var relationships: [String: Set<String>] = [:] // userId -> Set of followingIds
     var blockedUsers: [String: Set<String>] = [:] // userId -> Set of blockedIds

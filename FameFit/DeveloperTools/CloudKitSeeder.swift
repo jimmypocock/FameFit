@@ -251,13 +251,13 @@ final class CloudKitSeeder {
         print("✅ Cleaned up all data for current user")
     }
     
-    /// Reset user stats fields to zero (instead of deleting the Users record)
+    /// Reset user stats fields to zero in UserProfile record
     private func resetUserStats(for userID: String) async throws {
-        let predicate = NSPredicate(format: "TRUEPREDICATE") // Get the user record
-        let query = CKQuery(recordType: "Users", predicate: predicate)
+        let predicate = NSPredicate(format: "userID == %@", userID)
+        let query = CKQuery(recordType: "UserProfile", predicate: predicate)
         
         do {
-            let (results, _) = try await privateDatabase.records(matching: query)
+            let (results, _) = try await publicDatabase.records(matching: query)
             
             for (_, result) in results {
                 switch result {
@@ -266,25 +266,27 @@ final class CloudKitSeeder {
                     record["totalWorkouts"] = 0
                     record["totalXP"] = 0
                     record["currentStreak"] = 0
+                    record["followersCount"] = 0
+                    record["followingCount"] = 0
                     
                     // Save the updated record
-                    try await privateDatabase.save(record)
-                    print("✅ Reset user stats to zero")
+                    try await publicDatabase.save(record)
+                    print("✅ Reset user profile stats to zero")
                     
                 case .failure(let error):
-                    print("⚠️ Failed to fetch user record: \(error)")
+                    print("⚠️ Failed to fetch user profile: \(error)")
                 }
             }
             
             if results.isEmpty {
-                print("✅ No Users record found (already clean)")
+                print("✅ No UserProfile record found (already clean)")
             }
         } catch let error as CKError where error.code == .unknownItem {
-            print("✅ No Users records found (already clean)")
+            print("✅ No UserProfile records found (already clean)")
         } catch let error as CKError where error.code == .invalidArguments {
-            print("✅ Users record type not found in schema (already clean)")
+            print("✅ UserProfile record type not found in schema (already clean)")
         } catch {
-            print("⚠️ Error resetting user stats: \(error)")
+            print("⚠️ Error resetting user profile stats: \(error)")
         }
     }
     
