@@ -37,53 +37,13 @@ struct OnboardingView: View {
                 case .signIn:
                     // SignIn is now integrated into WelcomeView
                     // This case should not be reached, but show HealthKit as fallback
-                    ZStack {
-                        LinearGradient(
-                            colors: [Color.purple, Color.blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .ignoresSafeArea()
-                        
-                        HealthKitPermissionView(viewModel: viewModel)
-                            .padding()
-                    }
+                    HealthKitPermissionView(viewModel: viewModel)
                 case .healthKit:
-                    ZStack {
-                        LinearGradient(
-                            colors: [Color.purple, Color.blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .ignoresSafeArea()
-                        
-                        HealthKitPermissionView(viewModel: viewModel)
-                            .padding()
-                    }
+                    HealthKitPermissionView(viewModel: viewModel)
                 case .profile:
-                    ZStack {
-                        LinearGradient(
-                            colors: [Color.purple, Color.blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .ignoresSafeArea()
-                        
-                        ProfileCreationView(viewModel: viewModel)
-                            .padding()
-                    }
+                    ProfileCreationView(viewModel: viewModel)
                 case .gameMechanics:
-                    ZStack {
-                        LinearGradient(
-                            colors: [Color.purple, Color.blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .ignoresSafeArea()
-                        
-                        GameMechanicsView(viewModel: viewModel)
-                            .padding()
-                    }
+                    GameMechanicsView(viewModel: viewModel)
                 }
             }
         }

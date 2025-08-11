@@ -217,3 +217,91 @@ struct OnboardingFeatureRow: View {
         }
     }
 }
+
+// MARK: - Button Styles
+
+/// Standard glass morphism button style for onboarding CTAs
+struct OnboardingButtonStyle: ButtonStyle {
+    let isEnabled: Bool
+    
+    init(isEnabled: Bool = true) {
+        self.isEnabled = isEnabled
+    }
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Typography.button)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                LinearGradient(
+                    colors: isEnabled ?
+                        [Color.white.opacity(0.3), Color.white.opacity(0.2)] :
+                        [Color.white.opacity(0.1), Color.white.opacity(0.05)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(isEnabled ? 0.3 : 0.1), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+/// Standard onboarding CTA button component
+struct OnboardingCTAButton: View {
+    let title: String
+    let icon: String?
+    let iconPosition: IconPosition
+    let isLoading: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+    
+    enum IconPosition {
+        case leading
+        case trailing
+    }
+    
+    init(
+        title: String,
+        icon: String? = nil,
+        iconPosition: IconPosition = .trailing,
+        isLoading: Bool = false,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.icon = icon
+        self.iconPosition = iconPosition
+        self.isLoading = isLoading
+        self.isEnabled = isEnabled
+        self.action = action
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                if isLoading {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    if let icon = icon, iconPosition == .leading {
+                        Image(systemName: icon)
+                    }
+                    Text(title)
+                    if let icon = icon, iconPosition == .trailing {
+                        Image(systemName: icon)
+                    }
+                }
+            }
+        }
+        .buttonStyle(OnboardingButtonStyle(isEnabled: isEnabled))
+        .disabled(!isEnabled || isLoading)
+    }
+}

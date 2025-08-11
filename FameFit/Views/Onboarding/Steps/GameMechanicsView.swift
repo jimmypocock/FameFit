@@ -9,132 +9,74 @@ import SwiftUI
 
 struct GameMechanicsView: View {
     @ObservedObject var viewModel: OnboardingViewModel
-    @State private var visibleCards: Set<Int> = []
-    @State private var showButton = false
-    @State private var titleScale: CGFloat = 0.8
-    @State private var titleOpacity: Double = 0
+    @State private var showContent = false
+    @State private var showTagline = false
+    @State private var showFeatures = false
+    @State private var showCTA = false
+    @State private var glowAnimation = false
     
-    let formulaSteps = [
-        ("🏋️", "Workouts", "= XP", "Complete any workout", Color.orange),
-        ("📈", "XP", "= Status", "Level up your rank", Color.purple),
-        ("🏆", "Status", "= Unlocks", "Earn badges & rewards", Color.blue)
-    ]
-    
+    // Simplified feature list matching WelcomeView style
     let features = [
-        ("📢", "Share for Bonus", "Post workouts for extra fame"),
-        ("🌍", "Global Leaderboards", "Compete with everyone"),
-        ("🎯", "Achievements", "Unlock badges & bragging rights")
+        ("figure.run", "Complete workouts to earn XP"),
+        ("chart.line.uptrend.xyaxis", "Level up your fitness influence"),
+        ("trophy.fill", "Unlock exclusive rewards"),
+        ("person.3.fill", "Join group challenges")
     ]
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Title section
-            VStack(spacing: 12) {
-                Text("THE FAME")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-                    .scaleEffect(titleScale)
-                    .opacity(titleOpacity)
+        GeometryReader { geometry in
+            ZStack {
+                // Premium gradient background
+                BrandColors.premiumGradient
+                    .ignoresSafeArea()
                 
-                Text("FORMULA")
-                    .font(.system(size: 48, weight: .black, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0.9)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .scaleEffect(titleScale)
-                    .opacity(titleOpacity)
-            }
-            .padding(.top, 40)
-            
-            // Formula cards
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Main formula
-                    VStack(spacing: 16) {
-                        ForEach(Array(formulaSteps.enumerated()), id: \.offset) { index, step in
-                            FormulaCard(
-                                emoji: step.0,
-                                title: step.1,
-                                equals: step.2,
-                                subtitle: step.3,
-                                color: step.4,
-                                isVisible: visibleCards.contains(index)
-                            )
-                        }
-                    }
-                    .padding(.top, 30)
-                    
-                    // Additional features
-                    if visibleCards.contains(3) {
-                        VStack(spacing: 12) {
-                            Text("PLUS")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(.top, 10)
-                            
-                            ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
-                                FeatureRow(
-                                    emoji: feature.0,
-                                    title: feature.1,
-                                    subtitle: feature.2,
-                                    isVisible: visibleCards.contains(index + 4)
-                                )
+                // Subtle animated particles
+                ParticleEffectView()
+                    .opacity(0.3)
+                    .ignoresSafeArea()
+                
+                if geometry.size.height < 600 {
+                    // Small screen: Scrollable content with sticky CTA
+                    ZStack(alignment: .bottom) {
+                        ScrollView {
+                            VStack(spacing: Spacing.large) {
+                                contentSection
+                                
+                                // Add padding at bottom to prevent content hiding behind CTA
+                                Color.clear
+                                    .frame(height: 140)
                             }
                         }
-                        .transition(.opacity.combined(with: .scale))
-                    }
-                }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 20)
-            }
-            
-            Spacer()
-            
-            // CTA Button
-            if showButton {
-                VStack(spacing: 16) {
-                    Text("Ready to start your influencer journey?")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                    
-                    Button(action: {
-                        Task {
-                            await viewModel.completeOnboarding()
-                        }
-                    }) {
-                        HStack {
-                            Text("Start Earning XP")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 16, weight: .bold))
-                        }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
+                        .scrollIndicators(.hidden)
+                        
+                        // Sticky CTA with gradient fade
+                        VStack(spacing: 0) {
+                            // Gradient fade from transparent to background
                             LinearGradient(
-                                colors: [.white, .white.opacity(0.95)],
+                                colors: [
+                                    BrandColors.gradientDark.opacity(0),
+                                    BrandColors.gradientDark
+                                ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: .white.opacity(0.3), radius: 10, x: 0, y: 0)
+                            .frame(height: 20)
+                            
+                            // CTA section - no background needed, button has its own
+                            ctaSection
+                        }
                     }
+                } else {
+                    // Regular screen: Fixed layout
+                    VStack {
+                        contentSection
+                        
+                        Spacer(minLength: Spacing.xxLarge)
+                        
+                        ctaSection
+                    }
+                    .frame(maxHeight: .infinity)
                 }
-                .padding(.horizontal, 30)
-                .padding(.bottom, 40)
-                .transition(
-                    .asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    )
-                )
             }
         }
         .onAppear {
@@ -143,131 +85,235 @@ struct GameMechanicsView: View {
         .disabled(viewModel.isLoading)
     }
     
+    // MARK: - Components
+    
+    private var contentSection: some View {
+        VStack(spacing: Spacing.large) {
+            // Header icon and title - EXACT same as WelcomeView
+            headerSection
+                .opacity(showContent ? 1 : 0)
+                .scaleEffect(showContent ? 1 : 0.8)
+                .padding(.top, Spacing.xxLarge)
+            
+            // Tagline - EXACT same animation as WelcomeView
+            taglineSection
+                .opacity(showTagline ? 1 : 0)
+                .offset(y: showTagline ? 0 : 20)
+            
+            // Feature list
+            featuresSection
+                .opacity(showFeatures ? 1 : 0)
+                .offset(y: showFeatures ? 0 : 30)
+        }
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: Spacing.small) {  // EXACT same spacing as WelcomeView brandSection
+            ZStack {
+                // Subtle glow effect - EXACT same as WelcomeView (80x80, radius 50)
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                BrandColors.glowColor,
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 50
+                        )
+                    )
+                    .frame(width: 80, height: 80)  // EXACT same as WelcomeView
+                    .blur(radius: 15)
+                    .scaleEffect(glowAnimation ? 1.1 : 0.9)
+                    .animation(
+                        .easeInOut(duration: 3).repeatForever(autoreverses: true),
+                        value: glowAnimation
+                    )
+                
+                // App icon/logo - using FameFit icon like WelcomeView
+                Image("AppIconTitle")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 70)  // EXACT same height as WelcomeView
+                    .foregroundColor(BrandColors.textPrimary)
+            }
+            
+            // Title matching WelcomeView's hero style
+            Text("Ready to Level Up?")
+                .heroTextStyle()
+        }
+    }
+    
+    private var taglineSection: some View {
+        Text("Turn every workout into influence")
+            .taglineTextStyle()
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Spacing.medium)  // EXACT same as WelcomeView
+            .padding(.bottom, Spacing.xLarge)  // EXACT same as WelcomeView
+    }
+    
+    private var featuresSection: some View {
+        VStack(spacing: Spacing.large) {  // EXACT same spacing as WelcomeView featureSection
+            GameMechanicsFeatureRow(
+                icon: features[0].0,
+                text: features[0].1,
+                delay: 0.1
+            )
+            
+            GameMechanicsFeatureRow(
+                icon: features[1].0,
+                text: features[1].1,
+                delay: 0.2
+            )
+            
+            GameMechanicsFeatureRow(
+                icon: features[2].0,
+                text: features[2].1,
+                delay: 0.3
+            )
+            
+            GameMechanicsFeatureRow(
+                icon: features[3].0,
+                text: features[3].1,
+                delay: 0.4
+            )
+        }
+        .padding(.horizontal, Spacing.xxLarge)  // EXACT same as WelcomeView
+    }
+    
+    private var ctaSection: some View {
+        VStack(spacing: Spacing.medium) {
+            // CTA text matching WelcomeView style
+            Text("Ready to start earning XP?")
+                .ctaTextStyle()
+            
+            // Primary action button using reusable component
+            OnboardingCTAButton(
+                title: "Start Your Journey",
+                icon: "checkmark.circle.fill",
+                isLoading: viewModel.isLoading,
+                action: {
+                    Task {
+                        await viewModel.completeOnboarding()
+                    }
+                }
+            )
+        }
+        .padding(.horizontal, Spacing.xxLarge)
+        .padding(.bottom, Spacing.xLarge)
+        .opacity(showCTA ? 1 : 0)
+        .offset(y: showCTA ? 0 : 20)  // EXACT same offset as ProfileCreationView
+    }
+    
+    // MARK: - Animation
+    
     private func animateContent() {
-        // Animate title
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-            titleScale = 1.0
-            titleOpacity = 1.0
+        // EXACT same animation timing as WelcomeView
+        withAnimation(.easeOut(duration: 0.8)) {
+            showContent = true
         }
         
-        // Animate formula cards
-        for index in 0..<3 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.3 + 0.5) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    _ = visibleCards.insert(index)
-                }
-            }
+        withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
+            showTagline = true
         }
         
-        // Show additional features
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                _ = visibleCards.insert(3) // Trigger "PLUS" section
-            }
+        withAnimation(.easeOut(duration: 0.8).delay(0.6)) {
+            showFeatures = true
         }
         
-        // Animate feature rows
-        for index in 0..<features.count {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.2 + 2.2) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    _ = visibleCards.insert(index + 4)
-                }
-            }
+        withAnimation(.easeOut(duration: 0.8).delay(1.0)) {
+            showCTA = true
         }
         
-        // Show button
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                showButton = true
-            }
-        }
+        glowAnimation = true
     }
 }
 
-struct FormulaCard: View {
-    let emoji: String
-    let title: String
-    let equals: String
-    let subtitle: String
-    let color: Color
-    let isVisible: Bool
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon
-            Text(emoji)
-                .font(.system(size: 36))
-                .frame(width: 60, height: 60)
-                .background(
-                    Circle()
-                        .fill(color.opacity(0.2))
-                )
-            
-            // Text content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Text(equals)
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(color)
-                }
-                
-                Text(subtitle)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            
-            Spacer()
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.08))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                )
-        )
-        .opacity(isVisible ? 1 : 0)
-        .offset(y: isVisible ? 0 : 20)
-        .scaleEffect(isVisible ? 1 : 0.95)
-    }
-}
+// MARK: - Supporting Views
 
-struct FeatureRow: View {
-    let emoji: String
-    let title: String
-    let subtitle: String
-    let isVisible: Bool
+struct GameMechanicsFeatureRow: View {
+    let icon: String
+    let text: String
+    let delay: Double
+    @State private var isVisible = false
     
     var body: some View {
-        HStack(spacing: 16) {
-            Text(emoji)
-                .font(.system(size: 28))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+        HStack(spacing: 16) {  // EXACT same spacing as WelcomeFeatureRow
+            // Icon with glass effect - EXACT copy from WelcomeView
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.1))
+                    .background(
+                        .ultraThinMaterial,
+                        in: RoundedRectangle(cornerRadius: 12)
+                    )
+                    .frame(width: 44, height: 44)
                 
-                Text(subtitle)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.6))
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))  // EXACT same as WelcomeView
             }
+            
+            Text(text)
+                .font(.system(size: 16, weight: .regular))  // EXACT same as WelcomeView
+                .foregroundColor(.white.opacity(0.85))  // EXACT same as WelcomeView
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
             
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.06))
-        )
         .opacity(isVisible ? 1 : 0)
         .offset(x: isVisible ? 0 : -20)
-        .scaleEffect(isVisible ? 1 : 0.95, anchor: .leading)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6).delay(delay)) {
+                isVisible = true
+            }
+        }
     }
+}
+
+// MARK: - Preview
+
+// Helper view to show all content immediately in preview - simplified
+private struct GameMechanicsPreviewWrapper: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    @State private var showAll = true
+    
+    var body: some View {
+        GameMechanicsView(viewModel: viewModel)
+            .onAppear {
+                // Force all animations to complete immediately for preview
+                viewModel.isLoading = false
+            }
+    }
+}
+
+#Preview("Game Mechanics") {
+    let container = DependencyContainer()
+    return GameMechanicsView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
+}
+
+#Preview("Game Mechanics - Static") {
+    let container = DependencyContainer()
+    let viewModel = OnboardingViewModel(container: container)
+    
+    return GameMechanicsView(viewModel: viewModel)
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
+}
+
+#Preview("Game Mechanics - Small Screen", traits: .fixedLayout(width: 375, height: 667)) {
+    let container = DependencyContainer()
+    return GameMechanicsView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
 }

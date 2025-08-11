@@ -308,7 +308,16 @@ struct Particle: Identifiable {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Welcome View") {
+    let container = DependencyContainer()
+    return WelcomeView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
+}
+
+#Preview("Welcome View - iPhone SE", traits: .fixedLayout(width: 375, height: 667)) {
     let container = DependencyContainer()
     return WelcomeView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)

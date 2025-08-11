@@ -1,8 +1,8 @@
 //
-//  ProfileCreationView.swift
+//  ProfileCreationViewSimple.swift
 //  FameFit
 //
-//  Profile creation flow for new users
+//  Simplified profile creation without keyboard complexity
 //
 
 import CloudKit
@@ -15,6 +15,8 @@ struct ProfileCreationView: View {
     @State private var showingSignOutAlert = false
     @State private var selectedImage: PhotosPickerItem?
     @State private var profileImage: UIImage?
+    @State private var showContent = false
+    @State private var showCTA = false
     
     private var canProceed: Bool {
         switch currentStep {
@@ -30,31 +32,118 @@ struct ProfileCreationView: View {
     }
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Header with sign out button
+        ZStack {
+            // Background
+            BrandColors.premiumGradient
+                .ignoresSafeArea()
+            
+            ParticleEffectView()
+                .opacity(0.3)
+                .ignoresSafeArea()
+            
+            // Content
+            VStack {
+                // Header
+                headerSection
+                    .opacity(showContent ? 1 : 0)
+                    .scaleEffect(showContent ? 1 : 0.8)
+                    .padding(.top, Spacing.xxLarge)
+                
+                // Progress
+                progressSection
+                    .opacity(showContent ? 1 : 0)
+                    .padding(.horizontal, Spacing.xxLarge)
+                
+                // Current step content - scrollable if needed
+                ScrollView {
+                    stepContent
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : 30)
+                        .padding(.bottom, Spacing.large)
+                }
+                
+                // CTA buttons - always at bottom
+                ctaSection
+                    .opacity(showCTA ? 1 : 0)
+                    .offset(y: showCTA ? 0 : 20)
+            }
+        }
+        .onAppear {
+            animateContent()
+        }
+        .alert("Sign Out?", isPresented: $showingSignOutAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                viewModel.signOut()
+            }
+        } message: {
+            Text("Are you sure you want to sign out? You'll need to sign in again to continue.")
+        }
+    }
+    
+    // MARK: - Components
+    
+    private var headerSection: some View {
+        VStack(spacing: Spacing.small) {
+            // Sign out button
             HStack {
-                Text("Create Profile")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                
                 Spacer()
-                
                 Button(action: {
                     showingSignOutAlert = true
                 }) {
                     Image(systemName: "ellipsis.circle")
-                        .font(.title2)
-                        .foregroundColor(.white.opacity(0.8))
+                        .font(.system(size: 24))
+                        .foregroundColor(BrandColors.textQuaternary)
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, Spacing.xxLarge)
             
-            // Progress indicator
-            ProgressView(value: Double(currentStep + 1), total: 3)
-                .tint(.white)
-                .padding(.horizontal)
-
+            // Title
+            Text(stepTitle)
+                .heroTextStyle()
+            
+            // Subtitle
+            Text(stepSubtitle)
+                .taglineTextStyle()
+                .padding(.horizontal, Spacing.medium)
+        }
+    }
+    
+    private var progressSection: some View {
+        VStack(spacing: Spacing.small) {
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white.opacity(0.1))
+                        .frame(height: 4)
+                    
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white.opacity(0.8))
+                        .frame(width: geometry.size.width * (Double(currentStep + 1) / 3.0), height: 4)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
+                }
+            }
+            .frame(height: 4)
+            
+            // Step labels
+            HStack {
+                ForEach(0..<3) { index in
+                    Text(stepName(for: index))
+                        .font(Typography.caption)
+                        .foregroundColor(index <= currentStep ? 
+                                       BrandColors.textSecondary : BrandColors.textQuaternary)
+                    
+                    if index < 2 {
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var stepContent: some View {
+        VStack(spacing: Spacing.large) {
             switch currentStep {
             case 0:
                 usernameStep
@@ -65,150 +154,125 @@ struct ProfileCreationView: View {
             default:
                 EmptyView()
             }
-
-            Spacer()
-
-            // Navigation buttons
-            HStack(spacing: 20) {
-                if currentStep > 0 {
-                    Button(action: {
-                        withAnimation {
-                            currentStep -= 1
-                        }
-                    }) {
-                        Text("Back")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(15)
-                    }
-                }
-
-                Button(action: {
-                    if currentStep == 2 {
-                        Task {
-                            await viewModel.createProfile()
-                        }
-                    } else {
-                        withAnimation {
-                            currentStep += 1
-                        }
-                    }
-                }) {
-                    Text(currentStep == 2 ? "Create Profile" : "Next")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(canProceed ? Color.white.opacity(0.3) : Color.white.opacity(0.1))
-                        .cornerRadius(15)
-                }
-                .disabled(!canProceed || viewModel.isLoading)
-            }
-            .padding(.horizontal)
         }
-        .padding(.vertical)
-        .alert("Sign Out?", isPresented: $showingSignOutAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Sign Out", role: .destructive) {
-                viewModel.signOut()
-            }
-        } message: {
-            Text("Are you sure you want to sign out? You'll need to sign in again to continue.")
-        }
+        .animation(.easeInOut(duration: 0.3), value: currentStep)
     }
-
+    
     // MARK: - Step Views
-
+    
     private var usernameStep: some View {
-        VStack(spacing: 30) {
-            Text("CHOOSE YOUR USERNAME")
-                .font(.system(size: 24, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Username", text: $viewModel.username)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .onChange(of: viewModel.username) { _, _ in
-                        // Debounce username checking
-                        Task {
-                            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                            await viewModel.isUsernameAvailable()
-                        }
+        VStack(spacing: Spacing.large) {
+            // Simple white input field
+            TextField("username", text: $viewModel.username)
+                .textFieldStyle(.plain)
+                .font(.system(size: 18, weight: .regular))
+                .foregroundColor(.black)
+                .tint(.black)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .padding(Spacing.medium)
+                .background(Color.white)
+                .cornerRadius(12)
+                .onChange(of: viewModel.username) { _, _ in
+                    Task {
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                        await viewModel.isUsernameAvailable()
                     }
-
+                }
+            
+            // Validation feedback
+            VStack(spacing: Spacing.xSmall) {
                 if viewModel.isCheckingUsername {
-                    HStack {
+                    HStack(spacing: Spacing.xSmall) {
                         ProgressView()
-                            .scaleEffect(0.8)
+                            .scaleEffect(0.7)
+                            .tint(BrandColors.textTertiary)
                         Text("Checking availability...")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(Typography.caption)
+                            .foregroundColor(BrandColors.textTertiary)
                     }
                 } else if let error = viewModel.usernameError {
-                    Text(error)
-                        .font(.caption)
+                    Label(error, systemImage: "xmark.circle.fill")
+                        .font(Typography.caption)
                         .foregroundColor(.red)
                 } else if !viewModel.username.isEmpty && UserProfile.isValidUsername(viewModel.username) {
-                    Text("✓ Username available")
-                        .font(.caption)
+                    Label("Username available", systemImage: "checkmark.circle.fill")
+                        .font(Typography.caption)
                         .foregroundColor(.green)
                 }
-
+                
                 Text("3-30 characters, letters, numbers, and underscores only")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(Typography.caption)
+                    .foregroundColor(BrandColors.textQuaternary)
             }
-            .padding(.horizontal)
         }
+        .padding(.horizontal, Spacing.xxLarge)
     }
-
+    
     private var bioStep: some View {
-        VStack(spacing: 30) {
-            Text("TELL US ABOUT YOURSELF")
-                .font(.system(size: 24, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-
-            VStack(alignment: .leading, spacing: 10) {
-                ZStack(alignment: .topLeading) {
-                    TextEditor(text: $viewModel.bio)
-                        .frame(height: 120)
-                        .cornerRadius(10)
-                        .opacity(viewModel.bio.isEmpty ? 0.7 : 1.0)
-
-                    if viewModel.bio.isEmpty {
-                        Text("Share your fitness goals, favorite workouts, or what motivates you...")
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 12)
-                            .allowsHitTesting(false)
-                    }
-                }
-
-                HStack {
-                    Text("\(viewModel.bio.count)/500 characters")
-                        .font(.caption)
-                        .foregroundColor(viewModel.bio.count > 500 ? .red : .white.opacity(0.6))
-                    Spacer()
+        VStack(spacing: Spacing.large) {
+            // Simple white text editor
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $viewModel.bio)
+                    .scrollContentBackground(.hidden)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(.black)
+                    .tint(.black)
+                    .padding(Spacing.medium)
+                    .frame(height: 120)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                
+                if viewModel.bio.isEmpty {
+                    Text("Share your fitness goals, favorite workouts, or what motivates you...")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(Color.gray.opacity(0.5))
+                        .padding(Spacing.medium + 4)
+                        .allowsHitTesting(false)
                 }
             }
-            .padding(.horizontal)
-
-            // Optional: Profile picture picker
+            .frame(height: 120)
+            
+            // Character count
+            HStack {
+                Text("\(viewModel.bio.count)/500")
+                    .font(Typography.caption)
+                    .foregroundColor(viewModel.bio.count > 500 ? .red : BrandColors.textQuaternary)
+                Spacer()
+            }
+            
+            // Optional photo picker
             PhotosPicker(selection: $selectedImage, matching: .images) {
-                HStack {
-                    Image(systemName: "camera.fill")
-                    Text("Add Profile Photo (Optional)")
+                HStack(spacing: Spacing.medium) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.1))
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                            .frame(width: 44, height: 44)
+                        
+                        if let profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 44, height: 44)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                    }
+                    
+                    Text(profileImage != nil ? "Change Photo" : "Add Profile Photo")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(.white.opacity(0.85))
+                    
+                    Spacer()
+                    
+                    Text("Optional")
+                        .font(Typography.caption)
+                        .foregroundColor(BrandColors.textQuaternary)
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding()
-                .background(Color.white.opacity(0.2))
-                .cornerRadius(15)
             }
             .onChange(of: selectedImage) { _, newItem in
                 Task {
@@ -218,66 +282,149 @@ struct ProfileCreationView: View {
                     }
                 }
             }
-
-            if let profileImage {
-                Image(uiImage: profileImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+        }
+        .padding(.horizontal, Spacing.xxLarge)
+    }
+    
+    private var privacyStep: some View {
+        VStack(spacing: Spacing.large) {
+            ForEach([
+                ProfilePrivacyLevel.publicProfile,
+                ProfilePrivacyLevel.friendsOnly,
+                ProfilePrivacyLevel.privateProfile
+            ], id: \.self) { level in
+                Button(action: {
+                    viewModel.privacyLevel = level
+                }) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.1))
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                                .frame(width: 44, height: 44)
+                            
+                            Image(systemName: level.iconName)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(viewModel.privacyLevel == level ? 
+                                                .white : .white.opacity(0.6))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(level.displayName)
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(.white.opacity(0.85))
+                            
+                            Text(level.description)
+                                .font(Typography.caption)
+                                .foregroundColor(BrandColors.textTertiary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        
+                        Spacer()
+                        
+                        if viewModel.privacyLevel == level {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.green)
+                        }
+                    }
+                    .padding(Spacing.medium)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(viewModel.privacyLevel == level ?
+                                  Color.white.opacity(0.15) : Color.white.opacity(0.05))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(viewModel.privacyLevel == level ?
+                                           Color.white.opacity(0.2) : Color.clear,
+                                           lineWidth: 1)
+                            )
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
+        .padding(.horizontal, Spacing.xxLarge)
     }
-
-    private var privacyStep: some View {
-        VStack(spacing: 30) {
-            Text("PRIVACY SETTINGS")
-                .font(.system(size: 24, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-
-            VStack(spacing: 20) {
-                ForEach([
-                    ProfilePrivacyLevel.publicProfile,
-                    ProfilePrivacyLevel.friendsOnly,
-                    ProfilePrivacyLevel.privateProfile
-                ], id: \.self) { level in
-                    Button(action: {
-                        viewModel.privacyLevel = level
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 5) {
-                                HStack {
-                                    Image(systemName: level.iconName)
-                                    Text(level.displayName)
-                                        .font(.headline)
-                                }
-
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .multilineTextAlignment(.leading)
-                            }
-
-                            Spacer()
-
-                            if viewModel.privacyLevel == level {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
+    
+    private var ctaSection: some View {
+        HStack(spacing: Spacing.medium) {
+            // Back button
+            if currentStep > 0 {
+                OnboardingCTAButton(
+                    title: "Back",
+                    icon: "chevron.left",
+                    iconPosition: .leading,
+                    action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentStep -= 1
                         }
-                        .padding()
-                        .background(
-                            viewModel.privacyLevel == level
-                                ? Color.white.opacity(0.3)
-                                : Color.white.opacity(0.1)
-                        )
-                        .cornerRadius(15)
                     }
-                    .buttonStyle(PlainButtonStyle())
-                }
+                )
             }
-            .padding(.horizontal)
+            
+            // Next/Create button
+            OnboardingCTAButton(
+                title: currentStep == 2 ? "Create Profile" : "Next",
+                icon: currentStep == 2 ? "checkmark.circle.fill" : "arrow.right",
+                isLoading: viewModel.isLoading,
+                isEnabled: canProceed,
+                action: {
+                    if currentStep == 2 {
+                        Task {
+                            await viewModel.createProfile()
+                        }
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentStep += 1
+                        }
+                    }
+                }
+            )
+        }
+        .padding(.horizontal, Spacing.xxLarge)
+        .padding(.bottom, Spacing.xLarge)
+    }
+    
+    // MARK: - Helpers
+    
+    private var stepTitle: String {
+        switch currentStep {
+        case 0: return "Create Username"
+        case 1: return "About You"
+        case 2: return "Privacy Settings"
+        default: return ""
+        }
+    }
+    
+    private var stepSubtitle: String {
+        switch currentStep {
+        case 0: return "Choose how others will find you"
+        case 1: return "Tell your fitness story"
+        case 2: return "Control who sees your activity"
+        default: return ""
+        }
+    }
+    
+    private func stepName(for index: Int) -> String {
+        switch index {
+        case 0: return "Username"
+        case 1: return "Bio"
+        case 2: return "Privacy"
+        default: return ""
+        }
+    }
+    
+    // MARK: - Animation
+    
+    private func animateContent() {
+        withAnimation(.easeOut(duration: 0.8)) {
+            showContent = true
+        }
+        
+        withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
+            showCTA = true
         }
     }
 }
@@ -297,13 +444,22 @@ extension ProfilePrivacyLevel {
     }
 }
 
-#Preview {
-    ProfileCreationView(viewModel: OnboardingViewModel(container: DependencyContainer()))
-        .background(
-            LinearGradient(
-                colors: [Color.purple, Color.blue],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+// MARK: - Preview
+
+#Preview("Profile Creation") {
+    let container = DependencyContainer()
+    return ProfileCreationView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
+}
+
+#Preview("Profile Creation - Small Screen", traits: .fixedLayout(width: 375, height: 667)) {
+    let container = DependencyContainer()
+    return ProfileCreationView(viewModel: OnboardingViewModel(container: container))
+        .environmentObject(container.authenticationManager)
+        .environmentObject(container.cloudKitManager)
+        .environmentObject(container.workoutObserver)
+        .environment(\.dependencyContainer, container)
 }
