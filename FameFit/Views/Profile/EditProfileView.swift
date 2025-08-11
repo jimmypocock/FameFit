@@ -210,15 +210,6 @@ struct EditProfileView: View {
                         Label("Export My Data", systemImage: "square.and.arrow.down")
                     }
                     
-                    // Sign Out
-                    Button(action: {
-                        container.authenticationManager.signOut()
-                        // This will trigger app to return to onboarding
-                    }) {
-                        Label("Sign Out", systemImage: "arrow.right.square")
-                            .foregroundColor(.red)
-                    }
-                    
                     // Delete Account
                     Button(action: {
                         showDeleteAccountAlert = true

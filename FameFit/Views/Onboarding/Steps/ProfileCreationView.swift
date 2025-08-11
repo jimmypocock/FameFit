@@ -12,11 +12,8 @@ import SwiftUI
 struct ProfileCreationView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     @State private var currentStep = 0
-    @State private var showingSignOutAlert = false
     @State private var selectedImage: PhotosPickerItem?
     @State private var profileImage: UIImage?
-    @State private var showContent = false
-    @State private var showCTA = false
     
     private var canProceed: Bool {
         switch currentStep {
@@ -45,39 +42,21 @@ struct ProfileCreationView: View {
             VStack {
                 // Header
                 headerSection
-                    .opacity(showContent ? 1 : 0)
-                    .scaleEffect(showContent ? 1 : 0.8)
                     .padding(.top, Spacing.xxLarge)
                 
                 // Progress
                 progressSection
-                    .opacity(showContent ? 1 : 0)
                     .padding(.horizontal, Spacing.xxLarge)
                 
                 // Current step content - scrollable if needed
                 ScrollView {
                     stepContent
-                        .opacity(showContent ? 1 : 0)
-                        .offset(y: showContent ? 0 : 30)
                         .padding(.bottom, Spacing.large)
                 }
                 
                 // CTA buttons - always at bottom
                 ctaSection
-                    .opacity(showCTA ? 1 : 0)
-                    .offset(y: showCTA ? 0 : 20)
             }
-        }
-        .onAppear {
-            animateContent()
-        }
-        .alert("Sign Out?", isPresented: $showingSignOutAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Sign Out", role: .destructive) {
-                viewModel.signOut()
-            }
-        } message: {
-            Text("Are you sure you want to sign out? You'll need to sign in again to continue.")
         }
     }
     
@@ -85,19 +64,6 @@ struct ProfileCreationView: View {
     
     private var headerSection: some View {
         VStack(spacing: Spacing.small) {
-            // Sign out button
-            HStack {
-                Spacer()
-                Button(action: {
-                    showingSignOutAlert = true
-                }) {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 24))
-                        .foregroundColor(BrandColors.textQuaternary)
-                }
-            }
-            .padding(.horizontal, Spacing.xxLarge)
-            
             // Title
             Text(stepTitle)
                 .heroTextStyle()
@@ -163,22 +129,32 @@ struct ProfileCreationView: View {
     private var usernameStep: some View {
         VStack(spacing: Spacing.large) {
             // Simple white input field
-            TextField("username", text: $viewModel.username)
-                .textFieldStyle(.plain)
-                .font(.system(size: 18, weight: .regular))
-                .foregroundColor(.black)
-                .tint(.black)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .padding(Spacing.medium)
-                .background(Color.white)
-                .cornerRadius(12)
-                .onChange(of: viewModel.username) { _, _ in
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        await viewModel.isUsernameAvailable()
+            ZStack(alignment: .leading) {
+                TextField("", text: $viewModel.username)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(.black)
+                    .tint(.black)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding(Spacing.medium)
+                    .background(Color.white)
+                    .cornerRadius(12)
+                    .onChange(of: viewModel.username) { _, _ in
+                        Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            await viewModel.isUsernameAvailable()
+                        }
                     }
+                
+                if viewModel.username.isEmpty {
+                    Text("username")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(Color.gray.opacity(0.5))
+                        .padding(.horizontal, Spacing.medium)
+                        .allowsHitTesting(false)
                 }
+            }
             
             // Validation feedback
             VStack(spacing: Spacing.xSmall) {
@@ -416,17 +392,6 @@ struct ProfileCreationView: View {
         }
     }
     
-    // MARK: - Animation
-    
-    private func animateContent() {
-        withAnimation(.easeOut(duration: 0.8)) {
-            showContent = true
-        }
-        
-        withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
-            showCTA = true
-        }
-    }
 }
 
 // MARK: - Privacy Level Icon Extension

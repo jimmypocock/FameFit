@@ -9,10 +9,6 @@ import SwiftUI
 
 struct GameMechanicsView: View {
     @ObservedObject var viewModel: OnboardingViewModel
-    @State private var showContent = false
-    @State private var showTagline = false
-    @State private var showFeatures = false
-    @State private var showCTA = false
     @State private var glowAnimation = false
     
     // Simplified feature list matching WelcomeView style
@@ -80,7 +76,7 @@ struct GameMechanicsView: View {
             }
         }
         .onAppear {
-            animateContent()
+            glowAnimation = true
         }
         .disabled(viewModel.isLoading)
     }
@@ -91,19 +87,13 @@ struct GameMechanicsView: View {
         VStack(spacing: Spacing.large) {
             // Header icon and title - EXACT same as WelcomeView
             headerSection
-                .opacity(showContent ? 1 : 0)
-                .scaleEffect(showContent ? 1 : 0.8)
                 .padding(.top, Spacing.xxLarge)
             
-            // Tagline - EXACT same animation as WelcomeView
+            // Tagline
             taglineSection
-                .opacity(showTagline ? 1 : 0)
-                .offset(y: showTagline ? 0 : 20)
             
             // Feature list
             featuresSection
-                .opacity(showFeatures ? 1 : 0)
-                .offset(y: showFeatures ? 0 : 30)
         }
     }
     
@@ -202,32 +192,8 @@ struct GameMechanicsView: View {
         }
         .padding(.horizontal, Spacing.xxLarge)
         .padding(.bottom, Spacing.xLarge)
-        .opacity(showCTA ? 1 : 0)
-        .offset(y: showCTA ? 0 : 20)  // EXACT same offset as ProfileCreationView
     }
     
-    // MARK: - Animation
-    
-    private func animateContent() {
-        // EXACT same animation timing as WelcomeView
-        withAnimation(.easeOut(duration: 0.8)) {
-            showContent = true
-        }
-        
-        withAnimation(.easeOut(duration: 0.8).delay(0.3)) {
-            showTagline = true
-        }
-        
-        withAnimation(.easeOut(duration: 0.8).delay(0.6)) {
-            showFeatures = true
-        }
-        
-        withAnimation(.easeOut(duration: 0.8).delay(1.0)) {
-            showCTA = true
-        }
-        
-        glowAnimation = true
-    }
 }
 
 // MARK: - Supporting Views
@@ -236,7 +202,6 @@ struct GameMechanicsFeatureRow: View {
     let icon: String
     let text: String
     let delay: Double
-    @State private var isVisible = false
     
     var body: some View {
         HStack(spacing: 16) {  // EXACT same spacing as WelcomeFeatureRow
@@ -262,13 +227,6 @@ struct GameMechanicsFeatureRow: View {
                 .multilineTextAlignment(.leading)
             
             Spacer()
-        }
-        .opacity(isVisible ? 1 : 0)
-        .offset(x: isVisible ? 0 : -20)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.6).delay(delay)) {
-                isVisible = true
-            }
         }
     }
 }
