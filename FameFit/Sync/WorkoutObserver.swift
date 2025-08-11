@@ -256,10 +256,11 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
             return false
         }
         
-        // Check if we have authorization for workout type
-        let workoutType = HKObjectType.workoutType()
-        let status = healthKitService.authorizationStatus(for: workoutType)
-        return status == .sharingAuthorized
+        // We can't actually check if we have READ permission for HealthKit
+        // Apple doesn't allow this for privacy reasons
+        // We can only check WRITE permission or just try to read and see if it works
+        // Return false to indicate unknown status
+        return false
     }
     
     func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void) {
@@ -295,6 +296,8 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
                     self?.lastError = .healthKitAuthorizationDenied
                     completion(false, .healthKitAuthorizationDenied)
                 } else {
+                    // We can't know for sure if READ permission was granted
+                    // but the request completed successfully
                     self?.isAuthorized = true
                     self?.lastError = nil
                     completion(true, nil)

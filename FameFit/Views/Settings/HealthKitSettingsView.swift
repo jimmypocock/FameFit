@@ -12,17 +12,10 @@ struct HealthKitSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
     
-    @State private var isGranted: Bool
     @State private var isRequesting = false
     @State private var showingSystemSettings = false
     @State private var errorMessage: String?
-    
-    private let onPermissionChange: (Bool) -> Void
-    
-    init(hasPermission: Bool, onPermissionChange: @escaping (Bool) -> Void) {
-        self._isGranted = State(initialValue: hasPermission)
-        self.onPermissionChange = onPermissionChange
-    }
+    @State private var requestSucceeded = false
     
     var body: some View {
         NavigationStack {
@@ -39,9 +32,9 @@ struct HealthKitSettingsView: View {
                                 .font(.title2)
                                 .bold()
                             
-                            Text(isGranted ? "Access Granted" : "Access Not Granted")
+                            Text("Manage workout data access")
                                 .font(.body)
-                                .foregroundColor(isGranted ? .green : .secondary)
+                                .foregroundColor(.secondary)
                         }
                         
                         Spacer()
@@ -66,54 +59,49 @@ struct HealthKitSettingsView: View {
                 
                 // Action section
                 VStack(spacing: 16) {
-                    if !isGranted {
-                        Button(action: requestPermissions) {
-                            HStack {
-                                if isRequesting {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                        .scaleEffect(0.8)
-                                } else {
-                                    Text("Grant Access")
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                        }
-                        .disabled(isRequesting)
-                        
-                        Text("If you previously denied access, you'll need to enable it in:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        
-                        Button(action: openSystemSettings) {
-                            Text("Settings > Privacy & Security > Health > FameFit")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-                    } else {
+                    if requestSucceeded {
                         VStack(spacing: 12) {
-                            Label("Access is enabled", systemImage: "checkmark.circle.fill")
+                            Label("Request Completed", systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                                 .font(.headline)
                             
-                            Text("To revoke access, go to:")
+                            Text("If you granted access, your workouts will now be tracked. If not, you can grant access in Settings.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
-                            Button(action: openSystemSettings) {
-                                Text("Settings > Privacy & Security > Health > FameFit")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
+                                .multilineTextAlignment(.center)
                         }
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
+                    }
+                    
+                    Button(action: requestPermissions) {
+                        HStack {
+                            if isRequesting {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text(requestSucceeded ? "Request Access Again" : "Grant Access")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .disabled(isRequesting)
+                    
+                    Text("To manage access directly:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Button(action: openSystemSettings) {
+                        Text("Settings > Privacy & Security > Health > FameFit")
+                            .font(.caption)
+                            .foregroundColor(.blue)
                     }
                     
                     if let error = errorMessage {
@@ -158,28 +146,27 @@ struct HealthKitSettingsView: View {
     private func requestPermissions() {
         isRequesting = true
         errorMessage = nil
+        requestSucceeded = false
         
         container.workoutObserver.requestHealthKitAuthorization { success, error in
             DispatchQueue.main.async {
                 isRequesting = false
                 
-                if success {
-                    isGranted = true
-                    onPermissionChange(true)
-                } else if let error = error {
+                if let error = error {
                     // Check if it's a denial vs actual error
                     if case .healthKitAuthorizationDenied = error {
-                        errorMessage = "Access was not granted. You can enable it in Settings."
+                        // User was shown the dialog but we don't know what they selected
+                        requestSucceeded = true
+                        errorMessage = nil
                     } else {
                         errorMessage = error.localizedDescription
+                        requestSucceeded = false
                     }
                 } else {
-                    errorMessage = "Access was not granted. You can enable it in Settings."
+                    // Request completed successfully (dialog was shown)
+                    requestSucceeded = true
+                    errorMessage = nil
                 }
-                
-                // Re-check actual status
-                isGranted = container.workoutObserver.checkHealthKitAuthorization()
-                onPermissionChange(isGranted)
             }
         }
     }
@@ -192,6 +179,6 @@ struct HealthKitSettingsView: View {
 }
 
 #Preview {
-    HealthKitSettingsView(hasPermission: false) { _ in }
-        .environmentObject(DependencyContainer())
+    HealthKitSettingsView()
+        .environment(\.dependencyContainer, DependencyContainer())
 }

@@ -181,7 +181,7 @@ struct GameMechanicsView: View {
             // Primary action button using reusable component
             OnboardingCTAButton(
                 title: "Start Your Journey",
-                icon: "checkmark.circle.fill",
+                icon: "chevron.right",
                 isLoading: viewModel.isLoading,
                 action: {
                     Task {

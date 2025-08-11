@@ -27,7 +27,6 @@ struct EditProfileView: View {
     @State private var showActivitySettings = false
     @State private var showDataExport = false
     @State private var showHealthKitSettings = false
-    @State private var hasHealthKitPermission = false
 
     let profile: UserProfile
     let onSave: (UserProfile) -> Void
@@ -45,180 +44,174 @@ struct EditProfileView: View {
         _privacyLevel = State(initialValue: profile.privacyLevel)
     }
 
+    // MARK: - View Sections
+    
+    private var profilePhotoSection: some View {
+        Section {
+            HStack {
+                Spacer()
+
+                PhotosPicker(selection: $selectedImage, matching: .images) {
+                    if let profileImage {
+                        Image(uiImage: profileImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.gray, lineWidth: 2))
+                    } else if profile.profileImageURL != nil {
+                        // TODO: Load existing image
+                        profileImagePlaceholder
+                    } else {
+                        profileImagePlaceholder
+                    }
+                }
+                .onChange(of: selectedImage) { _, newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            profileImage = image
+                            hasChanges = true
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    private var accountInfoSection: some View {
+        Section(header: Text("Account Info")) {
+            HStack {
+                Text("Username")
+                Spacer()
+                Text("@\(profile.username)")
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var profileInfoSection: some View {
+        Section(header: Text("Profile Info")) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Bio")
+                    Spacer()
+                    Text("\(bio.count)/500")
+                        .font(.caption)
+                        .foregroundColor(bio.count > 500 ? .red : .secondary)
+                }
+
+                TextEditor(text: $bio)
+                    .frame(minHeight: 100)
+                    .onChange(of: bio) { _, _ in
+                        hasChanges = true
+                    }
+            }
+        }
+    }
+    
+    private var privacySection: some View {
+        Section(header: Text("Privacy")) {
+            Picker("Profile Visibility", selection: $privacyLevel) {
+                ForEach(ProfilePrivacyLevel.allCases, id: \.self) { level in
+                    VStack(alignment: .leading) {
+                        Text(level.displayName)
+                        Text(level.description)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .tag(level)
+                }
+            }
+            .pickerStyle(.navigationLink)
+            .onChange(of: privacyLevel) { _, _ in
+                hasChanges = true
+            }
+            
+            // Activity Sharing Settings
+            Button(action: {
+                showActivitySettings = true
+            }) {
+                HStack {
+                    Text("Activity Sharing")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+        }
+    }
+    
+    private var validationSection: some View {
+        Section {
+            if !isDisplayNameValid {
+                Label("Display name must be 1-50 characters", systemImage: "exclamationmark.circle")
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+
+            if !isBioValid {
+                Label("Bio must be 500 characters or less", systemImage: "exclamationmark.circle")
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+        }
+        .listRowBackground(Color.clear)
+    }
+    
+    private var accountSettingsSection: some View {
+        Section(header: Text("Account")) {
+            // HealthKit Permissions
+            Button(action: {
+                showHealthKitSettings = true
+            }) {
+                Label("Manage Health Access", systemImage: "heart.fill")
+            }
+            
+            // Privacy Policy Link
+            Link(destination: URL(string: "https://github.com/jimmypocock/FameFit/blob/main/PRIVACY.md")!) {
+                HStack {
+                    Label("Privacy Policy", systemImage: "lock.shield")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+            
+            // Export Data
+            Button(action: {
+                showDataExport = true
+            }) {
+                Label("Export My Data", systemImage: "square.and.arrow.down")
+            }
+            
+            // Delete Account
+            Button(action: {
+                showDeleteAccountAlert = true
+            }) {
+                Label("Delete Account", systemImage: "trash")
+                    .foregroundColor(.red)
+            }
+            .disabled(isDeletingAccount)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                // Profile Photo Section
-                Section {
-                    HStack {
-                        Spacer()
-
-                        PhotosPicker(selection: $selectedImage, matching: .images) {
-                            if let profileImage {
-                                Image(uiImage: profileImage)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.gray, lineWidth: 2))
-                            } else if profile.profileImageURL != nil {
-                                // TODO: Load existing image
-                                profileImagePlaceholder
-                            } else {
-                                profileImagePlaceholder
-                            }
-                        }
-                        .onChange(of: selectedImage) { _, newItem in
-                            Task {
-                                if let data = try? await newItem?.loadTransferable(type: Data.self),
-                                   let image = UIImage(data: data) {
-                                    profileImage = image
-                                    hasChanges = true
-                                }
-                            }
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                // Account Info Section
-                Section(header: Text("Account Info")) {
-                    HStack {
-                        Text("Username")
-                        Spacer()
-                        Text("@\(profile.username)")
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                // Profile Info Section
-                Section(header: Text("Profile Info")) {
-                    HStack {
-                        Text("Username")
-                        Spacer()
-                        Text("@\(profile.username)")
-                            .foregroundColor(.secondary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Bio")
-                            Spacer()
-                            Text("\(bio.count)/500")
-                                .font(.caption)
-                                .foregroundColor(bio.count > 500 ? .red : .secondary)
-                        }
-
-                        TextEditor(text: $bio)
-                            .frame(minHeight: 100)
-                            .onChange(of: bio) { _, _ in
-                                hasChanges = true
-                            }
-                    }
-                }
-
-                // Privacy Section
-                Section(header: Text("Privacy")) {
-                    Picker("Profile Visibility", selection: $privacyLevel) {
-                        ForEach(ProfilePrivacyLevel.allCases, id: \.self) { level in
-                            VStack(alignment: .leading) {
-                                Text(level.displayName)
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .tag(level)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    .onChange(of: privacyLevel) { _, _ in
-                        hasChanges = true
-                    }
-                    
-                    // Activity Sharing Settings
-                    Button(action: {
-                        showActivitySettings = true
-                    }) {
-                        HStack {
-                            Label("Activity Sharing", systemImage: "square.and.arrow.up")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                }
-
-                // Character Counter Section
-                Section {
-                    if !isDisplayNameValid {
-                        Label("Display name must be 1-50 characters", systemImage: "exclamationmark.circle")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    }
-
-                    if !isBioValid {
-                        Label("Bio must be 500 characters or less", systemImage: "exclamationmark.circle")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    }
-                }
-                .listRowBackground(Color.clear)
-                
-                // Account Settings Section
-                Section(header: Text("Account")) {
-                    // HealthKit Permissions
-                    Button(action: {
-                        showHealthKitSettings = true
-                    }) {
-                        HStack {
-                            Label("Health Access", systemImage: "heart.fill")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text(hasHealthKitPermission ? "Enabled" : "Disabled")
-                                .foregroundColor(hasHealthKitPermission ? .green : .secondary)
-                                .font(.caption)
-                        }
-                    }
-                    
-                    // Privacy Policy Link
-                    Link(destination: URL(string: "https://github.com/jimmypocock/FameFit/blob/main/PRIVACY.md")!) {
-                        HStack {
-                            Label("Privacy Policy", systemImage: "lock.shield")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                        }
-                    }
-                    
-                    // Activity Sharing Settings
-                    Button(action: {
-                        showActivitySettings = true
-                    }) {
-                        Label("Activity Sharing", systemImage: "square.and.arrow.up")
-                    }
-                    
-                    // Export Data
-                    Button(action: {
-                        showDataExport = true
-                    }) {
-                        Label("Export My Data", systemImage: "square.and.arrow.down")
-                    }
-                    
-                    // Delete Account
-                    Button(action: {
-                        showDeleteAccountAlert = true
-                    }) {
-                        Label("Delete Account", systemImage: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .disabled(isDeletingAccount)
-                }
+                profilePhotoSection
+                accountInfoSection
+                profileInfoSection
+                privacySection
+                validationSection
+                accountSettingsSection
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
@@ -304,14 +297,9 @@ struct EditProfileView: View {
                 }
             }
             .sheet(isPresented: $showHealthKitSettings) {
-                HealthKitSettingsView(hasPermission: hasHealthKitPermission) { granted in
-                    hasHealthKitPermission = granted
-                }
-                .environment(\.dependencyContainer, container)
+                HealthKitSettingsView()
+                    .environment(\.dependencyContainer, container)
             }
-        }
-        .onAppear {
-            checkHealthKitPermission()
         }
     }
 
@@ -351,12 +339,6 @@ struct EditProfileView: View {
         hasChanges && isBioValid
     }
 
-    // MARK: - Health Kit
-    
-    private func checkHealthKitPermission() {
-        hasHealthKitPermission = container.workoutObserver.checkHealthKitAuthorization()
-    }
-    
     // MARK: - Save Profile
 
     private func saveProfile() {
