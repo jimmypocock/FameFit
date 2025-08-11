@@ -37,7 +37,7 @@ final class DependencyContainer: ObservableObject {
     let unlockStorageService: UnlockStorageService
     let notificationScheduler: NotificationSchedulingProtocol
     let notificationManager: NotificationProtocol
-    let messageProvider: MessageProvidingProtocol
+    let messageProvider: MessageProviding
     let apnsManager: APNSProtocol
     
     // MARK: - Social & Profile Services
@@ -103,7 +103,7 @@ final class DependencyContainer: ObservableObject {
         activityFeedService: ActivityFeedProtocol,
         notificationScheduler: NotificationSchedulingProtocol,
         notificationManager: NotificationProtocol,
-        messageProvider: MessageProvidingProtocol,
+        messageProvider: MessageProviding,
         workoutKudosService: WorkoutKudosProtocol,
         apnsManager: APNSProtocol,
         groupWorkoutService: GroupWorkoutProtocol,

@@ -7,6 +7,7 @@
 
 import Foundation
 import CloudKit
+import Combine
 
 // MARK: - Dependency Factory Protocol
 
@@ -24,7 +25,7 @@ protocol DependencyFactory: AnyObject {
     
     // Workflow Services
     func createWorkoutObserver(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutObserver
-    func createWorkoutSyncService(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutSyncService
+    @MainActor func createWorkoutSyncService(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutSyncService
     func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue
     
     // Social Services
@@ -46,7 +47,7 @@ protocol DependencyFactory: AnyObject {
     func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionProtocol, cloudKitManager: CloudKitService, socialFollowingService: SocialFollowingProtocol, userProfileService: UserProfileProtocol, workoutKudosService: WorkoutKudosProtocol, activityCommentsService: ActivityFeedCommentsProtocol, workoutChallengesService: WorkoutChallengesProtocol, groupWorkoutService: GroupWorkoutProtocol, activityFeedService: ActivityFeedProtocol) -> RealTimeSyncCoordinatorProtocol
     
     // Utilities
-    func createMessageProvider() -> MessageProvidingProtocol
+    func createMessageProvider() -> MessageProviding
 }
 
 // MARK: - Production Dependency Factory
@@ -67,9 +68,7 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createWatchConnectivityManager() -> WatchConnectivityProtocol {
-        // WatchConnectivity should be a singleton since WCSession is a singleton
-        // We still return it through the factory for consistency and testability
-        return WatchConnectivitySingleton.shared
+        EnhancedWatchConnectivityManager()
     }
     
     func createNotificationStore() -> NotificationStore {
@@ -107,13 +106,18 @@ class ProductionDependencyFactory: DependencyFactory {
         )
     }
     
+    @MainActor
     func createWorkoutSyncService(
         cloudKitManager: CloudKitService,
         healthKitService: HealthKitProtocol
     ) -> WorkoutSyncService {
-        // Note: WorkoutSyncService is @MainActor, so it must be created on the main actor
-        // This factory method is not used anymore - WorkoutSyncService is created directly in DependencyContainer+Init
-        fatalError("WorkoutSyncService must be created on MainActor. Use DependencyContainer init instead.")
+        // WorkoutSyncService is @MainActor and must be created on MainActor
+        // This is handled directly in DependencyContainer initialization
+        // This method exists only for protocol conformance
+        WorkoutSyncService(
+            cloudKitManager: cloudKitManager,
+            healthKitService: healthKitService
+        )
     }
     
     func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue {
@@ -302,7 +306,7 @@ class ProductionDependencyFactory: DependencyFactory {
     
     // MARK: - Utilities
     
-    func createMessageProvider() -> MessageProvidingProtocol {
-        FameFitMessageProvider()
+    func createMessageProvider() -> MessageProviding {
+        return FameFitMessageProvider()
     }
 }

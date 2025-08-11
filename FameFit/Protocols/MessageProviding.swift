@@ -183,6 +183,39 @@ public protocol MessageProviding {
     /// - Parameter category: The category to check
     /// - Returns: True if the category should be included
     func shouldIncludeCategory(_ category: MessageCategory) -> Bool
+    
+    // MARK: - Notification Methods
+    
+    /// Gets a workout end message for notifications
+    /// - Parameters:
+    ///   - workoutType: Type of workout as string
+    ///   - duration: Duration in seconds
+    ///   - calories: Calories burned
+    ///   - xpEarned: XP earned from workout
+    /// - Returns: Formatted workout end message
+    func getWorkoutEndMessage(workoutType: String, duration: Int, calories: Int, xpEarned: Int) -> String
+    
+    /// Gets a streak message for notifications
+    /// - Parameters:
+    ///   - streak: Current streak count
+    ///   - isAtRisk: Whether the streak is at risk
+    /// - Returns: Formatted streak message
+    func getStreakMessage(streak: Int, isAtRisk: Bool) -> String
+    
+    /// Gets an XP milestone message for notifications
+    /// - Parameters:
+    ///   - level: Level achieved
+    ///   - title: Title unlocked
+    /// - Returns: Formatted milestone message
+    func getXPMilestoneMessage(level: Int, title: String) -> String
+    
+    /// Gets a follower message for notifications
+    /// - Parameters:
+    ///   - username: Username of follower
+    ///   - displayName: Display name of follower
+    ///   - action: Action taken (followed, unfollowed, etc)
+    /// - Returns: Formatted follower message
+    func getFollowerMessage(username: String, displayName: String, action: String) -> String
 }
 
 // MARK: - Message Category (from existing FameFitMessages)

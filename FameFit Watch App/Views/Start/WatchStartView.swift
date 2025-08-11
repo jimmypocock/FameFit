@@ -25,7 +25,7 @@ struct WatchStartView: View {
     @StateObject private var watchConnectivity = WatchConnectivityManager.shared
     @State private var username: String = "User"
     @State private var totalXP: Int = 0
-    @State private var activeGroupWorkout: (id: String, name: String, type: HKWorkoutActivityType, isHost: Bool)? = nil
+    @State private var activeGroupWorkout: GroupWorkout? = nil
     @State private var isRefreshing = false
 
     // Complete list of workout types available on Watch
@@ -95,128 +95,154 @@ struct WatchStartView: View {
         WorkoutTypeItem(type: .other)
     ]
 
+    // MARK: - View Components
+    
+    @ViewBuilder
+    private var groupWorkoutSection: some View {
+        if let workout = activeGroupWorkout {
+            Section {
+                Button(action: { startGroupWorkout(workout) }) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        groupWorkoutHeader(workout)
+                        Text(workout.name)
+                            .font(.headline)
+                            .lineLimit(2)
+                        groupWorkoutFooter(workout)
+                        Text("Tap to join")
+                            .font(.caption2)
+                            .foregroundColor(.green)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .listRowBackground(Color.green.opacity(0.15))
+        }
+    }
+    
+    private func groupWorkoutHeader(_ workout: GroupWorkout) -> some View {
+        HStack {
+            Image(systemName: "person.3.fill")
+                .foregroundColor(.green)
+            Text("Active Group Workout")
+                .font(.caption)
+                .foregroundColor(.green)
+            Spacer()
+            if isHost(workout) {
+                hostBadge
+            }
+        }
+    }
+    
+    private var hostBadge: some View {
+        Text("HOST")
+            .font(.caption2)
+            .fontWeight(.bold)
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.green)
+            .cornerRadius(4)
+    }
+    
+    private func groupWorkoutFooter(_ workout: GroupWorkout) -> some View {
+        HStack {
+            Image(systemName: workout.workoutType.iconName)
+                .font(.caption)
+            Text(workout.workoutType.displayName)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var userHeaderSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    userInfo
+                    Spacer()
+                    refreshButton
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .listRowBackground(Color.clear)
+    }
+    
+    private var userInfo: some View {
+        HStack {
+            Image(systemName: "person.circle.fill")
+                .font(.title2)
+                .foregroundColor(.accentColor)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(username)
+                    .font(.headline)
+                    .lineLimit(1)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.caption2)
+                        .foregroundColor(.yellow)
+                    Text("\(totalXP) XP")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    private var refreshButton: some View {
+        Button(action: {
+            Task {
+                await refreshGroupWorkouts()
+            }
+        }) {
+            Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
+                .font(.title3)
+                .foregroundColor(.blue)
+                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var workoutTypesSection: some View {
+        Section {
+            ForEach(workoutTypes) { workoutType in
+                workoutTypeButton(workoutType)
+            }
+        }
+    }
+    
+    private func workoutTypeButton(_ workoutType: WorkoutTypeItem) -> some View {
+        Button {
+            workoutManager.selectedWorkout = workoutType.type
+            navigationPath.append(workoutType.type)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: workoutType.type.iconName)
+                    .font(.title3)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 28)
+                
+                Text(workoutType.type.displayName)
+                    .font(.system(.body, design: .default))
+                
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        }
+        .accessibilityIdentifier(workoutType.name)
+        .accessibilityLabel(workoutType.name)
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            // MARK: - LIST IN WATCH
-
             List {
-                // Active Group Workout Section (if available)
-                if let workout = activeGroupWorkout {
-                    Section {
-                        Button {
-                            startGroupWorkout(workout)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Image(systemName: "person.3.fill")
-                                        .foregroundColor(.green)
-                                    Text("Active Group Workout")
-                                        .font(.caption)
-                                        .foregroundColor(.green)
-                                    Spacer()
-                                    if workout.isHost {
-                                        Text("HOST")
-                                            .font(.caption2)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.green)
-                                            .cornerRadius(4)
-                                    }
-                                }
-                                
-                                Text(workout.name)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                
-                                HStack {
-                                    Image(systemName: workout.type.iconName)
-                                        .font(.caption)
-                                    Text(workout.type.displayName)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Text("Tap to join")
-                                    .font(.caption2)
-                                    .foregroundColor(.green)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                    .listRowBackground(Color.green.opacity(0.15))
-                }
-                
-                // User header section
-                Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.accentColor)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(username)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "star.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.yellow)
-                                    Text("\(totalXP) XP")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            // Manual refresh button for testing
-                            Button(action: {
-                                Task {
-                                    await refreshGroupWorkouts()
-                                }
-                            }) {
-                                Image(systemName: isRefreshing ? "arrow.clockwise.circle.fill" : "arrow.clockwise.circle")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                    .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-                .listRowBackground(Color.clear)
-                
-                // Workout types
-                Section {
-                    ForEach(workoutTypes) { workoutType in
-                        Button {
-                            workoutManager.selectedWorkout = workoutType.type
-                            navigationPath.append(workoutType.type)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: workoutType.type.iconName)
-                                    .font(.title3)
-                                    .foregroundColor(.accentColor)
-                                    .frame(width: 28)
-                                
-                                Text(workoutType.type.displayName)
-                                    .font(.system(.body, design: .default))
-                                
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .accessibilityIdentifier(workoutType.name)
-                        .accessibilityLabel(workoutType.name)
-                    }
-                }
-            } //: LIST
+                groupWorkoutSection
+                userHeaderSection
+                workoutTypesSection
+            }
             #if os(watchOS)
             .listStyle(.carousel)
             #endif
@@ -305,7 +331,7 @@ struct WatchStartView: View {
             let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)) ?? .running
             
             // Set active group workout
-            activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
+            activeGroupWorkout = createGroupWorkout(id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
             
             FameFitLogger.info("⌚ Found pending group workout in UserDefaults: \(workoutName)", category: FameFitLogger.sync)
             return
@@ -328,7 +354,7 @@ struct WatchStartView: View {
             let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)) ?? .running
             
             // Set active group workout
-            activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
+            activeGroupWorkout = createGroupWorkout(id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
             
             // Save to UserDefaults for persistence
             UserDefaults.standard.set(workoutID, forKey: "pendingGroupWorkoutID")
@@ -341,16 +367,16 @@ struct WatchStartView: View {
         }
     }
     
-    private func startGroupWorkout(_ workout: (id: String, name: String, type: HKWorkoutActivityType, isHost: Bool)) {
+    private func startGroupWorkout(_ workout: GroupWorkout) {
         FameFitLogger.info("⌚ Starting group workout: \(workout.name)", category: FameFitLogger.sync)
         
         // Set group workout ID for the manager
         workoutManager.groupWorkoutID = workout.id
-        workoutManager.isGroupWorkoutHost = workout.isHost
+        workoutManager.isGroupWorkoutHost = isHost(workout)
         
         // Start the workout
-        workoutManager.selectedWorkout = workout.type
-        navigationPath.append(workout.type)
+        workoutManager.selectedWorkout = workout.workoutType
+        navigationPath.append(workout.workoutType)
         
         // Clear pending workout from UserDefaults
         UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutID")
@@ -403,7 +429,7 @@ struct WatchStartView: View {
                     let workoutType = HKWorkoutActivityType(rawValue: UInt(workoutTypeRaw)) ?? .running
                     
                     DispatchQueue.main.async {
-                        self.activeGroupWorkout = (id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
+                        self.activeGroupWorkout = self.createGroupWorkout(id: workoutID, name: workoutName, type: workoutType, isHost: isHost)
                         
                         // Save to UserDefaults for persistence
                         UserDefaults.standard.set(workoutID, forKey: "pendingGroupWorkoutID")
@@ -433,6 +459,36 @@ struct WatchStartView: View {
             FameFitLogger.warning("⚠️ Watch has pending content but can't receive it. This is a known Xcode development issue. Use TestFlight for reliable Watch↔iPhone communication.", category: FameFitLogger.sync)
         }
         #endif
+    }
+    
+    // Helper to create a GroupWorkout from Watch data
+    private func createGroupWorkout(id: String, name: String, type: HKWorkoutActivityType, isHost: Bool) -> GroupWorkout {
+        GroupWorkout(
+            id: id,
+            name: name,
+            description: "Group workout from Apple Watch",
+            workoutType: type,
+            hostID: isHost ? (username.isEmpty ? "current_user" : username) : "other_user",
+            maxParticipants: 10,
+            scheduledStart: Date(),
+            scheduledEnd: Date().addingTimeInterval(3600),
+            status: .active,
+            creationDate: Date(),
+            modificationDate: Date(),
+            isPublic: true,
+            joinCode: nil,
+            tags: [],
+            location: nil,
+            notes: nil,
+            participantIDs: []
+        )
+    }
+    
+    // Helper to check if current user is host
+    private func isHost(_ workout: GroupWorkout) -> Bool {
+        // If we have a username, compare with hostID
+        // Otherwise, check if hostID matches a placeholder we use for current user
+        workout.hostID == username || workout.hostID == "current_user"
     }
 }
 

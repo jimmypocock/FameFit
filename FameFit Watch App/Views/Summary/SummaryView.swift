@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SummaryView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
+    @EnvironmentObject private var accountService: AccountVerificationService
 
     // MARK: DISMISS ENVIRONMENT VARIABLE
 
@@ -87,13 +88,39 @@ struct SummaryView: View {
                     )
                     .accentColor(.red)
 
-                    // Show FameFit end message or achievement
-                    if !workoutManager.currentMessage.isEmpty {
-                        Text(workoutManager.currentMessage)
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .multilineTextAlignment(.center)
-                            .padding(.vertical, 8)
+                    // Show account-specific message
+                    if accountService.accountStatus.hasAccount {
+                        // Has account - show XP earned or message
+                        if !workoutManager.currentMessage.isEmpty {
+                            Text(workoutManager.currentMessage)
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .multilineTextAlignment(.center)
+                                .padding(.vertical, 8)
+                        }
+                    } else {
+                        // No account - show prompt
+                        VStack(spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Text("No Account")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            Text("Create account on iPhone to earn XP!")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            Text("Workout saved to Health")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
                     }
 
                     // Achievement Progress

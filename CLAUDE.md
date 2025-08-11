@@ -36,6 +36,14 @@ FameFit is a companion iOS and Apple Watch application built with SwiftUI, Healt
 
 **Important**: This is a companion app setup - the iOS app and Watch app are meant to work together. The Watch app is a dependency of the iOS app and should NOT be removed from target dependencies.
 
+### Xcode Configuration Reminders
+
+**Before creating workarounds or duplicate files:**
+- If a file is missing from a target, suggest adding it to the target in Xcode instead of creating a duplicate
+- When compilation errors indicate missing files in Watch/iOS targets, ask the user to add the file to the appropriate target in Xcode
+- Never create minimal/duplicate versions of existing files just to satisfy compilation errors
+- Always prefer Xcode target membership configuration over code duplication
+
 ## Development Philosophy
 
 ### Test-Driven Development (TDD)

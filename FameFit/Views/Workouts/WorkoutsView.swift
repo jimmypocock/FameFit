@@ -2,25 +2,6 @@ import HealthKit
 import SwiftUI
 import Foundation
 
-// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
-private extension Date {
-    var workoutDisplayDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        formatter.timeZone = .current
-        return formatter.string(from: self)
-    }
-    
-    var workoutDisplayTime: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        formatter.timeZone = .current
-        return formatter.string(from: self)
-    }
-}
-
 struct WorkoutsView: View {
     @EnvironmentObject var cloudKitManager: CloudKitService
     @State private var workouts: [Workout] = []

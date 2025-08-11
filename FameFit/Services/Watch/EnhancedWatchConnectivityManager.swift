@@ -11,10 +11,9 @@ import WatchConnectivity
 import Combine
 
 /// Enhanced manager for Watch-Phone communication with testing support
-@MainActor
-public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject {
+public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject, WatchConnectivityProtocol {
     
-    // MARK: - Singleton
+    // MARK: - Singleton (Deprecated - use dependency injection instead)
     
     public static let shared = EnhancedWatchConnectivityManager()
     
@@ -69,9 +68,40 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
         let errorHandler: ((Error) -> Void)?
     }
     
+    // MARK: - WatchConnectivityProtocol Conformance
+    
+    public var isReachable: Bool {
+        connectionState == .reachable
+    }
+    
+    public var connectivityStatePublisher: AnyPublisher<WatchConnectivityState, Never> {
+        $connectionState
+            .map { state in
+                let activationState: WCSessionActivationState
+                switch state {
+                case .reachable:
+                    activationState = .activated
+                case .paired, .unreachable:
+                    activationState = .activated
+                case .notPaired:
+                    activationState = .inactive
+                case .simulatorMode:
+                    activationState = .activated
+                }
+                
+                return WatchConnectivityState(
+                    isReachable: state == .reachable,
+                    isPaired: state == .paired || state == .reachable,
+                    isWatchAppInstalled: state != .notPaired,
+                    activationState: activationState
+                )
+            }
+            .eraseToAnyPublisher()
+    }
+    
     // MARK: - Initialization
     
-    private override init() {
+    public override init() {
         super.init()
         setupSession()
     }
@@ -82,9 +112,9 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
             session?.delegate = self
             session?.activate()
             
-            FameFitLogger.info("⌚📱 WatchConnectivity session setup", category: .connectivity)
+            FameFitLogger.info("⌚📱 WatchConnectivity session setup", category: FameFitLogger.connectivity)
         } else {
-            FameFitLogger.warning("⌚📱 WatchConnectivity not supported", category: .connectivity)
+            FameFitLogger.warning("⌚📱 WatchConnectivity not supported", category: FameFitLogger.connectivity)
         }
         
         // Handle simulator mode
@@ -93,10 +123,93 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
         }
     }
     
+    // MARK: - WatchConnectivityProtocol Methods
+    
+    public func activate() async {
+        // Session is already activated in init, but we can check state
+        if session?.activationState != .activated {
+            session?.activate()
+        }
+    }
+    
+    public func startWorkout(type: Int) async throws {
+        let message: [String: Any] = [
+            "command": "startWorkout",
+            "workoutType": type,
+            "timestamp": Date()
+        ]
+        try await sendMessageInternal(message)
+    }
+    
+    public func syncData(_ data: [String: Any]) async throws {
+        var syncMessage = data
+        syncMessage["command"] = "syncData"
+        syncMessage["timestamp"] = Date()
+        try await sendMessageInternal(syncMessage)
+    }
+    
+    public func sendMessage(_ message: [String: Any]) async throws -> [String: Any] {
+        if message["requiresReply"] as? Bool == true {
+            return try await sendMessageWithReply(message)
+        } else {
+            try await sendMessageInternal(message)
+            return [:]
+        }
+    }
+    
+    public func transferUserInfo(_ userInfo: [String: Any]) async {
+        guard let session = session else { return }
+        session.transferUserInfo(userInfo)
+    }
+    
+    public func transferFile(_ file: URL, metadata: [String: Any]?) async throws {
+        guard let session = session else {
+            throw WatchConnectivityError.sessionNotAvailable
+        }
+        session.transferFile(file, metadata: metadata)
+    }
+    
+    // Legacy compatibility method from protocol
+    public func sendGroupWorkoutCommand(workoutID: String, workoutName: String, workoutType: Int, isHost: Bool) {
+        Task {
+            try? await sendGroupWorkoutCommandAsync(
+                workoutID: workoutID,
+                workoutName: workoutName,
+                workoutType: workoutType,
+                isHost: isHost
+            )
+        }
+    }
+    
+    public func sendUserData(username: String, totalXP: Int) {
+        Task {
+            let message: [String: Any] = [
+                "command": "userData",
+                "username": username,
+                "totalXP": totalXP
+            ]
+            try? await sendMessageInternal(message)
+        }
+    }
+    
+    public func checkConnection(completion: @escaping (Bool) -> Void) {
+        Task {
+            let isAvailable = await checkWatchAvailability()
+            completion(isAvailable)
+        }
+    }
+    
+    public func forceRefreshSessionState() {
+        // Trigger a ping to refresh state
+        Task {
+            _ = await sendPing()
+        }
+    }
+    
     // MARK: - Public Methods
     
-    /// Send group workout command to Watch
-    public func sendGroupWorkoutCommand(
+    /// Send group workout command to Watch (async version)
+    public func sendGroupWorkoutCommandAsync(
         workoutID: String,
         workoutName: String,
         workoutType: Int,
@@ -125,7 +238,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
             try await sendViaAlternativeMethod(message)
         } else {
             // Real device - use WatchConnectivity
-            try await sendMessage(message)
+            try await sendMessageInternal(message)
         }
     }
     
@@ -157,7 +270,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
     
     // MARK: - Private Methods
     
-    private func sendMessage(_ message: [String: Any]) async throws {
+    private func sendMessageInternal(_ message: [String: Any]) async throws {
         guard let session = session else {
             throw WatchConnectivityError.sessionNotAvailable
         }
@@ -214,7 +327,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
             errorHandler: nil
         )
         messageQueue.append(item)
-        FameFitLogger.info("⌚📱 Message queued for later delivery", category: .connectivity)
+        FameFitLogger.info("⌚📱 Message queued for later delivery", category: FameFitLogger.connectivity)
     }
     
     private func processMessageQueue() {
@@ -237,7 +350,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
     
     private func handleSimulatorMode() {
         connectionState = .simulatorMode
-        FameFitLogger.info("⌚📱 Running in simulator mode - using alternative sync", category: .connectivity)
+        FameFitLogger.info("⌚📱 Running in simulator mode - using alternative sync", category: FameFitLogger.connectivity)
         
         // Set up alternative communication for testing
         setupAlternativeCommunication()
@@ -266,7 +379,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
             // Clear after processing
             UserDefaults.standard.removeObject(forKey: "pending_watch_command")
             
-            FameFitLogger.info("⌚📱 Simulator: Received command via UserDefaults", category: .connectivity)
+            FameFitLogger.info("⌚📱 Simulator: Received command via UserDefaults", category: FameFitLogger.connectivity)
         }
     }
     
@@ -274,7 +387,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
         // For simulator testing - use UserDefaults or CloudKit
         if let data = try? JSONSerialization.data(withJSONObject: message) {
             UserDefaults.standard.set(data, forKey: "pending_phone_command")
-            FameFitLogger.info("⌚📱 Simulator: Sent command via UserDefaults", category: .connectivity)
+            FameFitLogger.info("⌚📱 Simulator: Sent command via UserDefaults", category: FameFitLogger.connectivity)
         }
     }
 }
@@ -283,9 +396,9 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject 
 
 extension EnhancedWatchConnectivityManager: WCSessionDelegate {
     
-    public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    nonisolated public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            FameFitLogger.error("WCSession activation failed", error: error, category: .connectivity)
+            FameFitLogger.error("WCSession activation failed", error: error, category: FameFitLogger.connectivity)
             return
         }
         
@@ -296,21 +409,21 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
             self.processMessageQueue()
         }
         
-        FameFitLogger.info("⌚📱 WCSession activated: \(activationState.rawValue)", category: .connectivity)
+        FameFitLogger.info("⌚📱 WCSession activated: \(activationState.rawValue)", category: FameFitLogger.connectivity)
     }
     
     #if os(iOS)
-    public func sessionDidBecomeInactive(_ session: WCSession) {
-        FameFitLogger.info("⌚📱 WCSession became inactive", category: .connectivity)
+    nonisolated public func sessionDidBecomeInactive(_ session: WCSession) {
+        FameFitLogger.info("⌚📱 WCSession became inactive", category: FameFitLogger.connectivity)
     }
     
-    public func sessionDidDeactivate(_ session: WCSession) {
-        FameFitLogger.info("⌚📱 WCSession deactivated", category: .connectivity)
+    nonisolated public func sessionDidDeactivate(_ session: WCSession) {
+        FameFitLogger.info("⌚📱 WCSession deactivated", category: FameFitLogger.connectivity)
         // Reactivate
         session.activate()
     }
     
-    public func sessionWatchStateDidChange(_ session: WCSession) {
+    nonisolated public func sessionWatchStateDidChange(_ session: WCSession) {
         Task { @MainActor in
             self.isPaired = session.isPaired
             self.isWatchAppInstalled = session.isWatchAppInstalled
@@ -319,7 +432,7 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
     }
     #endif
     
-    public func sessionReachabilityDidChange(_ session: WCSession) {
+    nonisolated public func sessionReachabilityDidChange(_ session: WCSession) {
         Task { @MainActor in
             self.updateConnectionState(session)
             
@@ -330,14 +443,14 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         }
     }
     
-    public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         Task { @MainActor in
             self.lastReceivedMessage = message
             self.handleReceivedMessage(message)
         }
     }
     
-    public func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+    nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         Task { @MainActor in
             self.lastReceivedMessage = message
             let response = self.handleReceivedMessage(message)
@@ -406,7 +519,7 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
             return ["status": "received"]
             
         default:
-            FameFitLogger.warning("Unknown command: \(command)", category: .connectivity)
+            FameFitLogger.warning("Unknown command: \(command)", category: FameFitLogger.connectivity)
         }
         
         return ["status": "unknown"]
@@ -432,8 +545,3 @@ public enum WatchConnectivityError: LocalizedError {
     }
 }
 
-// MARK: - Logger Extension
-
-extension FameFitLogger.Category {
-    static let connectivity = FameFitLogger.Category("connectivity")
-}

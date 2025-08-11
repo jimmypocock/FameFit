@@ -10,6 +10,38 @@
 
 import Foundation
 import CloudKit
+import WatchConnectivity
+import Combine
+import HealthKit
+
+// MARK: - Simple Test Mocks
+
+private class TestMockMessageProvider: MessageProviding {
+    var personality = MessagePersonality.default
+    
+    func getMessage(for context: MessageContext) -> String { "Test message" }
+    func getMessage(for category: MessageCategory, context: MessageContext) -> String { "Test message" }
+    func getTimeAwareMessage(at time: Date) -> String { "Test message" }
+    func getMotivationalMessage() -> String { "Test message" }
+    func getRoastMessage(for workoutType: HKWorkoutActivityType?) -> String { "Test roast" }
+    func getCatchphrase() -> String { "Test catchphrase" }
+    func updatePersonality(_ newPersonality: MessagePersonality) { personality = newPersonality }
+    func shouldIncludeCategory(_ category: MessageCategory) -> Bool { true }
+    
+    // Notification methods
+    func getWorkoutEndMessage(workoutType: String, duration: Int, calories: Int, xpEarned: Int) -> String {
+        "Workout complete"
+    }
+    func getStreakMessage(streak: Int, isAtRisk: Bool) -> String {
+        "Streak: \(streak) days"
+    }
+    func getXPMilestoneMessage(level: Int, title: String) -> String {
+        "Level \(level): \(title)"
+    }
+    func getFollowerMessage(username: String, displayName: String, action: String) -> String {
+        "\(displayName) \(action)"
+    }
+}
 
 // MARK: - Test Support Initialization
 
@@ -34,7 +66,7 @@ extension DependencyContainer {
         activityFeedService: ActivityFeedProtocol? = nil,
         notificationScheduler: NotificationSchedulingProtocol? = nil,
         notificationManager: NotificationProtocol? = nil,
-        messageProvider: MessageProvidingProtocol? = nil,
+        messageProvider: MessageProviding? = nil,
         workoutKudosService: WorkoutKudosProtocol? = nil,
         apnsManager: APNSProtocol? = nil,
         groupWorkoutService: GroupWorkoutProtocol? = nil,
@@ -51,10 +83,10 @@ extension DependencyContainer {
     ) {
         // Create default instances for optional dependencies
         let resolvedHealthKitService = healthKitService ?? HealthKitService()
-        let resolvedWatchConnectivityManager: WatchConnectivityProtocol = watchConnectivityManager ?? WatchConnectivitySingleton.shared
+        let resolvedWatchConnectivityManager: WatchConnectivityProtocol = watchConnectivityManager ?? EnhancedWatchConnectivityManager()
         let resolvedNotificationStore = notificationStore ?? NotificationStore()
         let resolvedUnlockStorageService = unlockStorageService ?? UnlockStorageService()
-        let resolvedMessageProvider = messageProvider ?? FameFitMessageProvider()
+        let resolvedMessageProvider: MessageProviding = messageProvider ?? TestMockMessageProvider()
         let resolvedNotificationScheduler = notificationScheduler ?? NotificationScheduler(
             notificationStore: resolvedNotificationStore
         )

@@ -24,6 +24,7 @@ struct FameFitLogger {
     static let ui = "UI"
     static let app = "App"
     static let data = "Data"
+    static let connectivity = "Connectivity"
     static let general = "General"
     
     // MARK: - OSLog Instances
@@ -39,6 +40,7 @@ struct FameFitLogger {
         ui: OSLog(subsystem: "com.jimmypocock.FameFit", category: "UI"),
         app: OSLog(subsystem: "com.jimmypocock.FameFit", category: "App"),
         data: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Data"),
+        connectivity: OSLog(subsystem: "com.jimmypocock.FameFit", category: "Connectivity"),
         general: OSLog(subsystem: "com.jimmypocock.FameFit", category: "General")
     ]
     

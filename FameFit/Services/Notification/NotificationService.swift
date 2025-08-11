@@ -16,14 +16,14 @@ final class NotificationService: NotificationProtocol {
     private let scheduler: NotificationSchedulingProtocol
     private let notificationStore: any NotificationStoringProtocol
     private let unlockService: UnlockNotificationProtocol
-    private let messageProvider: MessageProvidingProtocol
+    private let messageProvider: MessageProviding
     private var apnsManager: APNSProtocol?
 
     init(
         scheduler: NotificationSchedulingProtocol,
         notificationStore: any NotificationStoringProtocol,
         unlockService: UnlockNotificationProtocol,
-        messageProvider: MessageProvidingProtocol,
+        messageProvider: MessageProviding,
         apnsManager: APNSProtocol? = nil
     ) {
         self.scheduler = scheduler

@@ -32,10 +32,17 @@ protocol WatchConnectivityProtocol {
 
 // MARK: - Supporting Types
 
-struct WatchConnectivityState {
-    let isReachable: Bool
-    let isPaired: Bool
-    let isWatchAppInstalled: Bool
-    let activationState: WCSessionActivationState
+public struct WatchConnectivityState {
+    public let isReachable: Bool
+    public let isPaired: Bool
+    public let isWatchAppInstalled: Bool
+    public let activationState: WCSessionActivationState
+    
+    public init(isReachable: Bool, isPaired: Bool, isWatchAppInstalled: Bool, activationState: WCSessionActivationState) {
+        self.isReachable = isReachable
+        self.isPaired = isPaired
+        self.isWatchAppInstalled = isWatchAppInstalled
+        self.activationState = activationState
+    }
 }
 

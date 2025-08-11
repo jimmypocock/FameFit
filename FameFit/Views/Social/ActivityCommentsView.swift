@@ -7,15 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
-private extension Date {
-    var relativeDisplayString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: self, relativeTo: Date())
-    }
-}
-
 struct ActivityCommentsView: View {
     let feedItem: ActivityFeedItem
     @Environment(\.dismiss) private var dismiss
