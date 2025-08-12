@@ -12,16 +12,16 @@ import XCTest
 final class ActivityFeedServiceTests: XCTestCase {
     private var activityFeedService: ActivityFeedService!
     private var mockActivityFeedService: MockActivityFeedService!
-    private var mockCloudKitManager: MockCloudKitManager!
-    private var privacySettings: WorkoutPrivacySettings!
+    private var mockCloudKitService: MockCloudKitService!
+    private var userSettings: UserSettings!
 
     override func setUp() {
         super.setUp()
-        mockCloudKitManager = MockCloudKitManager()
-        privacySettings = WorkoutPrivacySettings()
+        mockCloudKitService = MockCloudKitService()
+        userSettings = UserSettings.defaultSettings(for: "test-user")
         activityFeedService = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
-            privacySettings: privacySettings
+            cloudKitManager: mockCloudKitService,
+            userSettings: userSettings
         )
         mockActivityFeedService = MockActivityFeedService()
     }
@@ -29,7 +29,7 @@ final class ActivityFeedServiceTests: XCTestCase {
     override func tearDown() {
         activityFeedService = nil
         mockActivityFeedService = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         privacySettings = nil
         super.tearDown()
     }
@@ -54,7 +54,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -64,7 +64,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         let activity = mockActivityFeedService.postedActivities.first!
         XCTAssertEqual(activity.activityType, "workout")
         XCTAssertEqual(activity.visibility, "public")
-        XCTAssertEqual(activity.workoutId, workout.id.uuidString)
+        XCTAssertEqual(activity.workoutId, workout.id)
         XCTAssertEqual(activity.xpEarned, 25)
     }
 
@@ -86,7 +86,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When - Real service would not post private workouts
         try await activityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .private,
             includeDetails: true
         )
@@ -113,7 +113,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: false
         )
@@ -133,11 +133,11 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostWorkoutActivity_COPPACompliance() async throws {
         // Given - User under 13 (COPPA restricted)
-        var restrictedSettings = WorkoutPrivacySettings()
+        var restrictedSettings = UserSettings.defaultSettings(for: "test-user")
         restrictedSettings.allowPublicSharing = false
 
         let restrictedService = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             privacySettings: restrictedSettings
         )
 
@@ -157,7 +157,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
         // When - Try to post publicly (should be downgraded to friends only)
         try await restrictedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -186,11 +186,11 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostAchievementActivity_DisabledSharing() async throws {
         // Given
-        var settings = WorkoutPrivacySettings()
+        var settings = UserSettings.defaultSettings(for: "test-user")
         settings.shareAchievements = false
 
         let service = ActivityFeedService(
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             privacySettings: settings
         )
 
@@ -263,7 +263,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         // Post activities for different users
         mockActivityFeedService.postedActivities = []
         try await mockActivityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -320,7 +320,7 @@ final class ActivityFeedServiceTests: XCTestCase {
         // When/Then
         do {
             try await mockActivityFeedService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: .public,
                 includeDetails: true
             )

@@ -10,6 +10,14 @@ import SwiftUI
 
 struct SummaryView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
+    @EnvironmentObject private var accountService: AccountVerificationService
+    @EnvironmentObject private var navigationCoordinator: WatchNavigationCoordinator
+    @EnvironmentObject private var container: DependencyContainer
+    
+    // Use the SummaryViewModel from container
+    private var summaryViewModel: SummaryViewModel {
+        container.summaryViewModel
+    }
 
     // MARK: DISMISS ENVIRONMENT VARIABLE
 
@@ -34,6 +42,14 @@ struct SummaryView: View {
         if let workout = workoutManager.workout {
             ScrollView(.vertical) {
                 VStack(alignment: .leading) {
+                    // Motivational message at the top
+                    Text(SummaryMessages.getMessage(duration: workout.duration))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 8)
+                    
                     SummaryMetricView(
                         title: "Total Time",
                         value: durationFormatter.string(from: workout.duration) ?? ""
@@ -87,29 +103,29 @@ struct SummaryView: View {
                     )
                     .accentColor(.red)
 
-                    // Show FameFit end message or achievement
-                    if !workoutManager.currentMessage.isEmpty {
-                        Text(workoutManager.currentMessage)
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .multilineTextAlignment(.center)
-                            .padding(.vertical, 8)
-                    }
-
-                    // Achievement Progress
-                    if !workoutManager.achievementManager.unlockedAchievements.isEmpty {
-                        let progress = workoutManager.achievementManager.getAchievementProgress()
-                        VStack(alignment: .leading) {
-                            Text("Achievements")
-                                .font(.headline)
-                                .foregroundColor(.orange)
-                            Text("\(progress.unlocked) of \(progress.total) unlocked")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                    // Show account-specific message
+                    if !accountService.accountStatus.hasAccount {
+                        // No account - show prompt
+                        VStack(spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Text("No Account")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+                            Text("Create account on iPhone to earn XP!")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
                         }
                         .padding(.vertical, 8)
-                        Divider()
+                        .padding(.horizontal)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
                     }
+
 
                     // Activity Rings
                     VStack {
@@ -121,14 +137,39 @@ struct SummaryView: View {
                     .padding(.vertical, 8)
 
                     Button("Done") {
-                        dismiss()
+                        // Use coordinator to properly handle navigation
+                        navigationCoordinator.dismissSummary()
                     }
                 } //: VSTACK
                 .scenePadding()
             } //: SCROLLVIEW
-            .navigationTitle("Well, Well, Well...")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: {
+                        navigationCoordinator.dismissSummary()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.title3)
+                    }
+                }
+            }
+            .onAppear {
+                FameFitLogger.debug("📍 SummaryView: onAppear called", category: FameFitLogger.sync)
+                
+                // Load workout summary and trigger sync to iPhone
+                if let workout = workoutManager.workout {
+                    Task {
+                        await summaryViewModel.loadWorkoutSummary(workout)
+                    }
+                }
+            }
             .onDisappear {
+                FameFitLogger.debug("📍 SummaryView: onDisappear called", category: FameFitLogger.sync)
+                // Clean up summary view model
+                summaryViewModel.dismiss()
                 // Reset workout state when summary is dismissed
                 workoutManager.resetWorkout()
             }

@@ -16,12 +16,12 @@ final class NotificationCenterViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
 
-    private var notificationStore: (any NotificationStoring)?
+    private var notificationStore: (any NotificationStoringProtocol)?
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Configuration
 
-    func configure(notificationStore: any NotificationStoring) {
+    func configure(notificationStore: any NotificationStoringProtocol) {
         self.notificationStore = notificationStore
 
         // Subscribe to notification updates
@@ -155,6 +155,10 @@ final class NotificationCenterViewModel: ObservableObject {
             handleKudosAction(notification)
         case .dismiss:
             handleDismissAction(notification)
+        case .join:
+            handleJoinAction(notification)
+        case .verify:
+            handleVerifyAction(notification)
         }
     }
 
@@ -175,7 +179,7 @@ final class NotificationCenterViewModel: ObservableObject {
     private func handleWorkoutInteractionFameFitNotification(_ notification: FameFitNotification) {
         // TODO: Navigate to specific workout with comments/kudos
         if let workoutMetadata = notification.workoutMetadata {
-            print("Navigate to workout details: \(workoutMetadata.workoutId ?? "unknown")")
+            print("Navigate to workout details: \(workoutMetadata.workoutID ?? "unknown")")
         }
     }
 
@@ -239,5 +243,27 @@ final class NotificationCenterViewModel: ObservableObject {
     private func handleDismissAction(_ notification: FameFitNotification) {
         // Mark as read and potentially hide
         markAsRead(notification.id)
+    }
+    
+    private func handleJoinAction(_ notification: FameFitNotification) {
+        // Handle joining a group workout
+        switch notification.type {
+        case .groupWorkoutInvite, .groupWorkoutStarting, .groupWorkoutReminder:
+            // TODO: Navigate to group workout and join
+            print("Join group workout")
+        default:
+            print("Join action for \(notification.type)")
+        }
+    }
+    
+    private func handleVerifyAction(_ notification: FameFitNotification) {
+        // Handle manual verification request
+        switch notification.type {
+        case .workoutVerificationFailed:
+            // TODO: Navigate to verification request screen
+            print("Request manual verification")
+        default:
+            print("Verify action for \(notification.type)")
+        }
     }
 }

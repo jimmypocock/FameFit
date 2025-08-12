@@ -14,9 +14,9 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
     // MARK: - Properties
 
     private var sut: MockGroupWorkoutService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockUserProfileService: MockUserProfileService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockRateLimiter: MockRateLimitingService!
 
     // MARK: - Setup & Teardown
@@ -24,22 +24,22 @@ final class GroupWorkoutServiceFetchTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        mockCloudKitManager = MockCloudKitManager()
+        mockCloudKitService = MockCloudKitService()
         mockUserProfileService = MockUserProfileService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockRateLimiter = MockRateLimitingService()
 
         sut = MockGroupWorkoutService()
 
         // Set up test user
-        mockCloudKitManager.currentUserID = "test-user-123"
+        mockCloudKitService.currentUserID = "test-user-123"
     }
 
     override func tearDown() {
         sut = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockUserProfileService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockRateLimiter = nil
         super.tearDown()
     }

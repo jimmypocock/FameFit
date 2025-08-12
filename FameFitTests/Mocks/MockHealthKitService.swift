@@ -3,7 +3,7 @@ import Foundation
 import HealthKit
 
 /// Mock implementation of HealthKitService for testing
-final class MockHealthKitService: HealthKitService {
+final class MockHealthKitService: HealthKitProtocol {
     // MARK: - Mock Control Properties
 
     var isHealthDataAvailableValue = true

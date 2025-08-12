@@ -32,11 +32,11 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     
     // MARK: - Dependencies
     
-    private let groupWorkoutService: any GroupWorkoutServiceProtocol
-    private let healthKitService: any HealthKitService
-    private let cloudKitManager: any CloudKitManaging
-    private let userProfileService: any UserProfileServicing
-    private let notificationManager: any NotificationManaging
+    private let groupWorkoutService: any GroupWorkoutProtocol
+    private let healthKitService: any HealthKitProtocol
+    private let cloudKitManager: any CloudKitProtocol
+    private let userProfileService: any UserProfileProtocol
+    private let notificationManager: any NotificationProtocol
     
     // MARK: - Private Properties
     
@@ -57,11 +57,11 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     // MARK: - Initialization
     
     init(
-        groupWorkoutService: any GroupWorkoutServiceProtocol,
-        healthKitService: any HealthKitService,
-        cloudKitManager: any CloudKitManaging,
-        userProfileService: any UserProfileServicing,
-        notificationManager: any NotificationManaging
+        groupWorkoutService: any GroupWorkoutProtocol,
+        healthKitService: any HealthKitProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        userProfileService: any UserProfileProtocol,
+        notificationManager: any NotificationProtocol
     ) {
         self.groupWorkoutService = groupWorkoutService
         self.healthKitService = healthKitService
@@ -96,12 +96,12 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         }
         
         // Create participant entry
-        let userId = cloudKitManager.currentUserID ?? "unknown"
-        let profile = try await userProfileService.fetchProfileByUserID(userId)
+        let userID = cloudKitManager.currentUserID ?? "unknown"
+        let profile = try await userProfileService.fetchProfileByUserID(userID)
         
         let participant = GroupWorkoutParticipant(
-            groupWorkoutId: groupWorkout.id,
-            userId: userId,
+            groupWorkoutID: groupWorkout.id,
+            userID: userID,
             username: profile.username,
             profileImageURL: profile.profileImageURL,
             status: .active,
@@ -180,10 +180,10 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         }
         
         // Complete CloudKit workout if host
-        if isHost, let workoutId = groupWorkoutID {
-            _ = try await groupWorkoutService.completeGroupWorkout(workoutId)
-        } else if let workoutId = groupWorkoutID {
-            try await groupWorkoutService.updateParticipantStatus(workoutId, status: .completed)
+        if isHost, let workoutID = groupWorkoutID {
+            _ = try await groupWorkoutService.completeGroupWorkout(workoutID)
+        } else if let workoutID = groupWorkoutID {
+            try await groupWorkoutService.updateParticipantStatus(workoutID, status: .completed)
         }
         
         // Clear cached data if successfully synced
@@ -206,8 +206,8 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         guard isInGroupWorkout else { return }
         
         // Update status to dropped
-        if let workoutId = groupWorkoutID {
-            try await groupWorkoutService.updateParticipantStatus(workoutId, status: .dropped)
+        if let workoutID = groupWorkoutID {
+            try await groupWorkoutService.updateParticipantStatus(workoutID, status: .dropped)
         }
         
         // Stop the workout
@@ -262,7 +262,7 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         }
     }
     
-    private func attemptReconnection(with workoutId: String? = nil) async {
+    private func attemptReconnection(with workoutID: String? = nil) async {
         FameFitLogger.info("🔄 Attempting to reconnect to existing workout session", category: FameFitLogger.workout)
         
         reconnectionAttempts += 1
@@ -276,7 +276,7 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         connectionState = .reconnecting
         
         // Try to recover group workout ID
-        let recoveredID = workoutId ?? UserDefaults.standard.string(forKey: "activeGroupWorkoutID")
+        let recoveredID = workoutID ?? UserDefaults.standard.string(forKey: "activeGroupWorkoutID")
         
         if let recoveredID = recoveredID {
             do {
@@ -320,7 +320,7 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     }
     
     private func syncMetricsToCloudKit() async {
-        guard let workoutId = groupWorkoutID,
+        guard let workoutID = groupWorkoutID,
               var participation = currentParticipation else { return }
         
         // Update workout data
@@ -338,30 +338,30 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         
         do {
             syncStatus = .syncing
-            try await groupWorkoutService.updateParticipantData(workoutId, data: workoutData)
+            try await groupWorkoutService.updateParticipantData(workoutID, data: workoutData)
             syncStatus = .synced
             
             // Clear offline cache on successful sync
-            await offlineCache.clearMetrics(for: workoutId)
+            await offlineCache.clearMetrics(for: workoutID)
         } catch {
             syncStatus = .failed
             FameFitLogger.warning("Failed to sync metrics, caching offline", category: FameFitLogger.workout)
             
             // Cache for offline sync
-            await offlineCache.saveMetrics(workoutData, for: workoutId)
+            await offlineCache.saveMetrics(workoutData, for: workoutID)
         }
     }
     
     private func fetchParticipantMetrics() async {
-        guard let workoutId = groupWorkoutID else { return }
+        guard let workoutID = groupWorkoutID else { return }
         
         do {
-            let participants = try await groupWorkoutService.getParticipants(workoutId)
+            let participants = try await groupWorkoutService.getParticipants(workoutID)
             
             var metrics: [String: GroupWorkoutData] = [:]
             for participant in participants where participant.status == .active {
                 if let data = participant.workoutData {
-                    metrics[participant.userId] = data
+                    metrics[participant.userID] = data
                 }
             }
             
@@ -396,8 +396,8 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
     
     private func handleGroupWorkoutUpdate(_ update: GroupWorkoutUpdate) async {
         switch update {
-        case .statusChanged(let workoutId, let status):
-            if workoutId == groupWorkoutID {
+        case .statusChanged(let workoutID, let status):
+            if workoutID == groupWorkoutID {
                 switch status {
                 case .completed, .cancelled:
                     // Host ended the workout
@@ -409,13 +409,13 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
                 }
             }
             
-        case .participantJoined(let workoutId, _):
-            if workoutId == groupWorkoutID {
+        case .participantJoined(let workoutID, _):
+            if workoutID == groupWorkoutID {
                 await fetchParticipantMetrics()
             }
             
-        case .participantLeft(let workoutId, _):
-            if workoutId == groupWorkoutID {
+        case .participantLeft(let workoutID, _):
+            if workoutID == groupWorkoutID {
                 await fetchParticipantMetrics()
             }
             
@@ -429,11 +429,11 @@ final class GroupWorkoutCoordinator: NSObject, ObservableObject {
         
         let pendingMetrics = await offlineCache.getAllPendingMetrics()
         
-        for (workoutId, metrics) in pendingMetrics {
+        for (workoutID, metrics) in pendingMetrics {
             for metric in metrics {
                 do {
-                    try await groupWorkoutService.updateParticipantData(workoutId, data: metric)
-                    await offlineCache.clearMetrics(for: workoutId)
+                    try await groupWorkoutService.updateParticipantData(workoutID, data: metric)
+                    await offlineCache.clearMetrics(for: workoutID)
                 } catch {
                     FameFitLogger.warning("Failed to sync offline metric", category: FameFitLogger.workout)
                 }
@@ -510,7 +510,7 @@ extension GroupWorkoutCoordinator: WCSessionDelegate {
         }
     }
     
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         // Handle real-time metric updates from Watch
         if let metrics = message["metrics"] as? [String: Any] {
             Task { @MainActor in
@@ -589,11 +589,11 @@ actor GroupWorkoutOfflineCache {
     private var pendingMetrics: [String: [GroupWorkoutData]] = [:]
     private let cacheKey = "GroupWorkoutOfflineCache"
     
-    func saveMetrics(_ data: GroupWorkoutData, for workoutId: String) {
-        if pendingMetrics[workoutId] == nil {
-            pendingMetrics[workoutId] = []
+    func saveMetrics(_ data: GroupWorkoutData, for workoutID: String) {
+        if pendingMetrics[workoutID] == nil {
+            pendingMetrics[workoutID] = []
         }
-        pendingMetrics[workoutId]?.append(data)
+        pendingMetrics[workoutID]?.append(data)
         persistCache()
     }
     
@@ -601,8 +601,8 @@ actor GroupWorkoutOfflineCache {
         return pendingMetrics
     }
     
-    func clearMetrics(for workoutId: String) {
-        pendingMetrics[workoutId] = nil
+    func clearMetrics(for workoutID: String) {
+        pendingMetrics[workoutID] = nil
         persistCache()
     }
     

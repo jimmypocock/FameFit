@@ -17,16 +17,22 @@ final class ActivityFeedViewModel: ObservableObject {
     @Published var filters = ActivityFeedFilters()
     @Published var hasMoreItems = true
 
-    private var socialService: SocialFollowingServicing?
-    private var profileService: UserProfileServicing?
-    private var activityFeedService: ActivityFeedServicing?
-    private var kudosService: WorkoutKudosServicing?
-    private var commentsService: ActivityFeedCommentsServicing?
-    private var currentUserId = ""
+    private var socialService: SocialFollowingProtocol?
+    private var profileService: UserProfileProtocol?
+    private var activityFeedService: ActivityFeedProtocol?
+    private var kudosService: WorkoutKudosProtocol?
+    private var commentsService: ActivityFeedCommentsProtocol?
+    private var currentUserID = ""
     private var followingUsers: Set<String> = []
     private var lastFetchedDate: Date?
     private let pageSize = 20
     private var cancellables = Set<AnyCancellable>()
+    private var isLoadingInitial = false // Prevent duplicate initial loads
+    
+    // Cache key for persisting feed state
+    private let feedCacheKey = "cached_activity_feed_items"
+    private let feedCacheTimestampKey = "cached_activity_feed_timestamp"
+    private let cacheExpirationTime: TimeInterval = 300 // 5 minutes
 
     // Content filtering
     private let inappropriateWords = Set([
@@ -65,19 +71,19 @@ final class ActivityFeedViewModel: ObservableObject {
     }
 
     func configure(
-        socialService: SocialFollowingServicing,
-        profileService: UserProfileServicing,
-        activityFeedService: ActivityFeedServicing,
-        kudosService: WorkoutKudosServicing,
-        commentsService: ActivityFeedCommentsServicing,
-        currentUserId: String
+        socialService: SocialFollowingProtocol,
+        profileService: UserProfileProtocol,
+        activityFeedService: ActivityFeedProtocol,
+        kudosService: WorkoutKudosProtocol,
+        commentsService: ActivityFeedCommentsProtocol,
+        currentUserID: String
     ) {
         self.socialService = socialService
         self.profileService = profileService
         self.kudosService = kudosService
         self.commentsService = commentsService
         self.activityFeedService = activityFeedService
-        self.currentUserId = currentUserId
+        self.currentUserID = currentUserID
 
         // Subscribe to kudos updates
         setupKudosListener()
@@ -87,26 +93,63 @@ final class ActivityFeedViewModel: ObservableObject {
     }
 
     func loadInitialFeed() async {
+        // Prevent multiple simultaneous initial loads
+        guard !isLoadingInitial else {
+            FameFitLogger.info("⏭️ Initial feed load already in progress, skipping", category: FameFitLogger.social)
+            return
+        }
+        
+        isLoadingInitial = true
         isLoading = true
         error = nil
-        feedItems = []
-
+        
+        defer {
+            isLoadingInitial = false
+            isLoading = false
+        }
+        
+        // Try to load cached feed first for instant display
+        if loadCachedFeed() {
+            // We have cached items, show them immediately
+            // But still fetch fresh data in the background
+            Task {
+                await loadFreshFeed()
+            }
+        } else {
+            // No cache, load fresh
+            feedItems = []
+            await loadFreshFeed()
+        }
+    }
+    
+    private func loadFreshFeed() async {
         do {
             // First, get the list of users we're following
-            guard let socialService else { return }
-            let following = try await socialService.getFollowing(for: currentUserId, limit: 1_000)
-            followingUsers = Set(following.map(\.id))
+            if let socialService {
+                let following = try await socialService.getFollowing(for: currentUserID, limit: 1_000)
+                followingUsers = Set(following.map(\.id))
+                FameFitLogger.info("📋 Found \(following.count) following users", category: FameFitLogger.social)
+            } else {
+                FameFitLogger.warning("⚠️ No social service available - will show only own activities", category: FameFitLogger.social)
+                followingUsers = []
+            }
 
-            // Add self to see own activities
-            followingUsers.insert(currentUserId)
+            // ALWAYS add self to see own activities, even with no social service
+            if !currentUserID.isEmpty {
+                followingUsers.insert(currentUserID)
+            }
+            FameFitLogger.info("📋 Loading feed for \(followingUsers.count) users (including self)", category: FameFitLogger.social)
 
-            // Load feed items
-            await loadFeedItems()
+            // Load feed items even if only showing own activities
+            if !followingUsers.isEmpty {
+                await loadFeedItems()
+            } else {
+                FameFitLogger.warning("⚠️ No users to load feed for (not even current user)", category: FameFitLogger.social)
+            }
         } catch {
+            FameFitLogger.error("❌ Failed to load feed: \(error)", category: FameFitLogger.social)
             self.error = "Failed to load feed"
         }
-
-        isLoading = false
     }
 
     func refreshFeed() async {
@@ -132,18 +175,40 @@ final class ActivityFeedViewModel: ObservableObject {
     // MARK: - Real-time Updates
 
     private func startRealTimeUpdates() {
-        // Set up a timer to periodically check for new items
-        Timer.publish(every: 30.0, on: .main, in: .common)
+        // More intelligent polling strategy - start frequent, then slow down
+        let intervals: [TimeInterval] = [10, 20, 30, 60] // Start with 10s, gradually increase to 60s
+        var currentIntervalIndex = 0
+        
+        Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in
-                Task { [weak self] in
-                    await self?.checkForNewItems()
+            .scan(0) { count, _ in count + 1 }
+            .sink { [weak self] secondsElapsed in
+                guard let self = self else { return }
+                
+                // Determine current interval based on how long app has been running
+                if secondsElapsed < 60 {
+                    currentIntervalIndex = 0 // 10s intervals for first minute
+                } else if secondsElapsed < 180 {
+                    currentIntervalIndex = 1 // 20s intervals for next 2 minutes
+                } else if secondsElapsed < 600 {
+                    currentIntervalIndex = 2 // 30s intervals for next 7 minutes
+                } else {
+                    currentIntervalIndex = 3 // 60s intervals after 10 minutes
+                }
+                
+                let interval = intervals[min(currentIntervalIndex, intervals.count - 1)]
+                
+                // Check if it's time to poll based on current interval
+                if secondsElapsed % Int(interval) == 0 {
+                    Task { [weak self] in
+                        await self?.checkForNewItems()
+                    }
                 }
             }
             .store(in: &cancellables)
     }
 
-    private func checkForNewItems() async {
+    func checkForNewItems() async {
         guard !isLoading,
               let activityFeedService,
               !followingUsers.isEmpty
@@ -183,27 +248,36 @@ final class ActivityFeedViewModel: ObservableObject {
 
         guard !filteredItems.isEmpty else { return }
 
+        // Remove duplicates - only add items that aren't already in the feed
+        let existingIDs = Set(feedItems.map(\.id))
+        let newItems = filteredItems.filter { !existingIDs.contains($0.id) }
+        
+        guard !newItems.isEmpty else { return }
+
         // Sort by timestamp (newest first)
-        let sortedItems = filteredItems.sorted { $0.timestamp > $1.timestamp }
+        let sortedItems = newItems.sorted { $0.timestamp > $1.timestamp }
 
         // Insert at the beginning of the feed
         feedItems.insert(contentsOf: sortedItems, at: 0)
 
         // Load kudos for any new workout items
         await loadKudosForNewItems(sortedItems)
+        
+        // Update cache with new items
+        saveFeedToCache()
     }
 
     private func loadKudosForNewItems(_ items: [ActivityFeedItem]) async {
         guard let kudosService else { return }
 
-        let workoutIds = items
+        let workoutIDs = items
             .filter { $0.type == .workout }
             .map(\.id)
 
-        guard !workoutIds.isEmpty else { return }
+        guard !workoutIDs.isEmpty else { return }
 
         do {
-            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIds)
+            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIDs)
 
             // Update the new items with kudos data
             for (index, item) in feedItems.enumerated() {
@@ -217,27 +291,64 @@ final class ActivityFeedViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Cache Management
+    
+    private func loadCachedFeed() -> Bool {
+        // Check if we have cached data that's not expired
+        guard let cacheTimestamp = UserDefaults.standard.object(forKey: feedCacheTimestampKey) as? Date,
+              Date().timeIntervalSince(cacheTimestamp) < cacheExpirationTime,
+              let cachedData = UserDefaults.standard.data(forKey: feedCacheKey),
+              let cachedItems = try? JSONDecoder().decode([ActivityFeedItem].self, from: cachedData) else {
+            return false
+        }
+        
+        feedItems = cachedItems
+        FameFitLogger.info("📦 Loaded \(cachedItems.count) cached feed items", category: FameFitLogger.social)
+        return true
+    }
+    
+    private func saveFeedToCache() {
+        // Only cache the first page of items
+        let itemsToCache = Array(feedItems.prefix(pageSize))
+        
+        if let data = try? JSONEncoder().encode(itemsToCache) {
+            UserDefaults.standard.set(data, forKey: feedCacheKey)
+            UserDefaults.standard.set(Date(), forKey: feedCacheTimestampKey)
+            FameFitLogger.info("💾 Cached \(itemsToCache.count) feed items", category: FameFitLogger.social)
+        }
+    }
+    
+    private func clearFeedCache() {
+        UserDefaults.standard.removeObject(forKey: feedCacheKey)
+        UserDefaults.standard.removeObject(forKey: feedCacheTimestampKey)
+    }
+
     // MARK: - Private Methods
 
     private func loadFeedItems() async {
         guard let activityFeedService else {
-            // Fallback to mock data if no activity feed service
+            FameFitLogger.warning("⚠️ No activity feed service available - using mock data", category: FameFitLogger.social)
             let mockItems = await createMockFeedItems()
             await processFeedItems(mockItems)
             return
         }
 
         do {
+            FameFitLogger.info("🔍 Fetching feed for users: \(followingUsers)", category: FameFitLogger.social)
             let activityItems = try await activityFeedService.fetchFeed(
                 for: followingUsers,
                 since: lastFetchedDate,
                 limit: pageSize
             )
+            
+            FameFitLogger.info("📥 Received \(activityItems.count) items from CloudKit", category: FameFitLogger.social)
 
             // Convert ActivityFeedRecord to ActivityFeedItem
             let feedItems = await convertActivityItemsToFeedItems(activityItems)
+            FameFitLogger.info("✅ Converted to \(feedItems.count) feed items", category: FameFitLogger.social)
             await processFeedItems(feedItems)
         } catch {
+            FameFitLogger.error("❌ Failed to fetch feed: \(error)", category: FameFitLogger.social)
             // Fall back to mock data on error
             let mockItems = await createMockFeedItems()
             await processFeedItems(mockItems)
@@ -254,8 +365,12 @@ final class ActivityFeedViewModel: ObservableObject {
         // Sort by timestamp
         let sortedItems = filteredItems.sorted { $0.timestamp > $1.timestamp }
 
-        // Append to existing items
-        feedItems.append(contentsOf: sortedItems)
+        // Remove duplicates - only add items that aren't already in the feed
+        let existingIDs = Set(feedItems.map(\.id))
+        let newItems = sortedItems.filter { !existingIDs.contains($0.id) }
+        
+        // Append only new items
+        feedItems.append(contentsOf: newItems)
 
         // Load kudos for workout items
         await loadKudosForWorkouts()
@@ -265,6 +380,9 @@ final class ActivityFeedViewModel: ObservableObject {
             hasMoreItems = false
         }
         lastFetchedDate = sortedItems.last?.timestamp
+        
+        // Save to cache for quick loading next time
+        saveFeedToCache()
     }
 
     private func convertActivityItemsToFeedItems(_ activityItems: [ActivityFeedRecord]) async -> [ActivityFeedItem] {
@@ -272,7 +390,8 @@ final class ActivityFeedViewModel: ObservableObject {
 
         for activityItem in activityItems {
             // Get user profile for the activity
-            let userProfile = try? await profileService?.fetchProfile(userId: activityItem.userID)
+            // activityItem.userID is a CloudKit user ID (from cloudKitManager.currentUserID)
+            let userProfile = try? await profileService?.fetchProfileByUserID(activityItem.userID)
 
             // Convert activity type
             let feedItemType: ActivityFeedItemType = switch activityItem.activityType {
@@ -287,7 +406,7 @@ final class ActivityFeedViewModel: ObservableObject {
             }
 
             // Parse content
-            let content = activityItem.contentData ?? ActivityFeedContent(
+            let content = activityItem.contentData ?? ActivityFeedItemContent(
                 title: "Activity",
                 subtitle: nil,
                 details: [:]
@@ -296,11 +415,12 @@ final class ActivityFeedViewModel: ObservableObject {
             var feedItem = ActivityFeedItem(
                 id: activityItem.id,
                 userID: activityItem.userID,
+                username: activityItem.username,  // Use username directly from record
                 userProfile: userProfile,
                 type: feedItemType,
-                timestamp: activityItem.createdTimestamp,
+                timestamp: activityItem.creationDate,
                 content: content,
-                workoutId: feedItemType == .workout ? activityItem.id : nil,
+                workoutID: feedItemType == .workout ? activityItem.id : nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -335,14 +455,16 @@ final class ActivityFeedViewModel: ObservableObject {
         var items: [ActivityFeedItem] = []
 
         // Mock workout activities
-        if let profile = try? await profileService?.fetchProfile(userId: "mock-user-1") {
+        // Mock user IDs would be profile record IDs, not CloudKit user IDs
+        if let profile = try? await profileService?.fetchProfile(userID: "mock-user-1") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
+                username: profile.username,
                 userProfile: profile,
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Crushed another workout! 💪",
                     details: [
@@ -352,7 +474,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "xpEarned": "45"
                     ]
                 ),
-                workoutId: UUID().uuidString,
+                workoutID: UUID().uuidString,
                 kudosCount: 5,
                 commentCount: 2,
                 hasKudoed: false
@@ -361,10 +483,11 @@ final class ActivityFeedViewModel: ObservableObject {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile.id,
+                username: profile.username,
                 userProfile: profile,
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
@@ -372,7 +495,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "achievementIcon": "medal.fill"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -380,14 +503,16 @@ final class ActivityFeedViewModel: ObservableObject {
         }
 
         // Mock level up
-        if let profile2 = try? await profileService?.fetchProfile(userId: "mock-user-2") {
+        // Mock user IDs would be profile record IDs, not CloudKit user IDs
+        if let profile2 = try? await profileService?.fetchProfile(userID: "mock-user-2") {
             items.append(ActivityFeedItem(
                 id: UUID().uuidString,
                 userID: profile2.id,
+                username: profile2.username,
                 userProfile: profile2,
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Reached Level 5!",
                     subtitle: nil,
                     details: [
@@ -395,7 +520,7 @@ final class ActivityFeedViewModel: ObservableObject {
                         "newTitle": "Fitness Enthusiast"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 0,
                 hasKudoed: false
@@ -418,7 +543,7 @@ final class ActivityFeedViewModel: ObservableObject {
 
     private func handleKudosUpdate(_ update: KudosUpdate) {
         // Find the feed item for this workout
-        guard let index = feedItems.firstIndex(where: { $0.id == update.workoutId }) else {
+        guard let index = feedItems.firstIndex(where: { $0.id == update.workoutID }) else {
             return
         }
 
@@ -426,7 +551,7 @@ final class ActivityFeedViewModel: ObservableObject {
         var updatedItem = feedItems[index]
         if var kudosSummary = updatedItem.kudosSummary {
             kudosSummary = WorkoutKudosSummary(
-                workoutId: kudosSummary.workoutId,
+                workoutID: kudosSummary.workoutID,
                 totalCount: update.newCount,
                 hasUserKudos: update.action == .added,
                 recentUsers: kudosSummary.recentUsers
@@ -444,7 +569,7 @@ final class ActivityFeedViewModel: ObservableObject {
         }
 
         do {
-            _ = try await kudosService.toggleKudos(for: item.id, ownerId: item.userID)
+            _ = try await kudosService.toggleKudos(for: item.id, ownerID: item.userID)
         } catch {
             self.error = "Failed to update kudos: \(error.localizedDescription)"
         }
@@ -454,14 +579,14 @@ final class ActivityFeedViewModel: ObservableObject {
         guard let kudosService else { return }
 
         // Get workout IDs from feed
-        let workoutIds = feedItems
+        let workoutIDs = feedItems
             .filter { $0.type == .workout }
             .map(\.id)
 
-        guard !workoutIds.isEmpty else { return }
+        guard !workoutIDs.isEmpty else { return }
 
         do {
-            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIds)
+            let kudosSummaries = try await kudosService.getKudosSummaries(for: workoutIDs)
 
             // Update feed items with kudos data
             for (index, item) in feedItems.enumerated() {
@@ -477,4 +602,4 @@ final class ActivityFeedViewModel: ObservableObject {
 
 // MARK: - Legacy Mock Protocol (kept for compatibility)
 
-// Note: ActivityFeedServicing and ActivityFeedItem are now defined in ActivityFeedService.swift
+// Note: ActivityFeedProtocol and ActivityFeedItem are now defined in ActivityFeedService.swift

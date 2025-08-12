@@ -9,51 +9,43 @@ import CloudKit
 import Combine
 import Foundation
 
-// MARK: - Protocol
-
-protocol RealTimeSyncCoordinating {
-    func startRealTimeSync() async
-    func stopRealTimeSync() async
-    func handleRemoteChange(_ notification: CloudKitNotificationInfo) async
-}
-
 // MARK: - Implementation
 
-final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
+final class RealTimeSyncCoordinator: RealTimeSyncProtocol {
     // MARK: - Properties
 
-    private let subscriptionManager: CloudKitSubscriptionManaging
-    private let cloudKitManager: any CloudKitManaging
-    private let socialFollowingService: SocialFollowingServicing?
-    private let userProfileService: UserProfileServicing?
-    private let workoutKudosService: WorkoutKudosServicing?
-    private let activityCommentsService: ActivityFeedCommentsServicing?
-    private let workoutChallengesService: WorkoutChallengesServicing?
-    private let groupWorkoutService: GroupWorkoutServiceProtocol?
-    private let activityFeedService: ActivityFeedServicing?
+    private let subscriptionManager: CloudKitSubscriptionProtocol
+    private let cloudKitManager: any CloudKitProtocol
+    private let socialFollowingService: SocialFollowingProtocol?
+    private let userProfileService: UserProfileProtocol?
+    private let workoutKudosService: WorkoutKudosProtocol?
+    private let activityCommentsService: ActivityFeedCommentsProtocol?
+    private let workoutChallengesService: WorkoutChallengesProtocol?
+    private let groupWorkoutService: GroupWorkoutProtocol?
+    private let activityFeedService: ActivityFeedProtocol?
 
     private var cancellables = Set<AnyCancellable>()
     private var isRunning = false
 
     // Publishers for UI updates
-    let profileUpdatePublisher = PassthroughSubject<String, Never>() // userId
+    let profileUpdatePublisher = PassthroughSubject<String, Never>() // userID
     let feedUpdatePublisher = PassthroughSubject<Void, Never>()
-    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // challengeId
-    let kudosUpdatePublisher = PassthroughSubject<String, Never>() // workoutId
-    let commentUpdatePublisher = PassthroughSubject<String, Never>() // workoutId
+    let challengeUpdatePublisher = PassthroughSubject<String, Never>() // workoutChallengeID
+    let kudosUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
+    let commentUpdatePublisher = PassthroughSubject<String, Never>() // workoutID
 
     // MARK: - Initialization
 
     init(
-        subscriptionManager: CloudKitSubscriptionManaging,
-        cloudKitManager: any CloudKitManaging,
-        socialFollowingService: SocialFollowingServicing? = nil,
-        userProfileService: UserProfileServicing? = nil,
-        workoutKudosService: WorkoutKudosServicing? = nil,
-        activityCommentsService: ActivityFeedCommentsServicing? = nil,
-        workoutChallengesService: WorkoutChallengesServicing? = nil,
-        groupWorkoutService: GroupWorkoutServiceProtocol? = nil,
-        activityFeedService: ActivityFeedServicing? = nil
+        subscriptionManager: CloudKitSubscriptionProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        socialFollowingService: SocialFollowingProtocol? = nil,
+        userProfileService: UserProfileProtocol? = nil,
+        workoutKudosService: WorkoutKudosProtocol? = nil,
+        activityCommentsService: ActivityFeedCommentsProtocol? = nil,
+        workoutChallengesService: WorkoutChallengesProtocol? = nil,
+        groupWorkoutService: GroupWorkoutProtocol? = nil,
+        activityFeedService: ActivityFeedProtocol? = nil
     ) {
         self.subscriptionManager = subscriptionManager
         self.cloudKitManager = cloudKitManager
@@ -113,8 +105,8 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
         case SubscriptionType.workoutKudos.recordType:
             await handleWorkoutKudosChange(notification)
 
-        case SubscriptionType.workoutComments.recordType:
-            await handleWorkoutCommentsChange(notification)
+        case SubscriptionType.activityFeedComments.recordType:
+            await handleActivityFeedCommentsChange(notification)
 
         case SubscriptionType.workoutChallenges.recordType:
             await handleWorkoutChallengeChange(notification)
@@ -137,20 +129,20 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     // MARK: - Specific Change Handlers
 
     private func handleUserProfileChange(_ notification: CloudKitNotificationInfo) async {
-        let userId = notification.recordID.recordName
-        print("DEBUG: handleUserProfileChange called for userId: \(userId)")
+        let userID = notification.recordID.recordName
+        print("DEBUG: handleUserProfileChange called for userID: \(userID)")
 
         // Clear cache for this user
         if let service = userProfileService {
-            print("DEBUG: Calling clearCache for userId: \(userId)")
-            service.clearCache(for: userId)
+            print("DEBUG: Calling clearCache for userID: \(userID)")
+            service.clearCache(for: userID)
             print("DEBUG: clearCache called successfully")
         } else {
             print("DEBUG: userProfileService is nil!")
         }
 
         // Notify UI
-        profileUpdatePublisher.send(userId)
+        profileUpdatePublisher.send(userID)
     }
 
     private func handleSocialFollowingChange(_ notification: CloudKitNotificationInfo) async {
@@ -168,37 +160,37 @@ final class RealTimeSyncCoordinator: RealTimeSyncCoordinating {
     }
 
     private func handleWorkoutKudosChange(_ notification: CloudKitNotificationInfo) async {
-        if let workoutId = notification.userInfo["workoutId"] as? String {
-            kudosUpdatePublisher.send(workoutId)
+        if let workoutID = notification.userInfo["workoutID"] as? String {
+            kudosUpdatePublisher.send(workoutID)
         }
     }
 
-    private func handleWorkoutCommentsChange(_ notification: CloudKitNotificationInfo) async {
-        if let workoutId = notification.userInfo["workoutId"] as? String {
-            commentUpdatePublisher.send(workoutId)
+    private func handleActivityFeedCommentsChange(_ notification: CloudKitNotificationInfo) async {
+        if let workoutID = notification.userInfo["workoutID"] as? String {
+            commentUpdatePublisher.send(workoutID)
         }
     }
 
     private func handleWorkoutChallengeChange(_ notification: CloudKitNotificationInfo) async {
-        let challengeId = notification.recordID.recordName
+        let workoutChallengeID = notification.recordID.recordName
 
         // Handle different challenge status changes
         if let status = notification.userInfo["status"] as? String {
             switch status {
             case "active":
                 // Challenge started - refresh challenges view
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(workoutChallengeID)
 
             case "completed":
                 // Challenge completed - refresh and potentially show notification
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(workoutChallengeID)
 
             default:
-                challengeUpdatePublisher.send(challengeId)
+                challengeUpdatePublisher.send(workoutChallengeID)
             }
         } else {
             // General update
-            challengeUpdatePublisher.send(challengeId)
+            challengeUpdatePublisher.send(workoutChallengeID)
         }
     }
 

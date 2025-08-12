@@ -13,7 +13,7 @@ import XCTest
 class WorkoutKudosServiceTests: XCTestCase {
     private var sut: WorkoutKudosService!
     private var mockUserProfileService: MockUserProfileService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockRateLimiter: MockRateLimitingService!
     private var cancellables: Set<AnyCancellable>!
 
@@ -21,13 +21,13 @@ class WorkoutKudosServiceTests: XCTestCase {
         super.setUp()
 
         mockUserProfileService = MockUserProfileService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockRateLimiter = MockRateLimitingService()
         cancellables = []
 
         sut = WorkoutKudosService(
             userProfileService: mockUserProfileService,
-            notificationManager: mockNotificationManager,
+            notificationManager: mockNotificationService,
             rateLimiter: mockRateLimiter
         )
     }
@@ -35,7 +35,7 @@ class WorkoutKudosServiceTests: XCTestCase {
     override func tearDown() {
         sut = nil
         mockUserProfileService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockRateLimiter = nil
         cancellables = nil
         super.tearDown()

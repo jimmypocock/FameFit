@@ -2,7 +2,7 @@
 //  SheetType.swift
 //  FameFit
 //
-//  Centralized sheet management for TabMainView
+//  Centralized sheet management for MainView
 //
 
 import SwiftUI
@@ -13,8 +13,10 @@ enum SheetType: Identifiable {
     case workoutHistory
     case editProfile
     case workoutSharing(Workout)
+    #if DEBUG
     case notificationDebug
     case developerMenu
+    #endif
     
     var id: String {
         switch self {
@@ -28,10 +30,12 @@ enum SheetType: Identifiable {
             return "editProfile"
         case .workoutSharing:
             return "workoutSharing"
+        #if DEBUG
         case .notificationDebug:
             return "notificationDebug"
         case .developerMenu:
             return "developerMenu"
+        #endif
         }
     }
 }

@@ -10,33 +10,33 @@ import CloudKit
 
 struct XPTransaction: Identifiable, Codable {
     let id: UUID
-    let userRecordID: String
-    let workoutRecordID: String
+    let userID: String
+    let workoutID: String
     let timestamp: Date
     let baseXP: Int
     let finalXP: Int
     let factors: XPCalculationFactors
-    let createdTimestamp: Date
-    let modifiedTimestamp: Date
+    let creationDate: Date
+    let modificationDate: Date
     
     init(id: UUID = UUID(),
-         userRecordID: String,
-         workoutRecordID: String,
+         userID: String,
+         workoutID: String,
          timestamp: Date = Date(),
          baseXP: Int,
          finalXP: Int,
          factors: XPCalculationFactors,
-         createdTimestamp: Date = Date(),
-         modifiedTimestamp: Date = Date()) {
+         creationDate: Date = Date(),
+         modificationDate: Date = Date()) {
         self.id = id
-        self.userRecordID = userRecordID
-        self.workoutRecordID = workoutRecordID
+        self.userID = userID
+        self.workoutID = workoutID
         self.timestamp = timestamp
         self.baseXP = baseXP
         self.finalXP = finalXP
         self.factors = factors
-        self.createdTimestamp = createdTimestamp
-        self.modifiedTimestamp = modifiedTimestamp
+        self.creationDate = creationDate
+        self.modificationDate = modificationDate
     }
 }
 
@@ -75,12 +75,12 @@ enum XPBonusType: String, Codable, CaseIterable {
 
 // MARK: - CloudKit Support
 extension XPTransaction {
-    static let recordType = "XPTransaction"
+    static let recordType = "XPTransactions"
     
     init?(from record: CKRecord) {
         guard record.recordType == Self.recordType,
-              let userRecordID = record["userRecordID"] as? String,
-              let workoutRecordID = record["workoutRecordID"] as? String,
+              let userID = record["userID"] as? String,
+              let workoutID = record["workoutID"] as? String,
               let timestamp = record["timestamp"] as? Date,
               let baseXP = record["baseXP"] as? Int64,
               let finalXP = record["finalXP"] as? Int64,
@@ -94,22 +94,22 @@ extension XPTransaction {
         }
         
         self.id = UUID(uuidString: record.recordID.recordName) ?? UUID()
-        self.userRecordID = userRecordID
-        self.workoutRecordID = workoutRecordID
+        self.userID = userID
+        self.workoutID = workoutID
         self.timestamp = timestamp
         self.baseXP = Int(baseXP)
         self.finalXP = Int(finalXP)
         self.factors = factors
-        self.createdTimestamp = record.creationDate ?? Date()
-        self.modifiedTimestamp = record.modificationDate ?? Date()
+        self.creationDate = record.creationDate ?? Date()
+        self.modificationDate = record.modificationDate ?? Date()
     }
     
     func toCKRecord() -> CKRecord {
         let recordID = CKRecord.ID(recordName: id.uuidString)
         let record = CKRecord(recordType: Self.recordType, recordID: recordID)
         
-        record["userRecordID"] = userRecordID
-        record["workoutRecordID"] = workoutRecordID
+        record["userID"] = userID
+        record["workoutID"] = workoutID
         record["timestamp"] = timestamp
         record["baseXP"] = Int64(baseXP)
         record["finalXP"] = Int64(finalXP)

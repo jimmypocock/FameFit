@@ -18,7 +18,7 @@ final class AnyWorkoutManager: WorkoutManaging {
     // MARK: - Published Properties Relay
 
     @Published var selectedWorkout: HKWorkoutActivityType?
-    @Published var showingSummaryView: Bool = false
+    @Published var completedWorkout: HKWorkout?
 
     // Relay all other properties from the wrapped instance
     var isWorkoutRunning: Bool { wrapped.isWorkoutRunning }
@@ -57,13 +57,13 @@ final class AnyWorkoutManager: WorkoutManaging {
                 }
                 .store(in: &cancellables)
 
-            // Sync showingSummaryView
-            published.$showingSummaryView
-                .assign(to: &$showingSummaryView)
+            // Sync completedWorkout
+            published.$completedWorkout
+                .assign(to: &$completedWorkout)
 
-            $showingSummaryView
+            $completedWorkout
                 .sink { [weak published] value in
-                    published?.showingSummaryView = value
+                    published?.completedWorkout = value
                 }
                 .store(in: &cancellables)
         }

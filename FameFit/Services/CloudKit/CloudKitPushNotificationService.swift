@@ -139,8 +139,8 @@ final class CloudKitPushNotificationService {
             appVersion: appVersion,
             osVersion: osVersion,
             environment: environment,
-            createdTimestamp: record.creationDate ?? Date(),
-            modifiedTimestamp: record.modificationDate ?? Date(),
+            creationDate: record.creationDate ?? Date(),
+            modificationDate: record.modificationDate ?? Date(),
             isActive: isActive == 1
         )
     }
@@ -163,9 +163,9 @@ final class CloudKitPushNotificationService {
         record["badge"] = request.badge as? CKRecordValue
         record["sound"] = request.sound
         record["category"] = request.category
-        record["threadId"] = request.threadId
+        record["threadID"] = request.threadID
         record["deviceTokens"] = deviceTokens.map(\.deviceToken)
-        record["createdTimestamp"] = Date()
+        
         record["status"] = "pending"
 
         // Add metadata as JSON string
@@ -238,7 +238,7 @@ extension CloudKitPushNotificationService {
             title: "New Follower! 🎉",
             body: "\(user.username) is now following your fitness journey",
             metadata: [
-                "followerUserId": user.userID,
+                "followerUserID": user.userID,
                 "followerUsername": user.username
             ]
         )
@@ -247,7 +247,7 @@ extension CloudKitPushNotificationService {
     /// Creates a push notification request for workout kudos
     static func workoutKudosFameFitNotification(
         from user: UserProfile,
-        for workoutId: String,
+        for workoutID: String,
         to userID: String
     ) -> PushNotificationRequest {
         PushNotificationRequest(
@@ -256,9 +256,9 @@ extension CloudKitPushNotificationService {
             title: "Kudos! 💪",
             body: "\(user.username) gave kudos to your workout",
             metadata: [
-                "kudosUserId": user.userID,
+                "kudosUserID": user.userID,
                 "kudosUsername": user.username,
-                "workoutId": workoutId
+                "workoutID": workoutID
             ],
             category: "WORKOUT_KUDOS"
         )
@@ -273,7 +273,7 @@ extension CloudKitPushNotificationService {
             title: "Follow Request",
             body: "\(user.username) wants to follow you",
             metadata: [
-                "requesterUserId": user.userID,
+                "requesterUserID": user.userID,
                 "requesterUsername": user.username
             ],
             category: "FOLLOW_REQUEST"

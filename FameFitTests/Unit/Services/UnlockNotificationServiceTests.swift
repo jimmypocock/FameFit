@@ -175,36 +175,28 @@ final class UnlockNotificationServiceTests: XCTestCase {
         XCTAssertEqual(mockNotificationStore.notifications.count, firstCount)
     }
 
-    // MARK: - Character Selection Tests
+    // MARK: - Level Up Tests
 
-    func testSelectsCorrectCharacterForLevel() async {
+    func testLevelUpNotificationFormat() async {
         // Test different level ranges
-        let testCases: [(level: Int, expectedCharacter: FameFitCharacter)] = [
-            (1, .zen),
-            (3, .zen),
-            (5, .sierra),
-            (7, .sierra),
-            (10, .chad),
-            (13, .chad)
-        ]
+        let testLevels = [1, 3, 5, 7, 10, 13]
 
-        for testCase in testCases {
+        for level in testLevels {
             mockNotificationStore.reset()
 
             // Reset user defaults to ensure fresh state for each test
-            let levelKey = "level_notified_\(testCase.level)"
+            let levelKey = "level_notified_\(level)"
             testUserDefaults.removeObject(forKey: levelKey)
             testUserDefaults.synchronize()
 
-            await service.notifyLevelUp(newLevel: testCase.level, title: "Test Title")
+            await service.notifyLevelUp(newLevel: level, title: "Test Title")
 
             let notification = mockNotificationStore.notifications.first
-            XCTAssertNotNil(notification, "Should have notification for level \(testCase.level)")
+            XCTAssertNotNil(notification, "Should have notification for level \(level)")
 
-            // Check character emoji in title
-            let expectedEmoji = testCase.expectedCharacter.emoji
+            // Check notification format
             XCTAssertTrue(
-                notification?.title.contains(expectedEmoji) == true,
+                notification?.title.contains("🎉") == true,
                 "Level \(testCase.level) should use character \(testCase.expectedCharacter) emoji in title"
             )
         }

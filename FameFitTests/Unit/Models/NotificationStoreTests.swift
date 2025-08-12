@@ -214,16 +214,15 @@ class NotificationStoreTests: XCTestCase {
         cancellable.cancel()
     }
 
-    func testNotificationWithDifferentCharacters() {
+    func testNotificationWithDifferentWorkouts() {
         // Given
-        let characters: [FameFitCharacter] = [.chad, .sierra, .zen]
+        let workoutTypes = ["Running", "Strength Training", "Yoga"]
 
         // When
-        for (index, character) in characters.enumerated() {
+        for (index, workoutType) in workoutTypes.enumerated() {
             let notification = FameFitNotification(
-                title: "\(character.emoji) \(character.fullName)",
-                body: character.workoutCompletionMessage(followers: 5),
-                character: character,
+                title: "\(workoutType) Complete!",
+                body: "Great \(workoutType) session! You earned 5 XP",
                 workoutDuration: 30 + (index * 10),
                 calories: 200 + (index * 50),
                 followersEarned: 5
@@ -234,9 +233,9 @@ class NotificationStoreTests: XCTestCase {
         // Then
         XCTAssertEqual(sut.notifications.count, 3)
         // Notifications are added at index 0, so order is reversed
-        XCTAssertEqual(sut.notifications[0].character, .zen) // Most recent
-        XCTAssertEqual(sut.notifications[1].character, .sierra) // Middle
-        XCTAssertEqual(sut.notifications[2].character, .chad) // Oldest
+        XCTAssertTrue(sut.notifications[0].title.contains("Yoga")) // Most recent
+        XCTAssertTrue(sut.notifications[1].title.contains("Strength")) // Middle
+        XCTAssertTrue(sut.notifications[2].title.contains("Running")) // Oldest
 
         // Verify each notification has correct follower count
         XCTAssertTrue(sut.notifications.allSatisfy { $0.followersEarned == 5 })

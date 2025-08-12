@@ -10,23 +10,23 @@ import Foundation
 import SwiftUI
 
 /// View model that handles MainView business logic and data formatting
-class MainViewModel: ObservableObject, MainViewModeling {
+class MainViewModel: ObservableObject, MainViewModelProtocol {
     // MARK: - Dependencies
 
-    private let authManager: any AuthenticationManaging
-    private let cloudKitManager: any CloudKitManaging
-    private let notificationStore: any NotificationStoring
-    private let userProfileService: any UserProfileServicing
-    private let socialFollowingService: any SocialFollowingServicing
+    private var authManager: (any AuthenticationProtocol)?
+    private var cloudKitManager: (any CloudKitProtocol)?
+    private var notificationStore: (any NotificationStoringProtocol)?
+    private var userProfileService: (any UserProfileProtocol)?
+    private var socialFollowingService: (any SocialFollowingProtocol)?
+    private var watchConnectivityManager: (any WatchConnectivityProtocol)?
 
     // MARK: - Published Properties
 
-    @Published private var _userName: String = ""
+    @Published private var _username: String = ""
     @Published private var _totalXP: Int = 0
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
-    @Published private var _createdTimestamp: Date?
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
     @Published var userProfile: UserProfile?
@@ -36,39 +36,70 @@ class MainViewModel: ObservableObject, MainViewModeling {
     // MARK: - Cancellables
 
     private var cancellables = Set<AnyCancellable>()
+    private var isConfigured = false
 
     // MARK: - Initialization
 
+    /// Default initializer for StateObject creation
+    init() {
+        // Dependencies will be configured later via configure method
+    }
+    
+    /// Legacy initializer for backwards compatibility
     init(
-        authManager: any AuthenticationManaging,
-        cloudKitManager: any CloudKitManaging,
-        notificationStore: any NotificationStoring,
-        userProfileService: any UserProfileServicing,
-        socialFollowingService: any SocialFollowingServicing
+        authManager: any AuthenticationProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        notificationStore: any NotificationStoringProtocol,
+        userProfileService: any UserProfileProtocol,
+        socialFollowingService: any SocialFollowingProtocol,
+        watchConnectivityManager: any WatchConnectivityProtocol
     ) {
         self.authManager = authManager
         self.cloudKitManager = cloudKitManager
         self.notificationStore = notificationStore
         self.userProfileService = userProfileService
         self.socialFollowingService = socialFollowingService
+        self.watchConnectivityManager = watchConnectivityManager
 
+        setupBindings()
+    }
+    
+    /// Configure the view model with dependencies
+    func configure(
+        authManager: any AuthenticationProtocol,
+        cloudKitManager: any CloudKitProtocol,
+        notificationStore: any NotificationStoringProtocol,
+        userProfileService: any UserProfileProtocol,
+        socialFollowingService: any SocialFollowingProtocol,
+        watchConnectivityManager: any WatchConnectivityProtocol
+    ) {
+        guard !isConfigured else { return } // Only configure once
+        
+        self.authManager = authManager
+        self.cloudKitManager = cloudKitManager
+        self.notificationStore = notificationStore
+        self.userProfileService = userProfileService
+        self.socialFollowingService = socialFollowingService
+        self.watchConnectivityManager = watchConnectivityManager
+        
+        isConfigured = true
         setupBindings()
     }
 
     // MARK: - Protocol Properties
 
-    var userName: String { _userName }
+    var username: String { _username }
     var totalXP: Int { _totalXP }
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
-    var joinDate: Date? { _createdTimestamp }
+    var joinDate: Date? { userProfile?.creationDate }
     var lastWorkoutDate: Date? { _lastWorkoutDate }
     var hasUnreadNotifications: Bool { _unreadCount > 0 }
     var unreadNotificationCount: Int { _unreadCount }
 
     var daysAsMember: Int {
-        guard let joinDate = _createdTimestamp else { return 0 }
+        guard let joinDate = userProfile?.creationDate else { return 0 }
         return Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
     }
 
@@ -79,6 +110,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
     // MARK: - Protocol Methods
 
     func refreshData() {
+        guard let cloudKitManager = cloudKitManager else { return }
+        
         cloudKitManager.fetchUserRecord()
         refreshFromDependencies()
         
@@ -93,14 +126,17 @@ class MainViewModel: ObservableObject, MainViewModeling {
     }
 
     func signOut() {
-        authManager.signOut()
+        authManager?.signOut()
     }
 
     func markNotificationsAsRead() {
-        notificationStore.markAllAsRead()
+        notificationStore?.markAllAsRead()
     }
 
     func loadUserProfile() {
+        guard let userProfileService = userProfileService,
+              let watchConnectivityManager = watchConnectivityManager else { return }
+        
         Task {
             // First ensure CloudKit is ready
             await ensureCloudKitReady()
@@ -109,6 +145,11 @@ class MainViewModel: ObservableObject, MainViewModeling {
                 let profile = try await userProfileService.fetchCurrentUserProfile()
                 await MainActor.run {
                     self.userProfile = profile
+                    // Send user data to Watch
+                    watchConnectivityManager.sendUserData(
+                        username: profile.username,
+                        totalXP: profile.totalXP
+                    )
                 }
             } catch {
                 // Profile doesn't exist yet, that's ok
@@ -120,6 +161,9 @@ class MainViewModel: ObservableObject, MainViewModeling {
     }
     
     func refreshUserProfile() {
+        guard let userProfileService = userProfileService,
+              let watchConnectivityManager = watchConnectivityManager else { return }
+        
         Task {
             // First ensure CloudKit is ready
             await ensureCloudKitReady()
@@ -128,6 +172,11 @@ class MainViewModel: ObservableObject, MainViewModeling {
                 let profile = try await userProfileService.fetchCurrentUserProfileFresh()
                 await MainActor.run {
                     self.userProfile = profile
+                    // Send updated user data to Watch
+                    watchConnectivityManager.sendUserData(
+                        username: profile.username,
+                        totalXP: profile.totalXP
+                    )
                 }
             } catch {
                 // Profile doesn't exist yet, that's ok
@@ -143,6 +192,8 @@ class MainViewModel: ObservableObject, MainViewModeling {
         var attempts = 0
         let maxAttempts = 30 // 3 seconds max wait
 
+        guard let cloudKitManager = cloudKitManager else { return }
+        
         while !cloudKitManager.isAvailable || cloudKitManager.currentUserID == nil {
             if attempts >= maxAttempts {
                 print("⚠️ CloudKit initialization timeout after 3 seconds")
@@ -160,13 +211,14 @@ class MainViewModel: ObservableObject, MainViewModeling {
     }
 
     func loadFollowerCounts() {
-        guard let userId = userProfile?.id ?? cloudKitManager.currentUserID else { return }
+        guard let socialFollowingService = socialFollowingService,
+              let userID = userProfile?.id ?? cloudKitManager?.currentUserID else { return }
 
         Task {
             do {
                 // Load counts in parallel
-                async let followers = socialFollowingService.getFollowerCount(for: userId)
-                async let following = socialFollowingService.getFollowingCount(for: userId)
+                async let followers = socialFollowingService.getFollowerCount(for: userID)
+                async let following = socialFollowingService.getFollowingCount(for: userID)
 
                 let followerCount = try await followers
                 let followingCount = try await following
@@ -189,42 +241,38 @@ class MainViewModel: ObservableObject, MainViewModeling {
         refreshFromDependencies()
 
         // Set up reactive bindings with protocol publishers
-        cloudKitManager.userNamePublisher
-            .assign(to: &$_userName)
+        cloudKitManager?.usernamePublisher
+            .assign(to: &$_username)
 
-        cloudKitManager.totalXPPublisher
+        cloudKitManager?.totalXPPublisher
             .assign(to: &$_totalXP)
 
-        cloudKitManager.totalWorkoutsPublisher
+        cloudKitManager?.totalWorkoutsPublisher
             .assign(to: &$_totalWorkouts)
 
-        cloudKitManager.currentStreakPublisher
+        cloudKitManager?.currentStreakPublisher
             .assign(to: &$_currentStreak)
 
-        cloudKitManager.joinTimestampPublisher
-            .assign(to: &$_createdTimestamp)
-
-        cloudKitManager.lastWorkoutTimestampPublisher
+        cloudKitManager?.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
 
-        cloudKitManager.totalXPPublisher
+        cloudKitManager?.totalXPPublisher
             .map { [weak self] _ in
-                self?.cloudKitManager.getXPTitle() ?? ""
+                self?.cloudKitManager?.getXPTitle() ?? ""
             }
             .assign(to: &$_xpTitle)
 
-        notificationStore.unreadCountPublisher
+        notificationStore?.unreadCountPublisher
             .assign(to: &$_unreadCount)
     }
 
     private func refreshFromDependencies() {
-        _userName = cloudKitManager.userName
-        _totalXP = cloudKitManager.totalXP
-        _totalWorkouts = cloudKitManager.totalWorkouts
-        _currentStreak = cloudKitManager.currentStreak
-        _createdTimestamp = cloudKitManager.joinTimestamp
-        _lastWorkoutDate = cloudKitManager.lastWorkoutTimestamp
-        _xpTitle = cloudKitManager.getXPTitle()
-        _unreadCount = notificationStore.unreadCount
+        _username = cloudKitManager?.username ?? ""
+        _totalXP = cloudKitManager?.totalXP ?? 0
+        _totalWorkouts = cloudKitManager?.totalWorkouts ?? 0
+        _currentStreak = cloudKitManager?.currentStreak ?? 0
+        _lastWorkoutDate = cloudKitManager?.lastWorkoutTimestamp
+        _xpTitle = cloudKitManager?.getXPTitle() ?? ""
+        _unreadCount = notificationStore?.unreadCount ?? 0
     }
 }

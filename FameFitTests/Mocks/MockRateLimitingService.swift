@@ -2,13 +2,13 @@
 //  MockRateLimitingService.swift
 //  FameFitTests
 //
-//  Mock implementation of RateLimitingServicing for testing
+//  Mock implementation of RateLimitingProtocol for testing
 //
 
 @testable import FameFit
 import Foundation
 
-final class MockRateLimitingService: RateLimitingServicing {
+final class MockRateLimitingService: RateLimitingProtocol {
     var shouldAllow = true
     var shouldThrowRateLimitError = false
     var shouldThrowError = false

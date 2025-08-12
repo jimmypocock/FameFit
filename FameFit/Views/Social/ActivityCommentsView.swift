@@ -7,15 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
-private extension Date {
-    var relativeDisplayString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: self, relativeTo: Date())
-    }
-}
-
 struct ActivityCommentsView: View {
     let feedItem: ActivityFeedItem
     @Environment(\.dismiss) private var dismiss
@@ -31,10 +22,10 @@ struct ActivityCommentsView: View {
                 
                 // Comments list - using the new generic system
                 GenericCommentsListView(
-                    resourceId: feedItem.id,
-                    resourceOwnerId: feedItem.userID,
+                    resourceID: feedItem.id,
+                    resourceOwnerID: feedItem.userID,
                     resourceType: getResourceType(for: feedItem.type),
-                    sourceRecordId: feedItem.workoutId, // For workouts, this is the workout ID
+                    sourceRecordID: feedItem.workoutID, // For workouts, this is the workout ID
                     currentUser: currentUser,
                     commentService: getCommentService(for: feedItem.type)
                 )
@@ -305,7 +296,6 @@ struct ActivityCommentsView: View {
         }
     }
     
-    
     // MARK: - Helper Views
     
     private struct StatPill: View {
@@ -356,8 +346,8 @@ struct ActivityCommentsView: View {
     }
     
     private func formatDuration(_ seconds: Double) -> String {
-        let hours = Int(seconds) / 3600
-        let minutes = (Int(seconds) % 3600) / 60
+        let hours = Int(seconds) / 3_600
+        let minutes = (Int(seconds) % 3_600) / 60
         
         if hours > 0 {
             return "\(hours)h \(minutes)m"
@@ -367,7 +357,7 @@ struct ActivityCommentsView: View {
     }
     
     private func formatDistance(_ meters: Double) -> String {
-        let kilometers = meters / 1000
+        let kilometers = meters / 1_000
         if kilometers >= 1 {
             return String(format: "%.1f km", kilometers)
         } else {
@@ -378,8 +368,9 @@ struct ActivityCommentsView: View {
     private func loadCurrentUser() {
         Task {
             do {
-                if let userId = container.cloudKitManager.currentUserID {
-                    currentUser = try await container.userProfileService.fetchProfile(userId: userId)
+                if let userID = container.cloudKitManager.currentUserID {
+                    // userID is from cloudKitManager, so it's a CloudKit user ID
+                    currentUser = try await container.userProfileService.fetchProfileByUserID(userID)
                 }
             } catch {
                 print("Failed to load current user: \(error)")
@@ -420,22 +411,23 @@ struct ActivityCommentsView: View {
         feedItem: ActivityFeedItem(
             id: "test-feed-item",
             userID: "user123",
+            username: "runner_sam",
             userProfile: UserProfile(
                 id: "user123",
                 userID: "user123",
                 username: "runner_sam",
                 bio: "Marathon enthusiast",
                 workoutCount: 312,
-                totalXP: 12500,
-                createdTimestamp: Date().addingTimeInterval(-86400 * 500),
-                modifiedTimestamp: Date(),
+                totalXP: 12_500,
+                creationDate: Date().addingTimeInterval(-86_400 * 500),
+                modificationDate: Date(),
                 isVerified: true,
                 privacyLevel: .publicProfile,
                 profileImageURL: nil
             ),
             type: .workout,
-            timestamp: Date().addingTimeInterval(-3600),
-            content: ActivityFeedContent(
+            timestamp: Date().addingTimeInterval(-3_600),
+            content: ActivityFeedItemContent(
                 title: "Morning Run",
                 subtitle: "Great workout!",
                 details: [
@@ -446,7 +438,7 @@ struct ActivityCommentsView: View {
                     "xpEarned": "25"
                 ]
             ),
-            workoutId: "test-workout-id",
+            workoutID: "test-workout-id",
             kudosCount: 5,
             commentCount: 3,
             hasKudoed: false

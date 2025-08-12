@@ -15,10 +15,9 @@ struct FameFitNotification: Identifiable, Codable {
     let actions: [NotificationAction]
 
     // Grouping support
-    let groupId: String?
+    let groupID: String?
 
     // Legacy support - will be removed in future
-    let character: FameFitCharacter?
     let workoutDuration: Int? // minutes
     let calories: Int?
     let followersEarned: Int?
@@ -29,7 +28,7 @@ struct FameFitNotification: Identifiable, Codable {
         body: String,
         metadata: NotificationMetadataContainer? = nil,
         actions: [NotificationAction] = [],
-        groupId: String? = nil
+        groupID: String? = nil
     ) {
         id = UUID().uuidString
         self.type = type
@@ -39,10 +38,9 @@ struct FameFitNotification: Identifiable, Codable {
         isRead = false
         self.metadata = metadata
         self.actions = actions
-        self.groupId = groupId
+        self.groupID = groupID
 
         // Legacy fields - set to nil for new notifications
-        character = nil
         workoutDuration = nil
         calories = nil
         followersEarned = nil
@@ -52,7 +50,6 @@ struct FameFitNotification: Identifiable, Codable {
     init(
         title: String,
         body: String,
-        character: FameFitCharacter,
         workoutDuration: Int,
         calories: Int,
         followersEarned: Int = 5
@@ -61,14 +58,13 @@ struct FameFitNotification: Identifiable, Codable {
         type = .workoutCompleted // Default to workout completed for legacy
         self.title = title
         self.body = body
-        self.character = character
         timestamp = Date()
         self.workoutDuration = workoutDuration
         self.calories = calories
         self.followersEarned = followersEarned
         isRead = false
         metadata = .workout(WorkoutNotificationMetadata(
-            workoutId: nil,
+            workoutID: nil,
             workoutType: nil,
             duration: workoutDuration,
             calories: calories,
@@ -77,7 +73,7 @@ struct FameFitNotification: Identifiable, Codable {
             averageHeartRate: nil
         ))
         actions = []
-        groupId = nil
+        groupID = nil
     }
 
     // Explicit Codable implementation to handle the custom init
@@ -99,10 +95,9 @@ struct FameFitNotification: Identifiable, Codable {
 
         metadata = try? container.decode(NotificationMetadataContainer.self, forKey: .metadata)
         actions = (try? container.decode([NotificationAction].self, forKey: .actions)) ?? []
-        groupId = try? container.decode(String.self, forKey: .groupId)
+        groupID = try? container.decode(String.self, forKey: .groupID)
 
         // Legacy fields - decode if present
-        character = try? container.decode(FameFitCharacter.self, forKey: .character)
         workoutDuration = try? container.decode(Int.self, forKey: .workoutDuration)
         calories = try? container.decode(Int.self, forKey: .calories)
         followersEarned = try? container.decode(Int.self, forKey: .followersEarned)

@@ -8,7 +8,7 @@
 @testable import FameFit
 import Foundation
 
-final class MockWorkoutChallengesService: WorkoutChallengesServicing {
+final class MockWorkoutChallengesService: WorkoutChallengesProtocol {
     // MARK: - Properties
 
     var challenges: [WorkoutChallenge] = []
@@ -70,7 +70,7 @@ final class MockWorkoutChallengesService: WorkoutChallengesServicing {
         )
     }
 
-    // MARK: - WorkoutChallengesServicing
+    // MARK: - WorkoutChallengesProtocol
 
     func createChallenge(_ challenge: WorkoutChallenge) async throws -> WorkoutChallenge {
         createChallengeCallCount += 1

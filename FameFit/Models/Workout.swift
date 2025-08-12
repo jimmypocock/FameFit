@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 struct Workout: Identifiable, Codable {
-    let id: UUID
+    let id: String
     let workoutType: String
     let startDate: Date
     let endDate: Date
@@ -13,16 +13,17 @@ struct Workout: Identifiable, Codable {
     let followersEarned: Int // Deprecated - use xpEarned
     let xpEarned: Int?
     let source: String
+    let groupWorkoutID: String? // Reference to associated GroupWorkout if any
 
     // Computed property for backward compatibility
     var effectiveXPEarned: Int {
         xpEarned ?? followersEarned
     }
 
-    // Custom decoding to handle missing xpEarned
+    // Custom decoding to handle missing xpEarned and groupWorkoutID
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
+        id = try container.decode(String.self, forKey: .id)
         workoutType = try container.decode(String.self, forKey: .workoutType)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decode(Date.self, forKey: .endDate)
@@ -33,11 +34,12 @@ struct Workout: Identifiable, Codable {
         followersEarned = try container.decode(Int.self, forKey: .followersEarned)
         xpEarned = try container.decodeIfPresent(Int.self, forKey: .xpEarned)
         source = try container.decode(String.self, forKey: .source)
+        groupWorkoutID = try container.decodeIfPresent(String.self, forKey: .groupWorkoutID)
     }
 
     // Standard init
     init(
-        id: UUID,
+        id: String,
         workoutType: String,
         startDate: Date,
         endDate: Date,
@@ -47,7 +49,8 @@ struct Workout: Identifiable, Codable {
         averageHeartRate: Double?,
         followersEarned: Int,
         xpEarned: Int?,
-        source: String
+        source: String,
+        groupWorkoutID: String? = nil
     ) {
         self.id = id
         self.workoutType = workoutType
@@ -60,6 +63,7 @@ struct Workout: Identifiable, Codable {
         self.followersEarned = followersEarned
         self.xpEarned = xpEarned
         self.source = source
+        self.groupWorkoutID = groupWorkoutID
     }
 
     var formattedDuration: String {
@@ -83,8 +87,8 @@ struct Workout: Identifiable, Codable {
 }
 
 extension Workout {
-    init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil) {
-        id = UUID()
+    init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil, groupWorkoutID: String? = nil) {
+        id = UUID().uuidString
         workoutType = workout.workoutActivityType.displayName
         startDate = workout.startDate
         endDate = workout.endDate
@@ -107,6 +111,7 @@ extension Workout {
         averageHeartRate = workout.averageHeartRate?.doubleValue(for: .count().unitDivided(by: .minute()))
         self.followersEarned = followersEarned
         source = workout.sourceRevision.source.name
+        self.groupWorkoutID = groupWorkoutID
     }
 }
 

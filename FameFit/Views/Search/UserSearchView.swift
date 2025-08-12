@@ -16,7 +16,7 @@ struct UserSearchView: View {
     @State private var searchResults: [UserProfile] = []
     @State private var isSearching = false
     @State private var error: String?
-    @State private var selectedUserId: String?
+    @State private var selectedUserID: String?
     @State private var showingProfile = false
 
     // Rate limiting
@@ -24,15 +24,15 @@ struct UserSearchView: View {
     @State private var searchDebounceTimer: Timer?
     @State private var remainingSearches = 20
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 
-    private var rateLimiter: RateLimitingServicing {
+    private var rateLimiter: RateLimitingProtocol {
         container.rateLimitingService
     }
 
-    private var currentUserId: String? {
+    private var currentUserID: String? {
         container.cloudKitManager.currentUserID
     }
 
@@ -89,8 +89,8 @@ struct UserSearchView: View {
                 }
             }
             .sheet(isPresented: $showingProfile) {
-                if let userId = selectedUserId {
-                    ProfileView(userId: userId)
+                if let userID = selectedUserID{
+                    ProfileView(userID: userID)
                 }
             }
         }
@@ -172,7 +172,7 @@ struct UserSearchView: View {
                 ForEach(searchResults) { profile in
                     UserSearchRow(profile: profile)
                         .onTapGesture {
-                            selectedUserId = profile.id
+                            selectedUserID = profile.id
                             showingProfile = true
                         }
 
@@ -217,7 +217,7 @@ struct UserSearchView: View {
                 ForEach(suggestedUsers.prefix(5)) { profile in
                     UserSearchRow(profile: profile, showRank: true)
                         .onTapGesture {
-                            selectedUserId = profile.id
+                            selectedUserID = profile.id
                             showingProfile = true
                         }
 
@@ -261,26 +261,26 @@ struct UserSearchView: View {
     }
 
     private func performSearch(_ query: String) async {
-        guard let currentUserId else { return }
+        guard let currentUserID else { return }
 
         isSearching = true
         error = nil
 
         do {
             // Check rate limit
-            _ = try await rateLimiter.checkLimit(for: .search, userId: currentUserId)
+            _ = try await rateLimiter.checkLimit(for: .search, userID: currentUserID)
 
             // Perform search
             let results = try await profileService.searchProfiles(query: query, limit: 20)
 
             // Filter out self and apply privacy filters
             searchResults = results.filter { profile in
-                profile.id != currentUserId &&
+                profile.id != currentUserID &&
                     profile.privacyLevel != .privateProfile
             }
 
             // Record action
-            await rateLimiter.recordAction(.search, userId: currentUserId)
+            await rateLimiter.recordAction(.search, userID: currentUserID)
 
             // Update remaining searches
             await updateRemainingSearches()
@@ -296,8 +296,8 @@ struct UserSearchView: View {
     }
 
     private func updateRemainingSearches() async {
-        guard let currentUserId else { return }
-        remainingSearches = await rateLimiter.getRemainingActions(for: .search, userId: currentUserId)
+        guard let currentUserID else { return }
+        remainingSearches = await rateLimiter.getRemainingActions(for: .search, userID: currentUserID)
     }
 
     private func loadSuggestedUsers() async {

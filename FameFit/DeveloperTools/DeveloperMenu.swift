@@ -13,12 +13,14 @@ enum DeveloperSheetType: Identifiable {
     case personaPicker
     case profilePicker
     case navigationDebug
+    case groupWorkoutDebug
     
     var id: String {
         switch self {
         case .personaPicker: return "personaPicker"
         case .profilePicker: return "profilePicker"
         case .navigationDebug: return "navigationDebug"
+        case .groupWorkoutDebug: return "groupWorkoutDebug"
         }
     }
 }
@@ -122,6 +124,34 @@ struct DeveloperMenu: View {
                             }
                             
                             Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Group Workout Debug
+                    Button(action: { sheetType = .groupWorkoutDebug }) {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                                .font(.title3)
+                                .frame(width: 30)
+                                .foregroundColor(.indigo)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Group Workout Debug")
+                                    .font(.headline)
+                                Text("Test Watch-Phone sync scenarios")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -302,6 +332,9 @@ struct DeveloperMenu: View {
                                    })
             case .navigationDebug:
                 NavigationDebugView()
+            case .groupWorkoutDebug:
+                GroupWorkoutDebugView()
+                    .environment(\.dependencyContainer, dependencyContainer)
             }
         }
         .task {
@@ -353,27 +386,32 @@ struct DeveloperMenu: View {
     private func recalculateStats() {
         Task {
             isLoading = true
-            message = "Recalculating stats..."
+            message = "Verifying and recalculating all counts..."
             
             do {
-                // Use the environment dependency container
+                // Use the new CountVerificationService
                 let container = dependencyContainer
-                let cloudKitManager = container.cloudKitManager
+                let verificationService = container.countVerificationService
                 
-                try await cloudKitManager.recalculateUserStats()
+                // Force verification (marks as verified after completion)
+                let result = try await verificationService.verifyAllCounts()
                 
-                message = "✅ Stats recalculated successfully!"
+                if result.xpCorrected || result.workoutCountCorrected {
+                    message = "✅ Counts corrected!\n\(result.summary)"
+                } else {
+                    message = "✅ All counts verified correctly!"
+                }
                 
                 // Trigger profile refresh
                 NotificationCenter.default.post(name: Notification.Name("RefreshUserProfile"), object: nil)
             } catch {
-                message = "❌ Failed to recalculate: \(error.localizedDescription)"
+                message = "❌ Failed to verify counts: \(error.localizedDescription)"
             }
             
             isLoading = false
             
             // Clear message after delay
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds to read the summary
             message = ""
         }
     }
@@ -726,7 +764,7 @@ extension Notification.Name {
 // MARK: - Shake Detection
 
 extension UIWindow {
-    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+    override open func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         super.motionEnded(motion, with: event)
         
         if motion == .motionShake {

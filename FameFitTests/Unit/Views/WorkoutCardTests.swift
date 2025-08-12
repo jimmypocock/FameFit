@@ -27,7 +27,7 @@ class WorkoutCardTests: XCTestCase {
         )
 
         let kudosSummary = WorkoutKudosSummary(
-            workoutId: workout.id.uuidString,
+            workoutId: workout.id,
             totalCount: 3,
             hasUserKudos: false,
             recentUsers: []

@@ -228,7 +228,7 @@ struct CreateChallengeView: View {
 
     private func createChallenge() {
         guard let targetValueDouble = Double(targetValue),
-              let currentUserId = container.cloudKitManager.currentUserID
+              let currentUserID = container.cloudKitManager.currentUserID
         else {
             error = "Invalid input values"
             return
@@ -244,19 +244,22 @@ struct CreateChallengeView: View {
                 var participants = [ChallengeParticipant]()
 
                 // Add creator
-                if let creatorProfile = try? await container.userProfileService.fetchProfile(userId: currentUserId) {
+                // currentUserID is from cloudKitManager, so it's a CloudKit user ID
+                if let creatorProfile = try? await container.userProfileService.fetchProfileByUserID(currentUserID) {
                     participants.append(ChallengeParticipant(
-                        id: currentUserId,
+                        id: currentUserID,
                         username: creatorProfile.username,
                         profileImageURL: creatorProfile.profileImageURL
                     ))
                 }
 
                 // Add selected friends
-                for friendId in selectedFriends {
-                    if let profile = try? await container.userProfileService.fetchProfile(userId: friendId) {
+                for friendID in selectedFriends {
+                    // friendID from selectedFriends - need to check if it's CloudKit ID or profile ID
+                    // Since selectedFriends likely comes from social service, it's probably profile IDs
+                    if let profile = try? await container.userProfileService.fetchProfile(userID: friendID) {
                         participants.append(ChallengeParticipant(
-                            id: friendId,
+                            id: friendID,
                             username: profile.username,
                             profileImageURL: profile.profileImageURL
                         ))
@@ -265,7 +268,7 @@ struct CreateChallengeView: View {
 
                 let challenge = WorkoutChallenge(
                     id: UUID().uuidString,
-                    creatorId: currentUserId,
+                    creatorID: currentUserID,
                     participants: participants,
                     type: challengeType,
                     targetValue: targetValueDouble,
@@ -276,9 +279,9 @@ struct CreateChallengeView: View {
                         challengeDescription,
                     startDate: Date(),
                     endDate: Date().addingTimeInterval(Double(duration) * 24 * 3_600),
-                    createdTimestamp: Date(),
+                    creationDate: Date(),
                     status: .pending,
-                    winnerId: nil,
+                    winnerID: nil,
                     xpStake: Int(xpStake) ?? 0,
                     winnerTakesAll: winnerTakesAll,
                     isPublic: isPublic,
@@ -391,10 +394,10 @@ struct FriendPickerView: View {
     }
 
     private func loadFriends() async {
-        guard let currentUserId = container.cloudKitManager.currentUserID else { return }
+        guard let currentUserID = container.cloudKitManager.currentUserID else { return }
 
         do {
-            let following = try await container.socialFollowingService.getFollowing(for: currentUserId, limit: 100)
+            let following = try await container.socialFollowingService.getFollowing(for: currentUserID, limit: 100)
             friends = following
             isLoading = false
         } catch {

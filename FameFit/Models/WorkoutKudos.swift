@@ -12,30 +12,30 @@ import Foundation
 
 struct WorkoutKudos: Identifiable, Codable, Equatable {
     let id: String
-    let workoutId: String
+    let workoutID: String
     let userID: String // User who gave the kudos
-    let workoutOwnerId: String // User who owns the workout
-    let createdTimestamp: Date
+    let workoutOwnerID: String // User who owns the workout
+    let creationDate: Date
 
     init(
         id: String = UUID().uuidString,
-        workoutId: String,
+        workoutID: String,
         userID: String,
-        workoutOwnerId: String,
-        createdTimestamp: Date = Date()
+        workoutOwnerID: String,
+        creationDate: Date = Date()
     ) {
         self.id = id
-        self.workoutId = workoutId
+        self.workoutID = workoutID
         self.userID = userID
-        self.workoutOwnerId = workoutOwnerId
-        self.createdTimestamp = createdTimestamp
+        self.workoutOwnerID = workoutOwnerID
+        self.creationDate = creationDate
     }
 }
 
 // MARK: - Kudos Summary
 
 struct WorkoutKudosSummary: Codable, Equatable {
-    let workoutId: String
+    let workoutID: String
     let totalCount: Int
     let hasUserKudos: Bool // Whether current user has given kudos
     let recentUsers: [KudosUser] // Recent users who gave kudos
@@ -54,29 +54,29 @@ extension WorkoutKudos {
 
     init?(record: CKRecord) {
         guard record.recordType == Self.recordType,
-              let workoutId = record["workoutId"] as? String,
+              let workoutID = record["workoutID"] as? String,
               let userID = record["userID"] as? String,
-              let workoutOwnerId = record["workoutOwnerId"] as? String,
-              let createdTimestamp = record["createdTimestamp"] as? Date
+              let workoutOwnerID = record["workoutOwnerID"] as? String,
+              let creationDate = record.creationDate
         else {
             return nil
         }
 
         id = record.recordID.recordName
-        self.workoutId = workoutId
+        self.workoutID = workoutID
         self.userID = userID
-        self.workoutOwnerId = workoutOwnerId
-        self.createdTimestamp = createdTimestamp
+        self.workoutOwnerID = workoutOwnerID
+        self.creationDate = creationDate
     }
 
     func toCloudKitRecord(in _: CKDatabase) -> CKRecord {
         let recordID = CKRecord.ID(recordName: id)
         let record = CKRecord(recordType: Self.recordType, recordID: recordID)
 
-        record["workoutId"] = workoutId
+        record["workoutID"] = workoutID
         record["userID"] = userID
-        record["workoutOwnerId"] = workoutOwnerId
-        record["createdTimestamp"] = createdTimestamp
+        record["workoutOwnerID"] = workoutOwnerID
+        
 
         return record
     }

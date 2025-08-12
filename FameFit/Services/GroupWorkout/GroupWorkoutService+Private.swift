@@ -30,8 +30,8 @@ extension GroupWorkoutService {
             throw GroupWorkoutError.invalidWorkout("Max participants must be greater than 0")
         }
         
-        guard workout.maxParticipants <= 50 else {
-            throw GroupWorkoutError.invalidWorkout("Max participants cannot exceed 50")
+        guard workout.maxParticipants <= GroupWorkout.Constants.maxParticipantsLimit else {
+            throw GroupWorkoutError.invalidWorkout("Max participants cannot exceed \(GroupWorkout.Constants.maxParticipantsLimit)")
         }
         
         // Validate workout duration (max 4 hours)
@@ -49,72 +49,75 @@ extension GroupWorkoutService {
     
     // MARK: - Caching
     
-    func getCachedWorkout(_ workoutId: String) async -> GroupWorkout? {
-        await cache.get(workoutId: workoutId, expiration: cacheExpiration)
+    func getCachedWorkout(_ workoutID: String) async -> GroupWorkout? {
+        await cache.get(workoutID: workoutID, expiration: cacheExpiration)
     }
     
     func cacheWorkout(_ workout: GroupWorkout) async {
         await cache.store(workout: workout)
     }
     
-    func shouldUpdateCloudKit(for workoutId: String) async -> Bool {
-        await cache.shouldThrottle(workoutId: workoutId, interval: 5.0)
+    func shouldUpdateCloudKit(for workoutID: String) async -> Bool {
+        await cache.shouldThrottle(workoutID: workoutID, interval: 5.0)
     }
     
     // MARK: - Notifications
     
-    func notifyHostOfNewParticipant(_ workout: GroupWorkout, participantId: String) async {
+    func notifyHostOfNewParticipant(_ workout: GroupWorkout, participantID: String) async {
         FameFitLogger.info("Notifying host of new participant", category: FameFitLogger.social)
         
-        guard workout.hostId != participantId else { return }
+        guard workout.hostID != participantID else { return }
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notification would be sent to host about new participant", category: FameFitLogger.social)
+        // Fetch participant profile
+        // participantID is a CloudKit user ID (from participant records), use fetchProfileByUserID
+        guard let participant = try? await userProfileService.fetchProfileByUserID(participantID) else {
+            FameFitLogger.warning("Could not fetch participant profile for notification", category: FameFitLogger.social)
+            return
+        }
+        
+        await notificationManager.notifyGroupWorkoutParticipantJoined(workout: workout, participant: participant)
     }
     
     func notifyParticipantsOfUpdate(_ workout: GroupWorkout) async {
         FameFitLogger.info("Notifying participants of workout update", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout update", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutUpdate(workout: workout, changeType: "updated")
     }
     
     func notifyParticipantsOfCancellation(_ workout: GroupWorkout) async {
         FameFitLogger.info("Notifying participants of workout cancellation", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout cancellation", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutCancellation(workout: workout)
     }
     
     func notifyParticipantsOfStart(_ workout: GroupWorkout, startedBy: String) async {
         FameFitLogger.info("Notifying participants of workout start", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notifications would be sent to participants about workout start", category: FameFitLogger.social)
+        await notificationManager.notifyGroupWorkoutStart(workout: workout)
     }
     
-    func notifyUserOfInvite(userId: String, workout: GroupWorkout) async {
+    func notifyUserOfInvite(userID: String, workout: GroupWorkout) async {
         FameFitLogger.info("Notifying user of workout invite", category: FameFitLogger.social)
         
-        // TODO: Implement push notifications when CloudKitPushNotificationService is available
-        FameFitLogger.debug("Push notification would be sent to user about workout invite", category: FameFitLogger.social)
+        // Fetch host profile
+        // workout.hostID is a CloudKit user ID (compared with cloudKitManager.currentUserID), use fetchProfileByUserID
+        guard let host = try? await userProfileService.fetchProfileByUserID(workout.hostID) else {
+            FameFitLogger.warning("Could not fetch host profile for notification", category: FameFitLogger.social)
+            return
+        }
+        
+        await notificationManager.notifyGroupWorkoutInvite(workout: workout, from: host)
     }
     
     func scheduleWorkoutReminder(_ workout: GroupWorkout) async {
         FameFitLogger.info("Scheduling workout reminder", category: FameFitLogger.social)
         
-        // Schedule reminder 15 minutes before workout
-        let reminderDate = workout.scheduledStart.addingTimeInterval(-900)
-        
-        guard reminderDate > Date() else { return }
-        
-        // TODO: Implement local notification scheduling
-        FameFitLogger.debug("Local notification would be scheduled for workout reminder", category: FameFitLogger.social)
+        await notificationManager.scheduleGroupWorkoutReminder(workout: workout)
     }
     
     // MARK: - XP & Rewards
     
-    func awardGroupWorkoutXP(_ workout: GroupWorkout, for userId: String) async {
+    func awardGroupWorkoutXP(_ workout: GroupWorkout, for userID: String) async {
         FameFitLogger.info("Awarding XP for group workout completion", category: FameFitLogger.social)
         
         // Base XP for completing a group workout
@@ -128,7 +131,7 @@ extension GroupWorkoutService {
         
         // Award XP through user profile service
         // NOTE: UserProfile.totalXP appears to be immutable, would need to check if there's an XP service
-        FameFitLogger.info("Would award \(totalXP) XP to user \(userId) for group workout", category: FameFitLogger.social)
+        FameFitLogger.info("Would award \(totalXP) XP to user \(userID) for group workout", category: FameFitLogger.social)
     }
     
     // MARK: - Subscriptions
@@ -181,7 +184,7 @@ extension GroupWorkoutService {
                 
                 if let record = records.first,
                    let participant = GroupWorkoutParticipant(from: record) {
-                    sendUpdate(.participantDataUpdated(workoutId: participant.groupWorkoutId, participant: participant))
+                    sendUpdate(.participantDataUpdated(workoutID: participant.groupWorkoutID, participant: participant))
                 }
             } catch {
                 FameFitLogger.error("Failed to handle participant notification", error: error, category: FameFitLogger.social)

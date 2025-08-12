@@ -24,19 +24,21 @@ struct ProfileView: View {
     @State private var showingFollowersList = false
     @State private var selectedFollowTab: FollowListTab = .followers
     @State private var showUnfollowConfirmation = false
+    @State private var isVerifyingStats = false
+    @State private var statsVerificationMessage: String?
 
-    let userId: String
+    let userID: String
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 
-    private var socialService: SocialFollowingServicing {
+    private var socialService: SocialFollowingProtocol {
         container.socialFollowingService
     }
 
     private var isOwnProfile: Bool {
-        userId == container.cloudKitManager.currentUserID
+        userID == container.cloudKitManager.currentUserID
     }
 
     var body: some View {
@@ -91,7 +93,7 @@ struct ProfileView: View {
             }
         }
         .sheet(isPresented: $showingFollowersList) {
-            FollowersListView(userId: userId, initialTab: selectedFollowTab)
+            FollowersListView(userID: userID, initialTab: selectedFollowTab)
         }
     }
 
@@ -103,8 +105,13 @@ struct ProfileView: View {
                 // Profile Header
                 profileHeader(profile)
 
-                // Stats Grid
+                // Stats Grid with refresh capability for own profile
                 statsGrid(profile)
+                
+                // Refresh Stats button for own profile
+                if isOwnProfile {
+                    refreshStatsSection
+                }
 
                 // Bio Section
                 if !profile.bio.isEmpty {
@@ -118,6 +125,9 @@ struct ProfileView: View {
                 memberInfo(profile)
             }
             .padding()
+        }
+        .refreshable {
+            await refreshProfile()
         }
     }
 
@@ -414,8 +424,15 @@ struct ProfileView: View {
                     // Use the same method as MainViewModel for current user
                     try await profileService.fetchCurrentUserProfile()
                 } else {
-                    // For other users, we need to use the correct method (this should be fixed in ProfileService)
-                    try await profileService.fetchProfile(userId: userId)
+                    // For other users, determine if userID is CloudKit ID or profile record ID
+                    // CloudKit user IDs start with underscore, profile IDs are UUIDs
+                    if userID.hasPrefix("_") {
+                        // It's a CloudKit user ID
+                        try await profileService.fetchProfileByUserID(userID)
+                    } else {
+                        // It's a profile record ID
+                        try await profileService.fetchProfile(userID: userID)
+                    }
                 }
                 await MainActor.run {
                     profile = loadedProfile
@@ -451,13 +468,13 @@ struct ProfileView: View {
 
     private func loadRelationshipStatus() {
         guard !isOwnProfile,
-              let currentUserId = container.cloudKitManager.currentUserID else { return }
+              let currentUserID = container.cloudKitManager.currentUserID else { return }
 
         Task {
             do {
                 relationshipStatus = try await socialService.checkRelationship(
-                    between: currentUserId,
-                    and: userId
+                    between: currentUserID,
+                    and: userID
                 )
             } catch {
                 // Default to not following on error
@@ -476,20 +493,20 @@ struct ProfileView: View {
             switch relationshipStatus {
             case .following, .mutualFollow:
                 // Unfollow
-                try await socialService.unfollow(userId: userId)
+                try await socialService.unfollow(userID: userID)
                 relationshipStatus = .notFollowing
 
             case .notFollowing:
                 // Follow or request follow
                 if profile.privacyLevel == .privateProfile {
-                    try await socialService.requestFollow(userId: userId, message: nil)
+                    try await socialService.requestFollow(userID: userID, message: nil)
                     relationshipStatus = .pending
                 } else {
-                    try await socialService.follow(userId: userId)
+                    try await socialService.follow(userID: userID)
                     // Check if mutual
                     let newStatus = try await socialService.checkRelationship(
                         between: container.cloudKitManager.currentUserID ?? "",
-                        and: userId
+                        and: userID
                     )
                     relationshipStatus = newStatus
                 }
@@ -522,8 +539,8 @@ struct ProfileView: View {
         Task {
             do {
                 // Load counts in parallel
-                async let followers = socialService.getFollowerCount(for: userId)
-                async let following = socialService.getFollowingCount(for: userId)
+                async let followers = socialService.getFollowerCount(for: userID)
+                async let following = socialService.getFollowingCount(for: userID)
 
                 followerCount = try await followers
                 followingCount = try await following
@@ -532,6 +549,106 @@ struct ProfileView: View {
                 print("Failed to load follower counts: \(error)")
             }
         }
+    }
+    
+    // MARK: - Refresh Stats Section
+    
+    private var refreshStatsSection: some View {
+        VStack(spacing: 12) {
+            if let message = statsVerificationMessage {
+                Text(message)
+                    .font(.caption)
+                    .foregroundColor(.green)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Button(action: {
+                Task {
+                    await verifyStats()
+                }
+            }) {
+                HStack {
+                    if isVerifyingStats {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    Text("Verify Stats")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+            }
+            .disabled(isVerifyingStats)
+            
+            if let lastVerified = profile?.countsLastVerified {
+                Text("Last verified: \(lastVerified, formatter: relativeDateFormatter)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var relativeDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }
+    
+    // MARK: - Refresh Methods
+    
+    private func refreshProfile() async {
+        // Pull-to-refresh action
+        loadProfile()
+        loadFollowerCounts()
+        
+        // Also verify stats if it's own profile
+        if isOwnProfile {
+            await verifyStats()
+        }
+    }
+    
+    private func verifyStats() async {
+        guard isOwnProfile else { return }
+        
+        isVerifyingStats = true
+        statsVerificationMessage = nil
+        
+        do {
+            let result = try await container.countVerificationService.verifyAllCounts()
+            
+            if result.xpCorrected || result.workoutCountCorrected {
+                statsVerificationMessage = "Stats updated: \(result.summary)"
+                
+                // Reload profile to show new counts
+                loadProfile()
+            } else {
+                statsVerificationMessage = "All stats verified ✓"
+            }
+            
+            // Clear message after delay
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                statsVerificationMessage = nil
+            }
+        } catch {
+            print("❌ Verification error: \(error)")
+            statsVerificationMessage = "Verification failed: \(error.localizedDescription)"
+            
+            // Clear message after delay
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds to read error
+                statsVerificationMessage = nil
+            }
+        }
+        
+        isVerifyingStats = false
     }
 }
 
@@ -573,7 +690,7 @@ struct ProfileStatCard: View {
 // MARK: - Preview
 
 #Preview("Own Profile") {
-    ProfileView(userId: "mock-user-1")
+    ProfileView(userID: "mock-user-1")
         .environment(\.dependencyContainer, {
             let container = DependencyContainer()
             // Set up mock data
@@ -582,6 +699,6 @@ struct ProfileStatCard: View {
 }
 
 #Preview("Other User Profile") {
-    ProfileView(userId: "other-user")
+    ProfileView(userID: "other-user")
         .environment(\.dependencyContainer, DependencyContainer())
 }

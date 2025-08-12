@@ -17,6 +17,8 @@
 	<string>FameFit needs access to your workout data to track your fitness journey and award you followers for completed workouts.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>FameFit saves workout data to help track your progress and fitness achievements.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>FameFit needs access to your calendar to add group workout sessions and remind you when they're starting.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

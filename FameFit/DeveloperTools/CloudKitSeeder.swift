@@ -90,7 +90,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "Workouts")
-            record["workoutId"] = workout.id.uuidString
+            record["id"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -172,7 +172,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "WorkoutHistory")
-            record["workoutId"] = workout.id.uuidString
+            record["id"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -209,10 +209,10 @@ final class CloudKitSeeder {
             record["id"] = activity.id
             record["userID"] = activity.userID
             record["activityType"] = activity.activityType
-            record["workoutId"] = activity.workoutId
+            record["workoutID"] = activity.workoutID
             record["content"] = activity.content
             record["visibility"] = activity.visibility
-            record["createdTimestamp"] = activity.createdTimestamp
+            
             record["expiresAt"] = activity.expiresAt
             record["xpEarned"] = activity.xpEarned
             record["achievementName"] = activity.achievementName
@@ -251,13 +251,13 @@ final class CloudKitSeeder {
         print("✅ Cleaned up all data for current user")
     }
     
-    /// Reset user stats fields to zero (instead of deleting the Users record)
+    /// Reset user stats fields to zero in UserProfile record
     private func resetUserStats(for userID: String) async throws {
-        let predicate = NSPredicate(format: "TRUEPREDICATE") // Get the user record
-        let query = CKQuery(recordType: "Users", predicate: predicate)
+        let predicate = NSPredicate(format: "userID == %@", userID)
+        let query = CKQuery(recordType: "UserProfile", predicate: predicate)
         
         do {
-            let (results, _) = try await privateDatabase.records(matching: query)
+            let (results, _) = try await publicDatabase.records(matching: query)
             
             for (_, result) in results {
                 switch result {
@@ -266,25 +266,27 @@ final class CloudKitSeeder {
                     record["totalWorkouts"] = 0
                     record["totalXP"] = 0
                     record["currentStreak"] = 0
+                    record["followersCount"] = 0
+                    record["followingCount"] = 0
                     
                     // Save the updated record
-                    try await privateDatabase.save(record)
-                    print("✅ Reset user stats to zero")
+                    try await publicDatabase.save(record)
+                    print("✅ Reset user profile stats to zero")
                     
                 case .failure(let error):
-                    print("⚠️ Failed to fetch user record: \(error)")
+                    print("⚠️ Failed to fetch user profile: \(error)")
                 }
             }
             
             if results.isEmpty {
-                print("✅ No Users record found (already clean)")
+                print("✅ No UserProfile record found (already clean)")
             }
         } catch let error as CKError where error.code == .unknownItem {
-            print("✅ No Users records found (already clean)")
+            print("✅ No UserProfile records found (already clean)")
         } catch let error as CKError where error.code == .invalidArguments {
-            print("✅ Users record type not found in schema (already clean)")
+            print("✅ UserProfile record type not found in schema (already clean)")
         } catch {
-            print("⚠️ Error resetting user stats: \(error)")
+            print("⚠️ Error resetting user profile stats: \(error)")
         }
     }
     
@@ -316,8 +318,8 @@ final class CloudKitSeeder {
             bio: persona.bio,
             workoutCount: persona.workoutCount,
             totalXP: persona.totalXP,
-            createdTimestamp: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3600)),
-            modifiedTimestamp: Date(),
+            creationDate: Date().addingTimeInterval(-Double(persona.joinedDaysAgo * 24 * 3_600)),
+            modificationDate: Date(),
             isVerified: persona.isVerified,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -367,7 +369,7 @@ final class CloudKitSeeder {
         record["followerID"] = followerID
         record["followingID"] = followingID
         record["status"] = "active"
-        record["createdTimestamp"] = Date()
+        
         record["notificationsEnabled"] = true
         
         do {
@@ -380,7 +382,7 @@ final class CloudKitSeeder {
                 reverseRecord["followerID"] = followingID
                 reverseRecord["followingID"] = followerID
                 reverseRecord["status"] = "active"
-                reverseRecord["createdTimestamp"] = Date()
+                // creationDate is managed by CloudKit automatically
                 reverseRecord["notificationsEnabled"] = true
                 
                 _ = try await publicDatabase.save(reverseRecord)
@@ -400,7 +402,7 @@ final class CloudKitSeeder {
             guard Int.random(in: 0..<100) < getWorkoutFrequency(for: persona) else { continue }
             
             let workoutType = workoutTypes.randomElement() ?? "Running"
-            let date = Date().addingTimeInterval(-Double(dayOffset * 24 * 3600))
+            let date = Date().addingTimeInterval(-Double(dayOffset * 24 * 3_600))
             
             let workout = createWorkout(
                 type: workoutType,
@@ -447,7 +449,7 @@ final class CloudKitSeeder {
         
         // Create workout first to calculate XP
         let workout = Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: type,
             startDate: date,
             endDate: date.addingTimeInterval(duration),
@@ -555,7 +557,7 @@ final class CloudKitSeeder {
             }
         }()
         
-        return (duration / 3600) * speedKmPerHour * 1000 // Convert to meters
+        return (duration / 3_600) * speedKmPerHour * 1_000 // Convert to meters
     }
     
     private func getTypicalHeartRate(for type: String, persona: TestAccountPersona) -> Double? {
@@ -593,7 +595,7 @@ final class CloudKitSeeder {
         // Recent workout activities
         let recentWorkouts = createWorkoutHistory(for: persona).suffix(5)
         for workout in recentWorkouts {
-            let content = ActivityFeedContent(
+            let content = ActivityFeedItemContent(
                 title: "Completed a \(workout.workoutType) workout!",
                 subtitle: "Duration: \(Int(workout.duration / 60)) min | \(Int(workout.totalEnergyBurned)) cal",
                 details: [
@@ -608,12 +610,13 @@ final class CloudKitSeeder {
             let activity = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
+                username: persona.username,
                 activityType: "workout",
-                workoutId: workout.id.uuidString,
+                workoutID: workout.id,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
-                createdTimestamp: workout.endDate,
-                expiresAt: workout.endDate.addingTimeInterval(90 * 24 * 3600),
+                creationDate: workout.endDate,
+                expiresAt: workout.endDate.addingTimeInterval(90 * 24 * 3_600),
                 xpEarned: workout.xpEarned,
                 achievementName: nil
             )
@@ -623,7 +626,7 @@ final class CloudKitSeeder {
         
         // Add some achievements
         if persona.totalXP > 10_000 {
-            let achievementContent = ActivityFeedContent(
+            let achievementContent = ActivityFeedItemContent(
                 title: "Earned the 'Rising Star' achievement!",
                 subtitle: "Reached 10,000 XP",
                 details: ["achievementName": "Rising Star", "xpRequired": "10000"]
@@ -633,12 +636,13 @@ final class CloudKitSeeder {
             let achievement = ActivityFeedRecord(
                 id: UUID().uuidString,
                 userID: userID,
+                username: persona.username,
                 activityType: "achievement",
-                workoutId: nil,
+                workoutID: nil,
                 content: String(data: contentData, encoding: .utf8) ?? "",
                 visibility: "public",
-                createdTimestamp: Date().addingTimeInterval(-7 * 24 * 3600),
-                expiresAt: Date().addingTimeInterval(83 * 24 * 3600),
+                creationDate: Date().addingTimeInterval(-7 * 24 * 3_600),
+                expiresAt: Date().addingTimeInterval(83 * 24 * 3_600),
                 xpEarned: 0,
                 achievementName: "Rising Star"
             )

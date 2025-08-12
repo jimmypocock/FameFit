@@ -63,19 +63,27 @@ struct EnhancedWorkoutCard: View {
                 VStack(spacing: 16) {
                     // User header
                     HStack(spacing: 12) {
-                        Button(action: onProfileTap) {
-                            ProfileImageView(profile: item.userProfile)
-                                .frame(width: 44, height: 44)
-                        }
+                        // Profile image removed for now
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Text(item.username.prefix(1).uppercased())
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                            )
+                            .onTapGesture {
+                                onProfileTap()
+                            }
 
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
-                                Text(item.userProfile?.username ?? "Unknown")
+                                Text(item.username)
                                     .font(.body)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
 
-                                if item.userProfile?.isVerified == true {
+                                if item.isVerified {
                                     Image(systemName: "checkmark.seal.fill")
                                         .foregroundColor(.white.opacity(0.9))
                                         .font(.caption)
@@ -199,36 +207,9 @@ struct EnhancedWorkoutCard: View {
                         )
                     }
 
-                    // Comments Button
-                    Button(action: { onCommentsTap(item) }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "bubble.left")
-                                .foregroundColor(.secondary)
-
-                            if item.commentCount > 0 {
-                                Text("\(item.commentCount)")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(Color.secondary.opacity(0.1))
-                        )
-                    }
+                    // Comments removed for now
 
                     Spacer()
-
-                    // Quick Reactions
-                    QuickReactionsView { _ in
-                        // Handle quick reaction
-                        Task {
-                            showKudosAnimation = true
-                            await onKudosTap(item)
-                        }
-                    }
                 }
             }
             .padding()

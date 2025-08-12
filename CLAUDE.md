@@ -2,13 +2,59 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Implementation Guidelines
+
+### When to Ask Before Implementing
+
+**Always ask for approval BEFORE implementing:**
+- New features or significant functionality changes
+- Database schema changes or migrations
+- Major refactoring that affects multiple files
+- Changes to authentication or security flows
+- Adding new dependencies or third-party libraries
+- Significant UI/UX changes
+- Any solution that has multiple viable approaches
+
+**Go ahead and implement directly:**
+- Bug fixes with clear solutions
+- Small UI tweaks or copy changes
+- Test additions or improvements
+- Documentation updates
+- Performance optimizations that don't change behavior
+- Error handling improvements
+- Code cleanup and formatting
+
+**When presenting options:**
+- Clearly outline 2-3 approaches with pros/cons
+- Recommend the best approach with reasoning
+- Keep explanations concise but complete
+- Wait for confirmation before proceeding with implementation
+
 ## Project Overview
 
 FameFit is a companion iOS and Apple Watch application built with SwiftUI, HealthKit, and CloudKit. The iOS app handles user onboarding, authentication, and displays progress, while the Watch app provides real-time workout tracking. The apps work together as companions, sharing data through CloudKit.
 
 **Important**: This is a companion app setup - the iOS app and Watch app are meant to work together. The Watch app is a dependency of the iOS app and should NOT be removed from target dependencies.
 
+### Xcode Configuration Reminders
+
+**Before creating workarounds or duplicate files:**
+- If a file is missing from a target, suggest adding it to the target in Xcode instead of creating a duplicate
+- When compilation errors indicate missing files in Watch/iOS targets, ask the user to add the file to the appropriate target in Xcode
+- Never create minimal/duplicate versions of existing files just to satisfy compilation errors
+- Always prefer Xcode target membership configuration over code duplication
+
 ## Development Philosophy
+
+### Swift Best Practices
+**NEVER use timing hacks or workarounds:**
+- ❌ Never use `Task.sleep()` or `Thread.sleep()` to fix timing issues
+- ❌ Never use `DispatchQueue.main.asyncAfter` as a workaround for state management
+- ❌ Never use arbitrary timeouts to "fix" race conditions
+- ✅ Always solve the root cause of timing issues through proper state management
+- ✅ Use proper Swift concurrency patterns (async/await, actors) when needed
+- ✅ Use SwiftUI's built-in state management (@State, @Binding, @Published)
+- ✅ Follow Apple's Human Interface Guidelines and platform conventions
 
 ### Test-Driven Development (TDD)
 This project follows Test-Driven Development principles:
@@ -227,6 +273,25 @@ The app supports launch arguments for UI testing:
 - `--reset-state` - Clears all user data for fresh onboarding tests
 - `--mock-healthkit` - Uses mock HealthKit data
 
+## WatchConnectivity Development Notes
+
+### Known Issue: Watch App Not Detected in Xcode
+When running apps via Xcode on real devices, the iPhone app often reports:
+- `isWatchAppInstalled: false`
+- `WCSession counterpart app not installed`
+
+**This is a known Apple bug** that occurs when apps are installed via Xcode rather than TestFlight/App Store.
+
+### Solutions:
+1. **For Development**: Accept this limitation. Core features can be tested independently on each device.
+2. **For Testing Watch↔iPhone Communication**: Use TestFlight. WatchConnectivity works perfectly when apps are installed via TestFlight or App Store.
+3. **Debug Logs**: The app includes DEBUG-only warnings when this issue is detected.
+
+### Important:
+- Do NOT implement workarounds like CloudKit fallbacks - they add complexity
+- The issue ONLY affects Xcode development builds
+- Production apps work perfectly
+
 ### Common Issues and Solutions
 1. **Test runner crashes**: Run `./Scripts/reset_testing_env.sh`
 2. **Asset catalog errors**: Both iOS and Watch apps have minimal AppIcon.appiconset configurations with only 1024x1024 marketing icons. This may cause command-line build warnings but works in Xcode. For production, add all required icon sizes.
@@ -255,9 +320,36 @@ When creating new CloudKit record types, follow these steps:
 
 This follows Apple's CloudKit naming conventions and ensures consistency across the codebase.
 
+### CloudKit System Fields
+**CRITICAL**: NEVER create custom timestamp fields. CloudKit automatically provides system fields that should always be used:
+- ✅ Use `record.creationDate` for when a record was created
+- ✅ Use `record.modificationDate` for when a record was last modified
+- ❌ NEVER use custom fields like `createdTimestamp`, `modifiedTimestamp`, `updatedAt`, etc.
+
+**Why this matters:**
+1. System fields are automatically managed by CloudKit
+2. They're indexed and optimized for queries
+3. Custom timestamp fields cause "Unknown field" errors
+4. System fields are guaranteed to be accurate and consistent
+
+**In queries:**
+- Use `"creationDate"` not `"createdTimestamp"`
+- Use `"modificationDate"` not `"modifiedTimestamp"`
+
+**In code:**
+```swift
+// ✅ CORRECT - Reading system fields
+let createdAt = record.creationDate
+let modifiedAt = record.modificationDate
+
+// ❌ WRONG - Don't set or read custom timestamp fields
+record["createdTimestamp"] = Date()  // DON'T DO THIS
+let created = record["createdTimestamp"] as? Date  // DON'T DO THIS
+```
+
 ### Example: Workouts Record Type
 Fields configuration:
-- `workoutId` (String) - Queryable, Sortable
+- `workoutID` (String) - Queryable, Sortable
 - `workoutType` (String) - Queryable, Sortable  
 - `startDate` (Date/Time) - Queryable, Sortable
 - `endDate` (Date/Time) - Queryable, Sortable
@@ -267,6 +359,16 @@ Fields configuration:
 - `averageHeartRate` (Double) - Queryable
 - `followersEarned` (Int64) - Queryable
 - `source` (String) - Queryable
+
+Required Index:
+- `___recordID` - QUERYABLE (prevents query errors)
+
+### Example: WorkoutKudos Record Type
+Fields configuration:
+- `workoutID` (String) - Queryable, Sortable
+- `userID` (String) - Queryable (user who gave kudos)
+- `workoutOwnerID` (String) - Queryable (user who owns workout)
+- `createdTimestamp` (Date/Time) - Queryable, Sortable
 
 Required Index:
 - `___recordID` - QUERYABLE (prevents query errors)

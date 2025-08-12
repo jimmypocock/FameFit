@@ -18,14 +18,14 @@ final class WorkoutSharingFlowTests: XCTestCase {
         super.setUp()
 
         // Create mocks for testing
-        let mockCloudKitManager = MockCloudKitManager()
-        let mockAuthManager = AuthenticationManager(cloudKitManager: mockCloudKitManager)
-        let mockWorkoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitManager)
+        let mockCloudKitService = MockCloudKitService()
+        let mockAuthManager = AuthenticationService(cloudKitManager: mockCloudKitService)
+        let mockWorkoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitService)
         let mockActivityFeedService = MockActivityFeedService()
 
         container = DependencyContainer(
             authenticationManager: mockAuthManager,
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             workoutObserver: mockWorkoutObserver,
             activityFeedService: mockActivityFeedService
         )
@@ -78,7 +78,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
         // Share the workout
         try await container.activityFeedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: true
         )
@@ -100,20 +100,20 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testPrivacyEnforcement() async throws {
         // Given - User with restricted privacy settings
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.defaultPrivacy = .private
-        privacySettings.allowPublicSharing = false
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.defaultWorkoutPrivacy = .private
+        userSettings.allowPublicSharing = false
 
         let restrictedService = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         let workout = createTestWorkout()
 
         // When - Try to share publicly (should be blocked)
         try await restrictedService.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .public,
             includeDetails: true
         )
@@ -124,20 +124,20 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testWorkoutTypeSpecificPrivacy() async throws {
         // Given - Different privacy settings for different workout types
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.defaultPrivacy = .friendsOnly
-        privacySettings.setPrivacyLevel(.private, for: .yoga) // Yoga is always private
-        privacySettings.setPrivacyLevel(.public, for: .running) // Running can be public
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.defaultWorkoutPrivacy = .friendsOnly
+        userSettings.setPrivacyLevel(.private, for: .yoga) // Yoga is always private
+        userSettings.setPrivacyLevel(.public, for: .running) // Running can be public
 
         let service = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         // When - Share a yoga workout
         let yogaWorkout = createTestWorkout(workoutType: "yoga")
         try await service.postWorkoutActivity(
-            workoutHistory: yogaWorkout,
+            workout: yogaWorkout,
             privacy: .public, // Try to share publicly
             includeDetails: true
         )
@@ -147,7 +147,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
         // When - Share a running workout
         let runningWorkout = createTestWorkout(workoutType: "running")
         try await service.postWorkoutActivity(
-            workoutHistory: runningWorkout,
+            workout: runningWorkout,
             privacy: .public,
             includeDetails: true
         )
@@ -159,19 +159,19 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testDataSharingPreferences() async throws {
         // Given - User who doesn't want to share workout details
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.allowDataSharing = false
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.allowDataSharing = false
 
         let service = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         let workout = createTestWorkout()
 
         // When - Share with details requested
         try await service.postWorkoutActivity(
-            workoutHistory: workout,
+            workout: workout,
             privacy: .friendsOnly,
             includeDetails: true // This should be ignored
         )
@@ -225,7 +225,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
         // When/Then
         do {
             try await mockService.postWorkoutActivity(
-                workoutHistory: workout,
+                workout: workout,
                 privacy: .public,
                 includeDetails: true
             )
@@ -256,7 +256,7 @@ final class WorkoutSharingFlowTests: XCTestCase {
                 for index in 0 ..< 10 {
                     let workout = createTestWorkout(followersEarned: index * 10)
                     try? await mockService.postWorkoutActivity(
-                        workoutHistory: workout,
+                        workout: workout,
                         privacy: .friendsOnly,
                         includeDetails: true
                     )

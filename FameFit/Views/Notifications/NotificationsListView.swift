@@ -1,14 +1,5 @@
 import SwiftUI
 
-// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
-private extension Date {
-    var relativeDisplayString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: self, relativeTo: Date())
-    }
-}
-
 struct NotificationsListView: View {
     @EnvironmentObject var notificationStore: NotificationStore
     @Environment(\.dismiss) var dismiss
@@ -84,7 +75,7 @@ struct NotificationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(notification.character?.emoji ?? notification.type.icon)
+                Text(notification.type.icon)
                     .font(.title2)
 
                 VStack(alignment: .leading, spacing: 2) {

@@ -28,6 +28,8 @@ struct SessionPagingView: View {
      */
 
     @EnvironmentObject private var workoutManager: WorkoutManager
+    @EnvironmentObject private var accountService: AccountVerificationService
+    @EnvironmentObject private var navigationCoordinator: WatchNavigationCoordinator
     @State private var selection: Tab = .metrics
 
     enum Tab {
@@ -52,8 +54,20 @@ struct SessionPagingView: View {
             PageTabViewStyle(indexDisplayMode: isLuminanceReduced ? .never : .automatic)
         )
         .onAppear {
+            FameFitLogger.debug("📍 SessionPagingView: onAppear called", category: FameFitLogger.sync)
             if let workout = workoutManager.selectedWorkout {
                 workoutManager.startWorkout(workoutType: workout)
+            }
+        }
+        .onDisappear {
+            FameFitLogger.debug("📍 SessionPagingView: onDisappear called", category: FameFitLogger.sync)
+        }
+        .onChange(of: workoutManager.completedWorkout) { oldValue, completedWorkout in
+            FameFitLogger.debug("📍 SessionPagingView: completedWorkout changed from \(oldValue?.uuid.uuidString ?? "nil") to \(completedWorkout?.uuid.uuidString ?? "nil")", category: FameFitLogger.sync)
+            if completedWorkout != nil {
+                // Navigate to summary when workout completes
+                FameFitLogger.debug("📍 SessionPagingView: Calling showSummary", category: FameFitLogger.sync)
+                navigationCoordinator.showSummary(workout: completedWorkout)
             }
         }
     }

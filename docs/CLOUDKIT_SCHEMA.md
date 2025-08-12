@@ -40,7 +40,6 @@ Stores user profile information.
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
 | displayName | String | Yes | Yes | No | Display name |
-| influencerXP | Int64 | Yes* | Yes | Yes | DEPRECATED - Use totalXP |
 | totalXP | Int64 | Yes | Yes | Yes | Total XP earned (source of truth) |
 | totalWorkouts | Int64 | Yes | Yes | Yes | Total workouts completed (source of truth) |
 | currentStreak | Int64 | Yes | Yes | No | Current workout streak |
@@ -48,8 +47,6 @@ Stores user profile information.
 | joinTimestamp | Date | Yes | Yes | No | When user joined |
 
 *Note: This is the source of truth for all user statistics. The public UserProfiles table contains cached copies of these values.*
-
-**Migration Note**: The `influencerXP` field is deprecated but kept for backward compatibility. The app writes to both `influencerXP` and `totalXP` fields but reads preferentially from `totalXP`.
 
 #### Workouts
 Stores individual workout records.
@@ -225,7 +222,7 @@ Stores comments on any activity type (workouts, achievements, level ups, milesto
 
 | Field | Type | Required | Queryable | Indexed | Description |
 |-------|------|----------|-----------|---------|-------------|
-| activityFeedId | String | Yes | Yes | Yes | ID of the ActivityFeed item |
+| activityFeedID | String | Yes | Yes | Yes | ID of the ActivityFeed item |
 | sourceType | String | Yes | Yes | Yes | Type: "workout", "achievement", "level_up", etc. |
 | sourceRecordId | String | Yes | Yes | Yes | ID of the source record (workout ID, achievement ID, etc.) |
 | userId | String | Yes | Yes | Yes | User ID who posted comment |
@@ -239,7 +236,7 @@ Stores comments on any activity type (workouts, achievements, level ups, milesto
 
 **Required Indexes**:
 - ___recordID (QUERYABLE) - Critical for preventing query errors
-- activityFeedId (QUERYABLE) - For fetching comments on a specific feed item
+- activityFeedID (QUERYABLE) - For fetching comments on a specific feed item
 - sourceType (QUERYABLE) - For filtering by activity type
 - sourceRecordId (QUERYABLE) - For fetching comments when feed item expires
 - userId (QUERYABLE) - For fetching all comments by a user
@@ -339,20 +336,20 @@ To avoid runtime errors, configure the following in CloudKit Dashboard:
 
 Since CloudKit doesn't support renaming fields, here's how to handle field migrations:
 
-1. **Add the new field** (e.g., `totalXP`) in CloudKit Dashboard
-2. **Keep the old field** (e.g., `influencerXP`) for backward compatibility
+1. **Add the new field** in CloudKit Dashboard
+2. **Keep the old field** temporarily for backward compatibility
 3. **Update code to write to both fields** during transition
 4. **Read preferentially from the new field** with fallback to old field
-5. **After all users update**, you can stop writing to the old field
+5. **After all users update**, remove old field references from code
 
 Example in code:
 ```swift
-// Writing - update both fields
-userRecord["totalXP"] = newValue
-userRecord["influencerXP"] = newValue // Backward compatibility
+// Writing - update both fields during transition
+userRecord["newField"] = newValue
+userRecord["oldField"] = newValue // Backward compatibility
 
-// Reading - try new field first
-let xp = record["totalXP"] as? Int ?? record["influencerXP"] as? Int ?? 0
+// Reading - try new field first with fallback
+let value = record["newField"] as? Int ?? record["oldField"] as? Int ?? 0
 ```
 
 ## Common Errors and Solutions

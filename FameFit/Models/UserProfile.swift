@@ -47,20 +47,30 @@ struct UserProfile: Identifiable, Codable, Equatable {
     let bio: String
 
     // Cached stats from Users table
-    let workoutCount: Int
+    let workoutCount: Int  // TODO: Rename to totalWorkouts for consistency
     let totalXP: Int
-    let createdTimestamp: Date
+    let creationDate: Date
 
     // Profile-specific fields
-    let modifiedTimestamp: Date // For cache invalidation
+    let modificationDate: Date // For cache invalidation
     let isVerified: Bool
     let privacyLevel: ProfilePrivacyLevel
 
     // Image URLs will be stored as strings after upload
     var profileImageURL: String?
     var headerImageURL: String?
+    
+    // Count verification metadata
+    var countsLastVerified: Date?
+    var countsVersion: Int?
+    var countsSyncToken: String?
 
     // Computed properties
+    var totalWorkouts: Int {
+        // Alias for workoutCount to maintain consistency
+        return workoutCount
+    }
+    
     var initials: String {
         return String(username.prefix(2)).uppercased()
     }
@@ -68,12 +78,12 @@ struct UserProfile: Identifiable, Codable, Equatable {
     var formattedJoinDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        return "Joined \(formatter.string(from: createdTimestamp))"
+        return "Joined \(formatter.string(from: creationDate))"
     }
 
     var isActive: Bool {
         // Consider active if updated within 7 days
-        modifiedTimestamp.timeIntervalSinceNow > -7 * 24 * 60 * 60
+        modificationDate.timeIntervalSinceNow > -7 * 24 * 60 * 60
     }
 
     // Validation
@@ -83,7 +93,6 @@ struct UserProfile: Identifiable, Codable, Equatable {
         let range = NSRange(location: 0, length: username.utf16.count)
         return regex?.firstMatch(in: username, options: [], range: range) != nil
     }
-
 
     static func isValidBio(_ bio: String) -> Bool {
         bio.count <= 500
@@ -106,8 +115,8 @@ extension UserProfile {
         }
         
         // Use CloudKit's built-in metadata fields
-        let createdTimestamp = record.creationDate ?? Date()
-        let modifiedTimestamp = record.modificationDate ?? Date()
+        let creationDate = record.creationDate ?? Date()
+        let modificationDate = record.modificationDate ?? Date()
 
         id = record.recordID.recordName
         self.userID = userID
@@ -115,8 +124,8 @@ extension UserProfile {
         self.bio = bio
         self.workoutCount = Int(workoutCount)
         self.totalXP = Int(totalXP)
-        self.createdTimestamp = createdTimestamp
-        self.modifiedTimestamp = modifiedTimestamp
+        self.creationDate = creationDate
+        self.modificationDate = modificationDate
         isVerified = (record["isVerified"] as? Int64) == 1
         self.privacyLevel = privacyLevel
         profileImageURL = record["profileImageURL"] as? String
@@ -135,7 +144,7 @@ extension UserProfile {
         record["bio"] = bio
         record["workoutCount"] = Int64(workoutCount)
         record["totalXP"] = Int64(totalXP)
-        // createdTimestamp and modifiedTimestamp are managed by CloudKit automatically
+        // creationDate and modificationDate are managed by CloudKit automatically
         record["isVerified"] = isVerified ? Int64(1) : Int64(0)
         record["privacyLevel"] = privacyLevel.rawValue
 
@@ -160,8 +169,8 @@ extension UserProfile {
         bio: "Just a fitness enthusiast on a journey to get stronger every day! 💪",
         workoutCount: 42,
         totalXP: 12_500,
-        createdTimestamp: Date().addingTimeInterval(-30 * 24 * 60 * 60), // 30 days ago
-        modifiedTimestamp: Date(),
+        creationDate: Date().addingTimeInterval(-30 * 24 * 60 * 60), // 30 days ago
+        modificationDate: Date(),
         isVerified: false,
         privacyLevel: .publicProfile,
         profileImageURL: nil,
@@ -175,8 +184,8 @@ extension UserProfile {
         bio: "Keeping my fitness journey personal",
         workoutCount: 15,
         totalXP: 3_200,
-        createdTimestamp: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 7 days ago
-        modifiedTimestamp: Date(),
+        creationDate: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 7 days ago
+        modificationDate: Date(),
         isVerified: false,
         privacyLevel: .privateProfile,
         profileImageURL: nil,
@@ -192,8 +201,8 @@ extension UserProfile {
             bio: "🏃‍♂️ Running my way to fitness! 26.2 miles at a time.",
             workoutCount: 127,
             totalXP: 45_000,
-            createdTimestamp: Date().addingTimeInterval(-90 * 24 * 60 * 60),
-            modifiedTimestamp: Date().addingTimeInterval(-2 * 60 * 60), // 2 hours ago
+            creationDate: Date().addingTimeInterval(-90 * 24 * 60 * 60),
+            modificationDate: Date().addingTimeInterval(-2 * 60 * 60), // 2 hours ago
             isVerified: true,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -206,8 +215,8 @@ extension UserProfile {
             bio: "🧘‍♀️ Finding balance through movement. Namaste fit!",
             workoutCount: 89,
             totalXP: 28_500,
-            createdTimestamp: Date().addingTimeInterval(-45 * 24 * 60 * 60),
-            modifiedTimestamp: Date().addingTimeInterval(-30 * 60), // 30 min ago
+            creationDate: Date().addingTimeInterval(-45 * 24 * 60 * 60),
+            modificationDate: Date().addingTimeInterval(-30 * 60), // 30 min ago
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -220,8 +229,8 @@ extension UserProfile {
             bio: "💪 Lifting heavy, dreaming bigger. No pain, no gain!",
             workoutCount: 203,
             totalXP: 67_800,
-            createdTimestamp: Date().addingTimeInterval(-120 * 24 * 60 * 60),
-            modifiedTimestamp: Date().addingTimeInterval(-4 * 60 * 60), // 4 hours ago
+            creationDate: Date().addingTimeInterval(-120 * 24 * 60 * 60),
+            modificationDate: Date().addingTimeInterval(-4 * 60 * 60), // 4 hours ago
             isVerified: true,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -234,8 +243,8 @@ extension UserProfile {
             bio: "🚴‍♀️ Exploring the world one pedal at a time!",
             workoutCount: 156,
             totalXP: 52_300,
-            createdTimestamp: Date().addingTimeInterval(-60 * 24 * 60 * 60),
-            modifiedTimestamp: Date().addingTimeInterval(-24 * 60 * 60), // Yesterday
+            creationDate: Date().addingTimeInterval(-60 * 24 * 60 * 60),
+            modificationDate: Date().addingTimeInterval(-24 * 60 * 60), // Yesterday
             isVerified: false,
             privacyLevel: .publicProfile,
             profileImageURL: nil,
@@ -248,8 +257,8 @@ extension UserProfile {
             bio: "🌟 Just started my fitness journey! Every step counts.",
             workoutCount: 8,
             totalXP: 450,
-            createdTimestamp: Date().addingTimeInterval(-14 * 24 * 60 * 60), // 2 weeks ago
-            modifiedTimestamp: Date().addingTimeInterval(-6 * 60 * 60), // 6 hours ago
+            creationDate: Date().addingTimeInterval(-14 * 24 * 60 * 60), // 2 weeks ago
+            modificationDate: Date().addingTimeInterval(-6 * 60 * 60), // 6 hours ago
             isVerified: false,
             privacyLevel: .friendsOnly,
             profileImageURL: nil,

@@ -1,0 +1,270 @@
+//
+//  CommentRowView.swift
+//  FameFit
+//
+//  Individual comment row component with threading support
+//
+
+import SwiftUI
+
+struct CommentRowView: View {
+    let commentWithUser: ActivityFeedCommentWithUser
+    let currentUserID: String?
+    let onReply: (String) -> Void
+    let onEdit: (ActivityFeedComment) -> Void
+    let onDelete: (String) -> Void
+    let onLike: (String) -> Void
+    let onUserTap: (String) -> Void
+
+    @State private var showingActions = false
+    @State private var isLiked = false
+    @State private var likeCount = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                // Thread indicator for replies
+                if commentWithUser.comment.parentCommentID != nil {
+                    VStack {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 2)
+                            .padding(.top, 24)
+
+                        Spacer()
+                    }
+                    .frame(width: 20)
+                }
+
+                // User profile image
+                Button(action: { onUserTap(commentWithUser.user.id) }) {
+                    AsyncImage(url: commentWithUser.user.profileImageURL.flatMap { URL(string: $0) }) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .overlay(
+                                Text(commentWithUser.user.username.prefix(1).uppercased())
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.blue)
+                            )
+                    }
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                }
+
+                // Comment content
+                VStack(alignment: .leading, spacing: 8) {
+                    // User info and timestamp
+                    HStack(alignment: .top, spacing: 8) {
+                        Button(action: { onUserTap(commentWithUser.user.id) }) {
+                            HStack(spacing: 4) {
+                                Text(commentWithUser.user.username)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.primary)
+
+                                if commentWithUser.user.isVerified {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+
+                        Text("@\(commentWithUser.user.username)")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        HStack(spacing: 4) {
+                            Text(timeAgoString)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            if commentWithUser.comment.isEdited {
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Text("edited")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
+                    // Comment text
+                    Text(commentWithUser.comment.content)
+                        .font(.system(size: 15))
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(nil)
+
+                    // Action buttons
+                    HStack(spacing: 16) {
+                        // Like button
+                        Button(action: {
+                            onLike(commentWithUser.comment.id)
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isLiked.toggle()
+                                likeCount += isLiked ? 1 : -1
+                            }
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: isLiked ? "heart.fill" : "heart")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(isLiked ? .red : .gray)
+                                    .scaleEffect(isLiked ? 1.1 : 1.0)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isLiked)
+
+                                if likeCount > 0 {
+                                    Text("\(likeCount)")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+
+                        // Reply button
+                        Button(action: { onReply(commentWithUser.comment.id) }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrowshape.turn.up.left")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+
+                                Text("Reply")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        // More options for own comments
+                        if commentWithUser.comment.userID == currentUserID {
+                            Button(action: { showingActions.toggle() }) {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                            }
+                            .confirmationDialog("Comment Options", isPresented: $showingActions) {
+                                Button("Edit") {
+                                    onEdit(commentWithUser.comment)
+                                }
+
+                                Button("Delete", role: .destructive) {
+                                    onDelete(commentWithUser.comment.id)
+                                }
+
+                                Button("Cancel", role: .cancel) {}
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .onAppear {
+            likeCount = commentWithUser.comment.likeCount
+        }
+    }
+
+    private var timeAgoString: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: commentWithUser.comment.creationDate, relativeTo: Date())
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ScrollView {
+        VStack(spacing: 0) {
+            // Parent comment
+            CommentRowView(
+                commentWithUser: ActivityFeedCommentWithUser(
+                    comment: ActivityFeedComment(
+                        id: "1",
+                        activityFeedID: "feed1",
+                        sourceType: "workout",
+                        sourceID: "workout1",
+                        userID: "user1",
+                        activityOwnerID: "owner1",
+                        content: "Great workout! Your form looked amazing throughout the entire session. Keep it up! 💪",
+                        creationDate: Date().addingTimeInterval(-3_600),
+                        modificationDate: Date().addingTimeInterval(-3_600),
+                        parentCommentID: nil,
+                        isEdited: false,
+                        likeCount: 3
+                    ),
+                    user: UserProfile(
+                        id: "user1",
+                        userID: "user1",
+                        username: "fitnessCoach",
+                        bio: "Certified trainer",
+                        workoutCount: 127,
+                        totalXP: 5_000,
+                        creationDate: Date().addingTimeInterval(-86_400 * 365),
+                        modificationDate: Date(),
+                        isVerified: true,
+                        privacyLevel: .publicProfile,
+                        profileImageURL: nil
+                    )
+                ),
+                currentUserID: "currentUser",
+                onReply: { _ in },
+                onEdit: { _ in },
+                onDelete: { _ in },
+                onLike: { _ in },
+                onUserTap: { _ in }
+            )
+
+            Divider()
+
+            // Reply comment
+            CommentRowView(
+                commentWithUser: ActivityFeedCommentWithUser(
+                    comment: ActivityFeedComment(
+                        id: "2",
+                        activityFeedID: "feed1",
+                        sourceType: "workout",
+                        sourceID: "workout1",
+                        userID: "user2",
+                        activityOwnerID: "owner1",
+                        content: "Thanks for the motivation! 🙏",
+                        creationDate: Date().addingTimeInterval(-1_800),
+                        modificationDate: Date().addingTimeInterval(-1_800),
+                        parentCommentID: "1",
+                        isEdited: false,
+                        likeCount: 1
+                    ),
+                    user: UserProfile(
+                        id: "user2",
+                        userID: "user2",
+                        username: "runner_mike",
+                        bio: "Weekend warrior",
+                        workoutCount: 45,
+                        totalXP: 1_200,
+                        creationDate: Date().addingTimeInterval(-86_400 * 180),
+                        modificationDate: Date(),
+                        isVerified: false,
+                        privacyLevel: .publicProfile,
+                        profileImageURL: nil
+                    )
+                ),
+                currentUserID: "currentUser",
+                onReply: { _ in },
+                onEdit: { _ in },
+                onDelete: { _ in },
+                onLike: { _ in },
+                onUserTap: { _ in }
+            )
+        }
+    }
+}

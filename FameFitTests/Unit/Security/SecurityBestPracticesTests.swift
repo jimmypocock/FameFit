@@ -25,8 +25,8 @@ class SecurityBestPracticesTests: XCTestCase {
 
     func testUserDataIsCleanedOnSignOut() {
         // Set up
-        let mockCloudKit = MockCloudKitManager()
-        let authManager = AuthenticationManager(cloudKitManager: mockCloudKit)
+        let mockCloudKit = MockCloudKitService()
+        let authManager = AuthenticationService(cloudKitManager: mockCloudKit)
 
         // Simulate sign in
         authManager.userID = "test-user-123"
@@ -64,7 +64,7 @@ class SecurityBestPracticesTests: XCTestCase {
     func testHealthKitAuthorizationNotCached() {
         // HealthKit authorization should always be checked dynamically
         // not cached in UserDefaults or anywhere else
-        let mockCloudKit = MockCloudKitManager()
+        let mockCloudKit = MockCloudKitService()
         let workoutObserver = WorkoutObserver(cloudKitManager: mockCloudKit)
 
         // Initial state should be unauthorized
@@ -82,7 +82,7 @@ class SecurityBestPracticesTests: XCTestCase {
         // Verify managers use weak references to prevent retain cycles
         let container = DependencyContainer()
 
-        // CloudKitManager should have weak reference to AuthenticationManager
+        // CloudKitService should have weak reference to AuthenticationService
         XCTAssertTrue(container.cloudKitManager.authenticationManager != nil)
 
         // Create a scope to test deallocation
@@ -125,8 +125,8 @@ class SecurityBestPracticesTests: XCTestCase {
         // This test only makes sense in release builds
         #else
             // In release, assert that no debug methods are called
-            let mockCloudKit = MockCloudKitManager()
-            let authManager = AuthenticationManager(cloudKitManager: mockCloudKit)
+            let mockCloudKit = MockCloudKitService()
+            let authManager = AuthenticationService(cloudKitManager: mockCloudKit)
 
             // These should not print or log in release
             authManager.signOut()
@@ -140,8 +140,8 @@ class SecurityBestPracticesTests: XCTestCase {
 class DataPrivacyTests: XCTestCase {
     func testMinimalDataCollection() {
         // Verify we only collect necessary data
-        let mockCloudKit = MockCloudKitManager()
-        _ = AuthenticationManager(cloudKitManager: mockCloudKit)
+        let mockCloudKit = MockCloudKitService()
+        _ = AuthenticationService(cloudKitManager: mockCloudKit)
 
         // NOTE: Cannot directly test handleSignInWithApple without a real ASAuthorizationAppleIDCredential
         // This would need to be tested through UI tests or manual testing
@@ -162,7 +162,7 @@ class DataPrivacyTests: XCTestCase {
     func testDataEncryptionInTransit() {
         // CloudKit automatically encrypts data in transit
         // Verify we're using CloudKit's secure container
-        let cloudKitManager = CloudKitManager()
+        let cloudKitManager = CloudKitService()
         XCTAssertTrue(cloudKitManager.isAvailable == cloudKitManager.isSignedIn)
     }
 }

@@ -15,23 +15,23 @@ final class LeaderboardViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
 
-    private var userProfileService: UserProfileServicing?
-    private var socialFollowingService: SocialFollowingServicing?
-    private var currentUserId = ""
+    private var userProfileService: UserProfileProtocol?
+    private var socialFollowingService: SocialFollowingProtocol?
+    private var currentUserID = ""
     private var cancellables = Set<AnyCancellable>()
 
     // Cache for friend IDs
-    private var friendIds: Set<String> = []
+    private var friendIDs: Set<String> = []
     private var lastFriendsFetch: Date = .distantPast
 
     func configure(
-        userProfileService: UserProfileServicing,
-        socialFollowingService: SocialFollowingServicing,
-        currentUserId: String
+        userProfileService: UserProfileProtocol,
+        socialFollowingService: SocialFollowingProtocol,
+        currentUserID: String
     ) {
         self.userProfileService = userProfileService
         self.socialFollowingService = socialFollowingService
-        self.currentUserId = currentUserId
+        self.currentUserID = currentUserID
     }
 
     func loadLeaderboard(
@@ -44,7 +44,7 @@ final class LeaderboardViewModel: ObservableObject {
         do {
             // Load friend IDs if needed
             if scope == .friends {
-                await loadFriendIds()
+                await loadFriendIDs()
             }
 
             // Fetch leaderboard data
@@ -64,7 +64,7 @@ final class LeaderboardViewModel: ObservableObject {
             self.entries = assignRanks(to: sortedEntries)
 
             // Find current user entry
-            currentUserEntry = self.entries.first { $0.id == currentUserId }
+            currentUserEntry = self.entries.first { $0.id == currentUserID}
         } catch {
             self.error = error.localizedDescription
         }
@@ -77,23 +77,23 @@ final class LeaderboardViewModel: ObservableObject {
     /// Force refresh of friends cache (for testing)
     func forceRefreshFriends() {
         lastFriendsFetch = .distantPast
-        friendIds.removeAll()
+        friendIDs.removeAll()
     }
 
     // MARK: - Private Methods
 
-    private func loadFriendIds() async {
+    private func loadFriendIDs() async {
         // Cache friend IDs for 5 minutes
-        if Date().timeIntervalSince(lastFriendsFetch) < 300, !friendIds.isEmpty {
+        if Date().timeIntervalSince(lastFriendsFetch) < 300, !friendIDs.isEmpty {
             return
         }
 
         guard let socialService = socialFollowingService else { return }
 
         do {
-            let following = try await socialService.getFollowing(for: currentUserId, limit: 1_000)
-            friendIds = Set(following.map(\.id))
-            friendIds.insert(currentUserId) // Include self in friends view
+            let following = try await socialService.getFollowing(for: currentUserID, limit: 1_000)
+            friendIDs = Set(following.map(\.id))
+            friendIDs.insert(currentUserID) // Include self in friends view
             lastFriendsFetch = Date()
         } catch {
             print("Failed to load friends: \(error)")
@@ -112,14 +112,14 @@ final class LeaderboardViewModel: ObservableObject {
 
         case .friends:
             // Fetch profiles for friends only
-            guard !friendIds.isEmpty else {
+            guard !friendIDs.isEmpty else {
                 return []
             }
 
             // Batch fetch friend profiles
             var profiles: [UserProfile] = []
-            for friendId in friendIds {
-                if let profile = try? await profileService.fetchProfile(userId: friendId) {
+            for friendID in friendIDs {
+                if let profile = try? await profileService.fetchProfile(userID: friendID) {
                     profiles.append(profile)
                 }
             }
@@ -157,7 +157,7 @@ final class LeaderboardViewModel: ObservableObject {
                 xpEarned: xpEarned,
                 workoutCount: workoutStats.count,
                 totalDuration: workoutStats.duration,
-                isCurrentUser: profile.id == currentUserId,
+                isCurrentUser: profile.id == currentUserID,
                 rankChange: nil // Could track this with historical data
             )
         }
@@ -176,7 +176,7 @@ final class LeaderboardViewModel: ObservableObject {
         }
 
         // Estimate daily XP rate
-        let accountAge = Date().timeIntervalSince(profile.createdTimestamp)
+        let accountAge = Date().timeIntervalSince(profile.creationDate)
         let daysActive = max(1, accountAge / (24 * 3_600))
         let dailyXPRate = Double(profile.totalXP) / daysActive
 
@@ -192,7 +192,7 @@ final class LeaderboardViewModel: ObservableObject {
         // Estimate based on total stats and period
         // In a real implementation, we'd query workout history
 
-        let periodRatio = dateRange.duration / Date().timeIntervalSince(profile.createdTimestamp)
+        let periodRatio = dateRange.duration / Date().timeIntervalSince(profile.creationDate)
         // Estimate based on workout count (since we don't have detailed history)
         let estimatedCount = Int(Double(profile.workoutCount) * periodRatio)
         // Estimate duration assuming average 30 min per workout

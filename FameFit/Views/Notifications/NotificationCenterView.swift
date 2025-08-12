@@ -42,7 +42,7 @@ struct NotificationCenterView: View {
         } message: {
             Text(errorMessage)
         }
-        .task {
+        .onAppear {
             viewModel.configure(notificationStore: container.notificationStore)
         }
     }

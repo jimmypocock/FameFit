@@ -25,7 +25,7 @@ struct FollowersListView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
 
-    let userId: String
+    let userID: String
     let initialTab: FollowListTab
 
     @State private var selectedTab: FollowListTab
@@ -43,24 +43,24 @@ struct FollowersListView: View {
     @State private var followerCount = 0
     @State private var followingCount = 0
 
-    private var socialService: SocialFollowingServicing {
+    private var socialService: SocialFollowingProtocol {
         container.socialFollowingService
     }
 
-    private var profileService: UserProfileServicing {
+    private var profileService: UserProfileProtocol {
         container.userProfileService
     }
 
-    private var currentUserId: String? {
+    private var currentUserID: String? {
         container.cloudKitManager.currentUserID
     }
 
     private var isOwnProfile: Bool {
-        userId == currentUserId
+        userID == currentUserID
     }
 
-    init(userId: String, initialTab: FollowListTab = .followers) {
-        self.userId = userId
+    init(userID: String, initialTab: FollowListTab = .followers) {
+        self.userID = userID
         self.initialTab = initialTab
         _selectedTab = State(initialValue: initialTab)
     }
@@ -102,7 +102,7 @@ struct FollowersListView: View {
                         profiles: filteredList,
                         followingStatuses: followingStatuses,
                         pendingActions: pendingActions,
-                        currentUserId: currentUserId,
+                        currentUserID: currentUserID,
                         onFollowAction: handleFollowAction
                     )
                 }
@@ -172,7 +172,7 @@ struct FollowersListView: View {
     }
 
     private func handleFollowAction(for profile: UserProfile) async {
-        guard let currentUserId else { return }
+        guard let currentUserID else { return }
 
         pendingActions.insert(profile.id)
 
@@ -181,18 +181,18 @@ struct FollowersListView: View {
 
             switch currentStatus {
             case .following, .mutualFollow:
-                try await socialService.unfollow(userId: profile.id)
+                try await socialService.unfollow(userID: profile.id)
                 followingStatuses[profile.id] = .notFollowing
 
             case .notFollowing:
                 if profile.privacyLevel == .privateProfile {
-                    try await socialService.requestFollow(userId: profile.id, message: nil)
+                    try await socialService.requestFollow(userID: profile.id, message: nil)
                     followingStatuses[profile.id] = .pending
                 } else {
-                    try await socialService.follow(userId: profile.id)
+                    try await socialService.follow(userID: profile.id)
                     // Check if mutual
                     let newStatus = try await socialService.checkRelationship(
-                        between: currentUserId,
+                        between: currentUserID,
                         and: profile.id
                     )
                     followingStatuses[profile.id] = newStatus
@@ -230,14 +230,14 @@ struct FollowersListView: View {
         followersError = nil
 
         do {
-            print("Loading followers for userId: \(userId)")
-            followers = try await socialService.getFollowers(for: userId, limit: 1_000)
+            print("Loading followers for userID: \(userID)")
+            followers = try await socialService.getFollowers(for: userID, limit: 1_000)
             print("Loaded \(followers.count) followers")
-            followerCount = try await socialService.getFollowerCount(for: userId)
+            followerCount = try await socialService.getFollowerCount(for: userID)
             print("Follower count: \(followerCount)")
 
             // Load following statuses for these users
-            if currentUserId != nil {
+            if currentUserID != nil {
                 await loadFollowingStatuses(for: followers)
             }
         } catch {
@@ -253,10 +253,10 @@ struct FollowersListView: View {
         followingError = nil
 
         do {
-            print("Loading following for userId: \(userId)")
-            following = try await socialService.getFollowing(for: userId, limit: 1_000)
+            print("Loading following for userID: \(userID)")
+            following = try await socialService.getFollowing(for: userID, limit: 1_000)
             print("Loaded \(following.count) following")
-            followingCount = try await socialService.getFollowingCount(for: userId)
+            followingCount = try await socialService.getFollowingCount(for: userID)
             print("Following count: \(followingCount)")
 
             // All following relationships are active
@@ -272,7 +272,7 @@ struct FollowersListView: View {
     }
 
     private func loadFollowingStatuses(for profiles: [UserProfile]? = nil) async {
-        guard let currentUserId else { return }
+        guard let currentUserID else { return }
 
         let profilesToCheck = profiles ?? currentList
 
@@ -280,16 +280,16 @@ struct FollowersListView: View {
             for profile in profilesToCheck {
                 group.addTask {
                     let status = try? await socialService.checkRelationship(
-                        between: currentUserId,
+                        between: currentUserID,
                         and: profile.id
                     )
                     return (profile.id, status)
                 }
             }
 
-            for await (profileId, status) in group {
+            for await (profileID, status) in group {
                 if let status {
-                    followingStatuses[profileId] = status
+                    followingStatuses[profileID] = status
                 }
             }
         }
@@ -307,11 +307,11 @@ struct FollowersListView: View {
 // MARK: - Preview
 
 #Preview("Followers") {
-    FollowersListView(userId: "mock-user-1", initialTab: .followers)
+    FollowersListView(userID: "mock-user-1", initialTab: .followers)
         .environment(\.dependencyContainer, DependencyContainer())
 }
 
 #Preview("Following") {
-    FollowersListView(userId: "mock-user-1", initialTab: .following)
+    FollowersListView(userID: "mock-user-1", initialTab: .following)
         .environment(\.dependencyContainer, DependencyContainer())
 }

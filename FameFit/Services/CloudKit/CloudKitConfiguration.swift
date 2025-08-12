@@ -13,15 +13,14 @@ enum CloudKitConfiguration {
     // MARK: - Record Types
     
     enum RecordType {
-        static let users = "Users"
         static let workouts = "Workouts"
         static let userSettings = "UserSettings"
         static let deviceTokens = "DeviceTokens"
         static let userProfiles = "UserProfiles"
         static let userRelationships = "UserRelationships"
-        static let activityFeedItems = "ActivityFeedItems"
+        static let activityFeed = "ActivityFeed"
         static let workoutKudos = "WorkoutKudos"
-        static let workoutComments = "WorkoutComments"
+        static let activityFeedComments = "ActivityFeedComments"
         static let groupWorkouts = "GroupWorkouts"
         static let groupWorkoutParticipants = "GroupWorkoutParticipants"
         static let groupWorkoutInvites = "GroupWorkoutInvites"
@@ -33,15 +32,13 @@ enum CloudKitConfiguration {
     enum UserFields {
         static let displayName = "displayName"
         static let totalXP = "totalXP"
-        static let influencerXP = "influencerXP" // Legacy
         static let totalWorkouts = "totalWorkouts"
         static let currentStreak = "currentStreak"
-        static let joinTimestamp = "joinTimestamp"
         static let lastWorkoutTimestamp = "lastWorkoutTimestamp"
     }
     
     enum WorkoutFields {
-        static let workoutId = "workoutId"
+        static let workoutID = "workoutID"
         static let workoutType = "workoutType"
         static let startDate = "startDate"
         static let endDate = "endDate"

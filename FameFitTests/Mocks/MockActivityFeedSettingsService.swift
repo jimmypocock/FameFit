@@ -2,14 +2,14 @@
 //  MockActivityFeedSettingsService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivityFeedSettingsServicing for testing
+//  Mock implementation of ActivityFeedSettingsProtocol for testing
 //
 
 @testable import FameFit
 import Combine
 import Foundation
 
-final class MockActivityFeedSettingsService: ActivityFeedSettingsServicing {
+final class MockActivityFeedSettingsService: ActivityFeedSettingsProtocol {
     // MARK: - Mock State
     
     var mockSettings = ActivityFeedSettings()

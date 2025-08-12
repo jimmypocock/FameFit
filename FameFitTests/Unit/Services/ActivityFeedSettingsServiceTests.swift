@@ -12,19 +12,19 @@ import XCTest
 
 final class ActivityFeedSettingsServiceTests: XCTestCase {
     private var service: ActivityFeedSettingsService!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var cancellables: Set<AnyCancellable>!
     
     override func setUp() {
         super.setUp()
-        mockCloudKitManager = MockCloudKitManager()
-        service = ActivityFeedSettingsService(cloudKitManager: mockCloudKitManager)
+        mockCloudKitService = MockCloudKitService()
+        service = ActivityFeedSettingsService(cloudKitManager: mockCloudKitService)
         cancellables = []
     }
     
     override func tearDown() {
         service = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         cancellables = nil
         // Clear UserDefaults
         UserDefaults.standard.removeObject(forKey: "ActivityFeedSettings")

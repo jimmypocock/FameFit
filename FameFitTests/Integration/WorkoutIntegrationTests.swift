@@ -4,32 +4,32 @@ import XCTest
 
 class WorkoutIntegrationTests: XCTestCase {
     private var dependencyContainer: DependencyContainer!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockCloudKitService: MockCloudKitService!
     private var cancellables = Set<AnyCancellable>()
 
     override func setUp() {
         super.setUp()
 
         // Create mock managers
-        mockCloudKitManager = MockCloudKitManager()
-        let authManager = AuthenticationManager(cloudKitManager: mockCloudKitManager)
+        mockCloudKitService = MockCloudKitService()
+        let authManager = AuthenticationService(cloudKitManager: mockCloudKitService)
         // Reset auth state for test isolation
         authManager.isAuthenticated = false
         authManager.userID = nil
         authManager.userName = nil
-        let workoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitManager)
+        let workoutObserver = WorkoutObserver(cloudKitManager: mockCloudKitService)
 
         // Create container with mocks
         dependencyContainer = DependencyContainer(
             authenticationManager: authManager,
-            cloudKitManager: mockCloudKitManager,
+            cloudKitManager: mockCloudKitService,
             workoutObserver: workoutObserver
         )
     }
 
     override func tearDown() {
         cancellables.removeAll()
-        mockCloudKitManager.reset()
+        mockCloudKitService.reset()
         dependencyContainer = nil
 
         super.tearDown()
@@ -38,10 +38,10 @@ class WorkoutIntegrationTests: XCTestCase {
     func testInfluencerXPUpdatesInUI() {
         // Given
         let expectation = XCTestExpectation(description: "XP count updates")
-        let initialCount = mockCloudKitManager.totalXP
+        let initialCount = mockCloudKitService.totalXP
 
         // Subscribe to XP count changes
-        mockCloudKitManager.$totalXP
+        mockCloudKitService.$totalXP
             .dropFirst() // Skip initial value
             .sink { newCount in
                 XCTAssertEqual(newCount, initialCount + 5)
@@ -50,7 +50,7 @@ class WorkoutIntegrationTests: XCTestCase {
             .store(in: &cancellables)
 
         // When - Simulate workout completion
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Then
         wait(for: [expectation], timeout: 1.0)
@@ -58,8 +58,8 @@ class WorkoutIntegrationTests: XCTestCase {
 
     func testAuthenticationFlow() {
         // Given - Start with unauthenticated state
-        mockCloudKitManager.isSignedIn = false
-        mockCloudKitManager.userName = ""
+        mockCloudKitService.isSignedIn = false
+        mockCloudKitService.userName = ""
         let authManager = dependencyContainer.authenticationManager
         XCTAssertFalse(authManager.isAuthenticated)
 
@@ -67,8 +67,8 @@ class WorkoutIntegrationTests: XCTestCase {
         authManager.userID = "test-user"
         authManager.userName = "Test User"
         authManager.isAuthenticated = true
-        mockCloudKitManager.isSignedIn = true
-        mockCloudKitManager.userName = "Test User"
+        mockCloudKitService.isSignedIn = true
+        mockCloudKitService.userName = "Test User"
 
         // Then
         XCTAssertTrue(authManager.isAuthenticated)
@@ -79,54 +79,54 @@ class WorkoutIntegrationTests: XCTestCase {
         // This tests that adding XP updates both XP count and workout count
 
         // Given
-        XCTAssertEqual(mockCloudKitManager.totalXP, 100, "Should start with 100 XP")
-        XCTAssertEqual(mockCloudKitManager.totalWorkouts, 20, "Should start with 20 workouts")
+        XCTAssertEqual(mockCloudKitService.totalXP, 100, "Should start with 100 XP")
+        XCTAssertEqual(mockCloudKitService.totalWorkouts, 20, "Should start with 20 workouts")
 
         // When - Simulate what happens when a workout is detected
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Then - Verify synchronous updates
-        XCTAssertEqual(mockCloudKitManager.totalXP, 105, "Should have 105 XP")
-        XCTAssertEqual(mockCloudKitManager.totalWorkouts, 21, "Should have 21 workouts")
-        XCTAssertTrue(mockCloudKitManager.addXPCalled, "Should have called addXP")
-        XCTAssertEqual(mockCloudKitManager.lastAddedXPCount, 5, "Should have added 5 XP")
+        XCTAssertEqual(mockCloudKitService.totalXP, 105, "Should have 105 XP")
+        XCTAssertEqual(mockCloudKitService.totalWorkouts, 21, "Should have 21 workouts")
+        XCTAssertTrue(mockCloudKitService.addXPCalled, "Should have called addXP")
+        XCTAssertEqual(mockCloudKitService.lastAddedXPCount, 5, "Should have added 5 XP")
     }
 
     func testErrorHandling() {
         // Given
-        mockCloudKitManager.shouldFailAddXP = true
+        mockCloudKitService.shouldFailAddXP = true
         _ = dependencyContainer.workoutObserver // Ensure observer is initialized
 
         // When - Try to add XP
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Then
-        XCTAssertNotNil(mockCloudKitManager.lastError)
-        XCTAssertEqual(mockCloudKitManager.totalXP, 100) // Should not change
+        XCTAssertNotNil(mockCloudKitService.lastError)
+        XCTAssertEqual(mockCloudKitService.totalXP, 100) // Should not change
     }
 
     func testStreakCalculation() {
         // Given
-        _ = mockCloudKitManager.currentStreak // Verify starts at 0
+        _ = mockCloudKitService.currentStreak // Verify starts at 0
 
         // When - Complete a workout
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Then - In real implementation, streak logic would be tested here
         // For now, we just verify the property exists and can be modified
-        XCTAssertGreaterThanOrEqual(mockCloudKitManager.currentStreak, 0)
+        XCTAssertGreaterThanOrEqual(mockCloudKitService.currentStreak, 0)
     }
 
-    func testMockCloudKitManagerBehavior() {
+    func testMockCloudKitServiceBehavior() {
         // Test the mock directly to ensure it works as expected
-        XCTAssertEqual(mockCloudKitManager.totalXP, 100, "Should start with 100 XP")
-        XCTAssertEqual(mockCloudKitManager.totalWorkouts, 20, "Should start with 20 workouts")
+        XCTAssertEqual(mockCloudKitService.totalXP, 100, "Should start with 100 XP")
+        XCTAssertEqual(mockCloudKitService.totalWorkouts, 20, "Should start with 20 workouts")
 
         // Add XP
-        mockCloudKitManager.addXP(5)
+        mockCloudKitService.addXP(5)
 
         // Verify both values updated
-        XCTAssertEqual(mockCloudKitManager.totalXP, 105, "Should have 105 XP")
-        XCTAssertEqual(mockCloudKitManager.totalWorkouts, 21, "Should have 21 workouts")
+        XCTAssertEqual(mockCloudKitService.totalXP, 105, "Should have 105 XP")
+        XCTAssertEqual(mockCloudKitService.totalWorkouts, 21, "Should have 21 workouts")
     }
 }

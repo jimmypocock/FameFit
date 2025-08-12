@@ -22,7 +22,6 @@ Stores user profile and gamification data. This is a custom record type that fol
 | `followerCount` | Int64 | Number of followers gained through workouts | 0 | Yes |
 | `totalWorkouts` | Int64 | Total number of completed workouts | 0 | Yes |
 | `currentStreak` | Int64 | Current consecutive days with workouts | 0 | Yes |
-| `joinTimestamp` | Date/Time | Full timestamp when user first joined (includes time & timezone) | Current timestamp | Yes |
 | `lastWorkoutTimestamp` | Date/Time | Full timestamp of the most recent workout (includes time & timezone) | - | No |
 
 #### Indexes

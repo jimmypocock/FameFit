@@ -119,7 +119,6 @@ actor CloudKitOperationQueue {
             recordSuccess(duration: duration)
             
             FameFitLogger.debug("Operation completed: \(queuedOp.description) (took \(String(format: "%.2f", duration))s)", category: FameFitLogger.cloudKit)
-            
         } catch {
             let duration = Date().timeIntervalSince(startTime)
             recordFailure(error: error, duration: duration)
@@ -199,17 +198,15 @@ extension CloudKitOperationQueue {
         priority: Priority = .medium
     ) async throws -> CKRecord {
         try await withCheckedThrowingContinuation { continuation in
-            Task {
-                enqueue(
-                    priority: priority,
-                    description: "Save \(record.recordType) record"
-                ) {
-                    do {
-                        let saved = try await database.save(record)
-                        continuation.resume(returning: saved)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+            enqueue(
+                priority: priority,
+                description: "Save \(record.recordType) record"
+            ) {
+                do {
+                    let saved = try await database.save(record)
+                    continuation.resume(returning: saved)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
         }
@@ -222,17 +219,15 @@ extension CloudKitOperationQueue {
         priority: Priority = .medium
     ) async throws -> CKRecord {
         try await withCheckedThrowingContinuation { continuation in
-            Task {
-                enqueue(
-                    priority: priority,
-                    description: "Fetch record \(recordID.recordName)"
-                ) {
-                    do {
-                        let record = try await database.record(for: recordID)
-                        continuation.resume(returning: record)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+            enqueue(
+                priority: priority,
+                description: "Fetch record \(recordID.recordName)"
+            ) {
+                do {
+                    let record = try await database.record(for: recordID)
+                    continuation.resume(returning: record)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
         }
@@ -246,18 +241,16 @@ extension CloudKitOperationQueue {
         priority: Priority = .medium
     ) async throws -> [CKRecord] {
         try await withCheckedThrowingContinuation { continuation in
-            Task {
-                enqueue(
-                    priority: priority,
-                    description: "Query \(query.recordType) records"
-                ) {
-                    do {
-                        let results = try await database.records(matching: query, resultsLimit: limit)
-                        let records = results.matchResults.compactMap { try? $0.1.get() }
-                        continuation.resume(returning: records)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+            enqueue(
+                priority: priority,
+                description: "Query \(query.recordType) records"
+            ) {
+                do {
+                    let results = try await database.records(matching: query, resultsLimit: limit)
+                    let records = results.matchResults.compactMap { try? $0.1.get() }
+                    continuation.resume(returning: records)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
         }

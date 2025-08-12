@@ -11,49 +11,49 @@ import Foundation
 extension GroupWorkoutService {
     // MARK: - Invite Management
     
-    func sendInvites(_ workoutId: String, to userIds: [String]) async throws {
-        FameFitLogger.info("Sending invites for workout: \(workoutId)", category: FameFitLogger.social)
+    func sendInvites(_ workoutID: String, to userIDs: [String]) async throws {
+        FameFitLogger.info("Sending invites for workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let currentUserId = cloudKitManager.currentUserID else {
+        guard let currentUserID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        let workout = try await fetchWorkout(workoutId)
+        let workout = try await fetchWorkout(workoutID)
         
         // Only host can send invites
-        guard workout.hostId == currentUserId else {
+        guard workout.hostID == currentUserID else {
             throw GroupWorkoutError.notAuthorized
         }
         
         // Create invites
-        for userId in userIds {
+        for userID in userIDs {
             let invite = GroupWorkoutInvite(
-                groupWorkoutId: workoutId,
-                invitedBy: currentUserId,
-                invitedUser: userId
+                groupWorkoutID: workoutID,
+                invitedBy: currentUserID,
+                invitedUser: userID
             )
             
             let record = invite.toCKRecord()
             _ = try await cloudKitManager.save(record)
             
             // Send push notification
-            await notifyUserOfInvite(userId: userId, workout: workout)
+            await notifyUserOfInvite(userID: userID, workout: workout)
         }
     }
     
-    func inviteUser(_ userId: String, to workoutId: String) async throws {
-        try await sendInvites(workoutId, to: [userId])
+    func inviteUser(_ userID: String, to workoutID: String) async throws {
+        try await sendInvites(workoutID, to: [userID])
     }
     
-    func acceptInvite(_ inviteId: String) async throws -> GroupWorkout {
-        FameFitLogger.info("Accepting invite: \(inviteId)", category: FameFitLogger.social)
+    func acceptInvite(_ inviteID: String) async throws -> GroupWorkout {
+        FameFitLogger.info("Accepting invite: \(inviteID)", category: FameFitLogger.social)
         
-        guard let currentUserId = cloudKitManager.currentUserID else {
+        guard let currentUserID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Fetch the invite
-        let recordID = CKRecord.ID(recordName: inviteId)
+        let recordID = CKRecord.ID(recordName: inviteID)
         
         // Fetch using a query to ensure we use the public database
         let predicate = NSPredicate(format: "recordID == %@", recordID)
@@ -70,7 +70,7 @@ extension GroupWorkoutService {
         }
         
         // Verify this invite is for the current user
-        guard invite.invitedUser == currentUserId else {
+        guard invite.invitedUser == currentUserID else {
             throw GroupWorkoutError.notAuthorized
         }
         
@@ -80,24 +80,24 @@ extension GroupWorkoutService {
         }
         
         // Join the workout
-        try await joinGroupWorkout(invite.groupWorkoutId)
+        try await joinGroupWorkout(invite.groupWorkoutID)
         
         // Delete the invite after accepting
         try await cloudKitManager.delete(withRecordID: recordID)
         
         // Return the workout
-        return try await fetchWorkout(invite.groupWorkoutId)
+        return try await fetchWorkout(invite.groupWorkoutID)
     }
     
-    func declineInvite(_ inviteId: String) async throws {
-        FameFitLogger.info("Declining invite: \(inviteId)", category: FameFitLogger.social)
+    func declineInvite(_ inviteID: String) async throws {
+        FameFitLogger.info("Declining invite: \(inviteID)", category: FameFitLogger.social)
         
-        guard let currentUserId = cloudKitManager.currentUserID else {
+        guard let currentUserID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Fetch the invite
-        let recordID = CKRecord.ID(recordName: inviteId)
+        let recordID = CKRecord.ID(recordName: inviteID)
         
         // Fetch using a query to ensure we use the public database
         let predicate = NSPredicate(format: "recordID == %@", recordID)
@@ -114,7 +114,7 @@ extension GroupWorkoutService {
         }
         
         // Verify this invite is for the current user
-        guard invite.invitedUser == currentUserId else {
+        guard invite.invitedUser == currentUserID else {
             throw GroupWorkoutError.notAuthorized
         }
         
@@ -122,11 +122,11 @@ extension GroupWorkoutService {
         try await cloudKitManager.delete(withRecordID: recordID)
     }
     
-    func respondToInvite(_ inviteId: String, accept: Bool) async throws {
+    func respondToInvite(_ inviteID: String, accept: Bool) async throws {
         if accept {
-            _ = try await acceptInvite(inviteId)
+            _ = try await acceptInvite(inviteID)
         } else {
-            try await declineInvite(inviteId)
+            try await declineInvite(inviteID)
         }
     }
     
@@ -137,15 +137,15 @@ extension GroupWorkoutService {
     func getMyInvites() async throws -> [GroupWorkoutInvite] {
         FameFitLogger.info("Getting invites for current user", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Fetch invites for the current user that haven't expired
         let now = Date()
-        let predicate = NSPredicate(format: "invitedUserID == %@ AND expiresTimestamp > %@", userId, now as NSDate)
+        let predicate = NSPredicate(format: "invitedUserID == %@ AND expiresTimestamp > %@", userID, now as NSDate)
         
-        let sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        let sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",
@@ -157,11 +157,11 @@ extension GroupWorkoutService {
         return records.compactMap { GroupWorkoutInvite(from: $0) }
     }
     
-    func getWorkoutInvites(_ workoutId: String) async throws -> [GroupWorkoutInvite] {
-        FameFitLogger.info("Getting invites for workout: \(workoutId)", category: FameFitLogger.social)
+    func getWorkoutInvites(_ workoutID: String) async throws -> [GroupWorkoutInvite] {
+        FameFitLogger.info("Getting invites for workout: \(workoutID)", category: FameFitLogger.social)
         
-        let predicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutId: workoutId)
-        let sortDescriptors = [NSSortDescriptor(key: "createdTimestamp", ascending: false)]
+        let predicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutID: workoutID)
+        let sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         
         let records = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",
@@ -173,15 +173,15 @@ extension GroupWorkoutService {
         return records.compactMap { GroupWorkoutInvite(from: $0) }
     }
     
-    func cancelInvite(_ inviteId: String) async throws {
-        FameFitLogger.info("Cancelling invite: \(inviteId)", category: FameFitLogger.social)
+    func cancelInvite(_ inviteID: String) async throws {
+        FameFitLogger.info("Cancelling invite: \(inviteID)", category: FameFitLogger.social)
         
-        guard let currentUserId = cloudKitManager.currentUserID else {
+        guard let currentUserID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Fetch the invite
-        let recordID = CKRecord.ID(recordName: inviteId)
+        let recordID = CKRecord.ID(recordName: inviteID)
         
         // Fetch using a query to ensure we use the public database
         let predicate = NSPredicate(format: "recordID == %@", recordID)
@@ -198,7 +198,7 @@ extension GroupWorkoutService {
         }
         
         // Only host can cancel invites
-        guard invite.invitedBy == currentUserId else {
+        guard invite.invitedBy == currentUserID else {
             throw GroupWorkoutError.notAuthorized
         }
         

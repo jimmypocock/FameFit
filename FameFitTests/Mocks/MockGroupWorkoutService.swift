@@ -24,7 +24,7 @@ final class MockGroupWorkoutService: GroupWorkoutServicing {
     var leftWorkouts: [String] = []
 
     // Dependencies for testing
-    weak var notificationManager: MockNotificationManager?
+    weak var notificationManager: MockNotificationService?
 
     // MARK: - Method Call Tracking
 

@@ -11,16 +11,16 @@ import CloudKit
 // A wrapper that makes MockCKDatabase compatible with WorkoutChallengesService
 class MockCKDatabaseWrapper {
     private let mockDatabase: MockCKDatabase
-    private let mockCloudKitManager: MockCloudKitManager
+    private let mockCloudKitService: MockCloudKitService
 
-    init(mockDatabase: MockCKDatabase, cloudKitManager: MockCloudKitManager) {
+    init(mockDatabase: MockCKDatabase, cloudKitManager: MockCloudKitService) {
         self.mockDatabase = mockDatabase
-        mockCloudKitManager = cloudKitManager
+        mockCloudKitService = cloudKitManager
     }
 }
 
 // Extension to handle database operations for WorkoutChallengesService
-extension MockCloudKitManager {
+extension MockCloudKitService {
     func saveChallengeRecord(_ record: CKRecord) async throws -> CKRecord {
         saveCallCount += 1
 

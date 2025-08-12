@@ -11,14 +11,8 @@ import UIKit
 import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    var dependencyContainer: DependencyContainer? {
-        didSet {
-            // Configure background processor when container is set
-            if let container = dependencyContainer {
-                BackgroundWorkoutProcessor.shared.configure(with: container)
-            }
-        }
-    }
+    var dependencyContainer: DependencyContainer?
+    var appInitializer: AppInitializer?
 
     func application(
         _: UIApplication,
@@ -26,18 +20,27 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         FameFitLogger.info("App launched", category: FameFitLogger.app)
 
-        // Don't create a new container here - wait for the one from FameFitApp
-        // to be shared via onAppear
-
         // Register notification categories
-        APNSManager.registerNotificationCategories()
+        APNSService.registerNotificationCategories()
 
         // Register background tasks BEFORE didFinishLaunching returns (iOS requirement)
         registerBackgroundTasks()
-        
-        // WatchConnectivity is now initialized through DependencyContainer
 
         return true
+    }
+    
+    /// Configure the AppDelegate with dependencies from SwiftUI app
+    func configure(with container: DependencyContainer) {
+        FameFitLogger.info("Configure AppDelegate with Dependency Container and Initializer",
+                           category: FameFitLogger.app)
+        self.dependencyContainer = container
+        self.appInitializer = AppInitializer(dependencyContainer: container)
+        
+        // Configure background processor
+        BackgroundWorkoutProcessor.shared.configure(with: container)
+        
+        // Perform initial app setup
+        appInitializer?.performInitialSetup()
     }
 
     func applicationDidBecomeActive(_: UIApplication) {
@@ -51,7 +54,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             }
         }
 
-        // The WorkoutSyncManager will handle sync automatically
+        // The WorkoutSyncService will handle sync automatically
     }
 
     func applicationDidEnterBackground(_: UIApplication) {

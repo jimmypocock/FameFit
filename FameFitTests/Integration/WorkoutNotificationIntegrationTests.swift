@@ -14,9 +14,9 @@ import XCTest
 final class WorkoutNotificationIntegrationTests: XCTestCase {
     private var dependencyContainer: DependencyContainer!
     private var mockHealthKitService: MockHealthKitService!
-    private var mockNotificationManager: MockNotificationManager!
+    private var mockNotificationService: MockNotificationService!
     private var mockNotificationStore: MockNotificationStore!
-    private var workoutSyncManager: WorkoutSyncManager!
+    private var workoutSyncManager: WorkoutSyncService!
 
     @MainActor
     override func setUpWithError() throws {
@@ -24,16 +24,16 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // Create mocks
         mockHealthKitService = MockHealthKitService()
-        mockNotificationManager = MockNotificationManager()
+        mockNotificationService = MockNotificationService()
         mockNotificationStore = MockNotificationStore()
 
         // Create container with mocks
         dependencyContainer = DependencyContainer(
-            authenticationManager: AuthenticationManager(cloudKitManager: CloudKitManager()),
-            cloudKitManager: CloudKitManager(),
-            workoutObserver: WorkoutObserver(cloudKitManager: CloudKitManager()),
+            authenticationManager: AuthenticationService(cloudKitManager: CloudKitService()),
+            cloudKitManager: CloudKitService(),
+            workoutObserver: WorkoutObserver(cloudKitManager: CloudKitService()),
             healthKitService: mockHealthKitService,
-            notificationManager: mockNotificationManager
+            notificationManager: mockNotificationService
         )
 
         // Set the mock notification store on the sync manager and observer
@@ -53,7 +53,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
     override func tearDown() {
         dependencyContainer = nil
         mockHealthKitService = nil
-        mockNotificationManager = nil
+        mockNotificationService = nil
         mockNotificationStore = nil
         workoutSyncManager = nil
         super.tearDown()
@@ -64,11 +64,9 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
     func testCompleteWorkoutNotificationPipeline() async throws {
         // Test the complete notification pipeline directly
         // Create a workout notification for a running workout
-        let character = FameFitCharacter.sierra // Running -> Sierra
         let workoutNotification = FameFitNotification(
-            title: "\(character.emoji) \(character.fullName)",
-            body: character.workoutCompletionMessage(followers: 25),
-            character: character,
+            title: "Workout Complete! 🏃",
+            body: "Great run! You earned 25 XP",
             workoutDuration: 30,
             calories: 250,
             followersEarned: 25
@@ -88,8 +86,8 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         let notification = mockNotificationStore.notifications.first!
         XCTAssertTrue(
-            notification.title.contains("Sierra"),
-            "Should have Sierra character for running workout"
+            notification.title.contains("Workout Complete"),
+            "Should have workout completion title"
         )
         XCTAssertTrue(
             notification.body.contains("25"),
@@ -109,14 +107,11 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         )
     }
 
-    func testWorkoutNotificationWithCharacterMessages() async throws {
-        // Test character-based notification for strength training workout
-        // Strength training should get Chad character
-        let character = FameFitCharacter.chad
+    func testWorkoutNotificationMessages() async throws {
+        // Test notification for strength training workout
         let strengthNotification = FameFitNotification(
-            title: "\(character.emoji) \(character.fullName)",
-            body: character.workoutCompletionMessage(followers: 30),
-            character: character,
+            title: "Workout Complete! 🏋️",
+            body: "Amazing strength session! You earned 30 XP",
             workoutDuration: 45,
             calories: 400,
             followersEarned: 30
@@ -127,30 +122,21 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
             mockNotificationStore.addFameFitNotification(strengthNotification)
         }
 
-        // Then: Verify character-based notification
+        // Then: Verify notification
         XCTAssertEqual(
             mockNotificationStore.notifications.count,
             1,
-            "Should have character notification"
+            "Should have notification"
         )
 
         let notification = mockNotificationStore.notifications.first!
         XCTAssertTrue(
-            notification.title.contains("Chad"),
-            "Should have Chad character for strength training"
-        )
-        XCTAssertTrue(
-            notification.body.contains("CRUSHED"),
-            "Should have Chad's characteristic message style"
+            notification.title.contains("Workout Complete"),
+            "Should have workout completion title"
         )
         XCTAssertTrue(
             notification.body.contains("30"),
             "Should mention the XP earned"
-        )
-        XCTAssertEqual(
-            notification.character,
-            .chad,
-            "Should be associated with Chad character"
         )
     }
 
@@ -160,11 +146,9 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
         // Test the notification flow directly
         // Create a workout notification item
-        let character = FameFitCharacter.chad
         let notificationItem = FameFitNotification(
-            title: "\(character.emoji) \(character.fullName)",
-            body: character.workoutCompletionMessage(followers: 15),
-            character: character,
+            title: "Workout Complete! 💪",
+            body: "Great workout! You earned 15 XP",
             workoutDuration: 30,
             calories: 250,
             followersEarned: 15
@@ -186,14 +170,13 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
 
     func testMultipleWorkoutNotifications() async throws {
         // Test multiple notifications directly
-        let characters = [FameFitCharacter.sierra, FameFitCharacter.chad]
+        let emojis = ["🏃", "🏋️"]
 
         // When: Add two workout notifications
-        for (index, character) in characters.enumerated() {
+        for (index, emoji) in emojis.enumerated() {
             let notificationItem = FameFitNotification(
-                title: "\(character.emoji) \(character.fullName)",
-                body: character.workoutCompletionMessage(followers: 15 + index * 5),
-                character: character,
+                title: "Workout Complete! \(emoji)",
+                body: "Great workout! You earned \(15 + index * 5) XP",
                 workoutDuration: 30 + index * 15,
                 calories: 250 + index * 50,
                 followersEarned: 15 + index * 5
@@ -231,7 +214,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Test that notifications work with different permission states
 
         // When: Permission is granted, add a notification
-        mockNotificationManager.currentAuthStatus = .authorized
+        mockNotificationService.currentAuthStatus = .authorized
 
         let runningNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
@@ -254,7 +237,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         )
 
         // When: Permission is denied, add another notification
-        mockNotificationManager.currentAuthStatus = .denied
+        mockNotificationService.currentAuthStatus = .denied
 
         let cyclingNotification = FameFitNotification(
             title: "🏃‍♀️ Sierra Summit",
@@ -368,7 +351,7 @@ final class WorkoutNotificationIntegrationTests: XCTestCase {
         // Simulate the anchored query callback for incremental updates
         await withCheckedContinuation { continuation in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                // This simulates the incremental update path in WorkoutSyncManager
+                // This simulates the incremental update path in WorkoutSyncService
                 // In real implementation, this would be called by HKAnchoredObjectQuery
                 continuation.resume()
             }
@@ -398,9 +381,9 @@ private extension MockNotificationStore {
     }
 }
 
-private extension CloudKitManager {
+private extension CloudKitService {
     func setTotalXP(_: Int) {
-        // This would need to be implemented in CloudKitManager for testing
+        // This would need to be implemented in CloudKitService for testing
         // For now, this is a placeholder
     }
 }

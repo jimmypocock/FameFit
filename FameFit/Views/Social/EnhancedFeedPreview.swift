@@ -36,6 +36,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "1",
                 userID: "user1",
+                username: "speedster",
                 userProfile: UserProfile(
                     id: "user1",
                     userID: "user1",
@@ -43,8 +44,8 @@ struct EnhancedFeedPreview: View {
                     bio: "Marathon enthusiast",
                     workoutCount: 156,
                     totalXP: 45_000,
-                    createdTimestamp: Date(),
-                    modifiedTimestamp: Date(),
+                    creationDate: Date(),
+                    modificationDate: Date(),
                     isVerified: true,
                     privacyLevel: .publicProfile,
                     profileImageURL: nil,
@@ -52,7 +53,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Morning Run 🌅",
                     subtitle: "Crushed my 5K personal record! Coach Alex is proud! 🎉",
                     details: [
@@ -62,12 +63,12 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "85"
                     ]
                 ),
-                workoutId: "1",
+                workoutID: "1",
                 kudosCount: 12,
                 commentCount: 5,
                 hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "1",
+                    workoutID: "1",
                     totalCount: 12,
                     hasUserKudos: false,
                     recentUsers: []
@@ -78,6 +79,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "2",
                 userID: "user2",
+                username: "fitnessguru",
                 userProfile: UserProfile(
                     id: "user2",
                     userID: "user2",
@@ -85,8 +87,8 @@ struct EnhancedFeedPreview: View {
                     bio: "Lifting heavy things",
                     workoutCount: 200,
                     totalXP: 67_800,
-                    createdTimestamp: Date(),
-                    modifiedTimestamp: Date(),
+                    creationDate: Date(),
+                    modificationDate: Date(),
                     isVerified: false,
                     privacyLevel: .publicProfile,
                     profileImageURL: nil,
@@ -94,7 +96,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Iron Will Unlocked!",
                     subtitle: "Completed 50 strength training sessions",
                     details: [
@@ -103,7 +105,7 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "500"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 8,
                 hasKudoed: false,
@@ -114,6 +116,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "3",
                 userID: "user3",
+                username: "yogamaster",
                 userProfile: UserProfile(
                     id: "user3",
                     userID: "user3",
@@ -121,8 +124,8 @@ struct EnhancedFeedPreview: View {
                     bio: "Finding balance",
                     workoutCount: 89,
                     totalXP: 28_500,
-                    createdTimestamp: Date(),
-                    modifiedTimestamp: Date(),
+                    creationDate: Date(),
+                    modificationDate: Date(),
                     isVerified: false,
                     privacyLevel: .publicProfile,
                     profileImageURL: nil,
@@ -130,7 +133,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Level 15: Fitness Warrior",
                     subtitle: "Your dedication is inspiring!",
                     details: [
@@ -138,7 +141,7 @@ struct EnhancedFeedPreview: View {
                         "newTitle": "Fitness Warrior"
                     ]
                 ),
-                workoutId: nil,
+                workoutID: nil,
                 kudosCount: 0,
                 commentCount: 15,
                 hasKudoed: false,
@@ -149,6 +152,7 @@ struct EnhancedFeedPreview: View {
             ActivityFeedItem(
                 id: "4",
                 userID: "user4",
+                username: "bikerlady",
                 userProfile: UserProfile(
                     id: "user4",
                     userID: "user4",
@@ -156,8 +160,8 @@ struct EnhancedFeedPreview: View {
                     bio: "Two wheels, endless roads",
                     workoutCount: 134,
                     totalXP: 52_300,
-                    createdTimestamp: Date(),
-                    modifiedTimestamp: Date(),
+                    creationDate: Date(),
+                    modificationDate: Date(),
                     isVerified: false,
                     privacyLevel: .publicProfile,
                     profileImageURL: nil,
@@ -165,7 +169,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-14_400),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Evening Ride 🚴‍♀️",
                     subtitle: "Perfect weather for a sunset ride through the hills!",
                     details: [
@@ -175,12 +179,12 @@ struct EnhancedFeedPreview: View {
                         "xpEarned": "120"
                     ]
                 ),
-                workoutId: "4",
+                workoutID: "4",
                 kudosCount: 8,
                 commentCount: 3,
                 hasKudoed: false,
                 kudosSummary: WorkoutKudosSummary(
-                    workoutId: "4",
+                    workoutID: "4",
                     totalCount: 8,
                     hasUserKudos: false,
                     recentUsers: []

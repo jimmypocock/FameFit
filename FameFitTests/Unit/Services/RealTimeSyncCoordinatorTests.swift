@@ -12,8 +12,8 @@ import XCTest
 
 final class RealTimeSyncCoordinatorTests: XCTestCase {
     private var sut: RealTimeSyncCoordinator!
-    private var mockSubscriptionManager: MockCloudKitSubscriptionManager!
-    private var mockCloudKitManager: MockCloudKitManager!
+    private var mockSubscriptionManager: MockCloudKitSubscriptionService!
+    private var mockCloudKitService: MockCloudKitService!
     private var mockUserProfileService: MockUserProfileService!
     private var mockWorkoutChallengesService: MockWorkoutChallengesService!
     private var cancellables: Set<AnyCancellable>!
@@ -21,23 +21,23 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
 
-        mockSubscriptionManager = MockCloudKitSubscriptionManager()
-        mockCloudKitManager = MockCloudKitManager()
+        mockSubscriptionManager = MockCloudKitSubscriptionService()
+        mockCloudKitService = MockCloudKitService()
         mockUserProfileService = MockUserProfileService()
         mockWorkoutChallengesService = MockWorkoutChallengesService()
 
         sut = await MainActor.run {
             RealTimeSyncCoordinator(
                 subscriptionManager: mockSubscriptionManager,
-                cloudKitManager: mockCloudKitManager,
+                cloudKitManager: mockCloudKitService,
                 socialFollowingService: MockSocialFollowingService(),
                 userProfileService: mockUserProfileService,
                 workoutKudosService: MockWorkoutKudosService(),
                 workoutChallengesService: mockWorkoutChallengesService,
                 groupWorkoutService: MockGroupWorkoutService(),
                 activityFeedService: ActivityFeedService(
-                    cloudKitManager: mockCloudKitManager,
-                    privacySettings: WorkoutPrivacySettings()
+                    cloudKitManager: mockCloudKitService,
+                    userSettings: UserSettings.defaultSettings(for: "test-user")
                 )
             )
         }
@@ -49,7 +49,7 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
         cancellables = nil
         sut = nil
         mockSubscriptionManager = nil
-        mockCloudKitManager = nil
+        mockCloudKitService = nil
         mockUserProfileService = nil
         mockWorkoutChallengesService = nil
         super.tearDown()
@@ -281,7 +281,7 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
 
 // MARK: - Mock CloudKit Subscription Manager
 
-class MockCloudKitSubscriptionManager: CloudKitSubscriptionManaging {
+class MockCloudKitSubscriptionService: CloudKitSubscriptionProtocol {
     var setupSubscriptionsCallCount = 0
     var removeAllSubscriptionsCallCount = 0
     var handledNotifications: [CKQueryNotification] = []

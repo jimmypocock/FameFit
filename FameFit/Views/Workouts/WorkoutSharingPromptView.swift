@@ -22,7 +22,7 @@ struct WorkoutSharingPromptView: View {
     @State private var errorMessage = ""
 
     // Load user's privacy settings
-    @State private var privacySettings = WorkoutPrivacySettings()
+    @State private var privacySettings = UserSettings.defaultSettings(for: "current")
 
     private var workoutType: HKWorkoutActivityType? {
         HKWorkoutActivityType.from(storageKey: workoutHistory.workoutType)
@@ -278,7 +278,7 @@ struct WorkoutSharingPromptView: View {
                 let finalPrivacy = min(selectedPrivacy, effectivePrivacy)
 
                 try await container.activityFeedService.postWorkoutActivity(
-                    workoutHistory: workoutHistory,
+                    workout: workoutHistory,
                     privacy: finalPrivacy,
                     includeDetails: includeDetails && privacySettings.allowDataSharing
                 )
@@ -313,7 +313,7 @@ struct WorkoutSharingPromptView: View {
 #Preview {
     WorkoutSharingPromptView(
         workoutHistory: Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: "running",
             startDate: Date().addingTimeInterval(-1_800),
             endDate: Date(),

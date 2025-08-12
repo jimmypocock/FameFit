@@ -8,18 +8,23 @@
 import Foundation
 import HealthKit
 import os.log
+#if os(watchOS)
+import WatchConnectivity
+#endif
+
+/// Information about a group workout
+struct GroupWorkoutInfo {
+    let id: String
+    let name: String
+    let isHost: Bool
+    let participantCount: Int
+}
 
 class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
 
     @Published var selectedWorkout: HKWorkoutActivityType?
-    @Published var showingSummaryView: Bool = false {
-        didSet {
-            if showingSummaryView == false {
-                resetWorkout()
-            }
-        }
-    }
+    @Published var completedWorkout: HKWorkout? // Published when workout completes
 
     let healthStore = HKHealthStore()
     @Published var session: HKWorkoutSession?
@@ -37,11 +42,31 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var isGroupWorkoutHost: Bool = false
     @Published var groupParticipantCount: Int = 0
     private var groupWorkoutMetadata: [String: Any] = [:]
+    private var metricsUploadTimer: Timer?
+    private let metricsUploadInterval: TimeInterval = 30.0 // Upload every 30 seconds to preserve battery
+    private var metricsRetryCount = 0
+    private let maxRetryAttempts = 3
+    private var pendingMetrics: [[String: Any]] = []
+    private var unreachableCount = 0
+    private let maxUnreachableAttempts = 5
 
     // MARK: - Workout Control
-
+    
+    // Protocol conformance method
     func startWorkout(workoutType: HKWorkoutActivityType) {
-        FameFitLogger.info("Starting workout: \(workoutType)", category: FameFitLogger.workout)
+        startWorkout(workoutType: workoutType, groupWorkoutInfo: nil)
+    }
+
+    func startWorkout(workoutType: HKWorkoutActivityType, groupWorkoutInfo: GroupWorkoutInfo? = nil) {
+        // Set group workout properties if provided
+        if let groupInfo = groupWorkoutInfo {
+            FameFitLogger.info("Starting group workout: \(groupInfo.name) (ID: \(groupInfo.id))", category: FameFitLogger.workout)
+            configureGroupWorkout(groupInfo)
+        } else {
+            // Check for pending group workout from iPhone
+            checkForGroupWorkout()
+            FameFitLogger.info("Starting workout: \(workoutType)", category: FameFitLogger.workout)
+        }
 
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
@@ -77,11 +102,13 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             builder.delegate = self
 
             // Start the session first
-            session?.startActivity(with: Date())
+            let startDate = Date()
+            session?.startActivity(with: startDate)
             FameFitLogger.debug("Session started", category: FameFitLogger.workout)
 
             // Begin collection after session starts
-            builder.beginCollection(withStart: Date()) { [weak self] success, error in
+            FameFitLogger.debug("About to call beginCollection", category: FameFitLogger.workout)
+            builder.beginCollection(withStart: startDate) { [weak self] success, error in
                 FameFitLogger.debug(
                     "Begin collection result: \(success), error: \(String(describing: error))",
                     category: FameFitLogger.workout
@@ -91,6 +118,8 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
                     if success {
                         self?.isWorkoutRunning = true
                         FameFitLogger.info("Workout is now running", category: FameFitLogger.workout)
+                        // Start display timer when collection begins successfully
+                        self?.startDisplayTimer()
                     } else {
                         FameFitLogger.error(
                             "Failed to begin collection: \(error?.localizedDescription ?? "Unknown error")",
@@ -98,11 +127,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
                         )
                         self?.workoutError = "Failed to start workout: \(error?.localizedDescription ?? "Unknown error")"
                         self?.isWorkoutRunning = false
-                    }
-
-                    // Start display timer only if HealthKit succeeded
-                    if success {
-                        self?.startDisplayTimer()
                     }
                 }
             }
@@ -117,10 +141,11 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         ]
 
         let typesToRead: Set = [
-            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!
+            HKQuantityType.quantityType(forIdentifier: .heartRate)!,          // Display real-time heart rate
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,  // Display calories burned
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!, // Track running/walking distance
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,     // Track cycling distance
+            HKObjectType.workoutType()  // Read previous workouts for context
         ]
 
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
@@ -140,10 +165,10 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var isWorkoutRunning = false
     @Published var isPaused = false
     @Published var workoutError: String?
-    @Published var currentMessage: String = ""
 
     // Display timer for smooth UI updates (NOT the actual workout timer)
-    @Published var displayElapsedTime: TimeInterval = 0
+    // NOT @Published - views that need this should use TimelineView or Timer
+    var displayElapsedTime: TimeInterval = 0
     private var displayTimer: Timer?
 
     private let timeMultiplier: Double = 1.0
@@ -151,8 +176,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     private var lastMilestoneTime: TimeInterval = 0
     private var messageTimer: Timer?
 
-    // Achievement tracking
-    let achievementManager = AchievementManager()
 
     func pause() {
         session?.pause()
@@ -177,36 +200,34 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     func endWorkout() {
         FameFitLogger.info("Ending workout", category: FameFitLogger.workout)
         displayTimer?.invalidate()
+        
+        // Stop metrics upload timer (safe to call even if not group workout)
+        stopMetricsUpload()
 
         guard let session else {
-            // Don't show error if we're already showing summary
-            if !showingSummaryView {
-                workoutError = "No active workout to end"
-            }
+            workoutError = "No active workout to end"
+            return
+        }
+        
+        // Check if session is already ending/ended
+        if session.state == .ended || session.state == .stopped {
+            FameFitLogger.warning("Workout already ended/stopped, ignoring duplicate end request", category: FameFitLogger.workout)
             return
         }
 
         // Show workout-specific end message based on type and duration
-        if let workoutType = selectedWorkout {
-            let workoutName = getWorkoutName(for: workoutType)
-            currentMessage = FameFitMessages.getWorkoutSpecificMessage(
-                workoutType: workoutName,
-                duration: displayElapsedTime
-            )
-        } else {
-            currentMessage = FameFitMessages.getMessage(for: .workoutEnd)
-        }
 
         session.end()
         // Summary will be shown by HealthKit delegate when workout ends
     }
 
     // MARK: - Workout Metrics
-
-    @Published var averageHeartRate: Double = 0
-    @Published var heartRate: Double = 0
-    @Published var activeEnergy: Double = 0
-    @Published var distance: Double = 0
+    // NOT @Published - these update too frequently and cause performance issues
+    // Views should read these directly when needed or use TimelineView
+    var averageHeartRate: Double = 0
+    var heartRate: Double = 0
+    var activeEnergy: Double = 0
+    var distance: Double = 0
     @Published var workout: HKWorkout?
 
     // MARK: - Summary Data
@@ -217,10 +238,12 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     var elapsedTimeForSummary: TimeInterval { displayElapsedTime }
 
     func resetWorkout() {
+        FameFitLogger.debug("Resetting workout manager state", category: FameFitLogger.workout)
         selectedWorkout = nil
         builder = nil
         session = nil
         workout = nil
+        completedWorkout = nil
         activeEnergy = 0
         averageHeartRate = 0
         heartRate = 0
@@ -229,7 +252,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         isPaused = false
         displayElapsedTime = 0
         workoutError = nil
-        currentMessage = ""
         lastMilestoneTime = 0
         displayTimer?.invalidate()
         displayTimer = nil
@@ -242,33 +264,15 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         isGroupWorkoutHost = false
         groupParticipantCount = 0
         groupWorkoutMetadata = [:]
+        // Stop metrics upload timer
+        stopMetricsUpload()
+        // Clear pending metrics
+        pendingMetrics.removeAll()
+        metricsRetryCount = 0
     }
     
     // MARK: - Group Workout Methods
     
-    func startGroupWorkout(workoutType: HKWorkoutActivityType, groupID: String, groupName: String, isHost: Bool, participantCount: Int) {
-        FameFitLogger.info("Starting group workout: \(groupName) (ID: \(groupID))", category: FameFitLogger.workout)
-        
-        // Set group workout properties
-        isGroupWorkout = true
-        groupWorkoutID = groupID
-        groupWorkoutName = groupName
-        isGroupWorkoutHost = isHost
-        groupParticipantCount = participantCount
-        
-        // Prepare metadata for HealthKit
-        groupWorkoutMetadata = [
-            "groupWorkoutID": groupID,
-            "groupWorkoutName": groupName,
-            "isGroupWorkout": true,
-            "isHost": isHost,
-            "participantCount": participantCount,
-            "joinTimestamp": Date()
-        ]
-        
-        // Start regular workout
-        startWorkout(workoutType: workoutType)
-    }
     
     func updateGroupParticipantCount(_ count: Int) {
         groupParticipantCount = count
@@ -277,7 +281,9 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
 
     private func startDisplayTimer() {
         displayTimer?.invalidate()
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Update display at 0.01s for smooth timer display (100Hz)
+        // This is just for UI, not for data syncing
+        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.updateDisplayTime()
             }
@@ -303,48 +309,15 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     private func checkMilestones() {
         let currentTime = displayElapsedTime
 
-        // Check for duration achievements in real-time
-        var achievementUnlocked = false
-
-        if currentTime >= 300, !achievementManager.unlockedAchievements.contains(.fiveMinutes) {
-            achievementManager.unlockedAchievements.insert(.fiveMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.fiveMinutes.roastMessage)"
-            achievementUnlocked = true
+        // Show regular milestone or random message
+        if currentTime >= 300, lastMilestoneTime < 300 {
             lastMilestoneTime = 300
-        } else if currentTime >= 600, !achievementManager.unlockedAchievements.contains(.tenMinutes) {
-            achievementManager.unlockedAchievements.insert(.tenMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.tenMinutes.roastMessage)"
-            achievementUnlocked = true
+        } else if currentTime >= 600, lastMilestoneTime < 600 {
             lastMilestoneTime = 600
-        } else if currentTime >= 1_800, !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
-            achievementManager.unlockedAchievements.insert(.thirtyMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.thirtyMinutes.roastMessage)"
-            achievementUnlocked = true
+        } else if currentTime >= 1_200, lastMilestoneTime < 1_200 {
+            lastMilestoneTime = 1_200
+        } else if currentTime >= 1_800, lastMilestoneTime < 1_800 {
             lastMilestoneTime = 1_800
-        }
-
-        // If no achievement, show regular milestone or random message
-        if !achievementUnlocked {
-            if currentTime >= 300, lastMilestoneTime < 300 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 300
-            } else if currentTime >= 600, lastMilestoneTime < 600 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 600
-            } else if currentTime >= 1_200, lastMilestoneTime < 1_200 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1_200
-            } else if currentTime >= 1_800, lastMilestoneTime < 1_800 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1_800
-            } else {
-                // Random encouragement or roast between milestones
-                if Bool.random() {
-                    currentMessage = FameFitMessages.getMessage(for: .encouragement)
-                } else {
-                    currentMessage = FameFitMessages.getMessage(for: .roast)
-                }
-            }
         }
     }
 
@@ -359,9 +332,10 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     func workoutSession(
         _: HKWorkoutSession,
         didChangeTo toState: HKWorkoutSessionState,
-        from _: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
         date: Date
     ) {
+        FameFitLogger.debug("Session state changed from \(fromState.rawValue) to \(toState.rawValue)", category: FameFitLogger.workout)
         // Ensure UI updates happen on main thread
         DispatchQueue.main.async { [weak self] in
             switch toState {
@@ -372,8 +346,6 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                 if self?.displayTimer == nil {
                     self?.startDisplayTimer()
                 }
-                // Show start message
-                self?.currentMessage = FameFitMessages.getMessage(for: .workoutStart)
                 // Start checking for milestones
                 self?.startMilestoneTimer()
             case .paused:
@@ -414,32 +386,22 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
             }
             #endif
             
-            builder?.endCollection(withEnd: date) { [weak self] _, _ in
-                self?.builder?.finishWorkout { [weak self] workout, _ in
+            // Store references locally to avoid retain issues
+            let currentBuilder = builder
+            
+            currentBuilder?.endCollection(withEnd: date) { [weak self] _, _ in
+                currentBuilder?.finishWorkout { [weak self] workout, _ in
                     DispatchQueue.main.async {
                         self?.workout = workout
-
-                        // Check for achievements
-                        if let workout {
-                            self?.achievementManager.checkAchievements(
-                                for: workout,
-                                duration: self?.displayElapsedTime ?? 0,
-                                calories: self?.activeEnergy ?? 0,
-                                distance: self?.distance ?? 0,
-                                averageHeartRate: self?.averageHeartRate ?? 0
-                            )
-
-                            // Show achievement message if any
-                            if let achievement = self?.achievementManager.recentAchievement {
-                                self?.currentMessage = "🏆 \(achievement.title): \(achievement.roastMessage)"
-                            }
-                        }
-
-                        // Clean up references
+                        
+                        // Publish the completed workout so views can show summary
+                        FameFitLogger.debug("📍 WorkoutManager: Setting completedWorkout to \(workout?.uuid.uuidString ?? "nil")", category: FameFitLogger.workout)
+                        self?.completedWorkout = workout
+                        
+                        // Clean up references immediately
+                        // The workout data is already captured in self?.workout
                         self?.session = nil
                         self?.builder = nil
-                        // Now show summary after workout is fully processed
-                        self?.showingSummaryView = true
                     }
                 }
             }
@@ -497,3 +459,192 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
         }
     }
 #endif
+
+// MARK: - Group Workout Methods
+
+extension WorkoutManager {
+    /// Configure workout manager for a group workout
+    private func configureGroupWorkout(_ info: GroupWorkoutInfo) {
+        isGroupWorkout = true
+        groupWorkoutID = info.id
+        groupWorkoutName = info.name
+        isGroupWorkoutHost = info.isHost
+        groupParticipantCount = info.participantCount
+        
+        // Prepare metadata for HealthKit
+        groupWorkoutMetadata = [
+            "groupWorkoutID": info.id,
+            "groupWorkoutName": info.name,
+            "isGroupWorkout": true,
+            "isHost": info.isHost,
+            "participantCount": info.participantCount
+        ]
+        
+        // Start metrics upload timer
+        startMetricsUpload()
+    }
+    
+    private func checkForGroupWorkout() {
+        // Check if there's pending group workout info from iPhone
+        if let workoutID = UserDefaults.standard.string(forKey: "pendingGroupWorkoutID"),
+           let workoutName = UserDefaults.standard.string(forKey: "pendingGroupWorkoutName") {
+            
+            let isHost = UserDefaults.standard.bool(forKey: "pendingGroupWorkoutIsHost")
+            let participantCount = UserDefaults.standard.integer(forKey: "pendingGroupWorkoutParticipantCount")
+            
+            let groupInfo = GroupWorkoutInfo(
+                id: workoutID,
+                name: workoutName,
+                isHost: isHost,
+                participantCount: participantCount > 0 ? participantCount : 1
+            )
+            
+            // Clear the pending info
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutID")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutName")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutIsHost")
+            UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutParticipantCount")
+            
+            // Configure for group workout
+            configureGroupWorkout(groupInfo)
+            
+            FameFitLogger.info("🏋️ Restored group workout: \(workoutName) (Host: \(isHost))", category: FameFitLogger.workout)
+        }
+    }
+    
+    private func startMetricsUpload() {
+        guard isGroupWorkout else { return }
+        
+        // Start timer to upload metrics every 5 seconds
+        metricsUploadTimer = Timer.scheduledTimer(withTimeInterval: metricsUploadInterval, repeats: true) { [weak self] _ in
+            self?.uploadMetrics()
+        }
+    }
+    
+    private func uploadMetrics() {
+        guard isGroupWorkout,
+              let workoutID = groupWorkoutID else { return }
+        
+        // Prepare metrics
+        let metrics: [String: Any] = [
+            "workoutID": workoutID,
+            "timestamp": Date(),
+            "heartRate": self.heartRate,
+            "activeEnergy": self.activeEnergy,
+            "distance": self.distance,
+            "elapsedTime": self.displayElapsedTime,
+            "averageHeartRate": self.averageHeartRate,
+            "isActive": self.isWorkoutRunning
+        ]
+        
+        #if os(watchOS)
+        // Check if Watch connectivity is available
+        if WCSession.default.isReachable {
+            unreachableCount = 0 // Reset counter when reachable
+            
+            // Try to send pending metrics first
+            sendPendingMetrics()
+            
+            // Send current metrics
+            WCSession.default.sendMessage([
+                "command": "groupWorkoutMetrics",
+                "metrics": metrics
+            ], replyHandler: { [weak self] response in
+                // Success - reset retry count
+                self?.metricsRetryCount = 0
+                FameFitLogger.debug("✅ Metrics sent successfully", category: FameFitLogger.workout)
+            }, errorHandler: { [weak self] error in
+                self?.handleMetricsUploadError(metrics: metrics, error: error)
+            })
+        } else {
+            unreachableCount += 1
+            
+            // If iPhone has been unreachable for too long, stop trying to save battery
+            if unreachableCount >= maxUnreachableAttempts {
+                FameFitLogger.warning("📱 iPhone unreachable for \(unreachableCount) attempts, pausing group sync to save battery", category: FameFitLogger.workout)
+                // Stop the timer to save battery
+                stopMetricsUpload()
+                // Still save the workout locally
+                return
+            }
+            
+            // Queue metrics for later
+            queueMetricsForLater(metrics)
+            FameFitLogger.debug("📱 Watch not reachable (attempt \(unreachableCount)/\(maxUnreachableAttempts)), queuing metrics", category: FameFitLogger.workout)
+        }
+        #endif
+        
+        FameFitLogger.debug("📊 Processing metrics - HR: \(self.heartRate), Energy: \(self.activeEnergy)", category: FameFitLogger.workout)
+    }
+    
+    private func handleMetricsUploadError(metrics: [String: Any], error: Error) {
+        metricsRetryCount += 1
+        
+        if metricsRetryCount < maxRetryAttempts {
+            // Retry with exponential backoff
+            let delay = Double(metricsRetryCount) * 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.retryMetricsUpload(metrics)
+            }
+            FameFitLogger.warning("⚠️ Metrics upload failed, retrying in \(delay)s (attempt \(metricsRetryCount)/\(maxRetryAttempts))", category: FameFitLogger.workout)
+        } else {
+            // Max retries exceeded, queue for later
+            queueMetricsForLater(metrics)
+            metricsRetryCount = 0
+            FameFitLogger.error("❌ Metrics upload failed after \(maxRetryAttempts) attempts, queuing for later", error: error, category: FameFitLogger.workout)
+        }
+    }
+    
+    private func retryMetricsUpload(_ metrics: [String: Any]) {
+        #if os(watchOS)
+        guard WCSession.default.isReachable else {
+            queueMetricsForLater(metrics)
+            return
+        }
+        
+        WCSession.default.sendMessage([
+            "command": "groupWorkoutMetrics",
+            "metrics": metrics
+        ], replyHandler: { [weak self] _ in
+            self?.metricsRetryCount = 0
+        }, errorHandler: { [weak self] error in
+            self?.handleMetricsUploadError(metrics: metrics, error: error)
+        })
+        #endif
+    }
+    
+    private func queueMetricsForLater(_ metrics: [String: Any]) {
+        pendingMetrics.append(metrics)
+        
+        // Limit queue size to prevent memory issues
+        // Keep only last 10 metrics (5 minutes worth at 30 second intervals)
+        if pendingMetrics.count > 10 {
+            pendingMetrics.removeFirst()
+        }
+    }
+    
+    private func sendPendingMetrics() {
+        #if os(watchOS)
+        guard !pendingMetrics.isEmpty,
+              WCSession.default.isReachable else { return }
+        
+        let metricsToSend = pendingMetrics
+        pendingMetrics.removeAll()
+        
+        for metrics in metricsToSend {
+            WCSession.default.sendMessage([
+                "command": "groupWorkoutMetrics",
+                "metrics": metrics
+            ], replyHandler: nil, errorHandler: { [weak self] error in
+                // Re-queue failed metrics
+                self?.queueMetricsForLater(metrics)
+            })
+        }
+        #endif
+    }
+    
+    private func stopMetricsUpload() {
+        metricsUploadTimer?.invalidate()
+        metricsUploadTimer = nil
+    }
+}

@@ -17,8 +17,8 @@ final class LeaderboardIntegrationTests: XCTestCase {
         super.setUp()
 
         // Create container with mock services
-        let mockCloudKitManager = MockCloudKitManager()
-        mockCloudKitManager.currentUserID = "test-user"
+        let mockCloudKitService = MockCloudKitService()
+        mockCloudKitService.currentUserID = "test-user"
 
         let mockUserProfileService = MockUserProfileService()
 
@@ -59,10 +59,10 @@ final class LeaderboardIntegrationTests: XCTestCase {
         let mockSocialFollowingService = MockSocialFollowingService()
 
         container = DependencyContainer(
-            authenticationManager: AuthenticationManager(cloudKitManager: mockCloudKitManager),
-            cloudKitManager: mockCloudKitManager,
+            authenticationManager: AuthenticationService(cloudKitManager: mockCloudKitService),
+            cloudKitManager: mockCloudKitService,
             workoutObserver: WorkoutObserver(
-                cloudKitManager: mockCloudKitManager,
+                cloudKitManager: mockCloudKitService,
                 healthKitService: MockHealthKitService()
             ),
             userProfileService: mockUserProfileService,

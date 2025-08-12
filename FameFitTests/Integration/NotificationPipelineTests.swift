@@ -13,7 +13,7 @@ final class NotificationPipelineTests: XCTestCase {
     private var notificationStore: MockNotificationStore!
     private var workoutObserver: WorkoutObserver!
     private var unlockService: UnlockNotificationService!
-    private var cloudKitManager: MockCloudKitManager!
+    private var cloudKitManager: MockCloudKitService!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
@@ -22,7 +22,7 @@ final class NotificationPipelineTests: XCTestCase {
 
         // Set up mock dependencies
         notificationStore = MockNotificationStore()
-        cloudKitManager = MockCloudKitManager()
+        cloudKitManager = MockCloudKitService()
 
         // Set up services
         workoutObserver = WorkoutObserver(cloudKitManager: cloudKitManager)

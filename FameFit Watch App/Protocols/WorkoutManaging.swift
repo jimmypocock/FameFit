@@ -16,8 +16,8 @@ protocol WorkoutManaging: ObservableObject {
     /// The currently selected workout type, setting this starts a workout
     var selectedWorkout: HKWorkoutActivityType? { get set }
 
-    /// Controls the presentation of the summary view
-    var showingSummaryView: Bool { get set }
+    /// Published when workout completes
+    var completedWorkout: HKWorkout? { get set }
 
     /// Indicates if a workout session is currently active
     var isWorkoutRunning: Bool { get }

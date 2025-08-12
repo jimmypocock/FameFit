@@ -15,24 +15,24 @@ extension GroupWorkoutService {
     func createGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
         FameFitLogger.info("Creating group workout: \(workout.name)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Verify user is the host
-        guard workout.hostId == userId else {
+        guard workout.hostID == userID else {
             throw GroupWorkoutError.notAuthorized
         }
         
         // Check rate limiting
-        _ = try await rateLimiter.checkLimit(for: .workoutPost, userId: userId)
+        _ = try await rateLimiter.checkLimit(for: .workoutPost, userID: userID)
         
         // Validate workout
         try validateWorkout(workout)
         
         // Create the workout
         var newWorkout = workout
-        newWorkout.participantCount = 1 // Host is the first participant
+        newWorkout.participantCount = 0 // Don't count host as participant
         
         // Save to CloudKit
         let record = newWorkout.toCKRecord()
@@ -42,24 +42,10 @@ extension GroupWorkoutService {
             throw GroupWorkoutError.saveFailed
         }
         
-        // Create the host as first participant
-        FameFitLogger.debug("Fetching profile for userId: \(userId)", category: FameFitLogger.social)
-        let hostProfile = try await userProfileService.fetchProfileByUserID(userId)
-        FameFitLogger.debug("Successfully fetched profile: \(hostProfile.username)", category: FameFitLogger.social)
-        let hostParticipant = GroupWorkoutParticipant(
-            id: UUID().uuidString,
-            groupWorkoutId: savedWorkout.id,
-            userId: userId,
-            username: hostProfile.username,
-            profileImageURL: hostProfile.profileImageURL,
-            status: .joined
-        )
-        
-        let participantRecord = hostParticipant.toCKRecord()
-        _ = try await cloudKitManager.save(participantRecord)
+        // Don't create host as participant - host is separate from participants
         
         // Record action for rate limiting
-        await rateLimiter.recordAction(.workoutPost, userId: userId)
+        await rateLimiter.recordAction(.workoutPost, userID: userID)
         
         // Cache the workout
         await cacheWorkout(savedWorkout)
@@ -76,18 +62,18 @@ extension GroupWorkoutService {
     func updateGroupWorkout(_ workout: GroupWorkout) async throws -> GroupWorkout {
         FameFitLogger.info("Updating group workout: \(workout.name)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Only host can update
-        guard workout.hostId == userId else {
+        guard workout.hostID == userID else {
             throw GroupWorkoutError.notAuthorized
         }
         
         // Update the workout
         var updatedWorkout = workout
-        updatedWorkout.modifiedTimestamp = Date()
+        updatedWorkout.modificationDate = Date()
         
         // Fetch the existing record first to avoid "record already exists" error
         let recordID = CKRecord.ID(recordName: workout.id)
@@ -137,27 +123,27 @@ extension GroupWorkoutService {
         return savedWorkout
     }
     
-    func deleteGroupWorkout(_ workoutId: String) async throws {
-        FameFitLogger.info("Deleting group workout: \(workoutId)", category: FameFitLogger.social)
+    func deleteGroupWorkout(_ workoutID: String) async throws {
+        FameFitLogger.info("Deleting group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
         // Find the workout
-        let workout = try await fetchWorkout(workoutId)
+        let workout = try await fetchWorkout(workoutID)
         
         // Check if current user is the creator
-        guard workout.hostId == userId else {
+        guard workout.hostID == userID else {
             throw GroupWorkoutError.notAuthorized
         }
         
         // Delete the workout
-        let recordID = CKRecord.ID(recordName: workoutId)
+        let recordID = CKRecord.ID(recordName: workoutID)
         try await cloudKitManager.delete(withRecordID: recordID)
         
         // Delete all participants
-        let participantPredicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutId: workoutId)
+        let participantPredicate = GroupWorkoutQueryBuilder.participantsForWorkoutQuery(workoutID: workoutID)
         let participantRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutParticipants",
             predicate: participantPredicate,
@@ -170,7 +156,7 @@ extension GroupWorkoutService {
         }
         
         // Delete all invites
-        let invitePredicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutId: workoutId)
+        let invitePredicate = GroupWorkoutQueryBuilder.invitesForWorkoutQuery(workoutID: workoutID)
         let inviteRecords = try await cloudKitManager.fetchRecords(
             ofType: "GroupWorkoutInvites",
             predicate: invitePredicate,
@@ -183,23 +169,23 @@ extension GroupWorkoutService {
         }
         
         // Remove from cache
-        await cache.remove(workoutId: workoutId)
+        await cache.remove(workoutID: workoutID)
         
         // Send update
-        sendUpdate(.deleted(workoutId))
+        sendUpdate(.deleted(workoutID))
     }
     
-    func cancelGroupWorkout(_ workoutId: String) async throws {
-        FameFitLogger.info("Cancelling group workout: \(workoutId)", category: FameFitLogger.social)
+    func cancelGroupWorkout(_ workoutID: String) async throws {
+        FameFitLogger.info("Cancelling group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        var workout = try await fetchWorkout(workoutId)
+        var workout = try await fetchWorkout(workoutID)
         
         // Only host can cancel
-        guard workout.hostId == userId else {
+        guard workout.hostID == userID else {
             throw GroupWorkoutError.notAuthorized
         }
         
@@ -211,18 +197,21 @@ extension GroupWorkoutService {
         await notifyParticipantsOfCancellation(workout)
     }
     
-    func startGroupWorkout(_ workoutId: String) async throws -> GroupWorkout {
-        FameFitLogger.info("Starting group workout: \(workoutId)", category: FameFitLogger.social)
+    func startGroupWorkout(_ workoutID: String) async throws -> GroupWorkout {
+        FameFitLogger.info("Starting group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        var workout = try await fetchWorkout(workoutId)
+        var workout = try await fetchWorkout(workoutID)
         
         // Verify user is host or participant
-        let participants = try await getParticipants(workoutId)
-        guard workout.hostId == userId || participants.contains(where: { $0.userId == userId }) else {
+        let participants = try await getParticipants(workoutID)
+        let isHost = workout.hostID == userID
+        let isParticipant = participants.contains(where: { $0.userID == userID })
+        
+        guard isHost || isParticipant else {
             throw GroupWorkoutError.notParticipant
         }
         
@@ -231,46 +220,74 @@ extension GroupWorkoutService {
         let updatedWorkout = try await updateGroupWorkout(workout)
         
         // Update participant status
-        try await updateParticipantStatus(workoutId, status: .active)
+        try await updateParticipantStatus(workoutID, status: .active)
+        
+        // Track workout start time using UnifiedWorkoutProcessor
+        if let processor = workoutProcessor {
+            if isHost {
+                try await processor.processGroupWorkoutStart(groupWorkout: updatedWorkout, hostID: userID)
+            } else {
+                try await processor.processGroupWorkoutJoin(groupWorkout: updatedWorkout, participantID: userID)
+            }
+        }
         
         // Send real-time update
-        sendUpdate(.statusChanged(workoutId: workoutId, status: .active))
+        sendUpdate(.statusChanged(workoutID: workoutID, status: .active))
         
         // Notify other participants
-        await notifyParticipantsOfStart(updatedWorkout, startedBy: userId)
+        await notifyParticipantsOfStart(updatedWorkout, startedBy: userID)
         
         return updatedWorkout
     }
     
-    func completeGroupWorkout(_ workoutId: String) async throws -> GroupWorkout {
-        FameFitLogger.info("Completing group workout: \(workoutId)", category: FameFitLogger.social)
+    func completeGroupWorkout(_ workoutID: String) async throws -> GroupWorkout {
+        FameFitLogger.info("Completing group workout: \(workoutID)", category: FameFitLogger.social)
         
-        guard let userId = cloudKitManager.currentUserID else {
+        guard let userID = cloudKitManager.currentUserID else {
             throw GroupWorkoutError.notAuthenticated
         }
         
-        var workout = try await fetchWorkout(workoutId)
+        var workout = try await fetchWorkout(workoutID)
+        let isHost = workout.hostID == userID
         
         // Update participant status
-        try await updateParticipantStatus(workoutId, status: .completed)
+        try await updateParticipantStatus(workoutID, status: .completed)
         
         // Check if all participants completed
-        let allParticipants = try await getParticipants(workoutId)
+        let allParticipants = try await getParticipants(workoutID)
         let allCompleted = allParticipants.allSatisfy {
             $0.status == .completed || $0.status == .dropped
         }
         
-        if allCompleted || workout.hostId == userId {
-            workout.status = .completed
+        // Process workout completion using UnifiedWorkoutProcessor
+        if let processor = workoutProcessor {
+            if isHost {
+                // Host ending the workout
+                try await processor.processGroupWorkoutEnd(groupWorkout: workout, hostID: userID)
+                
+                // Also end for all active participants
+                for participant in allParticipants where participant.status == .active {
+                    try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantID: participant.userID)
+                }
+                
+                workout.status = .completed
+            } else {
+                // Participant marking as completed
+                try await processor.processGroupWorkoutLeave(groupWorkout: workout, participantID: userID)
+                
+                if allCompleted {
+                    workout.status = .completed
+                }
+            }
+        } else {
+            // Fallback to old XP award method if processor not available
+            await awardGroupWorkoutXP(workout, for: userID)
         }
         
         let updatedWorkout = try await updateGroupWorkout(workout)
         
         // Send real-time update
-        sendUpdate(.statusChanged(workoutId: workoutId, status: workout.status))
-        
-        // Award XP for group workout completion
-        await awardGroupWorkoutXP(updatedWorkout, for: userId)
+        sendUpdate(.statusChanged(workoutID: workoutID, status: workout.status))
         
         return updatedWorkout
     }

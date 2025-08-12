@@ -12,7 +12,7 @@ struct NotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.dependencyContainer) var container
 
-    @State private var preferences = NotificationPreferences()
+    @State private var preferences = NotificationSettings()
     @State private var isLoading = false
     @State private var pushNotificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showPermissionView = false
@@ -238,7 +238,7 @@ struct NotificationSettingsView: View {
     private func loadPreferences() {
         isLoading = true
         // Load saved preferences from UserDefaults
-        preferences = NotificationPreferences.load()
+        preferences = NotificationSettings.load()
         isLoading = false
     }
 

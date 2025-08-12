@@ -185,13 +185,13 @@ struct XPTransactionDetailView_Previews: PreviewProvider {
     static var previews: some View {
         XPTransactionDetailView(
             transaction: XPTransaction(
-                userRecordID: "test-user",
-                workoutRecordID: "test-workout",
+                userID: "test-user",
+                workoutID: "test-workout",
                 baseXP: 30,
                 finalXP: 54,
                 factors: XPCalculationFactors(
                     workoutType: "Running",
-                    duration: 1800,
+                    duration: 1_800,
                     dayOfWeek: "Saturday",
                     timeOfDay: "Morning",
                     consistencyStreak: 5,

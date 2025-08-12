@@ -11,17 +11,17 @@ import XCTest
 
 final class ProfileCreationTests: XCTestCase {
     private var container: DependencyContainer!
-    private var authManager: (any AuthenticationManaging)?
-    private var profileService: (any UserProfileServicing)?
-    private var cloudKitManager: (any CloudKitManaging)?
+    private var authManager: (any AuthenticationProtocol)?
+    private var profileService: (any UserProfileProtocol)?
+    private var cloudKitManager: (any CloudKitProtocol)?
     private var testUsername: String!
     
     override func setUp() async throws {
         try await super.setUp()
         
         // Use test/mock setup for integration tests
-        let mockAuth = MockAuthenticationManager()
-        let mockCloudKit = MockCloudKitManager()
+        let mockAuth = MockAuthenticationService()
+        let mockCloudKit = MockCloudKitService()
         mockCloudKit.mockIsAvailable = true
         mockCloudKit.currentUserID = "test-user-\(UUID().uuidString)"
         
@@ -53,7 +53,7 @@ final class ProfileCreationTests: XCTestCase {
         }
         
         // 1. Simulate user authentication
-        if let mockAuth = authManager as? MockAuthenticationManager {
+        if let mockAuth = authManager as? MockAuthenticationService {
             mockAuth.userID = "test-user-\(UUID().uuidString)"
             mockAuth.userName = "Test User"
             mockAuth.isAuthenticated = true
@@ -108,7 +108,7 @@ final class ProfileCreationTests: XCTestCase {
         }
         
         // Create a profile and verify it's connected to the current user
-        if let mockAuth = authManager as? MockAuthenticationManager {
+        if let mockAuth = authManager as? MockAuthenticationService {
             mockAuth.userID = "test-user-\(UUID().uuidString)"
             mockAuth.isAuthenticated = true
         }
@@ -151,7 +151,7 @@ final class ProfileCreationTests: XCTestCase {
             throw XCTSkip("Skipping CloudKit tests")
         }
         
-        if let mockAuth = authManager as? MockAuthenticationManager {
+        if let mockAuth = authManager as? MockAuthenticationService {
             mockAuth.isAuthenticated = true
         }
         

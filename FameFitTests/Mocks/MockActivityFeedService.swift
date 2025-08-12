@@ -2,22 +2,22 @@
 //  MockActivityFeedService.swift
 //  FameFitTests
 //
-//  Mock implementation of ActivityFeedServicing for testing
+//  Mock implementation of ActivityFeedProtocol for testing
 //
 
 import Combine
 @testable import FameFit
 import Foundation
 
-final class MockActivityFeedService: ActivityFeedServicing {
-    var postedActivities: [ActivityFeedItem] = []
+final class MockActivityFeedService: ActivityFeedProtocol {
+    var postedActivities: [ActivityFeedRecord] = []
     var shouldFail = false
     var mockError: ActivityFeedError = .networkError("Mock error")
 
-    private let newActivitySubject = PassthroughSubject<ActivityFeedItem, Never>()
+    private let newActivitySubject = PassthroughSubject<ActivityFeedRecord, Never>()
     private let privacyUpdateSubject = PassthroughSubject<(String, WorkoutPrivacy), Never>()
 
-    var newActivityPublisher: AnyPublisher<ActivityFeedItem, Never> {
+    var newActivityPublisher: AnyPublisher<ActivityFeedRecord, Never> {
         newActivitySubject.eraseToAnyPublisher()
     }
 
@@ -26,7 +26,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
     }
 
     func postWorkoutActivity(
-        workoutHistory: WorkoutItem,
+        workout: Workout,
         privacy: WorkoutPrivacy,
         includeDetails: Bool
     ) async throws {
@@ -35,29 +35,30 @@ final class MockActivityFeedService: ActivityFeedServicing {
         }
 
         let content = ActivityFeedContent(
-            title: "Completed a \(workoutHistory.workoutType) workout",
-            subtitle: includeDetails ? "Duration: \(Int(workoutHistory.duration / 60)) minutes" : nil,
+            title: "Completed a \(workout.workoutType) workout",
+            subtitle: includeDetails ? "Duration: \(Int(workout.duration / 60)) minutes" : nil,
             details: includeDetails ? [
-                "workoutType": workoutHistory.workoutType,
-                "duration": String(workoutHistory.duration),
-                "calories": String(workoutHistory.totalEnergyBurned),
-                "xpEarned": String(workoutHistory.followersEarned)
-            ] : ["workoutType": workoutHistory.workoutType]
+                "workoutType": workout.workoutType,
+                "duration": String(workout.duration),
+                "calories": String(workout.totalEnergyBurned),
+                "xpEarned": String(workout.followersEarned)
+            ] : ["workoutType": workout.workoutType]
         )
 
         let contentData = try JSONEncoder().encode(content)
         let contentString = String(data: contentData, encoding: .utf8) ?? ""
 
-        let activity = ActivityFeedItem(
+        let activity = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: "mock-user",
+            username: "MockUser",
             activityType: "workout",
-            workoutId: workoutHistory.id.uuidString,
+            workoutID: workout.id,
             content: contentString,
             visibility: privacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
-            xpEarned: workoutHistory.followersEarned,
+            xpEarned: workout.followersEarned,
             achievementName: nil
         )
 
@@ -87,14 +88,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
         let contentData = try JSONEncoder().encode(content)
         let contentString = String(data: contentData, encoding: .utf8) ?? ""
 
-        let activity = ActivityFeedItem(
+        let activity = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: "mock-user",
+            username: "MockUser",
             activityType: "achievement",
-            workoutId: nil,
+            workoutID: nil,
             content: contentString,
             visibility: privacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(90 * 24 * 3_600),
             xpEarned: xpEarned,
             achievementName: achievementName
@@ -122,14 +124,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
         let contentData = try JSONEncoder().encode(content)
         let contentString = String(data: contentData, encoding: .utf8) ?? ""
 
-        let activity = ActivityFeedItem(
+        let activity = ActivityFeedRecord(
             id: UUID().uuidString,
             userID: "mock-user",
+            username: "MockUser",
             activityType: "level_up",
-            workoutId: nil,
+            workoutID: nil,
             content: contentString,
             visibility: privacy.rawValue,
-            createdTimestamp: Date(),
+            creationDate: Date(),
             expiresAt: Date().addingTimeInterval(365 * 24 * 3_600),
             xpEarned: nil,
             achievementName: nil
@@ -139,7 +142,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
         newActivitySubject.send(activity)
     }
 
-    func fetchFeed(for userIds: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedItem] {
+    func fetchFeed(for userIds: Set<String>, since: Date?, limit: Int) async throws -> [ActivityFeedRecord] {
         if shouldFail {
             throw mockError
         }
@@ -147,7 +150,7 @@ final class MockActivityFeedService: ActivityFeedServicing {
         // If no activities posted, create some mock ones for testing
         if postedActivities.isEmpty, !userIds.isEmpty {
             // Create mock activities for the requested users
-            var mockActivities: [ActivityFeedItem] = []
+            var mockActivities: [ActivityFeedRecord] = []
 
             // Calculate base time offset based on 'since' parameter for pagination
             let baseTimeOffset: TimeInterval = if let since {
@@ -175,14 +178,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
                 if let contentData = try? JSONEncoder().encode(workoutContent),
                    let contentString = String(data: contentData, encoding: .utf8) {
-                    mockActivities.append(ActivityFeedItem(
+                    mockActivities.append(ActivityFeedRecord(
                         id: UUID().uuidString,
                         userID: userId,
+                        username: "User\(index)",
                         activityType: "workout",
-                        workoutId: UUID().uuidString,
+                        workoutID: UUID().uuidString,
                         content: contentString,
                         visibility: "public",
-                        createdTimestamp: Date().addingTimeInterval(userTimeOffset),
+                        creationDate: Date().addingTimeInterval(userTimeOffset),
                         expiresAt: Date().addingTimeInterval(30 * 24 * 3_600),
                         xpEarned: 45,
                         achievementName: nil
@@ -201,14 +205,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
                 if let contentData = try? JSONEncoder().encode(achievementContent),
                    let contentString = String(data: contentData, encoding: .utf8) {
-                    mockActivities.append(ActivityFeedItem(
+                    mockActivities.append(ActivityFeedRecord(
                         id: UUID().uuidString,
                         userID: userId,
+                        username: "User\(index)",
                         activityType: "achievement",
-                        workoutId: nil,
+                        workoutID: nil,
                         content: contentString,
                         visibility: "friends_only",
-                        createdTimestamp: Date().addingTimeInterval(userTimeOffset - 3_600),
+                        creationDate: Date().addingTimeInterval(userTimeOffset - 3_600),
                         expiresAt: Date().addingTimeInterval(90 * 24 * 3_600),
                         xpEarned: 50,
                         achievementName: "Workout Warrior"
@@ -227,14 +232,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
                 if let contentData = try? JSONEncoder().encode(levelUpContent),
                    let contentString = String(data: contentData, encoding: .utf8) {
-                    mockActivities.append(ActivityFeedItem(
+                    mockActivities.append(ActivityFeedRecord(
                         id: UUID().uuidString,
                         userID: userId,
+                        username: "User\(index)",
                         activityType: "level_up",
-                        workoutId: nil,
+                        workoutID: nil,
                         content: contentString,
                         visibility: "public",
-                        createdTimestamp: Date().addingTimeInterval(userTimeOffset - 7_200),
+                        creationDate: Date().addingTimeInterval(userTimeOffset - 7_200),
                         expiresAt: Date().addingTimeInterval(365 * 24 * 3_600),
                         xpEarned: nil,
                         achievementName: nil
@@ -244,15 +250,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
             // Filter by since date if provided
             if let since {
-                mockActivities = mockActivities.filter { $0.createdTimestamp < since }
+                mockActivities = mockActivities.filter { $0.creationDate < since }
             }
 
             // Sort by creation date (newest first) and return limited results
-            return mockActivities.sorted { $0.createdTimestamp > $1.createdTimestamp }.prefix(limit).map { $0 }
+            return mockActivities.sorted { $0.creationDate > $1.creationDate }.prefix(limit).map { $0 }
         }
 
         let filtered = postedActivities.filter { userIds.contains($0.userID) }
-        let sorted = filtered.sorted { $0.createdTimestamp > $1.createdTimestamp }
+        let sorted = filtered.sorted { $0.creationDate > $1.creationDate }
         return Array(sorted.prefix(limit))
     }
 
@@ -271,14 +277,15 @@ final class MockActivityFeedService: ActivityFeedServicing {
 
         if let index = postedActivities.firstIndex(where: { $0.id == activityId }) {
             var updatedActivity = postedActivities[index]
-            updatedActivity = ActivityFeedItem(
+            updatedActivity = ActivityFeedRecord(
                 id: updatedActivity.id,
                 userID: updatedActivity.userID,
+                username: updatedActivity.username,
                 activityType: updatedActivity.activityType,
-                workoutId: updatedActivity.workoutId,
+                workoutID: updatedActivity.workoutID,
                 content: updatedActivity.content,
                 visibility: newPrivacy.rawValue,
-                createdTimestamp: updatedActivity.createdTimestamp,
+                creationDate: updatedActivity.creationDate,
                 expiresAt: updatedActivity.expiresAt,
                 xpEarned: updatedActivity.xpEarned,
                 achievementName: updatedActivity.achievementName

@@ -8,15 +8,6 @@
 import SwiftUI
 import Foundation
 
-// MARK: - Temporary Date Extension (TODO: Fix Shared extension access)
-private extension Date {
-    var relativeDisplayString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: self, relativeTo: Date())
-    }
-}
-
 struct WorkoutCommentsView: View {
     let workout: Workout
     let workoutOwner: UserProfile?
@@ -33,8 +24,8 @@ struct WorkoutCommentsView: View {
 
                 // Comments list
                 CommentsListView(
-                    workoutId: workout.id.uuidString,
-                    workoutOwnerId: workoutOwner?.id ?? "",
+                    workoutID: workout.id,
+                    workoutOwnerID: workoutOwner?.id ?? "",
                     currentUser: currentUser,
                     commentsService: container.activityCommentsService
                 )
@@ -226,8 +217,9 @@ struct WorkoutCommentsView: View {
     private func loadCurrentUser() {
         Task {
             do {
-                if let userId = container.cloudKitManager.currentUserID {
-                    currentUser = try await container.userProfileService.fetchProfile(userId: userId)
+                if let userID = container.cloudKitManager.currentUserID {
+                    // userID is from cloudKitManager, so it's a CloudKit user ID
+                    currentUser = try await container.userProfileService.fetchProfileByUserID(userID)
                 }
             } catch {
                 print("Failed to load current user: \(error)")
@@ -241,7 +233,7 @@ struct WorkoutCommentsView: View {
 #Preview {
     WorkoutCommentsView(
         workout: Workout(
-            id: UUID(),
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date().addingTimeInterval(-3_600),
             endDate: Date(),
@@ -260,8 +252,8 @@ struct WorkoutCommentsView: View {
             bio: "Marathon enthusiast",
             workoutCount: 312,
             totalXP: 12_500,
-            createdTimestamp: Date().addingTimeInterval(-86_400 * 500),
-            modifiedTimestamp: Date(),
+            creationDate: Date().addingTimeInterval(-86_400 * 500),
+            modificationDate: Date(),
             isVerified: true,
             privacyLevel: .publicProfile,
             profileImageURL: nil
