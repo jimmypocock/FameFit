@@ -21,7 +21,8 @@ struct WorkoutTypeItem: Identifiable {
 
 struct WatchStartView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
-    @State private var navigationPath = NavigationPath()
+    @EnvironmentObject var accountService: AccountVerificationService
+    @EnvironmentObject var navigationCoordinator: WatchNavigationCoordinator
     @StateObject private var watchConnectivity = WatchConnectivityManager.shared
     @State private var username: String = "User"
     @State private var totalXP: Int = 0
@@ -217,7 +218,7 @@ struct WatchStartView: View {
     private func workoutTypeButton(_ workoutType: WorkoutTypeItem) -> some View {
         Button {
             workoutManager.selectedWorkout = workoutType.type
-            navigationPath.append(workoutType.type)
+            navigationCoordinator.startWorkout(workoutType.type)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: workoutType.type.iconName)
@@ -237,39 +238,28 @@ struct WatchStartView: View {
     }
     
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            List {
-                groupWorkoutSection
-                userHeaderSection
-                workoutTypesSection
-            }
-            #if os(watchOS)
-            .listStyle(.carousel)
-            #endif
-            .navigationBarTitle("Workouts")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: HKWorkoutActivityType.self) { _ in
-                SessionPagingView()
-                    .environmentObject(workoutManager)
-            }
-            .refreshable {
+        List {
+            groupWorkoutSection
+            userHeaderSection
+            workoutTypesSection
+        }
+        #if os(watchOS)
+        .listStyle(.carousel)
+        #endif
+        .navigationBarTitle("Workouts")
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            await refreshGroupWorkouts()
+        }
+        .onAppear {
+            workoutManager.requestAuthorization()
+            loadUserData()
+            // Also refresh group workouts on appear
+            Task {
                 await refreshGroupWorkouts()
             }
-            .onAppear {
-                workoutManager.requestAuthorization()
-                loadUserData()
-                // Also refresh group workouts on appear
-                Task {
-                    await refreshGroupWorkouts()
-                }
-            }
-            .onChange(of: workoutManager.showingSummaryView) { _, isShowing in
-                if !isShowing, !navigationPath.isEmpty {
-                    // Clear navigation when summary is dismissed
-                    navigationPath.removeLast(navigationPath.count)
-                }
-            }
-            .onChange(of: watchConnectivity.shouldStartWorkout) { _, shouldStart in
+        }
+        .onChange(of: watchConnectivity.shouldStartWorkout) { _, shouldStart in
                 FameFitLogger.debug("⌚ onChange shouldStartWorkout: \(shouldStart)", category: FameFitLogger.sync)
                 if shouldStart, let workoutTypeRawValue = watchConnectivity.receivedWorkoutType {
                     FameFitLogger.info("⌚ Received workout type raw value: \(workoutTypeRawValue)", category: FameFitLogger.sync)
@@ -278,7 +268,7 @@ struct WatchStartView: View {
                         FameFitLogger.info("⌚ Starting workout: \(workoutType)", category: FameFitLogger.sync)
                         // Start the workout
                         workoutManager.selectedWorkout = workoutType
-                        navigationPath.append(workoutType)
+                        navigationCoordinator.startWorkout(workoutType)
                         
                         // Reset the flag
                         DispatchQueue.main.async {
@@ -293,7 +283,6 @@ struct WatchStartView: View {
                 }
             }
         }
-    }
     
     // MARK: - Helper Methods
     
@@ -338,9 +327,9 @@ struct WatchStartView: View {
             return
         }
         
-        // Also check application context from iPhone
+        // Also check application context from iPhone - but don't log repeatedly
         let context = WCSession.default.receivedApplicationContext
-        FameFitLogger.debug("⌚ Checking application context: \(context.isEmpty ? "empty" : "has data")", category: FameFitLogger.sync)
+        // Only log if context has actual data
         if !context.isEmpty {
             FameFitLogger.debug("⌚ Application context contents: \(context)", category: FameFitLogger.sync)
         }
@@ -378,7 +367,7 @@ struct WatchStartView: View {
         // Start the workout (convert string back to enum)
         if let workoutType = workoutTypeFromString(workout.workoutType) {
             workoutManager.selectedWorkout = workoutType
-            navigationPath.append(workoutType)
+            navigationCoordinator.startWorkout(workoutType)
         }
         
         // Clear pending workout from UserDefaults
@@ -453,8 +442,6 @@ struct WatchStartView: View {
         try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
         
         isRefreshing = false
-        
-        FameFitLogger.info("⌚ Refreshed group workouts", category: FameFitLogger.sync)
         
         #if DEBUG
         // Development warning if Watch connectivity isn't working

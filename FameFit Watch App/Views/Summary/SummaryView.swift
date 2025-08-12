@@ -11,6 +11,7 @@ import SwiftUI
 struct SummaryView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
     @EnvironmentObject private var accountService: AccountVerificationService
+    @EnvironmentObject private var navigationCoordinator: WatchNavigationCoordinator
 
     // MARK: DISMISS ENVIRONMENT VARIABLE
 
@@ -35,6 +36,14 @@ struct SummaryView: View {
         if let workout = workoutManager.workout {
             ScrollView(.vertical) {
                 VStack(alignment: .leading) {
+                    // Motivational message at the top
+                    Text(SummaryMessages.getMessage(duration: workout.duration))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 8)
+                    
                     SummaryMetricView(
                         title: "Total Time",
                         value: durationFormatter.string(from: workout.duration) ?? ""
@@ -89,16 +98,7 @@ struct SummaryView: View {
                     .accentColor(.red)
 
                     // Show account-specific message
-                    if accountService.accountStatus.hasAccount {
-                        // Has account - show XP earned or message
-                        if !workoutManager.currentMessage.isEmpty {
-                            Text(workoutManager.currentMessage)
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                                .multilineTextAlignment(.center)
-                                .padding(.vertical, 8)
-                        }
-                    } else {
+                    if !accountService.accountStatus.hasAccount {
                         // No account - show prompt
                         VStack(spacing: 4) {
                             HStack(spacing: 4) {
@@ -113,9 +113,6 @@ struct SummaryView: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
-                            Text("Workout saved to Health")
-                                .font(.caption2)
-                                .foregroundColor(.green)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal)
@@ -123,20 +120,6 @@ struct SummaryView: View {
                         .cornerRadius(8)
                     }
 
-                    // Achievement Progress
-                    if !workoutManager.achievementManager.unlockedAchievements.isEmpty {
-                        let progress = workoutManager.achievementManager.getAchievementProgress()
-                        VStack(alignment: .leading) {
-                            Text("Achievements")
-                                .font(.headline)
-                                .foregroundColor(.orange)
-                            Text("\(progress.unlocked) of \(progress.total) unlocked")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .padding(.vertical, 8)
-                        Divider()
-                    }
 
                     // Activity Rings
                     VStack {
@@ -148,14 +131,30 @@ struct SummaryView: View {
                     .padding(.vertical, 8)
 
                     Button("Done") {
-                        dismiss()
+                        // Use coordinator to properly handle navigation
+                        navigationCoordinator.dismissSummary()
                     }
                 } //: VSTACK
                 .scenePadding()
             } //: SCROLLVIEW
-            .navigationTitle("Well, Well, Well...")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: {
+                        navigationCoordinator.dismissSummary()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.title3)
+                    }
+                }
+            }
+            .onAppear {
+                FameFitLogger.debug("📍 SummaryView: onAppear called", category: FameFitLogger.sync)
+            }
             .onDisappear {
+                FameFitLogger.debug("📍 SummaryView: onDisappear called", category: FameFitLogger.sync)
                 // Reset workout state when summary is dismissed
                 workoutManager.resetWorkout()
             }

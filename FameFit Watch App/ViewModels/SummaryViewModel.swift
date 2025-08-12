@@ -15,7 +15,6 @@ final class SummaryViewModel: ObservableObject {
     // MARK: - Dependencies
     
     private let healthKitSession: HealthKitSessionManaging
-    private let achievementManager: any AchievementManaging
     private let watchConnectivity: WatchConnectivityService
     private let cacheManager: CacheManager
     
@@ -27,7 +26,6 @@ final class SummaryViewModel: ObservableObject {
     @Published var averageHeartRate: Double = 0
     @Published var distance: Double = 0
     @Published var xpEarned: Int = 0
-    @Published var newAchievements: [String] = [] // Using String for now instead of Achievement
     @Published var challengeProgress: [ChallengeInfo] = []
     @Published var isSyncing = false
     @Published var syncComplete = false
@@ -71,9 +69,6 @@ final class SummaryViewModel: ObservableObject {
         }
     }
     
-    var hasAchievements: Bool {
-        !newAchievements.isEmpty
-    }
     
     var hasChallengeProgress: Bool {
         !challengeProgress.isEmpty
@@ -83,12 +78,10 @@ final class SummaryViewModel: ObservableObject {
     
     init(
         healthKitSession: HealthKitSessionManaging,
-        achievementManager: any AchievementManaging,
         watchConnectivity: WatchConnectivityService,
         cacheManager: CacheManager
     ) {
         self.healthKitSession = healthKitSession
-        self.achievementManager = achievementManager
         self.watchConnectivity = watchConnectivity
         self.cacheManager = cacheManager
     }
@@ -127,8 +120,6 @@ final class SummaryViewModel: ObservableObject {
         // Calculate XP earned (basic formula - can be enhanced)
         calculateXP()
         
-        // Get achievements (simplified for now)
-        // newAchievements would be populated from achievementManager
         
         // Load challenge progress from cache
         await loadChallengeProgress()
@@ -140,7 +131,6 @@ final class SummaryViewModel: ObservableObject {
     func dismiss() {
         // Clean up any resources
         workout = nil
-        newAchievements = []
         challengeProgress = []
     }
     
@@ -256,22 +246,6 @@ final class SummaryViewModel: ObservableObject {
     
     // MARK: - Display Helpers
     
-    func achievementIcon(for achievement: String) -> String {
-        // Simple icon mapping for achievement names
-        if achievement.contains("First") {
-            return "star.fill"
-        } else if achievement.contains("Morning") || achievement.contains("Early") {
-            return "sunrise.fill"
-        } else if achievement.contains("Night") {
-            return "moon.stars.fill"
-        } else if achievement.contains("Weekend") {
-            return "calendar.badge.clock"
-        } else if achievement.contains("Streak") {
-            return "flame.fill"
-        } else {
-            return "star.circle.fill"
-        }
-    }
     
     func challengeIcon(for challenge: ChallengeInfo) -> String {
         // Determine icon based on challenge type/name

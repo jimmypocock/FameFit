@@ -22,7 +22,6 @@ final class DependencyContainer: ObservableObject {
     let stateManager: WorkoutStateManaging
     let groupWorkoutCoordinator: GroupWorkoutCoordinating
     let watchConnectivity: WatchConnectivityService
-    let achievementManager: any AchievementManaging
     
     // MARK: - View Models
     
@@ -45,9 +44,6 @@ final class DependencyContainer: ObservableObject {
             self.stateManager = MockWorkoutStateManager()
             self.groupWorkoutCoordinator = MockGroupWorkoutCoordinator()
             self.watchConnectivity = MockWatchConnectivityService()
-            self.achievementManager = AchievementManager(
-                persister: UserDefaultsAchievementPersister()
-            )
         } else {
             // Use real implementations
             self.healthKitSession = HealthKitSessionManager()
@@ -58,9 +54,6 @@ final class DependencyContainer: ObservableObject {
             self.groupWorkoutCoordinator = GroupWorkoutCoordinator(
                 cacheManager: cacheManager,
                 watchConnectivity: MockWatchConnectivityService()
-            )
-            self.achievementManager = AchievementManager(
-                persister: UserDefaultsAchievementPersister()
             )
         }
         
@@ -75,13 +68,11 @@ final class DependencyContainer: ObservableObject {
             healthKitSession: healthKitSession,
             metricsCollector: metricsCollector,
             stateManager: stateManager,
-            groupWorkoutCoordinator: groupWorkoutCoordinator,
-            achievementManager: achievementManager
+            groupWorkoutCoordinator: groupWorkoutCoordinator
         )
         
         self.summaryViewModel = SummaryViewModel(
             healthKitSession: healthKitSession,
-            achievementManager: achievementManager,
             watchConnectivity: watchConnectivity,
             cacheManager: cacheManager
         )

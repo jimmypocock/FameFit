@@ -46,6 +46,16 @@ FameFit is a companion iOS and Apple Watch application built with SwiftUI, Healt
 
 ## Development Philosophy
 
+### Swift Best Practices
+**NEVER use timing hacks or workarounds:**
+- ❌ Never use `Task.sleep()` or `Thread.sleep()` to fix timing issues
+- ❌ Never use `DispatchQueue.main.asyncAfter` as a workaround for state management
+- ❌ Never use arbitrary timeouts to "fix" race conditions
+- ✅ Always solve the root cause of timing issues through proper state management
+- ✅ Use proper Swift concurrency patterns (async/await, actors) when needed
+- ✅ Use SwiftUI's built-in state management (@State, @Binding, @Published)
+- ✅ Follow Apple's Human Interface Guidelines and platform conventions
+
 ### Test-Driven Development (TDD)
 This project follows Test-Driven Development principles:
 1. **Write the test first** - Before implementing any feature, write a failing test that describes the expected behavior

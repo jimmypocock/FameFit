@@ -14,6 +14,7 @@ struct RootView: View {
     @StateObject private var dependencies = DependencyContainer()
     @StateObject private var accountService = AccountVerificationService()
     @StateObject private var workoutManager = WorkoutManager()
+    @StateObject private var navigationCoordinator = WatchNavigationCoordinator()
     
     // MARK: - App Lifecycle
     
@@ -36,13 +37,31 @@ struct RootView: View {
                 
             } else {
                 // Main app
-                NavigationStack {
+                NavigationStack(path: $navigationCoordinator.navigationPath) {
                     WatchStartView()
-                        .environmentObject(workoutManager)
-                        .environmentObject(dependencies.sessionViewModel)
-                        .environmentObject(dependencies.summaryViewModel)
+                        .navigationDestination(for: WatchNavigationCoordinator.Route.self) { route in
+                            switch route {
+                            case .workoutList:
+                                // This shouldn't happen as root is already workout list
+                                WatchStartView()
+                            case .session(let workoutType):
+                                SessionPagingView()
+                                    .onAppear {
+                                        // Ensure workout type is set
+                                        workoutManager.selectedWorkout = workoutType
+                                    }
+                            case .summary(_):
+                                SummaryView()
+                            }
+                        }
                 }
+                .environmentObject(workoutManager)
+                .environmentObject(accountService)
+                .environmentObject(navigationCoordinator)
+                .environmentObject(dependencies.sessionViewModel)
+                .environmentObject(dependencies.summaryViewModel)
                 .withDependencies(dependencies)
+                .withNavigationCoordinator(navigationCoordinator)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in

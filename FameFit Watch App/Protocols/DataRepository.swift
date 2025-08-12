@@ -77,9 +77,6 @@ final class UserDefaultsRepository: DataRepository {
         for key in WatchConfiguration.StorageKeys.Workout.allCases {
             userDefaults.removeObject(forKey: key.rawValue)
         }
-        for key in WatchConfiguration.StorageKeys.Achievement.allCases {
-            userDefaults.removeObject(forKey: key.rawValue)
-        }
         for key in WatchConfiguration.StorageKeys.Complication.allCases {
             userDefaults.removeObject(forKey: key.rawValue)
         }

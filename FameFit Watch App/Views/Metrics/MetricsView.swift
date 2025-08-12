@@ -11,6 +11,13 @@ struct MetricsView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
 
     var body: some View {
+        // Use TimelineView for smooth updates without triggering navigation rebuilds
+        TimelineView(.periodic(from: Date(), by: 0.01)) { _ in
+            metricsContent
+        }
+    }
+    
+    private var metricsContent: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading) {
                 // Show error if HealthKit failed
@@ -24,18 +31,6 @@ struct MetricsView: View {
                         .padding(.bottom)
                 }
 
-                // Show FameFit message
-                if !workoutManager.currentMessage.isEmpty {
-                    Text(workoutManager.currentMessage)
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundColor(.orange)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.8))
-                        .cornerRadius(10)
-                        .padding(.bottom, 10)
-                }
 
                 // MARK: TIMELINE VIEW, Timer
 

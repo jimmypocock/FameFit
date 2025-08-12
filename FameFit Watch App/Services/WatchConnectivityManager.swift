@@ -47,7 +47,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         UNUserNotificationCenter.current().delegate = self
     }
     
+    private var hasPendingCheckScheduled = false
+    
     private func forceFetchPendingTransfers() {
+        // Prevent multiple pending checks from being scheduled
+        guard !hasPendingCheckScheduled else { return }
+        
         FameFitLogger.info("⌚ Forcing check for pending transfers", category: FameFitLogger.sync)
         
         // Check for outstanding user info transfers
@@ -63,8 +68,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             handleMessage(session.receivedApplicationContext)
         }
         
-        // Schedule another check in case transfers arrive later
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        // Schedule ONE check in case transfers arrive later
+        hasPendingCheckScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.hasPendingCheckScheduled = false
+            
             if session.hasContentPending {
                 FameFitLogger.warning("⌚ Still has content pending after 2 seconds", category: FameFitLogger.sync)
                 
@@ -75,7 +83,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                     // Check receivedApplicationContext again
                     if !session.receivedApplicationContext.isEmpty {
                         FameFitLogger.info("⌚ Found application context on retry", category: FameFitLogger.sync)
-                        self.handleMessage(session.receivedApplicationContext)
+                        self?.handleMessage(session.receivedApplicationContext)
                     }
                 }
             }

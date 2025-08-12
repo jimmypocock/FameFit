@@ -24,7 +24,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
 
     @Published var selectedWorkout: HKWorkoutActivityType?
-    @Published var showingSummaryView: Bool = false
+    @Published var completedWorkout: HKWorkout? // Published when workout completes
 
     let healthStore = HKHealthStore()
     @Published var session: HKWorkoutSession?
@@ -43,10 +43,12 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var groupParticipantCount: Int = 0
     private var groupWorkoutMetadata: [String: Any] = [:]
     private var metricsUploadTimer: Timer?
-    private let metricsUploadInterval: TimeInterval = 5.0 // Upload every 5 seconds
+    private let metricsUploadInterval: TimeInterval = 30.0 // Upload every 30 seconds to preserve battery
     private var metricsRetryCount = 0
     private let maxRetryAttempts = 3
     private var pendingMetrics: [[String: Any]] = []
+    private var unreachableCount = 0
+    private let maxUnreachableAttempts = 5
 
     // MARK: - Workout Control
     
@@ -164,10 +166,10 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var isWorkoutRunning = false
     @Published var isPaused = false
     @Published var workoutError: String?
-    @Published var currentMessage: String = ""
 
     // Display timer for smooth UI updates (NOT the actual workout timer)
-    @Published var displayElapsedTime: TimeInterval = 0
+    // NOT @Published - views that need this should use TimelineView or Timer
+    var displayElapsedTime: TimeInterval = 0
     private var displayTimer: Timer?
 
     private let timeMultiplier: Double = 1.0
@@ -175,8 +177,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     private var lastMilestoneTime: TimeInterval = 0
     private var messageTimer: Timer?
 
-    // Achievement tracking
-    let achievementManager = AchievementManager()
 
     func pause() {
         session?.pause()
@@ -201,36 +201,28 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     func endWorkout() {
         FameFitLogger.info("Ending workout", category: FameFitLogger.workout)
         displayTimer?.invalidate()
+        
+        // Stop metrics upload timer (safe to call even if not group workout)
+        stopMetricsUpload()
 
         guard let session else {
-            // Don't show error if we're already showing summary
-            if !showingSummaryView {
-                workoutError = "No active workout to end"
-            }
+            workoutError = "No active workout to end"
             return
         }
 
         // Show workout-specific end message based on type and duration
-        if let workoutType = selectedWorkout {
-            let workoutName = getWorkoutName(for: workoutType)
-            currentMessage = FameFitMessages.getWorkoutSpecificMessage(
-                workoutType: workoutName,
-                duration: displayElapsedTime
-            )
-        } else {
-            currentMessage = FameFitMessages.getMessage(for: .workoutEnd)
-        }
 
         session.end()
         // Summary will be shown by HealthKit delegate when workout ends
     }
 
     // MARK: - Workout Metrics
-
-    @Published var averageHeartRate: Double = 0
-    @Published var heartRate: Double = 0
-    @Published var activeEnergy: Double = 0
-    @Published var distance: Double = 0
+    // NOT @Published - these update too frequently and cause performance issues
+    // Views should read these directly when needed or use TimelineView
+    var averageHeartRate: Double = 0
+    var heartRate: Double = 0
+    var activeEnergy: Double = 0
+    var distance: Double = 0
     @Published var workout: HKWorkout?
 
     // MARK: - Summary Data
@@ -245,6 +237,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         builder = nil
         session = nil
         workout = nil
+        completedWorkout = nil
         activeEnergy = 0
         averageHeartRate = 0
         heartRate = 0
@@ -253,7 +246,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         isPaused = false
         displayElapsedTime = 0
         workoutError = nil
-        currentMessage = ""
         lastMilestoneTime = 0
         displayTimer?.invalidate()
         displayTimer = nil
@@ -266,6 +258,11 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         isGroupWorkoutHost = false
         groupParticipantCount = 0
         groupWorkoutMetadata = [:]
+        // Stop metrics upload timer
+        stopMetricsUpload()
+        // Clear pending metrics
+        pendingMetrics.removeAll()
+        metricsRetryCount = 0
     }
     
     // MARK: - Group Workout Methods
@@ -278,7 +275,9 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
 
     private func startDisplayTimer() {
         displayTimer?.invalidate()
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Update display at 0.01s for smooth timer display (100Hz)
+        // This is just for UI, not for data syncing
+        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.updateDisplayTime()
             }
@@ -304,48 +303,15 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     private func checkMilestones() {
         let currentTime = displayElapsedTime
 
-        // Check for duration achievements in real-time
-        var achievementUnlocked = false
-
-        if currentTime >= 300, !achievementManager.unlockedAchievements.contains(.fiveMinutes) {
-            achievementManager.unlockedAchievements.insert(.fiveMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.fiveMinutes.roastMessage)"
-            achievementUnlocked = true
+        // Show regular milestone or random message
+        if currentTime >= 300, lastMilestoneTime < 300 {
             lastMilestoneTime = 300
-        } else if currentTime >= 600, !achievementManager.unlockedAchievements.contains(.tenMinutes) {
-            achievementManager.unlockedAchievements.insert(.tenMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.tenMinutes.roastMessage)"
-            achievementUnlocked = true
+        } else if currentTime >= 600, lastMilestoneTime < 600 {
             lastMilestoneTime = 600
-        } else if currentTime >= 1_800, !achievementManager.unlockedAchievements.contains(.thirtyMinutes) {
-            achievementManager.unlockedAchievements.insert(.thirtyMinutes)
-            currentMessage = "🏆 Achievement Unlocked: \(AchievementManager.Achievement.thirtyMinutes.roastMessage)"
-            achievementUnlocked = true
+        } else if currentTime >= 1_200, lastMilestoneTime < 1_200 {
+            lastMilestoneTime = 1_200
+        } else if currentTime >= 1_800, lastMilestoneTime < 1_800 {
             lastMilestoneTime = 1_800
-        }
-
-        // If no achievement, show regular milestone or random message
-        if !achievementUnlocked {
-            if currentTime >= 300, lastMilestoneTime < 300 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 300
-            } else if currentTime >= 600, lastMilestoneTime < 600 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 600
-            } else if currentTime >= 1_200, lastMilestoneTime < 1_200 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1_200
-            } else if currentTime >= 1_800, lastMilestoneTime < 1_800 {
-                currentMessage = FameFitMessages.getMessage(for: .workoutMilestone)
-                lastMilestoneTime = 1_800
-            } else {
-                // Random encouragement or roast between milestones
-                if Bool.random() {
-                    currentMessage = FameFitMessages.getMessage(for: .encouragement)
-                } else {
-                    currentMessage = FameFitMessages.getMessage(for: .roast)
-                }
-            }
         }
     }
 
@@ -373,8 +339,6 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                 if self?.displayTimer == nil {
                     self?.startDisplayTimer()
                 }
-                // Show start message
-                self?.currentMessage = FameFitMessages.getMessage(for: .workoutStart)
                 // Start checking for milestones
                 self?.startMilestoneTimer()
             case .paused:
@@ -420,27 +384,13 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                     DispatchQueue.main.async {
                         self?.workout = workout
 
-                        // Check for achievements
-                        if let workout {
-                            self?.achievementManager.checkAchievements(
-                                for: workout,
-                                duration: self?.displayElapsedTime ?? 0,
-                                calories: self?.activeEnergy ?? 0,
-                                distance: self?.distance ?? 0,
-                                averageHeartRate: self?.averageHeartRate ?? 0
-                            )
-
-                            // Show achievement message if any
-                            if let achievement = self?.achievementManager.recentAchievement {
-                                self?.currentMessage = "🏆 \(achievement.title): \(achievement.roastMessage)"
-                            }
-                        }
 
                         // Clean up references
                         self?.session = nil
                         self?.builder = nil
-                        // Now show summary after workout is fully processed
-                        self?.showingSummaryView = true
+                        // Publish the completed workout so views can show summary
+                        FameFitLogger.debug("📍 WorkoutManager: Setting completedWorkout to \(workout?.uuid.uuidString ?? "nil")", category: FameFitLogger.workout)
+                        self?.completedWorkout = workout
                     }
                 }
             }
@@ -580,6 +530,8 @@ extension WorkoutManager {
         #if os(watchOS)
         // Check if Watch connectivity is available
         if WCSession.default.isReachable {
+            unreachableCount = 0 // Reset counter when reachable
+            
             // Try to send pending metrics first
             sendPendingMetrics()
             
@@ -595,9 +547,20 @@ extension WorkoutManager {
                 self?.handleMetricsUploadError(metrics: metrics, error: error)
             })
         } else {
+            unreachableCount += 1
+            
+            // If iPhone has been unreachable for too long, stop trying to save battery
+            if unreachableCount >= maxUnreachableAttempts {
+                FameFitLogger.warning("📱 iPhone unreachable for \(unreachableCount) attempts, pausing group sync to save battery", category: FameFitLogger.workout)
+                // Stop the timer to save battery
+                stopMetricsUpload()
+                // Still save the workout locally
+                return
+            }
+            
             // Queue metrics for later
             queueMetricsForLater(metrics)
-            FameFitLogger.debug("📱 Watch not reachable, queuing metrics", category: FameFitLogger.workout)
+            FameFitLogger.debug("📱 Watch not reachable (attempt \(unreachableCount)/\(maxUnreachableAttempts)), queuing metrics", category: FameFitLogger.workout)
         }
         #endif
         
@@ -644,7 +607,8 @@ extension WorkoutManager {
         pendingMetrics.append(metrics)
         
         // Limit queue size to prevent memory issues
-        if pendingMetrics.count > 100 {
+        // Keep only last 10 metrics (5 minutes worth at 30 second intervals)
+        if pendingMetrics.count > 10 {
             pendingMetrics.removeFirst()
         }
     }

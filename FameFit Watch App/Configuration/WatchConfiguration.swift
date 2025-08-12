@@ -46,7 +46,8 @@ enum WatchConfiguration {
         static let backgroundSync: TimeInterval = 30.0
         
         /// Group workout sync interval (battery-conscious)
-        static let groupWorkoutSync: TimeInterval = 60.0
+        /// Only sync every 2 minutes to preserve battery during long workouts
+        static let groupWorkoutSync: TimeInterval = 120.0
         
         /// Challenge progress check interval
         static let challengeCheck: TimeInterval = 30.0
@@ -161,11 +162,6 @@ enum WatchConfiguration {
         enum Workout: String, CaseIterable {
             case activeSession = "watch.workout.active_session"
             case lastCompletedID = "watch.workout.last_completed_id"
-        }
-        
-        enum Achievement: String, CaseIterable {
-            case unlocked = "watch.achievement.unlocked"
-            case recent = "watch.achievement.recent"
         }
         
         enum Complication: String, CaseIterable {

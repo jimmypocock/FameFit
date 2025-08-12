@@ -18,7 +18,6 @@ final class SessionViewModel: ObservableObject {
     private let metricsCollector: WorkoutMetricsCollecting
     let stateManager: WorkoutStateManaging
     private let groupWorkoutCoordinator: GroupWorkoutCoordinating
-    private let achievementManager: any AchievementManaging
     
     // MARK: - Published State
     
@@ -27,7 +26,6 @@ final class SessionViewModel: ObservableObject {
     @Published var distance: Double = 0
     @Published var elapsedTime: TimeInterval = 0
     @Published var averageHeartRate: Double = 0
-    @Published var currentMessage: String = ""
     @Published var isPaused = false
     @Published var isEnding = false
     @Published var showingSummary = false
@@ -38,7 +36,6 @@ final class SessionViewModel: ObservableObject {
     private var displayMode: WatchConfiguration.DisplayMode = .active
     private var updateTimer: Timer?
     private var metricsUpdateTimer: Timer?
-    private var messageRotationTimer: Timer?
     
     // MARK: - Private State
     
@@ -93,25 +90,17 @@ final class SessionViewModel: ObservableObject {
         healthKitSession: HealthKitSessionManaging,
         metricsCollector: WorkoutMetricsCollecting,
         stateManager: WorkoutStateManaging,
-        groupWorkoutCoordinator: GroupWorkoutCoordinating,
-        achievementManager: any AchievementManaging
+        groupWorkoutCoordinator: GroupWorkoutCoordinating
     ) {
         self.healthKitSession = healthKitSession
         self.metricsCollector = metricsCollector
         self.stateManager = stateManager
         self.groupWorkoutCoordinator = groupWorkoutCoordinator
-        self.achievementManager = achievementManager
         
-        setupMessageProvider()
         setupSubscriptions()
     }
     
     // MARK: - Setup
-    
-    private func setupMessageProvider() {
-        // Simple message setup for now
-        currentMessage = "Let's go!"
-    }
     
     private func setupSubscriptions() {
         // Subscribe to metrics updates
@@ -174,9 +163,6 @@ final class SessionViewModel: ObservableObject {
             // Start update timers based on display mode
             startUpdateTimers()
             
-            // Start message rotation
-            startMessageRotation()
-            
         } catch {
             errorMessage = "Failed to start workout: \(error.localizedDescription)"
         }
@@ -210,15 +196,11 @@ final class SessionViewModel: ObservableObject {
         
         do {
             // End the session and get the workout
-            let workout = try await healthKitSession.endSession()
+            _ = try await healthKitSession.endSession()
             
             // Stop collecting metrics
             metricsCollector.stopCollecting()
             
-            // Check for achievements
-            if let workout = workout {
-                await checkAchievements(for: workout)
-            }
             
             // Update state
             stateManager.setWorkoutActive(false)
@@ -272,8 +254,6 @@ final class SessionViewModel: ObservableObject {
         updateTimer = nil
         metricsUpdateTimer?.invalidate()
         metricsUpdateTimer = nil
-        messageRotationTimer?.invalidate()
-        messageRotationTimer = nil
     }
     
     private func restartUpdateTimers() {
@@ -283,35 +263,11 @@ final class SessionViewModel: ObservableObject {
         }
     }
     
-    private func startMessageRotation() {
-        messageRotationTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            Task { @MainActor in
-                self.updateMessage()
-            }
-        }
-    }
-    
-    private func updateMessage() {
-        // Simple context-aware messages
-        if elapsedTime < 60 {
-            currentMessage = "Great start!"
-        } else if isPaused {
-            currentMessage = "Ready to continue?"
-        } else if heartRate > 160 {
-            currentMessage = "High intensity! 🔥"
-        } else if activeEnergy > 100 {
-            currentMessage = "\(Int(activeEnergy)) calories burned!"
-        } else {
-            currentMessage = "Keep going!"
-        }
-    }
-    
     private func checkMilestones(_ time: TimeInterval) {
         // Check every 5 minutes
         let fiveMinutes: TimeInterval = 300
         if time - lastMilestoneTime >= fiveMinutes {
             lastMilestoneTime = time
-            updateMessage()
         }
     }
     
@@ -345,22 +301,6 @@ final class SessionViewModel: ObservableObject {
         await groupWorkoutCoordinator.syncParticipantData(metricsData)
     }
     
-    private func checkAchievements(for workout: HKWorkout) async {
-        // Get active energy burned using the new API
-        let activeEnergyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
-        let activeEnergy = workout.statistics(for: activeEnergyType)?.sumQuantity()
-        let calories = activeEnergy?.doubleValue(for: .kilocalorie()) ?? 0
-        
-        achievementManager.checkAchievements(
-            for: workout,
-            duration: workout.duration,
-            calories: calories,
-            distance: workout.totalDistance?.doubleValue(for: .meter()) ?? 0,
-            averageHeartRate: averageHeartRate
-        )
-        
-        // Achievements will be displayed in summary view
-    }
     
     // MARK: - Cleanup
     
