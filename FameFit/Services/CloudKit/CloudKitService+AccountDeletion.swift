@@ -24,23 +24,12 @@ extension CloudKitService {
         
         // MARK: - Private Database - Full Deletion
         
-        // Delete the Users record first (it uses recordID, not userID field)
-        do {
-            let userRecordID = CKRecord.ID(recordName: userID)
-            _ = try await privateDatabase.deleteRecord(withID: userRecordID)
-            deletedRecords += 1
-            FameFitLogger.info("Deleted Users record for ID: \(userID)", category: FameFitLogger.cloudKit)
-        } catch {
-            // If the record doesn't exist, that's fine
-            if !error.localizedDescription.contains("Record not found") {
-                errors.append(error)
-                FameFitLogger.error("Failed to delete Users record", error: error, category: FameFitLogger.cloudKit)
-            }
-        }
+        // NOTE: We don't delete the CloudKit system user record (starts with underscore)
+        // That's managed by CloudKit itself and cannot be deleted directly.
+        // The deprecated "Users" custom record type is no longer used.
         
         // These are completely private to the user and should be fully deleted
         let privateRecordTypes = [
-            // "Users" removed - handled separately above
             "Workouts", 
             "XPTransactions",
             // "Notifications" removed - doesn't exist as a record type

@@ -477,8 +477,7 @@ extension WorkoutManager {
             "groupWorkoutName": info.name,
             "isGroupWorkout": true,
             "isHost": info.isHost,
-            "participantCount": info.participantCount,
-            "joinTimestamp": Date()
+            "participantCount": info.participantCount
         ]
         
         // Start metrics upload timer

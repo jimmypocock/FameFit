@@ -18,7 +18,6 @@ protocol CloudKitProtocol: ObservableObject {
     var currentStreak: Int { get }
     var username: String { get }
     var lastWorkoutTimestamp: Date? { get }
-    var joinTimestamp: Date? { get }
     var lastError: FameFitError? { get }
 
     // Publisher properties for reactive updates
@@ -28,11 +27,9 @@ protocol CloudKitProtocol: ObservableObject {
     var currentStreakPublisher: AnyPublisher<Int, Never> { get }
     var usernamePublisher: AnyPublisher<String, Never> { get }
     var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> { get }
-    var joinTimestampPublisher: AnyPublisher<Date?, Never> { get }
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }
 
     func checkAccountStatus()
-    func setupUserRecord(userID authUserID: String, displayName: String)  // Deprecated - uses Sign in with Apple ID
     func fetchUserRecord()
     func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)

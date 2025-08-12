@@ -34,7 +34,6 @@ enum CloudKitConfiguration {
         static let totalXP = "totalXP"
         static let totalWorkouts = "totalWorkouts"
         static let currentStreak = "currentStreak"
-        static let joinTimestamp = "joinTimestamp"
         static let lastWorkoutTimestamp = "lastWorkoutTimestamp"
     }
     

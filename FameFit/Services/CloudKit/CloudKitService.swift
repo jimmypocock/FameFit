@@ -33,7 +33,6 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     @Published var currentStreak: Int = 0
     @Published var totalWorkouts: Int = 0
     @Published var lastWorkoutTimestamp: Date?
-    @Published var joinTimestamp: Date?
     @Published var lastError: FameFitError?
     @Published private(set) var isInitialized = false
     @Published private(set) var currentUserRecordID: String?
@@ -152,19 +151,6 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
                 self.lastError = error.fameFitError
             }
         }
-    }
-    
-    /// Setup user record with display name
-    func setupUserRecord(userID authUserID: String, displayName: String) {
-        // Deprecated: We no longer create Users records
-        // UserProfile is created during onboarding instead
-        FameFitLogger.info("Skipping Users record creation (deprecated)", category: FameFitLogger.cloudKit)
-    }
-    
-    private func setupUserRecordAsync(authUserID: String, displayName: String) async {
-        // Deprecated: We no longer create Users records
-        // This function is kept for backwards compatibility but does nothing
-        return
     }
     
     /// Add followers (legacy method)
@@ -286,7 +272,6 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             self.currentStreak = 0
             self.totalWorkouts = 0
             self.lastWorkoutTimestamp = nil
-            self.joinTimestamp = nil
             self.isInitialized = false
             
             // Clear initialization task
@@ -845,10 +830,6 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         $lastWorkoutTimestamp.eraseToAnyPublisher()
     }
     
-    var joinTimestampPublisher: AnyPublisher<Date?, Never> {
-        $joinTimestamp.eraseToAnyPublisher()
-    }
-    
     // MARK: - Account Deletion
     
     /// Delete all user data from CloudKit
@@ -890,7 +871,8 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         // Delete from private database
         for recordType in privateRecordTypes {
             do {
-                let predicate = NSPredicate(format: "userID == %@ OR creatorUserRecordName == %@ OR hostID == %@", userID, userID, userID)
+                // Only query for records with our userID field, not system fields
+                let predicate = NSPredicate(format: "userID == %@ OR hostID == %@", userID, userID)
                 let query = CKQuery(recordType: recordType, predicate: predicate)
                 let records = try await privateDatabase.records(matching: query)
                 
@@ -970,7 +952,6 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         totalWorkouts = 0
         currentStreak = 0
         lastWorkoutTimestamp = nil
-        joinTimestamp = nil
         username = "FameFit User"
         currentUserRecordID = nil
         // userRecord = nil // DEPRECATED - We use UserProfile records now

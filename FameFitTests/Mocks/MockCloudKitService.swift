@@ -50,7 +50,6 @@ class MockCloudKitService: CloudKitService {
         userName = "Test User"
         currentStreak = 5
         totalWorkouts = 20
-        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
     }
 
@@ -80,10 +79,6 @@ class MockCloudKitService: CloudKitService {
 
     override var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
         $lastWorkoutTimestamp.eraseToAnyPublisher()
-    }
-
-    override var joinTimestampPublisher: AnyPublisher<Date?, Never> {
-        $joinTimestamp.eraseToAnyPublisher()
     }
 
     override var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
@@ -165,12 +160,6 @@ class MockCloudKitService: CloudKitService {
         }
     }
 
-    override func setupUserRecord(userID: String, displayName: String) {
-        // Mock implementation - just update the properties
-        mockCurrentUserID = userID
-        userName = displayName
-    }
-
     override func fetchUserRecord() {
         fetchUserRecordCalled = true
 
@@ -206,7 +195,6 @@ class MockCloudKitService: CloudKitService {
         totalXP = 100
         totalWorkouts = 20
         currentStreak = 5
-        joinTimestamp = Date().addingTimeInterval(-7 * 24 * 60 * 60)
         lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
         lastError = nil
     }
@@ -218,7 +206,6 @@ class MockCloudKitService: CloudKitService {
         userName = ""
         currentStreak = 0
         totalWorkouts = 0
-        joinTimestamp = nil
         lastWorkoutTimestamp = nil
     }
 

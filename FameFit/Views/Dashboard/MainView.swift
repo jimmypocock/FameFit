@@ -165,9 +165,9 @@ struct MainView: View {
                     // Handle successful sharing
                     print("Workout shared with privacy: \(privacy), details: \(includeDetails)")
                 }
+            #if DEBUG
             case .notificationDebug:
                 NotificationDebugView()
-            #if DEBUG
             case .developerMenu:
                 DeveloperMenu()
             #endif

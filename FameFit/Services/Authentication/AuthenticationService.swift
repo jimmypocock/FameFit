@@ -79,8 +79,6 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         self.authUserID = authUserID
         username = displayName
         isAuthenticated = true
-
-        cloudKitManager?.setupUserRecord(userID: authUserID, displayName: displayName)
         
         // Sync profile to Watch after successful sign-in
         Task {

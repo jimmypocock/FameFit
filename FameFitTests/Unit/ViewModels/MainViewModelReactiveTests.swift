@@ -146,9 +146,21 @@ class MainViewModelReactiveTests: XCTestCase {
     func testJoinDateUpdatesReactively() {
         // Given
         let newJoinDate = Date().addingTimeInterval(-30 * 24 * 60 * 60) // 30 days ago
+        let profile = UserProfile(
+            id: "test-id",
+            userID: "test-user",
+            username: "testuser",
+            bio: "Test bio",
+            workoutCount: 10,
+            totalXP: 100,
+            creationDate: newJoinDate,
+            modificationDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile
+        )
 
         // When
-        mockCloudKitService.joinTimestamp = newJoinDate
+        viewModel.userProfile = profile
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")
@@ -272,9 +284,21 @@ class MainViewModelReactiveTests: XCTestCase {
         // Given
         let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 60 * 60)
         let initialDaysAsMember = viewModel.daysAsMember
+        let profile = UserProfile(
+            id: "test-id",
+            userID: "test-user",
+            username: "testuser",
+            bio: "Test bio",
+            workoutCount: 10,
+            totalXP: 100,
+            creationDate: thirtyDaysAgo,
+            modificationDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile
+        )
 
         // When
-        mockCloudKitService.joinTimestamp = thirtyDaysAgo
+        viewModel.userProfile = profile
 
         // Allow time for publisher to propagate
         let expectation = XCTestExpectation(description: "Publisher updates")

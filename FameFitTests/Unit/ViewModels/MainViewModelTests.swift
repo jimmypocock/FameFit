@@ -104,12 +104,24 @@ class MainViewModelTests: XCTestCase {
         XCTAssertEqual(sut.currentStreak, expectedStreak)
     }
 
-    func testJoinDateBindsToCloudKitService() {
+    func testJoinDateComesFromUserProfile() {
         // Given
         let expectedDate = Date().addingTimeInterval(-30 * 24 * 3_600) // 30 days ago
+        let profile = UserProfile(
+            id: "test-id",
+            userID: "test-user",
+            username: "testuser",
+            bio: "Test bio",
+            workoutCount: 10,
+            totalXP: 100,
+            creationDate: expectedDate,
+            modificationDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile
+        )
 
         // When
-        mockCloudKitService.joinTimestamp = expectedDate
+        sut.userProfile = profile
 
         // Then
         XCTAssertEqual(sut.joinDate, expectedDate)
@@ -171,19 +183,31 @@ class MainViewModelTests: XCTestCase {
     func testDaysAsMemberCalculationWithValidJoinDate() {
         // Given
         let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3_600)
+        let profile = UserProfile(
+            id: "test-id",
+            userID: "test-user",
+            username: "testuser",
+            bio: "Test bio",
+            workoutCount: 10,
+            totalXP: 100,
+            creationDate: thirtyDaysAgo,
+            modificationDate: Date(),
+            isVerified: false,
+            privacyLevel: .publicProfile
+        )
 
         // When
-        mockCloudKitService.joinTimestamp = thirtyDaysAgo
+        sut.userProfile = profile
 
         // Then
         XCTAssertEqual(sut.daysAsMember, 30)
     }
 
     func testDaysAsMemberCalculationWithNilJoinDate() {
-        // Given
-        mockCloudKitService.joinTimestamp = nil
+        // Given/When
+        sut.userProfile = nil
 
-        // When/Then
+        // Then
         XCTAssertEqual(sut.daysAsMember, 0)
     }
 

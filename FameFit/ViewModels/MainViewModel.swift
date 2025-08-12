@@ -27,7 +27,6 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
     @Published private var _currentStreak: Int = 0
-    @Published private var _creationDate: Date?
     @Published private var _lastWorkoutDate: Date?
     @Published private var _unreadCount: Int = 0
     @Published var userProfile: UserProfile?
@@ -94,13 +93,13 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
     var currentStreak: Int { _currentStreak }
-    var joinDate: Date? { _creationDate }
+    var joinDate: Date? { userProfile?.creationDate }
     var lastWorkoutDate: Date? { _lastWorkoutDate }
     var hasUnreadNotifications: Bool { _unreadCount > 0 }
     var unreadNotificationCount: Int { _unreadCount }
 
     var daysAsMember: Int {
-        guard let joinDate = _creationDate else { return 0 }
+        guard let joinDate = userProfile?.creationDate else { return 0 }
         return Calendar.current.dateComponents([.day], from: joinDate, to: Date()).day ?? 0
     }
 
@@ -254,9 +253,6 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         cloudKitManager?.currentStreakPublisher
             .assign(to: &$_currentStreak)
 
-        cloudKitManager?.joinTimestampPublisher
-            .assign(to: &$_creationDate)
-
         cloudKitManager?.lastWorkoutTimestampPublisher
             .assign(to: &$_lastWorkoutDate)
 
@@ -275,7 +271,6 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         _totalXP = cloudKitManager?.totalXP ?? 0
         _totalWorkouts = cloudKitManager?.totalWorkouts ?? 0
         _currentStreak = cloudKitManager?.currentStreak ?? 0
-        _creationDate = cloudKitManager?.joinTimestamp
         _lastWorkoutDate = cloudKitManager?.lastWorkoutTimestamp
         _xpTitle = cloudKitManager?.getXPTitle() ?? ""
         _unreadCount = notificationStore?.unreadCount ?? 0
