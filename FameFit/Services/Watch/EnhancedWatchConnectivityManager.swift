@@ -22,6 +22,7 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
     @Published public private(set) var connectionState: ConnectionState = .notPaired
     @Published public private(set) var lastReceivedMessage: [String: Any] = [:]
     @Published public private(set) var pendingGroupWorkout: GroupWorkoutCommand?
+    @Published public private(set) var lastWorkoutCompletion: WorkoutCompletionInfo?
     
     #if os(iOS)
     @Published public private(set) var isPaired = false
@@ -45,6 +46,20 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
         public let workoutType: Int
         public let isHost: Bool
         public let timestamp: Date
+    }
+    
+    public struct WorkoutCompletionInfo: Codable {
+        public let workoutID: String
+        public let timestamp: Date
+        public let metrics: WorkoutMetrics?
+        public let groupWorkoutID: String?
+        
+        public struct WorkoutMetrics: Codable {
+            public let heartRate: Double
+            public let activeEnergy: Double
+            public let distance: Double
+            public let elapsedTime: TimeInterval
+        }
     }
     
     // MARK: - Private Properties
@@ -518,6 +533,52 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         #endif
     }
     
+    private func handleWorkoutCompleted(_ message: [String: Any]) -> [String: Any] {
+        FameFitLogger.info("📱⌚ Received workout completion from Watch", category: FameFitLogger.connectivity)
+        
+        guard let workoutID = message["workoutID"] as? String else {
+            return ["status": "error", "message": "Missing workout ID"]
+        }
+        
+        // Parse metrics if available
+        var metrics: WorkoutCompletionInfo.WorkoutMetrics?
+        if let metricsDict = message["metrics"] as? [String: Any] {
+            metrics = WorkoutCompletionInfo.WorkoutMetrics(
+                heartRate: metricsDict["heartRate"] as? Double ?? 0,
+                activeEnergy: metricsDict["activeEnergy"] as? Double ?? 0,
+                distance: metricsDict["distance"] as? Double ?? 0,
+                elapsedTime: metricsDict["elapsedTime"] as? TimeInterval ?? 0
+            )
+        }
+        
+        // Create completion info
+        let completionInfo = WorkoutCompletionInfo(
+            workoutID: workoutID,
+            timestamp: message["timestamp"] as? Date ?? Date(),
+            metrics: metrics,
+            groupWorkoutID: message["groupWorkoutID"] as? String
+        )
+        
+        // Update published property
+        lastWorkoutCompletion = completionInfo
+        
+        // Trigger immediate HealthKit sync
+        NotificationCenter.default.post(
+            name: Notification.Name("WatchWorkoutCompleted"),
+            object: nil,
+            userInfo: ["workoutID": workoutID]
+        )
+        
+        FameFitLogger.info("✅ Workout completion processed: \(workoutID)", category: FameFitLogger.connectivity)
+        
+        // Return acknowledgment with any additional data (like XP earned)
+        return [
+            "status": "received",
+            "workoutID": workoutID,
+            "message": "Workout received and queued for sync"
+        ]
+    }
+    
     @discardableResult
     private func handleReceivedMessage(_ message: [String: Any]) -> [String: Any] {
         guard let command = message["command"] as? String else {
@@ -554,6 +615,10 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         case "workoutMetrics":
             // Handle incoming metrics from Watch
             return ["status": "received"]
+            
+        case "workoutCompleted":
+            // Handle workout completion from Watch
+            return handleWorkoutCompleted(message)
             
         default:
             FameFitLogger.warning("Unknown command: \(command)", category: FameFitLogger.connectivity)

@@ -102,11 +102,13 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             builder.delegate = self
 
             // Start the session first
-            session?.startActivity(with: Date())
+            let startDate = Date()
+            session?.startActivity(with: startDate)
             FameFitLogger.debug("Session started", category: FameFitLogger.workout)
 
             // Begin collection after session starts
-            builder.beginCollection(withStart: Date()) { [weak self] success, error in
+            FameFitLogger.debug("About to call beginCollection", category: FameFitLogger.workout)
+            builder.beginCollection(withStart: startDate) { [weak self] success, error in
                 FameFitLogger.debug(
                     "Begin collection result: \(success), error: \(String(describing: error))",
                     category: FameFitLogger.workout
@@ -116,6 +118,8 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
                     if success {
                         self?.isWorkoutRunning = true
                         FameFitLogger.info("Workout is now running", category: FameFitLogger.workout)
+                        // Start display timer when collection begins successfully
+                        self?.startDisplayTimer()
                     } else {
                         FameFitLogger.error(
                             "Failed to begin collection: \(error?.localizedDescription ?? "Unknown error")",
@@ -123,11 +127,6 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
                         )
                         self?.workoutError = "Failed to start workout: \(error?.localizedDescription ?? "Unknown error")"
                         self?.isWorkoutRunning = false
-                    }
-
-                    // Start display timer only if HealthKit succeeded
-                    if success {
-                        self?.startDisplayTimer()
                     }
                 }
             }
@@ -209,6 +208,12 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             workoutError = "No active workout to end"
             return
         }
+        
+        // Check if session is already ending/ended
+        if session.state == .ended || session.state == .stopped {
+            FameFitLogger.warning("Workout already ended/stopped, ignoring duplicate end request", category: FameFitLogger.workout)
+            return
+        }
 
         // Show workout-specific end message based on type and duration
 
@@ -233,6 +238,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     var elapsedTimeForSummary: TimeInterval { displayElapsedTime }
 
     func resetWorkout() {
+        FameFitLogger.debug("Resetting workout manager state", category: FameFitLogger.workout)
         selectedWorkout = nil
         builder = nil
         session = nil
@@ -326,9 +332,10 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     func workoutSession(
         _: HKWorkoutSession,
         didChangeTo toState: HKWorkoutSessionState,
-        from _: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
         date: Date
     ) {
+        FameFitLogger.debug("Session state changed from \(fromState.rawValue) to \(toState.rawValue)", category: FameFitLogger.workout)
         // Ensure UI updates happen on main thread
         DispatchQueue.main.async { [weak self] in
             switch toState {
@@ -379,18 +386,22 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
             }
             #endif
             
-            builder?.endCollection(withEnd: date) { [weak self] _, _ in
-                self?.builder?.finishWorkout { [weak self] workout, _ in
+            // Store references locally to avoid retain issues
+            let currentBuilder = builder
+            
+            currentBuilder?.endCollection(withEnd: date) { [weak self] _, _ in
+                currentBuilder?.finishWorkout { [weak self] workout, _ in
                     DispatchQueue.main.async {
                         self?.workout = workout
-
-
-                        // Clean up references
-                        self?.session = nil
-                        self?.builder = nil
+                        
                         // Publish the completed workout so views can show summary
                         FameFitLogger.debug("📍 WorkoutManager: Setting completedWorkout to \(workout?.uuid.uuidString ?? "nil")", category: FameFitLogger.workout)
                         self?.completedWorkout = workout
+                        
+                        // Clean up references immediately
+                        // The workout data is already captured in self?.workout
+                        self?.session = nil
+                        self?.builder = nil
                     }
                 }
             }

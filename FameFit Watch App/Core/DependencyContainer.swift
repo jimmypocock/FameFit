@@ -49,11 +49,11 @@ final class DependencyContainer: ObservableObject {
             self.healthKitSession = HealthKitSessionManager()
             self.metricsCollector = WorkoutMetricsCollector()
             self.stateManager = WorkoutStateManager()
-            // For now, use mock until we adapt the existing WatchConnectivityManager
-            self.watchConnectivity = MockWatchConnectivityService()
+            // Use real WatchConnectivity service
+            self.watchConnectivity = RealWatchConnectivityService()
             self.groupWorkoutCoordinator = GroupWorkoutCoordinator(
                 cacheManager: cacheManager,
-                watchConnectivity: MockWatchConnectivityService()
+                watchConnectivity: self.watchConnectivity
             )
         }
         

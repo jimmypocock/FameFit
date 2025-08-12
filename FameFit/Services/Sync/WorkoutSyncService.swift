@@ -34,6 +34,18 @@ class WorkoutSyncService: ObservableObject {
     init(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) {
         self.cloudKitManager = cloudKitManager
         self.healthKitService = healthKitService
+        
+        // Listen for Watch workout completions
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWatchWorkoutCompletion),
+            name: Notification.Name("WatchWorkoutCompleted"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Public Methods
@@ -87,6 +99,17 @@ class WorkoutSyncService: ObservableObject {
     }
     
     // MARK: - Private Methods
+    
+    @objc private func handleWatchWorkoutCompletion(_ notification: Notification) {
+        guard let workoutID = notification.userInfo?["workoutID"] as? String else { return }
+        
+        FameFitLogger.info("📱 Received Watch workout completion: \(workoutID), triggering immediate sync", category: FameFitLogger.workout)
+        
+        // Trigger immediate sync
+        Task {
+            await performManualSync()
+        }
+    }
     
     private func startReliableSyncAsync() async {
         guard healthKitService.isHealthDataAvailable else {

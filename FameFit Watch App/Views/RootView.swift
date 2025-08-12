@@ -58,6 +58,7 @@ struct RootView: View {
                 .environmentObject(workoutManager)
                 .environmentObject(accountService)
                 .environmentObject(navigationCoordinator)
+                .environmentObject(dependencies)  // Add the container itself
                 .environmentObject(dependencies.sessionViewModel)
                 .environmentObject(dependencies.summaryViewModel)
                 .withDependencies(dependencies)

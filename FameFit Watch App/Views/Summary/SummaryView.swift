@@ -12,6 +12,12 @@ struct SummaryView: View {
     @EnvironmentObject private var workoutManager: WorkoutManager
     @EnvironmentObject private var accountService: AccountVerificationService
     @EnvironmentObject private var navigationCoordinator: WatchNavigationCoordinator
+    @EnvironmentObject private var container: DependencyContainer
+    
+    // Use the SummaryViewModel from container
+    private var summaryViewModel: SummaryViewModel {
+        container.summaryViewModel
+    }
 
     // MARK: DISMISS ENVIRONMENT VARIABLE
 
@@ -152,9 +158,18 @@ struct SummaryView: View {
             }
             .onAppear {
                 FameFitLogger.debug("📍 SummaryView: onAppear called", category: FameFitLogger.sync)
+                
+                // Load workout summary and trigger sync to iPhone
+                if let workout = workoutManager.workout {
+                    Task {
+                        await summaryViewModel.loadWorkoutSummary(workout)
+                    }
+                }
             }
             .onDisappear {
                 FameFitLogger.debug("📍 SummaryView: onDisappear called", category: FameFitLogger.sync)
+                // Clean up summary view model
+                summaryViewModel.dismiss()
                 // Reset workout state when summary is dismissed
                 workoutManager.resetWorkout()
             }
