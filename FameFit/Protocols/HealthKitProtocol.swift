@@ -83,36 +83,26 @@ extension HealthKitProtocol {
         HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!
     }
 
-    static var basalEnergyType: HKQuantityType {
-        HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!
-    }
-
-    static var activitySummaryType: HKActivitySummaryType {
-        HKActivitySummaryType.activitySummaryType()
-    }
-
     static var requiredTypes: Set<HKSampleType> {
         [
             workoutType,
             heartRateType,
             activeEnergyType,
-            distanceType,
-            basalEnergyType
+            distanceType
         ]
     }
 
     static var shareTypes: Set<HKSampleType> {
-        [] // We don't write to HealthKit
+        [] // iPhone app doesn't write to HealthKit (only Watch writes workouts)
     }
     
     static var readTypes: Set<HKObjectType> {
+        // Only request what we actually display in the app
         let types: Set<HKObjectType> = [
-            workoutType,
-            heartRateType,
-            activeEnergyType,
-            distanceType,
-            basalEnergyType,
-            activitySummaryType
+            workoutType,        // Display workout history
+            heartRateType,      // Show heart rate in workout details
+            activeEnergyType,   // Show calories burned
+            distanceType        // Show distance for runs/walks
         ]
         return types
     }

@@ -13,7 +13,7 @@ protocol NotificationSchedulingProtocol {
     func cancelFameFitNotification(withID id: String) async
     func cancelAllNotifications() async
     func getPendingNotifications() async -> [NotificationRequest]
-    func updatePreferences(_ preferences: NotificationPreferences)
+    func updatePreferences(_ preferences: NotificationSettings)
 }
 
 // MARK: - Supporting Types

@@ -53,7 +53,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Morning Run 🌅",
                     subtitle: "Crushed my 5K personal record! Coach Alex is proud! 🎉",
                     details: [
@@ -96,7 +96,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Iron Will Unlocked!",
                     subtitle: "Completed 50 strength training sessions",
                     details: [
@@ -133,7 +133,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Level 15: Fitness Warrior",
                     subtitle: "Your dedication is inspiring!",
                     details: [
@@ -169,7 +169,7 @@ struct EnhancedFeedPreview: View {
                 ),
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-14_400),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Evening Ride 🚴‍♀️",
                     subtitle: "Perfect weather for a sunset ride through the hills!",
                     details: [

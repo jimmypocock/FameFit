@@ -302,7 +302,7 @@ extension WorkoutMetrics {
     }
     
     /// Filter metrics based on user's privacy settings
-    func filteredForPrivacy(settings: WorkoutPrivacySettings) -> WorkoutMetrics {
+    func filteredForPrivacy(settings: UserSettings) -> WorkoutMetrics {
         // For group workouts, show full data
         if groupWorkoutID != nil {
             return self

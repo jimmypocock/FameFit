@@ -59,14 +59,7 @@ enum SocialServiceError: Error, LocalizedError {
 
 // MARK: - Relationship Types
 
-enum RelationshipStatus: String, CaseIterable {
-    case following
-    case notFollowing = "not_following"
-    case blocked
-    case muted
-    case pending
-    case mutualFollow = "mutual"
-}
+// RelationshipStatus is now defined in UserSettings.swift to avoid circular dependencies
 
 struct FollowRequest: Codable, Identifiable {
     let id: String

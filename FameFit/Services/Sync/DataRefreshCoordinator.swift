@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-final class DataRefreshCoordinator: DataRefreshCoordinatorProtocol {
+final class DataRefreshCoordinator: DataRefreshProtocol {
     private let cacheManager: CacheProtocol
     private let cloudKitManager: any CloudKitProtocol
     private let userProfileService: UserProfileProtocol

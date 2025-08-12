@@ -12,7 +12,7 @@ import SwiftUI
 protocol MainViewModelProtocol: ObservableObject {
     // MARK: - User Data
 
-    var userName: String { get }
+    var username: String { get }
     var totalXP: Int { get }
     var xpTitle: String { get }
     var totalWorkouts: Int { get }

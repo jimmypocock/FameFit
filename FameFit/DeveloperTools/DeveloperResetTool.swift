@@ -493,7 +493,7 @@ class DeveloperResetTool {
             "hasCompletedOnboarding",
             "isAuthenticated",
             "userID",
-            "userName",
+            "username",
             "currentUsername",
             "hasSeenWelcome",
             

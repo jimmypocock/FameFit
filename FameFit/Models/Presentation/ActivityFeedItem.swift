@@ -14,17 +14,12 @@ struct ActivityFeedItem: Identifiable, Codable {
     let userProfile: UserProfile?
     let type: ActivityFeedItemType
     let timestamp: Date
-    let content: ActivityFeedContent
+    let content: ActivityFeedItemContent
     let workoutID: String?
     var kudosCount: Int
     var commentCount: Int
     var hasKudoed: Bool
     var kudosSummary: WorkoutKudosSummary?
-    
-    // Convenience computed properties
-    var userName: String {
-        username.isEmpty ? (userProfile?.username ?? "Unknown User") : username
-    }
     
     var userXP: Int {
         userProfile?.totalXP ?? 0

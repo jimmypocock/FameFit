@@ -124,6 +124,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         FameFitLogger.info("⌚ Received application context: \(applicationContext)", category: FameFitLogger.sync)
         
+        // Check if it's a user profile update (may not have a command)
+        if applicationContext["userProfile"] != nil {
+            FameFitLogger.info("⌚ Found user profile in application context", category: FameFitLogger.sync)
+            handleUserDataUpdate(applicationContext)
+            return
+        }
+        
         guard let command = applicationContext["command"] as? String else { 
             FameFitLogger.info("⌚ No command in application context", category: FameFitLogger.sync)
             // Still handle it as a generic message in case it has other content
@@ -132,7 +139,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
         
         switch command {
-        case "updateUserData":
+        case "updateUserData", "syncUserProfile":
             handleUserDataUpdate(applicationContext)
         case "startGroupWorkout":
             handleGroupWorkoutCommand(applicationContext)
@@ -240,13 +247,35 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
     
     private func handleUserDataUpdate(_ message: [String: Any]) {
-        // Store user data
-        if let username = message["username"] as? String {
-            UserDefaults.standard.set(username, forKey: "watch_username")
-        }
+        FameFitLogger.info("⌚ Received user profile update from iPhone", category: FameFitLogger.sync)
         
-        if let totalXP = message["totalXP"] as? Int {
-            UserDefaults.standard.set(totalXP, forKey: "watch_totalXP")
+        // Check if we have profile data
+        if let profileData = message["userProfile"] as? Data {
+            // Decode and update the account service
+            if let profile = try? JSONDecoder().decode(UserProfile.self, from: profileData) {
+                FameFitLogger.info("⌚ Successfully decoded user profile: \(profile.username)", category: FameFitLogger.sync)
+                
+                // Note: AccountVerificationService will pick up the cached profile on next check
+                
+                // Cache the profile data for AccountVerificationService to find
+                UserDefaults.standard.set(profileData, forKey: AccountCacheKeys.cachedProfileData)
+                UserDefaults.standard.set(Date(), forKey: AccountCacheKeys.lastCheckDate)
+                
+                // Also store individual fields for backward compatibility
+                UserDefaults.standard.set(profile.username, forKey: "watch_username")
+                UserDefaults.standard.set(profile.totalXP, forKey: "watch_totalXP")
+                
+                FameFitLogger.info("⌚ Profile cached successfully", category: FameFitLogger.sync)
+            }
+        } else {
+            // Fallback to individual fields for backward compatibility
+            if let username = message["username"] as? String {
+                UserDefaults.standard.set(username, forKey: "watch_username")
+            }
+            
+            if let totalXP = message["totalXP"] as? Int {
+                UserDefaults.standard.set(totalXP, forKey: "watch_totalXP")
+            }
         }
         
         // Store for immediate access

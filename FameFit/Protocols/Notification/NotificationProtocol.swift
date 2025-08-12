@@ -46,6 +46,6 @@ protocol NotificationProtocol: AnyObject {
     func notifyFeatureAnnouncement(feature: String, description: String) async
 
     // Preference management
-    func updatePreferences(_ preferences: NotificationPreferences)
-    func getPreferences() -> NotificationPreferences
+    func updatePreferences(_ preferences: NotificationSettings)
+    func getPreferences() -> NotificationSettings
 }

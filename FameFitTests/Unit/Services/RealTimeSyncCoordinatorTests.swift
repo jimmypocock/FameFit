@@ -37,7 +37,7 @@ final class RealTimeSyncCoordinatorTests: XCTestCase {
                 groupWorkoutService: MockGroupWorkoutService(),
                 activityFeedService: ActivityFeedService(
                     cloudKitManager: mockCloudKitService,
-                    privacySettings: WorkoutPrivacySettings()
+                    userSettings: UserSettings.defaultSettings(for: "test-user")
                 )
             )
         }

@@ -13,15 +13,15 @@ final class ActivityFeedServiceTests: XCTestCase {
     private var activityFeedService: ActivityFeedService!
     private var mockActivityFeedService: MockActivityFeedService!
     private var mockCloudKitService: MockCloudKitService!
-    private var privacySettings: WorkoutPrivacySettings!
+    private var userSettings: UserSettings!
 
     override func setUp() {
         super.setUp()
         mockCloudKitService = MockCloudKitService()
-        privacySettings = WorkoutPrivacySettings()
+        userSettings = UserSettings.defaultSettings(for: "test-user")
         activityFeedService = ActivityFeedService(
             cloudKitManager: mockCloudKitService,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
         mockActivityFeedService = MockActivityFeedService()
     }
@@ -133,7 +133,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostWorkoutActivity_COPPACompliance() async throws {
         // Given - User under 13 (COPPA restricted)
-        var restrictedSettings = WorkoutPrivacySettings()
+        var restrictedSettings = UserSettings.defaultSettings(for: "test-user")
         restrictedSettings.allowPublicSharing = false
 
         let restrictedService = ActivityFeedService(
@@ -186,7 +186,7 @@ final class ActivityFeedServiceTests: XCTestCase {
 
     func testPostAchievementActivity_DisabledSharing() async throws {
         // Given
-        var settings = WorkoutPrivacySettings()
+        var settings = UserSettings.defaultSettings(for: "test-user")
         settings.shareAchievements = false
 
         let service = ActivityFeedService(

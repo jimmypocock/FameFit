@@ -427,7 +427,7 @@ struct ActivityCommentsView: View {
             ),
             type: .workout,
             timestamp: Date().addingTimeInterval(-3_600),
-            content: ActivityFeedContent(
+            content: ActivityFeedItemContent(
                 title: "Morning Run",
                 subtitle: "Great workout!",
                 details: [

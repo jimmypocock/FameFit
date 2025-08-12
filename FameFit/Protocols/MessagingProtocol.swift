@@ -1,6 +1,6 @@
 //
-//  MessageProviding.swift
-//  FameFit Watch App
+//  MessagingProtocol.swift
+//  FameFit
 //
 //  Protocol for providing motivational/roasting messages with personality customization
 //
@@ -148,7 +148,7 @@ public struct MessageContext {
 // MARK: - Message Provider Protocol
 
 /// Protocol for providing contextual workout messages with personality customization
-public protocol MessageProviding {
+public protocol MessagingProtocol {
     /// Current personality configuration
     var personality: MessagePersonality { get set }
 
@@ -253,7 +253,7 @@ public enum MessageCategory: String, CaseIterable {
 
 // MARK: - Default Implementation Extensions
 
-public extension MessageProviding {
+public extension MessagingProtocol {
     /// Default implementation for checking if a category should be included
     func shouldIncludeCategory(_ category: MessageCategory) -> Bool {
         guard category.isPersonalityDependent else { return true }

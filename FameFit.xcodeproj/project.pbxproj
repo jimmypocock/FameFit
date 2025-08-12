@@ -71,13 +71,10 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Extensions/HKWorkoutActivityType+Extensions.swift",
-				Models/AccountStatus.swift,
-				Models/FameFitError.swift,
+				Models/Enums/AccountStatus.swift,
+				Models/Enums/FameFitError.swift,
 				Models/GroupWorkout.swift,
-				Models/GroupWorkoutConstants.swift,
 				Models/UserProfile.swift,
-				Protocols/MessageProviding.swift,
-				Services/Authentication/AccountVerificationService.swift,
 				Utilities/UserDefaultsKeys.swift,
 			);
 			target = 54D774F82E0F3BB100791940 /* FameFit Watch App */;

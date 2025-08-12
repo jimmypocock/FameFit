@@ -29,7 +29,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     @Published var isSignedIn = false
     // @Published var userRecord: CKRecord? // DEPRECATED - We use UserProfile records now
     @Published var totalXP: Int = 0
-    @Published var userName: String = ""
+    @Published var username: String = ""
     @Published var currentStreak: Int = 0
     @Published var totalWorkouts: Int = 0
     @Published var lastWorkoutTimestamp: Date?
@@ -282,7 +282,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
             // Clear CloudKit state
             self.currentUserRecordID = nil
             self.totalXP = 0
-            self.userName = ""
+            self.username = ""
             self.currentStreak = 0
             self.totalWorkouts = 0
             self.lastWorkoutTimestamp = nil
@@ -837,8 +837,8 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         $currentStreak.eraseToAnyPublisher()
     }
     
-    var userNamePublisher: AnyPublisher<String, Never> {
-        $userName.eraseToAnyPublisher()
+    var usernamePublisher: AnyPublisher<String, Never> {
+        $username.eraseToAnyPublisher()
     }
     
     var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
@@ -971,7 +971,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         currentStreak = 0
         lastWorkoutTimestamp = nil
         joinTimestamp = nil
-        userName = "FameFit User"
+        username = "FameFit User"
         currentUserRecordID = nil
         // userRecord = nil // DEPRECATED - We use UserProfile records now
         isSignedIn = false

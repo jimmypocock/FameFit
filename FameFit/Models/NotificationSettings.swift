@@ -1,5 +1,5 @@
 //
-//  NotificationPreferences.swift
+//  NotificationSettings.swift
 //  FameFit
 //
 //  User preferences for notification delivery
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct NotificationPreferences: Codable, Equatable {
+struct NotificationSettings: Codable, Equatable {
     // MARK: - Master Switches
 
     var pushNotificationsEnabled: Bool = true
@@ -126,11 +126,11 @@ struct NotificationPreferences: Codable, Equatable {
 
     static let storageKey = "com.jimmypocock.FameFit.notificationPreferences"
 
-    static func load() -> NotificationPreferences {
+    static func load() -> NotificationSettings {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let preferences = try? JSONDecoder().decode(NotificationPreferences.self, from: data)
+              let preferences = try? JSONDecoder().decode(NotificationSettings.self, from: data)
         else {
-            return NotificationPreferences()
+            return NotificationSettings()
         }
         return preferences
     }
@@ -143,16 +143,16 @@ struct NotificationPreferences: Codable, Equatable {
 
     // MARK: - Default Presets
 
-    static var allEnabled: NotificationPreferences {
-        var prefs = NotificationPreferences()
+    static var allEnabled: NotificationSettings {
+        var prefs = NotificationSettings()
         for type in NotificationType.allCases {
             prefs.setSetting(.enabled, for: type)
         }
         return prefs
     }
 
-    static var minimal: NotificationPreferences {
-        var prefs = NotificationPreferences()
+    static var minimal: NotificationSettings {
+        var prefs = NotificationSettings()
         prefs.soundEnabled = false
 
         // Only enable critical notifications
@@ -169,8 +169,8 @@ struct NotificationPreferences: Codable, Equatable {
         return prefs
     }
 
-    static var balanced: NotificationPreferences {
-        var prefs = NotificationPreferences()
+    static var balanced: NotificationSettings {
+        var prefs = NotificationSettings()
 
         // Batch social interactions
         prefs.setSetting(.batched, for: .workoutKudos)
@@ -189,10 +189,10 @@ struct NotificationPreferences: Codable, Equatable {
 
 // MARK: - User Defaults Extension
 
-extension NotificationPreferences {
+extension NotificationSettings {
     /// Migrate from old notification settings if they exist
-    static func migrateFromLegacySettings() -> NotificationPreferences {
-        var prefs = NotificationPreferences()
+    static func migrateFromLegacySettings() -> NotificationSettings {
+        var prefs = NotificationSettings()
 
         // Check for any legacy settings
         if UserDefaults.standard.object(forKey: "pushNotificationsEnabled") != nil {

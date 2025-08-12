@@ -406,7 +406,7 @@ final class ActivityFeedViewModel: ObservableObject {
             }
 
             // Parse content
-            let content = activityItem.contentData ?? ActivityFeedContent(
+            let content = activityItem.contentData ?? ActivityFeedItemContent(
                 title: "Activity",
                 subtitle: nil,
                 details: [:]
@@ -464,7 +464,7 @@ final class ActivityFeedViewModel: ObservableObject {
                 userProfile: profile,
                 type: .workout,
                 timestamp: Date().addingTimeInterval(-3_600),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Completed a High Intensity Interval Training",
                     subtitle: "Crushed another workout! 💪",
                     details: [
@@ -487,7 +487,7 @@ final class ActivityFeedViewModel: ObservableObject {
                 userProfile: profile,
                 type: .achievement,
                 timestamp: Date().addingTimeInterval(-7_200),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Earned the 'Workout Warrior' badge",
                     subtitle: "Completed 50 workouts!",
                     details: [
@@ -512,7 +512,7 @@ final class ActivityFeedViewModel: ObservableObject {
                 userProfile: profile2,
                 type: .levelUp,
                 timestamp: Date().addingTimeInterval(-10_800),
-                content: ActivityFeedContent(
+                content: ActivityFeedItemContent(
                     title: "Reached Level 5!",
                     subtitle: nil,
                     details: [

@@ -22,7 +22,7 @@ struct WorkoutSharingPromptView: View {
     @State private var errorMessage = ""
 
     // Load user's privacy settings
-    @State private var privacySettings = WorkoutPrivacySettings()
+    @State private var privacySettings = UserSettings.defaultSettings(for: "current")
 
     private var workoutType: HKWorkoutActivityType? {
         HKWorkoutActivityType.from(storageKey: workoutHistory.workoutType)

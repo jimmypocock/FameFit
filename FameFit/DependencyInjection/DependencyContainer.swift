@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CloudKit
 import HealthKit
 import SwiftUI
 
@@ -37,7 +38,7 @@ final class DependencyContainer: ObservableObject {
     let unlockStorageService: UnlockStorageService
     let notificationScheduler: NotificationSchedulingProtocol
     let notificationManager: NotificationProtocol
-    let messageProvider: MessageProviding
+    let messageProvider: MessagingProtocol
     let apnsManager: APNSProtocol
     
     // MARK: - Social & Profile Services
@@ -67,7 +68,7 @@ final class DependencyContainer: ObservableObject {
     // MARK: - Sync & Real-time Services
     
     let subscriptionManager: CloudKitSubscriptionProtocol
-    let realTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol
+    let realTimeSyncCoordinator: RealTimeSyncProtocol
     
     // MARK: - Transaction Services
     
@@ -85,6 +86,7 @@ final class DependencyContainer: ObservableObject {
     
     /// Base initializer that accepts all dependencies
     /// Used by both production and test initializers
+    @MainActor
     init(
         authenticationManager: AuthenticationService,
         cloudKitManager: CloudKitService,
@@ -103,14 +105,14 @@ final class DependencyContainer: ObservableObject {
         activityFeedService: ActivityFeedProtocol,
         notificationScheduler: NotificationSchedulingProtocol,
         notificationManager: NotificationProtocol,
-        messageProvider: MessageProviding,
+        messageProvider: MessagingProtocol,
         workoutKudosService: WorkoutKudosProtocol,
         apnsManager: APNSProtocol,
         groupWorkoutService: GroupWorkoutProtocol,
         workoutChallengesService: WorkoutChallengesProtocol,
         workoutChallengeLinksService: WorkoutChallengeLinksProtocol,
         subscriptionManager: CloudKitSubscriptionProtocol,
-        realTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol,
+        realTimeSyncCoordinator: RealTimeSyncProtocol,
         activityCommentsService: ActivityFeedCommentsProtocol,
         activitySharingSettingsService: ActivityFeedSettingsProtocol,
         bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol,
@@ -151,6 +153,49 @@ final class DependencyContainer: ObservableObject {
         self.xpTransactionService = xpTransactionService
         self.countVerificationService = countVerificationService
         self.statsSyncService = statsSyncService
+    }
+    
+    /// Convenience initializer using factory pattern
+    /// - Parameters:
+    ///   - factory: Factory to create dependencies (defaults to production)
+    ///   - skipInitialization: Skip CloudKit initialization (for default/fallback containers)
+    @MainActor
+    convenience init(factory: DependencyFactory = ProductionDependencyFactory(), skipInitialization: Bool = false) {
+        let container = DependencyContainer.create(factory: factory, skipInitialization: skipInitialization)
+        self.init(
+            authenticationManager: container.authenticationManager,
+            cloudKitManager: container.cloudKitManager,
+            workoutObserver: container.workoutObserver,
+            workoutProcessor: container.workoutProcessor,
+            healthKitService: container.healthKitService,
+            watchConnectivityManager: container.watchConnectivityManager,
+            workoutSyncManager: container.workoutSyncManager,
+            workoutSyncQueue: container.workoutSyncQueue,
+            notificationStore: container.notificationStore,
+            unlockNotificationService: container.unlockNotificationService,
+            unlockStorageService: container.unlockStorageService,
+            userProfileService: container.userProfileService,
+            rateLimitingService: container.rateLimitingService,
+            socialFollowingService: container.socialFollowingService,
+            activityFeedService: container.activityFeedService,
+            notificationScheduler: container.notificationScheduler,
+            notificationManager: container.notificationManager,
+            messageProvider: container.messageProvider,
+            workoutKudosService: container.workoutKudosService,
+            apnsManager: container.apnsManager,
+            groupWorkoutService: container.groupWorkoutService,
+            workoutChallengesService: container.workoutChallengesService,
+            workoutChallengeLinksService: container.workoutChallengeLinksService,
+            subscriptionManager: container.subscriptionManager,
+            realTimeSyncCoordinator: container.realTimeSyncCoordinator,
+            activityCommentsService: container.activityCommentsService,
+            activitySharingSettingsService: container.activitySharingSettingsService,
+            bulkPrivacyUpdateService: container.bulkPrivacyUpdateService,
+            workoutAutoShareService: container.workoutAutoShareService,
+            xpTransactionService: container.xpTransactionService,
+            countVerificationService: container.countVerificationService,
+            statsSyncService: container.statsSyncService
+        )
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  FameFitApp+UITesting.swift
+//  FameFitApp+TestSupport.swift
 //  FameFit
 //
 //  UI Testing configuration support for FameFitApp

@@ -26,9 +26,9 @@ struct ActivityFeedRecord: Codable, Identifiable, Equatable {
         WorkoutPrivacy(rawValue: visibility) ?? .private
     }
 
-    var contentData: ActivityFeedContent? {
+    var contentData: ActivityFeedItemContent? {
         guard let data = content.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(ActivityFeedContent.self, from: data)
+        return try? JSONDecoder().decode(ActivityFeedItemContent.self, from: data)
     }
 }
 

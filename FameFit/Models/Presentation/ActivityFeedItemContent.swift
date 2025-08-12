@@ -1,5 +1,5 @@
 //
-//  ActivityFeedContent.swift
+//  ActivityFeedItemContent.swift
 //  FameFit
 //
 //  Content model for activity feed items
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ActivityFeedContent: Codable {
+struct ActivityFeedItemContent: Codable {
     let title: String
     let subtitle: String?
     let details: [String: String]

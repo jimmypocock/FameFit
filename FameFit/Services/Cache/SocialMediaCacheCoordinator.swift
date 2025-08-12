@@ -26,7 +26,7 @@ struct CacheHealthReport {
 // MARK: - Social Media Cache Coordinator
 
 @MainActor
-final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheCoordinatorProtocol {
+final class SocialMediaCacheCoordinator: ObservableObject, SocialMediaCacheProtocol {
     
     // MARK: - Dependencies
     

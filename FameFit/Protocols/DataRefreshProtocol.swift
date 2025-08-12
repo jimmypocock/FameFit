@@ -1,5 +1,5 @@
 //
-//  DataRefreshCoordinatorProtocol.swift
+//  DataRefreshProtocol.swift
 //  FameFit
 //
 //  Protocol for data refresh coordination operations
@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol DataRefreshCoordinatorProtocol {
+protocol DataRefreshProtocol {
     /// Refresh all user-related data
     func refreshAllUserData() async
     

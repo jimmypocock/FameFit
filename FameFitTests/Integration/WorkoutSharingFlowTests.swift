@@ -100,13 +100,13 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testPrivacyEnforcement() async throws {
         // Given - User with restricted privacy settings
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.defaultPrivacy = .private
-        privacySettings.allowPublicSharing = false
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.defaultWorkoutPrivacy = .private
+        userSettings.allowPublicSharing = false
 
         let restrictedService = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         let workout = createTestWorkout()
@@ -124,14 +124,14 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testWorkoutTypeSpecificPrivacy() async throws {
         // Given - Different privacy settings for different workout types
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.defaultPrivacy = .friendsOnly
-        privacySettings.setPrivacyLevel(.private, for: .yoga) // Yoga is always private
-        privacySettings.setPrivacyLevel(.public, for: .running) // Running can be public
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.defaultWorkoutPrivacy = .friendsOnly
+        userSettings.setPrivacyLevel(.private, for: .yoga) // Yoga is always private
+        userSettings.setPrivacyLevel(.public, for: .running) // Running can be public
 
         let service = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         // When - Share a yoga workout
@@ -159,12 +159,12 @@ final class WorkoutSharingFlowTests: XCTestCase {
 
     func testDataSharingPreferences() async throws {
         // Given - User who doesn't want to share workout details
-        var privacySettings = WorkoutPrivacySettings()
-        privacySettings.allowDataSharing = false
+        var userSettings = UserSettings.defaultSettings(for: "test-user")
+        userSettings.allowDataSharing = false
 
         let service = ActivityFeedService(
             cloudKitManager: container.cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
 
         let workout = createTestWorkout()

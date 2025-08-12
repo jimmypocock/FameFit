@@ -22,7 +22,7 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
 
     // MARK: - Published Properties
 
-    @Published private var _userName: String = ""
+    @Published private var _username: String = ""
     @Published private var _totalXP: Int = 0
     @Published private var _xpTitle: String = ""
     @Published private var _totalWorkouts: Int = 0
@@ -89,7 +89,7 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
 
     // MARK: - Protocol Properties
 
-    var userName: String { _userName }
+    var username: String { _username }
     var totalXP: Int { _totalXP }
     var xpTitle: String { _xpTitle }
     var totalWorkouts: Int { _totalWorkouts }
@@ -242,8 +242,8 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
         refreshFromDependencies()
 
         // Set up reactive bindings with protocol publishers
-        cloudKitManager?.userNamePublisher
-            .assign(to: &$_userName)
+        cloudKitManager?.usernamePublisher
+            .assign(to: &$_username)
 
         cloudKitManager?.totalXPPublisher
             .assign(to: &$_totalXP)
@@ -271,7 +271,7 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
     }
 
     private func refreshFromDependencies() {
-        _userName = cloudKitManager?.userName ?? ""
+        _username = cloudKitManager?.username ?? ""
         _totalXP = cloudKitManager?.totalXP ?? 0
         _totalWorkouts = cloudKitManager?.totalWorkouts ?? 0
         _currentStreak = cloudKitManager?.currentStreak ?? 0

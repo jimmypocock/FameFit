@@ -14,7 +14,7 @@ import HealthKit
 
 final class ActivityFeedService: ActivityFeedProtocol {
     private let cloudKitManager: any CloudKitProtocol
-    private var privacySettings: WorkoutPrivacySettings
+    private var userSettings: UserSettings
     private let userProfileService: UserProfileProtocol?
     private var currentUsername: String = "Unknown"
 
@@ -30,9 +30,9 @@ final class ActivityFeedService: ActivityFeedProtocol {
         privacyUpdateSubject.eraseToAnyPublisher()
     }
 
-    init(cloudKitManager: any CloudKitProtocol, privacySettings: WorkoutPrivacySettings, userProfileService: UserProfileProtocol? = nil) {
+    init(cloudKitManager: any CloudKitProtocol, userSettings: UserSettings, userProfileService: UserProfileProtocol? = nil) {
         self.cloudKitManager = cloudKitManager
-        self.privacySettings = privacySettings
+        self.userSettings = userSettings
         self.userProfileService = userProfileService
         
         // Load current username on init
@@ -56,9 +56,9 @@ final class ActivityFeedService: ActivityFeedProtocol {
     }
     
     /// Update privacy settings from saved user preferences
-    func updatePrivacySettings(_ settings: WorkoutPrivacySettings) {
-        self.privacySettings = settings
-        FameFitLogger.info("📱 Updated privacy settings: defaultPrivacy=\(settings.defaultPrivacy.rawValue)", category: FameFitLogger.social)
+    func updatePrivacySettings(_ settings: UserSettings) {
+        self.userSettings = settings
+        FameFitLogger.info("📱 Updated privacy settings: defaultPrivacy=\(settings.defaultWorkoutPrivacy.rawValue)", category: FameFitLogger.social)
     }
 
     // MARK: - Post Activity Methods
@@ -76,7 +76,7 @@ final class ActivityFeedService: ActivityFeedProtocol {
             throw ActivityFeedError.invalidWorkoutType
         }
 
-        let effectivePrivacy = privacySettings.effectivePrivacy(for: workoutType)
+        let effectivePrivacy = userSettings.effectivePrivacy(for: workoutType)
         let finalPrivacy = min(privacy, effectivePrivacy) // Use most restrictive
         FameFitLogger.info("📊 Privacy check: requested=\(privacy.rawValue), effective=\(effectivePrivacy.rawValue), final=\(finalPrivacy.rawValue)", category: FameFitLogger.social)
 
@@ -86,7 +86,7 @@ final class ActivityFeedService: ActivityFeedProtocol {
         // Create content
         let content = createWorkoutContent(
             from: workout,
-            includeDetails: includeDetails && privacySettings.allowDataSharing
+            includeDetails: includeDetails && userSettings.allowDataSharing
         )
 
         let contentData = try JSONEncoder().encode(content)
@@ -123,12 +123,12 @@ final class ActivityFeedService: ActivityFeedProtocol {
         privacy: WorkoutPrivacy
     ) async throws {
         // Check if achievement sharing is enabled
-        guard privacySettings.shareAchievements else { return }
+        guard userSettings.shareAchievements else { return }
 
-        let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
+        let effectivePrivacy = min(privacy, userSettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = ActivityFeedContent(
+        let content = ActivityFeedItemContent(
             title: "Earned the '\(achievementName)' achievement!",
             subtitle: "Unlocked with \(xpEarned) XP",
             details: [
@@ -166,10 +166,10 @@ final class ActivityFeedService: ActivityFeedProtocol {
         newTitle: String,
         privacy: WorkoutPrivacy
     ) async throws {
-        let effectivePrivacy = min(privacy, privacySettings.allowPublicSharing ? .public : .friendsOnly)
+        let effectivePrivacy = min(privacy, userSettings.allowPublicSharing ? .public : .friendsOnly)
         guard effectivePrivacy != .private else { return }
 
-        let content = ActivityFeedContent(
+        let content = ActivityFeedItemContent(
             title: "Reached Level \(newLevel)!",
             subtitle: newTitle,
             details: [
@@ -279,7 +279,7 @@ final class ActivityFeedService: ActivityFeedProtocol {
 
     // MARK: - Private Helper Methods
 
-    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> ActivityFeedContent {
+    private func createWorkoutContent(from workout: Workout, includeDetails: Bool) -> ActivityFeedItemContent {
         var details: [String: String] = [
             "workoutType": workout.workoutType,
             "workoutIcon": "figure.run"
@@ -307,7 +307,7 @@ final class ActivityFeedService: ActivityFeedProtocol {
             subtitle = "Great job on that \(minutes)-minute session! 💪"
         }
 
-        return ActivityFeedContent(
+        return ActivityFeedItemContent(
             title: title,
             subtitle: subtitle,
             details: details

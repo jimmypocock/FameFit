@@ -8,8 +8,8 @@
 import Foundation
 import HealthKit
 
-/// Instance-based message provider implementing MessageProviding protocol
-public class FameFitMessageProvider: MessageProviding {
+/// Instance-based message provider implementing MessagingProtocol protocol
+public class FameFitMessageProvider: MessagingProtocol {
     // MARK: - Properties
 
     public var personality: MessagePersonality
@@ -201,7 +201,7 @@ public class FameFitMessageProvider: MessageProviding {
         self.personality = personality
     }
 
-    // MARK: - MessageProviding Implementation
+    // MARK: - MessagingProtocol Implementation
 
     public func getMessage(for context: MessageContext) -> String {
         if context.isWorkoutStart {
@@ -330,7 +330,7 @@ public class FameFitMessageProvider: MessageProviding {
         durationRoasts.randomElement() ?? getRandomMessage(from: .roast)
     }
     
-    // MARK: - Notification Methods (MessageProviding Protocol)
+    // MARK: - Notification Methods (MessagingProtocol Protocol)
     
     public func getWorkoutEndMessage(workoutType: String, duration: Int, calories: Int, xpEarned: Int) -> String {
         // Use personality-based messages with XP info

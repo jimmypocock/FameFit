@@ -13,7 +13,7 @@ final class UnlockNotificationService: UnlockNotificationProtocol {
     private let notificationStore: any NotificationStoringProtocol
     private let unlockStorage: UnlockStorageProtocol
     private let userDefaults: UserDefaults
-    private var preferences: NotificationPreferences = .load()
+    private var preferences: NotificationSettings = .load()
 
     private let unlockKeyPrefix = "unlock_notified_"
     private let levelKeyPrefix = "level_notified_"
@@ -28,7 +28,7 @@ final class UnlockNotificationService: UnlockNotificationProtocol {
         self.userDefaults = userDefaults
     }
 
-    func updatePreferences(_ newPreferences: NotificationPreferences) {
+    func updatePreferences(_ newPreferences: NotificationSettings) {
         preferences = newPreferences
     }
 

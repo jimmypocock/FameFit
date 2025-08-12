@@ -44,10 +44,10 @@ protocol DependencyFactory: AnyObject {
     func createWorkoutAutoShareService(activityFeedService: ActivityFeedProtocol, settingsService: ActivityFeedSettingsProtocol, notificationManager: NotificationProtocol) -> WorkoutAutoShareProtocol
     func createXPTransactionService(container: CKContainer) -> XPTransactionService
     func createGroupWorkoutService(cloudKitManager: CloudKitService, userProfileService: UserProfileProtocol, notificationManager: NotificationProtocol) -> GroupWorkoutProtocol
-    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionProtocol, cloudKitManager: CloudKitService, socialFollowingService: SocialFollowingProtocol, userProfileService: UserProfileProtocol, workoutKudosService: WorkoutKudosProtocol, activityCommentsService: ActivityFeedCommentsProtocol, workoutChallengesService: WorkoutChallengesProtocol, groupWorkoutService: GroupWorkoutProtocol, activityFeedService: ActivityFeedProtocol) -> RealTimeSyncCoordinatorProtocol
+    func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionProtocol, cloudKitManager: CloudKitService, socialFollowingService: SocialFollowingProtocol, userProfileService: UserProfileProtocol, workoutKudosService: WorkoutKudosProtocol, activityCommentsService: ActivityFeedCommentsProtocol, workoutChallengesService: WorkoutChallengesProtocol, groupWorkoutService: GroupWorkoutProtocol, activityFeedService: ActivityFeedProtocol) -> RealTimeSyncProtocol
     
     // Utilities
-    func createMessageProvider() -> MessageProviding
+    func createMessageProvider() -> MessagingProtocol
 }
 
 // MARK: - Production Dependency Factory
@@ -195,11 +195,11 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createActivityFeedService(cloudKitManager: CloudKitService) -> ActivityFeedProtocol {
-        let privacySettings = WorkoutPrivacySettings()
+        let userSettings = UserSettings.defaultSettings(for: cloudKitManager.currentUserID ?? "unknown")
         let userProfileService = createUserProfileService(cloudKitManager: cloudKitManager)
         return ActivityFeedService(
             cloudKitManager: cloudKitManager,
-            privacySettings: privacySettings,
+            userSettings: userSettings,
             userProfileService: userProfileService
         )
     }
@@ -290,7 +290,7 @@ class ProductionDependencyFactory: DependencyFactory {
         workoutChallengesService: WorkoutChallengesProtocol,
         groupWorkoutService: GroupWorkoutProtocol,
         activityFeedService: ActivityFeedProtocol
-    ) -> RealTimeSyncCoordinatorProtocol {
+    ) -> RealTimeSyncProtocol {
         RealTimeSyncCoordinator(
             subscriptionManager: subscriptionManager,
             cloudKitManager: cloudKitManager,
@@ -306,7 +306,7 @@ class ProductionDependencyFactory: DependencyFactory {
     
     // MARK: - Utilities
     
-    func createMessageProvider() -> MessageProviding {
+    func createMessageProvider() -> MessagingProtocol {
         return FameFitMessageProvider()
     }
 }

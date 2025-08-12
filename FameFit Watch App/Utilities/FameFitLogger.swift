@@ -17,6 +17,7 @@ struct FameFitLogger {
     static let general = "General"
     static let social = "Social"  // Added for GroupWorkout compatibility
     static let connectivity = "Connectivity"  // Added for WatchConnectivity
+    static let system = "System"  // Added for system lifecycle events
     
     // MARK: - OSLog Instance
     private static let watchLog = OSLog(subsystem: "com.jimmypocock.FameFit.watchkitapp", category: "Watch")

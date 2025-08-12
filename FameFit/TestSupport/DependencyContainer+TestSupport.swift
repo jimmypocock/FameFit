@@ -16,7 +16,7 @@ import HealthKit
 
 // MARK: - Simple Test Mocks
 
-private class TestMockMessageProvider: MessageProviding {
+private class TestMockMessageProvider: MessagingProtocol {
     var personality = MessagePersonality.default
     
     func getMessage(for context: MessageContext) -> String { "Test message" }
@@ -66,13 +66,13 @@ extension DependencyContainer {
         activityFeedService: ActivityFeedProtocol? = nil,
         notificationScheduler: NotificationSchedulingProtocol? = nil,
         notificationManager: NotificationProtocol? = nil,
-        messageProvider: MessageProviding? = nil,
+        messageProvider: MessagingProtocol? = nil,
         workoutKudosService: WorkoutKudosProtocol? = nil,
         apnsManager: APNSProtocol? = nil,
         groupWorkoutService: GroupWorkoutProtocol? = nil,
         workoutChallengesService: WorkoutChallengesProtocol? = nil,
         subscriptionManager: CloudKitSubscriptionProtocol? = nil,
-        realTimeSyncCoordinator: (any RealTimeSyncCoordinatorProtocol)? = nil,
+        realTimeSyncCoordinator: (any RealTimeSyncProtocol)? = nil,
         activityCommentsService: ActivityFeedCommentsProtocol? = nil,
         activitySharingSettingsService: ActivityFeedSettingsProtocol? = nil,
         bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol? = nil,
@@ -86,7 +86,7 @@ extension DependencyContainer {
         let resolvedWatchConnectivityManager: WatchConnectivityProtocol = watchConnectivityManager ?? EnhancedWatchConnectivityManager()
         let resolvedNotificationStore = notificationStore ?? NotificationStore()
         let resolvedUnlockStorageService = unlockStorageService ?? UnlockStorageService()
-        let resolvedMessageProvider: MessageProviding = messageProvider ?? TestMockMessageProvider()
+        let resolvedMessageProvider: MessagingProtocol = messageProvider ?? TestMockMessageProvider()
         let resolvedNotificationScheduler = notificationScheduler ?? NotificationScheduler(
             notificationStore: resolvedNotificationStore
         )
@@ -126,10 +126,10 @@ extension DependencyContainer {
         )
         
         // Create activity feed services
-        let privacySettings = WorkoutPrivacySettings()
+        let userSettings = UserSettings.defaultSettings(for: cloudKitManager.currentUserID ?? "test-user")
         let resolvedActivityFeedService = activityFeedService ?? ActivityFeedService(
             cloudKitManager: cloudKitManager,
-            privacySettings: privacySettings
+            userSettings: userSettings
         )
         
         let resolvedActivityCommentsService = activityCommentsService ?? ActivityFeedCommentsService(

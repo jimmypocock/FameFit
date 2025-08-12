@@ -30,8 +30,8 @@ extension GroupWorkoutService {
             throw GroupWorkoutError.invalidWorkout("Max participants must be greater than 0")
         }
         
-        guard workout.maxParticipants <= GroupWorkoutConstants.maxParticipantsLimit else {
-            throw GroupWorkoutError.invalidWorkout("Max participants cannot exceed \(GroupWorkoutConstants.maxParticipantsLimit)")
+        guard workout.maxParticipants <= GroupWorkout.Constants.maxParticipantsLimit else {
+            throw GroupWorkoutError.invalidWorkout("Max participants cannot exceed \(GroupWorkout.Constants.maxParticipantsLimit)")
         }
         
         // Validate workout duration (max 4 hours)

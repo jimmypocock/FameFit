@@ -140,7 +140,7 @@ struct GroupWorkoutCard: View {
                             status: .active
                         )
                     ],
-                    maxParticipants: GroupWorkoutConstants.defaultMaxParticipants,
+                    maxParticipants: GroupWorkout.Constants.defaultMaxParticipants,
                     scheduledStart: Date().addingTimeInterval(-1_800),
                     scheduledEnd: Date().addingTimeInterval(1_800),
                     status: .active,

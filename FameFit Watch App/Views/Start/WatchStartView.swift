@@ -25,7 +25,7 @@ struct WatchStartView: View {
     @StateObject private var watchConnectivity = WatchConnectivityManager.shared
     @State private var username: String = "User"
     @State private var totalXP: Int = 0
-    @State private var activeGroupWorkout: GroupWorkout? = nil
+    @State private var activeGroupWorkout: WatchGroupWorkout? = nil
     @State private var isRefreshing = false
 
     // Complete list of workout types available on Watch
@@ -119,7 +119,7 @@ struct WatchStartView: View {
         }
     }
     
-    private func groupWorkoutHeader(_ workout: GroupWorkout) -> some View {
+    private func groupWorkoutHeader(_ workout: WatchGroupWorkout) -> some View {
         HStack {
             Image(systemName: "person.3.fill")
                 .foregroundColor(.green)
@@ -144,11 +144,11 @@ struct WatchStartView: View {
             .cornerRadius(4)
     }
     
-    private func groupWorkoutFooter(_ workout: GroupWorkout) -> some View {
+    private func groupWorkoutFooter(_ workout: WatchGroupWorkout) -> some View {
         HStack {
-            Image(systemName: workout.workoutType.iconName)
+            Image(systemName: workoutIconName(workout.workoutType))
                 .font(.caption)
-            Text(workout.workoutType.displayName)
+            Text(workoutDisplayName(workout.workoutType))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -250,6 +250,7 @@ struct WatchStartView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: HKWorkoutActivityType.self) { _ in
                 SessionPagingView()
+                    .environmentObject(workoutManager)
             }
             .refreshable {
                 await refreshGroupWorkouts()
@@ -367,16 +368,18 @@ struct WatchStartView: View {
         }
     }
     
-    private func startGroupWorkout(_ workout: GroupWorkout) {
+    private func startGroupWorkout(_ workout: WatchGroupWorkout) {
         FameFitLogger.info("⌚ Starting group workout: \(workout.name)", category: FameFitLogger.sync)
         
         // Set group workout ID for the manager
         workoutManager.groupWorkoutID = workout.id
         workoutManager.isGroupWorkoutHost = isHost(workout)
         
-        // Start the workout
-        workoutManager.selectedWorkout = workout.workoutType
-        navigationPath.append(workout.workoutType)
+        // Start the workout (convert string back to enum)
+        if let workoutType = workoutTypeFromString(workout.workoutType) {
+            workoutManager.selectedWorkout = workoutType
+            navigationPath.append(workoutType)
+        }
         
         // Clear pending workout from UserDefaults
         UserDefaults.standard.removeObject(forKey: "pendingGroupWorkoutID")
@@ -461,34 +464,101 @@ struct WatchStartView: View {
         #endif
     }
     
-    // Helper to create a GroupWorkout from Watch data
-    private func createGroupWorkout(id: String, name: String, type: HKWorkoutActivityType, isHost: Bool) -> GroupWorkout {
-        GroupWorkout(
+    // Helper to create a WatchGroupWorkout from Watch data
+    private func createGroupWorkout(id: String, name: String, type: HKWorkoutActivityType, isHost: Bool) -> WatchGroupWorkout {
+        WatchGroupWorkout(
             id: id,
             name: name,
-            description: "Group workout from Apple Watch",
-            workoutType: type,
             hostID: isHost ? (username.isEmpty ? "current_user" : username) : "other_user",
-            maxParticipants: 10,
+            workoutType: workoutTypeToString(type),
             scheduledStart: Date(),
             scheduledEnd: Date().addingTimeInterval(3600),
-            status: .active,
-            creationDate: Date(),
-            modificationDate: Date(),
-            isPublic: true,
-            joinCode: nil,
-            tags: [],
-            location: nil,
-            notes: nil,
-            participantIDs: []
+            maxParticipants: 10,
+            currentParticipants: 1,
+            isActive: true
         )
     }
     
     // Helper to check if current user is host
-    private func isHost(_ workout: GroupWorkout) -> Bool {
+    private func isHost(_ workout: WatchGroupWorkout) -> Bool {
         // If we have a username, compare with hostID
         // Otherwise, check if hostID matches a placeholder we use for current user
         workout.hostID == username || workout.hostID == "current_user"
+    }
+    
+    // Helper to convert HKWorkoutActivityType to String
+    private func workoutTypeToString(_ type: HKWorkoutActivityType) -> String {
+        switch type {
+        case .running: return "running"
+        case .walking: return "walking"
+        case .cycling: return "cycling"
+        case .swimming: return "swimming"
+        case .yoga: return "yoga"
+        case .pilates: return "pilates"
+        case .functionalStrengthTraining: return "functionalstrength"
+        case .traditionalStrengthTraining: return "strength"
+        case .highIntensityIntervalTraining: return "hiit"
+        case .rowing: return "rowing"
+        case .elliptical: return "elliptical"
+        case .stairs: return "stairs"
+        default: return "other"
+        }
+    }
+    
+    // Helper to convert String to HKWorkoutActivityType
+    private func workoutTypeFromString(_ string: String) -> HKWorkoutActivityType? {
+        switch string.lowercased() {
+        case "running": return .running
+        case "walking": return .walking
+        case "cycling": return .cycling
+        case "swimming": return .swimming
+        case "yoga": return .yoga
+        case "pilates": return .pilates
+        case "functionalstrength", "functional strength": return .functionalStrengthTraining
+        case "strength", "traditional strength": return .traditionalStrengthTraining
+        case "hiit", "highintensity": return .highIntensityIntervalTraining
+        case "rowing": return .rowing
+        case "elliptical": return .elliptical
+        case "stairs", "stairclimbing": return .stairs
+        default: return .other
+        }
+    }
+    
+    // Helper to get icon name for workout type
+    private func workoutIconName(_ workoutType: String) -> String {
+        switch workoutType.lowercased() {
+        case "running": return "figure.run"
+        case "walking": return "figure.walk"
+        case "cycling": return "bicycle"
+        case "swimming": return "figure.pool.swim"
+        case "yoga": return "figure.yoga"
+        case "pilates": return "figure.pilates"
+        case "functionalstrength", "strength": return "figure.strengthtraining.functional"
+        case "hiit": return "timer"
+        case "rowing": return "figure.rower"
+        case "elliptical": return "figure.elliptical"
+        case "stairs": return "figure.stairs"
+        default: return "figure.mixed.cardio"
+        }
+    }
+    
+    // Helper to get display name for workout type
+    private func workoutDisplayName(_ workoutType: String) -> String {
+        switch workoutType.lowercased() {
+        case "running": return "Run"
+        case "walking": return "Walk"
+        case "cycling": return "Bike"
+        case "swimming": return "Swim"
+        case "yoga": return "Yoga"
+        case "pilates": return "Pilates"
+        case "functionalstrength": return "Functional Strength"
+        case "strength": return "Traditional Strength"
+        case "hiit": return "HIIT"
+        case "rowing": return "Row"
+        case "elliptical": return "Elliptical"
+        case "stairs": return "Stairs"
+        default: return "Workout"
+        }
     }
 }
 

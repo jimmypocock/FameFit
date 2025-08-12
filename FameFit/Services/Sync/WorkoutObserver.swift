@@ -11,7 +11,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
     weak var notificationStore: (any NotificationStoringProtocol)?
     weak var apnsManager: (any APNSProtocol)?
     weak var workoutProcessor: WorkoutProcessor?
-    private var preferences: NotificationPreferences = .load()
+    private var preferences: NotificationSettings = .load()
 
     @Published var lastError: FameFitError?
     @Published var allWorkouts: [HKWorkout] = []
@@ -34,7 +34,7 @@ class WorkoutObserver: NSObject, ObservableObject, WorkoutObserverProtocol {
         requestNotificationPermissions()
     }
 
-    func updatePreferences(_ newPreferences: NotificationPreferences) {
+    func updatePreferences(_ newPreferences: NotificationSettings) {
         preferences = newPreferences
     }
 

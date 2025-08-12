@@ -15,7 +15,7 @@ import UserNotifications
 final class NotificationScheduler: NotificationSchedulingProtocol {
     private let notificationCenter: UNUserNotificationCenter
     private let notificationStore: any NotificationStoringProtocol
-    private var preferences: NotificationPreferences
+    private var preferences: NotificationSettings
 
     // Rate limiting
     private var recentNotifications: [Date] = []
@@ -29,7 +29,7 @@ final class NotificationScheduler: NotificationSchedulingProtocol {
     init(notificationStore: any NotificationStoringProtocol, notificationCenter: UNUserNotificationCenter? = nil) {
         self.notificationStore = notificationStore
         self.notificationCenter = notificationCenter ?? UNUserNotificationCenter.current()
-        preferences = NotificationPreferences.load()
+        preferences = NotificationSettings.load()
 
         // Clean up old notifications periodically
         Timer.scheduledTimer(withTimeInterval: 3_600, repeats: true) { _ in
@@ -99,7 +99,7 @@ final class NotificationScheduler: NotificationSchedulingProtocol {
         return []
     }
 
-    func updatePreferences(_ preferences: NotificationPreferences) {
+    func updatePreferences(_ preferences: NotificationSettings) {
         self.preferences = preferences
         preferences.save()
     }
@@ -338,7 +338,7 @@ final class NotificationScheduler: NotificationSchedulingProtocol {
 
 final class MockNotificationScheduler: NotificationSchedulingProtocol {
     var scheduledNotifications: [NotificationRequest] = []
-    var preferences = NotificationPreferences()
+    var preferences = NotificationSettings()
     var shouldFailScheduling = false
 
     func scheduleFameFitNotification(_ notification: NotificationRequest) async throws {
@@ -360,7 +360,7 @@ final class MockNotificationScheduler: NotificationSchedulingProtocol {
         scheduledNotifications
     }
 
-    func updatePreferences(_ preferences: NotificationPreferences) {
+    func updatePreferences(_ preferences: NotificationSettings) {
         self.preferences = preferences
     }
 }

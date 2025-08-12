@@ -595,7 +595,7 @@ final class CloudKitSeeder {
         // Recent workout activities
         let recentWorkouts = createWorkoutHistory(for: persona).suffix(5)
         for workout in recentWorkouts {
-            let content = ActivityFeedContent(
+            let content = ActivityFeedItemContent(
                 title: "Completed a \(workout.workoutType) workout!",
                 subtitle: "Duration: \(Int(workout.duration / 60)) min | \(Int(workout.totalEnergyBurned)) cal",
                 details: [
@@ -626,7 +626,7 @@ final class CloudKitSeeder {
         
         // Add some achievements
         if persona.totalXP > 10_000 {
-            let achievementContent = ActivityFeedContent(
+            let achievementContent = ActivityFeedItemContent(
                 title: "Earned the 'Rising Star' achievement!",
                 subtitle: "Reached 10,000 XP",
                 details: ["achievementName": "Rising Star", "xpRequired": "10000"]

@@ -16,14 +16,14 @@ final class NotificationService: NotificationProtocol {
     private let scheduler: NotificationSchedulingProtocol
     private let notificationStore: any NotificationStoringProtocol
     private let unlockService: UnlockNotificationProtocol
-    private let messageProvider: MessageProviding
+    private let messageProvider: MessagingProtocol
     private var apnsManager: APNSProtocol?
 
     init(
         scheduler: NotificationSchedulingProtocol,
         notificationStore: any NotificationStoringProtocol,
         unlockService: UnlockNotificationProtocol,
-        messageProvider: MessageProviding,
+        messageProvider: MessagingProtocol,
         apnsManager: APNSProtocol? = nil
     ) {
         self.scheduler = scheduler
@@ -679,12 +679,12 @@ final class NotificationService: NotificationProtocol {
 
     // MARK: - Preference Management
 
-    func updatePreferences(_ preferences: NotificationPreferences) {
+    func updatePreferences(_ preferences: NotificationSettings) {
         scheduler.updatePreferences(preferences)
     }
 
-    func getPreferences() -> NotificationPreferences {
-        NotificationPreferences.load()
+    func getPreferences() -> NotificationSettings {
+        NotificationSettings.load()
     }
 
     // MARK: - Private Methods
@@ -738,7 +738,7 @@ final class NotificationService: NotificationProtocol {
 final class MockNotificationService: NotificationProtocol {
     var requestPermissionResult = true
     var currentAuthStatus = UNAuthorizationStatus.authorized
-    var preferences = NotificationPreferences()
+    var preferences = NotificationSettings()
     var sentNotifications: [String] = []
 
     func requestNotificationPermission() async -> Bool {
@@ -839,11 +839,11 @@ final class MockNotificationService: NotificationProtocol {
         sentNotifications.append("verification_failed_\(linkID)")
     }
 
-    func updatePreferences(_ preferences: NotificationPreferences) {
+    func updatePreferences(_ preferences: NotificationSettings) {
         self.preferences = preferences
     }
 
-    func getPreferences() -> NotificationPreferences {
+    func getPreferences() -> NotificationSettings {
         preferences
     }
 }

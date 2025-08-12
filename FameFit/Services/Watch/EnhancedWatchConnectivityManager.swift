@@ -268,6 +268,43 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
         }
     }
     
+    /// Sync user profile to Watch
+    func syncUserProfile(_ profile: UserProfile) {
+        guard let session = session else {
+            FameFitLogger.warning("📱⌚ Cannot sync profile - WCSession not available", category: FameFitLogger.connectivity)
+            return
+        }
+        
+        // Encode the profile
+        guard let profileData = try? JSONEncoder().encode(profile) else {
+            FameFitLogger.error("📱⌚ Failed to encode user profile", category: FameFitLogger.connectivity)
+            return
+        }
+        
+        let context: [String: Any] = [
+            "command": "syncUserProfile",
+            "userProfile": profileData,
+            "username": profile.username,  // Also send as separate fields for compatibility
+            "totalXP": profile.totalXP,
+            "timestamp": Date()
+        ]
+        
+        // Update application context (persistent, survives app restarts)
+        do {
+            try session.updateApplicationContext(context)
+            FameFitLogger.info("📱⌚ User profile synced to Watch via application context", category: FameFitLogger.connectivity)
+        } catch {
+            FameFitLogger.error("📱⌚ Failed to update application context: \(error)", category: FameFitLogger.connectivity)
+            
+            // Try sending as a message if Watch is reachable
+            if session.isReachable {
+                session.sendMessage(context, replyHandler: nil) { error in
+                    FameFitLogger.error("📱⌚ Failed to send profile message: \(error)", category: FameFitLogger.connectivity)
+                }
+            }
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func sendMessageInternal(_ message: [String: Any]) async throws {

@@ -16,7 +16,7 @@ protocol CloudKitProtocol: ObservableObject {
     var totalXP: Int { get }
     var totalWorkouts: Int { get }
     var currentStreak: Int { get }
-    var userName: String { get }
+    var username: String { get }
     var lastWorkoutTimestamp: Date? { get }
     var joinTimestamp: Date? { get }
     var lastError: FameFitError? { get }
@@ -26,7 +26,7 @@ protocol CloudKitProtocol: ObservableObject {
     var totalXPPublisher: AnyPublisher<Int, Never> { get }
     var totalWorkoutsPublisher: AnyPublisher<Int, Never> { get }
     var currentStreakPublisher: AnyPublisher<Int, Never> { get }
-    var userNamePublisher: AnyPublisher<String, Never> { get }
+    var usernamePublisher: AnyPublisher<String, Never> { get }
     var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> { get }
     var joinTimestampPublisher: AnyPublisher<Date?, Never> { get }
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> { get }

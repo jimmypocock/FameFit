@@ -6,16 +6,20 @@
 //
 
 import Foundation
+import CloudKit
+import HealthKit
+import Combine
 
 // MARK: - Production Initialization
 
 extension DependencyContainer {
-    /// Initialize container with a dependency factory
+    /// Create a container with a dependency factory
     /// - Parameters:
     ///   - factory: Factory to create dependencies (defaults to production)
     ///   - skipInitialization: Skip CloudKit initialization (for default/fallback containers)
+    /// - Returns: A fully configured DependencyContainer
     @MainActor
-    convenience init(factory: DependencyFactory = ProductionDependencyFactory(), skipInitialization: Bool = false) {
+    static func create(factory: DependencyFactory = ProductionDependencyFactory(), skipInitialization: Bool = false) -> DependencyContainer {
         // Phase 1: Core Services
         let cloudKitManager = factory.createCloudKitService()
         let authenticationManager = factory.createAuthenticationService(cloudKitManager: cloudKitManager)
@@ -180,21 +184,21 @@ extension DependencyContainer {
                     return
                 }
                 
-                do {
-                    let savedSettings = try await activitySharingSettingsService.loadSettings()
-                    let privacySettings = WorkoutPrivacySettings(from: savedSettings)
-                    if let concreteActivityFeedService = activityFeedService as? ActivityFeedService {
-                        concreteActivityFeedService.updatePrivacySettings(privacySettings)
-                    }
-                    FameFitLogger.info("✅ Loaded saved privacy settings from CloudKit", category: FameFitLogger.social)
-                } catch {
-                    FameFitLogger.warning("⚠️ Could not load saved privacy settings: \(error)", category: FameFitLogger.social)
+                // Note: ActivityFeedSettings and UserSettings are different models
+                // ActivityFeedSettings handles automatic sharing preferences
+                // UserSettings handles privacy and notification preferences
+                // For now, we'll use default UserSettings and let the ActivityFeedService
+                // manage its own privacy settings separately
+                let userSettings = UserSettings.defaultSettings(for: cloudKitManager.currentUserID ?? "unknown")
+                if let concreteActivityFeedService = activityFeedService as? ActivityFeedService {
+                    concreteActivityFeedService.updatePrivacySettings(userSettings)
                 }
+                FameFitLogger.info("✅ Initialized with default privacy settings", category: FameFitLogger.social)
             }
         }
         
-        // Initialize with all services
-        self.init(
+        // Create container with all services
+        let container = DependencyContainer(
             authenticationManager: authenticationManager,
             cloudKitManager: cloudKitManager,
             workoutObserver: workoutObserver,
@@ -244,5 +248,8 @@ extension DependencyContainer {
         if !skipInitialization {
             cloudKitManager.startInitialization()
         }
+        
+        return container
     }
+    
 }

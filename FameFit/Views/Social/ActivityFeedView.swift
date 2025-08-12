@@ -8,7 +8,7 @@
 import SwiftUI
 
 // MARK: - Feed Item Types
-// Using ActivityFeedItem, ActivityFeedItemType, ActivityFeedContent from FeedModels.swift
+// Using ActivityFeedItem, ActivityFeedItemType, ActivityFeedItemContent from FeedModels.swift
 
 // MARK: - Activity Feed View
 

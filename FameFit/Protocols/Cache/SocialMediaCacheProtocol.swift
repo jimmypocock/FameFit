@@ -1,5 +1,5 @@
 //
-//  SocialMediaCacheCoordinatorProtocol.swift
+//  SocialMediaCacheProtocol.swift
 //  FameFit
 //
 //  Protocol for social media cache coordination operations
@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol SocialMediaCacheCoordinatorProtocol {
+protocol SocialMediaCacheProtocol {
     // Feed management
     func refreshFeed(userID: String, userInitiated: Bool) async
     func loadFeedPage(userID: String, page: Int, userInitiated: Bool) async -> [ActivityFeedItem]?

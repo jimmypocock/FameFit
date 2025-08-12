@@ -24,13 +24,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     // MARK: - Core Properties
 
     @Published var selectedWorkout: HKWorkoutActivityType?
-    @Published var showingSummaryView: Bool = false {
-        didSet {
-            if showingSummaryView == false {
-                resetWorkout()
-            }
-        }
-    }
+    @Published var showingSummaryView: Bool = false
 
     let healthStore = HKHealthStore()
     @Published var session: HKWorkoutSession?
@@ -146,10 +140,11 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
         ]
 
         let typesToRead: Set = [
-            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!
+            HKQuantityType.quantityType(forIdentifier: .heartRate)!,          // Display real-time heart rate
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,  // Display calories burned
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!, // Track running/walking distance
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,     // Track cycling distance
+            HKObjectType.workoutType()  // Read previous workouts for context
         ]
 
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in

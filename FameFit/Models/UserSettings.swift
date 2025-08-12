@@ -7,6 +7,59 @@
 
 import CloudKit
 import Foundation
+import HealthKit
+
+// MARK: - Relationship Status (for privacy checks)
+
+enum RelationshipStatus: String, CaseIterable {
+    case following
+    case notFollowing = "not_following"
+    case blocked
+    case muted
+    case pending
+    case mutualFollow = "mutual"
+}
+
+// MARK: - Workout Privacy Levels
+
+enum WorkoutPrivacy: String, CaseIterable, Codable {
+    case `private`
+    case friendsOnly = "friends_only"
+    case `public`
+
+    var displayName: String {
+        switch self {
+        case .private:
+            "Private"
+        case .friendsOnly:
+            "Friends Only"
+        case .public:
+            "Public"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .private:
+            "Only you can see this workout"
+        case .friendsOnly:
+            "Only people you follow back can see this"
+        case .public:
+            "Anyone who follows you can see this"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .private:
+            "lock.fill"
+        case .friendsOnly:
+            "person.2.fill"
+        case .public:
+            "globe"
+        }
+    }
+}
 
 // MARK: - Notification Settings
 
@@ -73,6 +126,21 @@ struct UserSettings: Codable, Equatable {
     var showWorkoutStats: Bool
     var allowFriendRequests: Bool
     var showOnLeaderboards: Bool
+    
+    // Workout Privacy Settings (merged from WorkoutPrivacySettings)
+    var defaultWorkoutPrivacy: WorkoutPrivacy
+    var workoutTypePrivacyOverrides: [String: WorkoutPrivacy] // Per-workout type privacy
+    var allowDataSharing: Bool // Share heart rate, calories, etc.
+    var shareAchievements: Bool
+    var sharePersonalRecords: Bool
+    var shareWorkoutPhotos: Bool
+    var shareLocation: Bool
+    var allowPublicSharing: Bool // COPPA compliance - false for users under 13
+    
+    // Workout notification preferences
+    var notifyOnWorkoutLikes: Bool
+    var notifyOnWorkoutComments: Bool
+    var notifyOnFollowerWorkouts: Bool
 
     // Default settings for new users
     static func defaultSettings(for userID: String) -> UserSettings {
@@ -87,7 +155,18 @@ struct UserSettings: Codable, Equatable {
             contentFilter: .moderate,
             showWorkoutStats: true,
             allowFriendRequests: true,
-            showOnLeaderboards: true
+            showOnLeaderboards: true,
+            defaultWorkoutPrivacy: .friendsOnly,
+            workoutTypePrivacyOverrides: [:],
+            allowDataSharing: true,
+            shareAchievements: true,
+            sharePersonalRecords: false,
+            shareWorkoutPhotos: false,
+            shareLocation: false,
+            allowPublicSharing: true,
+            notifyOnWorkoutLikes: true,
+            notifyOnWorkoutComments: true,
+            notifyOnFollowerWorkouts: true
         )
     }
 
@@ -113,6 +192,63 @@ struct UserSettings: Codable, Equatable {
         case .none:
             return false
         }
+    }
+    
+    // MARK: - Workout Privacy Methods (merged from WorkoutPrivacySettings)
+    
+    func privacyLevel(for workoutType: HKWorkoutActivityType) -> WorkoutPrivacy {
+        let key = String(workoutType.rawValue)
+        return workoutTypePrivacyOverrides[key] ?? defaultWorkoutPrivacy
+    }
+    
+    mutating func setPrivacyLevel(_ privacy: WorkoutPrivacy, for workoutType: HKWorkoutActivityType) {
+        let key = String(workoutType.rawValue)
+        workoutTypePrivacyOverrides[key] = privacy
+    }
+    
+    mutating func removePrivacyOverride(for workoutType: HKWorkoutActivityType) {
+        let key = String(workoutType.rawValue)
+        workoutTypePrivacyOverrides.removeValue(forKey: key)
+    }
+    
+    func canShare(workoutType: HKWorkoutActivityType, with relationship: RelationshipStatus) -> Bool {
+        let privacy = privacyLevel(for: workoutType)
+        
+        switch privacy {
+        case .private:
+            return false
+        case .friendsOnly:
+            return relationship == .mutualFollow
+        case .public:
+            return allowPublicSharing && (relationship == .following || relationship == .mutualFollow)
+        }
+    }
+    
+    func effectivePrivacy(for workoutType: HKWorkoutActivityType) -> WorkoutPrivacy {
+        let requestedPrivacy = privacyLevel(for: workoutType)
+        
+        // Enforce COPPA compliance
+        if !allowPublicSharing && requestedPrivacy == .public {
+            return .friendsOnly
+        }
+        
+        return requestedPrivacy
+    }
+    
+    var isValidForCOPPA: Bool {
+        // Ensure COPPA compliance
+        if !allowPublicSharing && defaultWorkoutPrivacy == .public {
+            return false
+        }
+        
+        // Check workout type settings for COPPA compliance
+        for (_, privacy) in workoutTypePrivacyOverrides {
+            if !allowPublicSharing && privacy == .public {
+                return false
+            }
+        }
+        
+        return true
     }
 }
 
@@ -158,6 +294,35 @@ extension UserSettings {
         showWorkoutStats = (record["showWorkoutStats"] as? Int64) != 0
         allowFriendRequests = (record["allowFriendRequests"] as? Int64) != 0
         showOnLeaderboards = (record["showOnLeaderboards"] as? Int64) != 0
+        
+        // Workout privacy settings (merged)
+        if let defaultPrivacyString = record["defaultWorkoutPrivacy"] as? String,
+           let defaultPrivacy = WorkoutPrivacy(rawValue: defaultPrivacyString) {
+            defaultWorkoutPrivacy = defaultPrivacy
+        } else {
+            defaultWorkoutPrivacy = .friendsOnly
+        }
+        
+        // Workout type privacy overrides
+        if let overridesData = record["workoutTypePrivacyOverrides"] as? Data,
+           let overrides = try? JSONDecoder().decode([String: WorkoutPrivacy].self, from: overridesData) {
+            workoutTypePrivacyOverrides = overrides
+        } else {
+            workoutTypePrivacyOverrides = [:]
+        }
+        
+        // Sharing preferences
+        allowDataSharing = (record["allowDataSharing"] as? Int64) != 0
+        shareAchievements = (record["shareAchievements"] as? Int64) != 0
+        sharePersonalRecords = (record["sharePersonalRecords"] as? Int64) ?? 0 != 0
+        shareWorkoutPhotos = (record["shareWorkoutPhotos"] as? Int64) ?? 0 != 0
+        shareLocation = (record["shareLocation"] as? Int64) ?? 0 != 0
+        allowPublicSharing = (record["allowPublicSharing"] as? Int64) ?? 1 != 0
+        
+        // Workout notification preferences
+        notifyOnWorkoutLikes = (record["notifyOnWorkoutLikes"] as? Int64) ?? 1 != 0
+        notifyOnWorkoutComments = (record["notifyOnWorkoutComments"] as? Int64) ?? 1 != 0
+        notifyOnFollowerWorkouts = (record["notifyOnFollowerWorkouts"] as? Int64) ?? 1 != 0
     }
 
     func toCKRecord(recordID: CKRecord.ID? = nil) -> CKRecord {
@@ -182,6 +347,25 @@ extension UserSettings {
         record["showWorkoutStats"] = showWorkoutStats ? Int64(1) : Int64(0)
         record["allowFriendRequests"] = allowFriendRequests ? Int64(1) : Int64(0)
         record["showOnLeaderboards"] = showOnLeaderboards ? Int64(1) : Int64(0)
+        
+        // Workout privacy settings (merged)
+        record["defaultWorkoutPrivacy"] = defaultWorkoutPrivacy.rawValue
+        if !workoutTypePrivacyOverrides.isEmpty {
+            if let overridesData = try? JSONEncoder().encode(workoutTypePrivacyOverrides) {
+                record["workoutTypePrivacyOverrides"] = overridesData
+            }
+        }
+        record["allowDataSharing"] = allowDataSharing ? Int64(1) : Int64(0)
+        record["shareAchievements"] = shareAchievements ? Int64(1) : Int64(0)
+        record["sharePersonalRecords"] = sharePersonalRecords ? Int64(1) : Int64(0)
+        record["shareWorkoutPhotos"] = shareWorkoutPhotos ? Int64(1) : Int64(0)
+        record["shareLocation"] = shareLocation ? Int64(1) : Int64(0)
+        record["allowPublicSharing"] = allowPublicSharing ? Int64(1) : Int64(0)
+        
+        // Workout notification preferences
+        record["notifyOnWorkoutLikes"] = notifyOnWorkoutLikes ? Int64(1) : Int64(0)
+        record["notifyOnWorkoutComments"] = notifyOnWorkoutComments ? Int64(1) : Int64(0)
+        record["notifyOnFollowerWorkouts"] = notifyOnFollowerWorkouts ? Int64(1) : Int64(0)
 
         return record
     }
@@ -197,7 +381,18 @@ extension UserSettings {
         contentFilter: ContentFilterLevel? = nil,
         showWorkoutStats: Bool? = nil,
         allowFriendRequests: Bool? = nil,
-        showOnLeaderboards: Bool? = nil
+        showOnLeaderboards: Bool? = nil,
+        defaultWorkoutPrivacy: WorkoutPrivacy? = nil,
+        workoutTypePrivacyOverrides: [String: WorkoutPrivacy]? = nil,
+        allowDataSharing: Bool? = nil,
+        shareAchievements: Bool? = nil,
+        sharePersonalRecords: Bool? = nil,
+        shareWorkoutPhotos: Bool? = nil,
+        shareLocation: Bool? = nil,
+        allowPublicSharing: Bool? = nil,
+        notifyOnWorkoutLikes: Bool? = nil,
+        notifyOnWorkoutComments: Bool? = nil,
+        notifyOnFollowerWorkouts: Bool? = nil
     ) -> UserSettings {
         UserSettings(
             userID: userID,
@@ -210,7 +405,18 @@ extension UserSettings {
             contentFilter: contentFilter ?? self.contentFilter,
             showWorkoutStats: showWorkoutStats ?? self.showWorkoutStats,
             allowFriendRequests: allowFriendRequests ?? self.allowFriendRequests,
-            showOnLeaderboards: showOnLeaderboards ?? self.showOnLeaderboards
+            showOnLeaderboards: showOnLeaderboards ?? self.showOnLeaderboards,
+            defaultWorkoutPrivacy: defaultWorkoutPrivacy ?? self.defaultWorkoutPrivacy,
+            workoutTypePrivacyOverrides: workoutTypePrivacyOverrides ?? self.workoutTypePrivacyOverrides,
+            allowDataSharing: allowDataSharing ?? self.allowDataSharing,
+            shareAchievements: shareAchievements ?? self.shareAchievements,
+            sharePersonalRecords: sharePersonalRecords ?? self.sharePersonalRecords,
+            shareWorkoutPhotos: shareWorkoutPhotos ?? self.shareWorkoutPhotos,
+            shareLocation: shareLocation ?? self.shareLocation,
+            allowPublicSharing: allowPublicSharing ?? self.allowPublicSharing,
+            notifyOnWorkoutLikes: notifyOnWorkoutLikes ?? self.notifyOnWorkoutLikes,
+            notifyOnWorkoutComments: notifyOnWorkoutComments ?? self.notifyOnWorkoutComments,
+            notifyOnFollowerWorkouts: notifyOnFollowerWorkouts ?? self.notifyOnFollowerWorkouts
         )
     }
 }
@@ -222,27 +428,49 @@ extension UserSettings {
         userID: "mock-user-1",
         emailNotifications: true,
         pushNotifications: true,
-        workoutPrivacy: .publicProfile,
-        allowMessages: .all,
+        workoutPrivacy: ProfilePrivacyLevel.publicProfile,
+        allowMessages: NotificationPreference.all,
         blockedUsers: [],
         mutedUsers: ["annoying-user-1"],
-        contentFilter: .moderate,
+        contentFilter: ContentFilterLevel.moderate,
         showWorkoutStats: true,
         allowFriendRequests: true,
-        showOnLeaderboards: true
+        showOnLeaderboards: true,
+        defaultWorkoutPrivacy: WorkoutPrivacy.public,
+        workoutTypePrivacyOverrides: [:],
+        allowDataSharing: true,
+        shareAchievements: true,
+        sharePersonalRecords: true,
+        shareWorkoutPhotos: true,
+        shareLocation: false,
+        allowPublicSharing: true,
+        notifyOnWorkoutLikes: true,
+        notifyOnWorkoutComments: true,
+        notifyOnFollowerWorkouts: true
     )
 
     static let mockPrivateSettings = UserSettings(
         userID: "mock-user-2",
         emailNotifications: false,
         pushNotifications: true,
-        workoutPrivacy: .privateProfile,
-        allowMessages: .none,
+        workoutPrivacy: ProfilePrivacyLevel.privateProfile,
+        allowMessages: NotificationPreference.none,
         blockedUsers: ["blocked-user-1", "blocked-user-2"],
         mutedUsers: [],
-        contentFilter: .strict,
+        contentFilter: ContentFilterLevel.strict,
         showWorkoutStats: false,
         allowFriendRequests: false,
-        showOnLeaderboards: false
+        showOnLeaderboards: false,
+        defaultWorkoutPrivacy: WorkoutPrivacy.private,
+        workoutTypePrivacyOverrides: [:],
+        allowDataSharing: false,
+        shareAchievements: false,
+        sharePersonalRecords: false,
+        shareWorkoutPhotos: false,
+        shareLocation: false,
+        allowPublicSharing: false,
+        notifyOnWorkoutLikes: false,
+        notifyOnWorkoutComments: false,
+        notifyOnFollowerWorkouts: false
     )
 }

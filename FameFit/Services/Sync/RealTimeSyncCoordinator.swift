@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: - Implementation
 
-final class RealTimeSyncCoordinator: RealTimeSyncCoordinatorProtocol {
+final class RealTimeSyncCoordinator: RealTimeSyncProtocol {
     // MARK: - Properties
 
     private let subscriptionManager: CloudKitSubscriptionProtocol

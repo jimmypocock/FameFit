@@ -19,7 +19,7 @@ struct CreateGroupWorkoutView: View {
     @State private var scheduledDate = Date().addingTimeInterval(300) // 5 minutes from now
     @State private var location = ""
     @State private var notes = ""
-    @State private var maxParticipants = GroupWorkoutConstants.defaultMaxParticipants
+    @State private var maxParticipants = GroupWorkout.Constants.defaultMaxParticipants
     @State private var isPublic = false
     @State private var tagInput = ""
     @State private var tags: [String] = []
@@ -108,15 +108,15 @@ struct CreateGroupWorkoutView: View {
                                     .keyboardType(.numberPad)
                                     .onChange(of: maxParticipants) { _, newValue in
                                         // Enforce limits
-                                        if newValue < GroupWorkoutConstants.minParticipants {
-                                            maxParticipants = GroupWorkoutConstants.minParticipants
-                                        } else if newValue > GroupWorkoutConstants.maxParticipantsLimit {
-                                            maxParticipants = GroupWorkoutConstants.maxParticipantsLimit
+                                        if newValue < GroupWorkout.Constants.minParticipants {
+                                            maxParticipants = GroupWorkout.Constants.minParticipants
+                                        } else if newValue > GroupWorkout.Constants.maxParticipantsLimit {
+                                            maxParticipants = GroupWorkout.Constants.maxParticipantsLimit
                                         }
                                         FameFitLogger.debug("📝 Max participants changed to: \(maxParticipants)", category: FameFitLogger.ui)
                                     }
                             }
-                            Text("Max participants must be between \(GroupWorkoutConstants.minParticipants)-\(GroupWorkoutConstants.maxParticipantsLimit).")
+                            Text("Max participants must be between \(GroupWorkout.Constants.minParticipants)-\(GroupWorkout.Constants.maxParticipantsLimit).")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

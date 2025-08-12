@@ -6,12 +6,12 @@ import SwiftUI
 class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol {
     @Published var isAuthenticated = false
     @Published var authUserID: String?  // Sign in with Apple ID
-    @Published var userName: String?
+    @Published var username: String?
     @Published var lastError: FameFitError?
     @Published var hasCompletedOnboarding = false
 
     private let authUserIDKey = "FameFitAuthUserID"
-    private let userNameKey = "FameFitUserName"
+    private let usernameKey = "FameFitUserName"
     private weak var cloudKitManager: CloudKitService?
 
     // MARK: - Publisher Properties
@@ -24,8 +24,8 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         $authUserID.eraseToAnyPublisher()
     }
 
-    var userNamePublisher: AnyPublisher<String?, Never> {
-        $userName.eraseToAnyPublisher()
+    var usernamePublisher: AnyPublisher<String?, Never> {
+        $username.eraseToAnyPublisher()
     }
 
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
@@ -44,15 +44,20 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
 
     func checkAuthenticationStatus() {
         if let savedAuthUserID = UserDefaults.standard.string(forKey: authUserIDKey),
-           let savedUserName = UserDefaults.standard.string(forKey: userNameKey) {
+           let savedUserName = UserDefaults.standard.string(forKey: usernameKey) {
             authUserID = savedAuthUserID
-            userName = savedUserName
+            username = savedUserName
             isAuthenticated = true
             hasCompletedOnboarding = UserDefaults.standard.bool(
                 forKey: UserDefaultsKeys.hasCompletedOnboarding
             )
 
             cloudKitManager?.checkAccountStatus()
+            
+            // Sync profile to Watch on app launch if authenticated
+            Task {
+                await syncProfileToWatch()
+            }
         }
     }
 
@@ -69,22 +74,27 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         }
 
         UserDefaults.standard.set(authUserID, forKey: authUserIDKey)
-        UserDefaults.standard.set(displayName, forKey: userNameKey)
+        UserDefaults.standard.set(displayName, forKey: usernameKey)
 
         self.authUserID = authUserID
-        userName = displayName
+        username = displayName
         isAuthenticated = true
 
         cloudKitManager?.setupUserRecord(userID: authUserID, displayName: displayName)
+        
+        // Sync profile to Watch after successful sign-in
+        Task {
+            await syncProfileToWatch()
+        }
     }
 
     func signOut() {
         UserDefaults.standard.removeObject(forKey: authUserIDKey)
-        UserDefaults.standard.removeObject(forKey: userNameKey)
+        UserDefaults.standard.removeObject(forKey: usernameKey)
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
 
         authUserID = nil
-        userName = nil
+        username = nil
         isAuthenticated = false
         hasCompletedOnboarding = false
     }
@@ -113,6 +123,53 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
         hasCompletedOnboarding = true
+        
+        // Sync profile to Watch after onboarding completion
+        Task {
+            await syncProfileToWatch()
+        }
+    }
+    
+    // MARK: - Watch Sync
+    
+    private func syncProfileToWatch() async {
+        guard isAuthenticated else { return }
+        
+        // Try to fetch the user profile from CloudKit
+        do {
+            // Get UserProfileService from the CloudKitManager
+            if let cloudKit = cloudKitManager {
+                let profileService = UserProfileService(cloudKitManager: cloudKit)
+                let profile = try await profileService.fetchCurrentUserProfile()
+                
+                // Send profile to Watch
+                EnhancedWatchConnectivityManager.shared.syncUserProfile(profile)
+                FameFitLogger.info("📱⌚ User profile synced to Watch", category: FameFitLogger.auth)
+            }
+        } catch {
+            // If we can't get the full profile, at least send basic info
+            if let authID = authUserID, let name = username {
+                let basicProfile = UserProfile(
+                    id: authID,
+                    userID: authID,
+                    username: name,
+                    bio: "",
+                    workoutCount: 0,
+                    totalXP: 0,
+                    creationDate: Date(),
+                    modificationDate: Date(),
+                    isVerified: false,
+                    privacyLevel: .publicProfile,
+                    profileImageURL: nil,
+                    headerImageURL: nil,
+                    countsLastVerified: nil,
+                    countsVersion: nil,
+                    countsSyncToken: nil
+                )
+                EnhancedWatchConnectivityManager.shared.syncUserProfile(basicProfile)
+                FameFitLogger.warning("📱⌚ Synced basic profile to Watch (full profile unavailable)", category: FameFitLogger.auth)
+            }
+        }
     }
 }
 
