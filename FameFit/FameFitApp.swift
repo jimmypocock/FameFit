@@ -25,6 +25,9 @@ struct FameFitApp: App {
         #if DEBUG
             // Configure for UI testing if applicable
             configureForUITesting(with: container)
+
+            // Configure mock services based on launch arguments
+            configureMockServices()
         #endif
     }
 
@@ -36,6 +39,9 @@ struct FameFitApp: App {
                 .environmentObject(dependencyContainer.workoutObserver)
                 .environmentObject(dependencyContainer.notificationStore)
                 .environment(\.dependencyContainer, dependencyContainer)
+                #if DEBUG
+                .mockModeIndicator()
+                #endif
                 .task {
                     // Configure AppDelegate with dependencies on first launch
                     if appDelegate.dependencyContainer == nil {
@@ -51,4 +57,40 @@ struct FameFitApp: App {
                 }
         }
     }
+
+    #if DEBUG
+    private func configureMockServices() {
+        // Check for mock healthkit launch argument
+        if ProcessInfo.processInfo.arguments.contains("--mock-healthkit") {
+            ServiceResolver.enableMockServices()
+            
+            // Load any persisted mock data
+            let workouts = MockDataStorage.shared.loadWorkouts()
+            if !workouts.isEmpty {
+                MockHealthKitService.shared.injectWorkouts(workouts)
+            } else {
+                // Generate default data if none exists
+                let defaultWorkouts = MockHealthKitService.shared.generateWeekOfWorkouts()
+                MockHealthKitService.shared.injectWorkouts(defaultWorkouts)
+                MockDataStorage.shared.saveWorkouts(defaultWorkouts)
+            }
+
+            FameFitLogger.info("Mock HealthKit services initialized", category: FameFitLogger.system)
+        }
+        
+        // Check for specific test scenarios
+        if ProcessInfo.processInfo.arguments.contains("--mock-week-streak") {
+            let streakWorkouts = MockHealthKitService.shared.generateStreak(days: 7)
+            MockHealthKitService.shared.injectWorkouts(streakWorkouts)
+        }
+        
+        if ProcessInfo.processInfo.arguments.contains("--mock-group-workout") {
+            MockHealthKitService.shared.addRecentGroupWorkout()
+        }
+        
+        if ProcessInfo.processInfo.arguments.contains("--mock-auto-generate") {
+            MockWorkoutScheduler.shared.startAutomaticGeneration(interval: 300) // Every 5 minutes
+        }
+    }
+    #endif
 }
