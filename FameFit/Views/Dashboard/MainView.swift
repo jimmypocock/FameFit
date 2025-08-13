@@ -47,7 +47,12 @@ struct MainView: View {
                         }
                         
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            filterButton
+                            HStack {
+                                #if DEBUG
+                                MockDataButton()
+                                #endif
+                                filterButton
+                            }
                         }
                     }
             }
