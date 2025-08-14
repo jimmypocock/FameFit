@@ -13,6 +13,7 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
     private let authUserIDKey = "FameFitAuthUserID"
     private let usernameKey = "FameFitUserName"
     private weak var cloudKitManager: CloudKitService?
+    private weak var watchConnectivityManager: WatchConnectivityProtocol?
 
     // MARK: - Publisher Properties
 
@@ -36,8 +37,9 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
         $hasCompletedOnboarding.eraseToAnyPublisher()
     }
 
-    init(cloudKitManager: CloudKitService) {
+    init(cloudKitManager: CloudKitService, watchConnectivityManager: WatchConnectivityProtocol? = nil) {
         self.cloudKitManager = cloudKitManager
+        self.watchConnectivityManager = watchConnectivityManager
         super.init()
         checkAuthenticationStatus()
     }
@@ -141,8 +143,10 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
                 let profile = try await profileService.fetchCurrentUserProfile()
                 
                 // Send profile to Watch
-                EnhancedWatchConnectivityManager.shared.syncUserProfile(profile)
-                FameFitLogger.info("📱⌚ User profile synced to Watch", category: FameFitLogger.auth)
+                if let watchManager = watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                    watchManager.syncUserProfile(profile)
+                    FameFitLogger.info("📱⌚ User profile synced to Watch", category: FameFitLogger.auth)
+                }
             }
         } catch {
             // If we can't get the full profile, at least send basic info
@@ -164,8 +168,10 @@ class AuthenticationService: NSObject, ObservableObject, AuthenticationProtocol 
                     countsVersion: nil,
                     countsSyncToken: nil
                 )
-                EnhancedWatchConnectivityManager.shared.syncUserProfile(basicProfile)
-                FameFitLogger.warning("📱⌚ Synced basic profile to Watch (full profile unavailable)", category: FameFitLogger.auth)
+                if let watchManager = watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                    watchManager.syncUserProfile(basicProfile)
+                    FameFitLogger.warning("📱⌚ Synced basic profile to Watch (full profile unavailable)", category: FameFitLogger.auth)
+                }
             }
         }
     }

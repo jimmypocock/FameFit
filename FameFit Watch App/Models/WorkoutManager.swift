@@ -70,7 +70,68 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
 
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
-        configuration.locationType = .unknown // Start with unknown, not outdoor
+        
+        // Configure workout-specific settings based on activity type
+        switch workoutType {
+        // Swimming requires specific configuration
+        case .swimming:
+            configuration.locationType = .indoor
+            configuration.swimmingLocationType = .pool
+            // Default lap length for standard 25m pool
+            configuration.lapLength = HKQuantity(unit: .meter(), doubleValue: 25.0)
+            
+        // Outdoor activities default
+        case .running, .walking, .hiking:
+            configuration.locationType = .outdoor
+            
+        // Cycling can be indoor or outdoor
+        case .cycling:
+            configuration.locationType = .outdoor // Default to outdoor
+            
+        // Indoor cycling variants
+        case .cycling where groupWorkoutInfo?.name.lowercased().contains("indoor") == true,
+             .cycling where groupWorkoutInfo?.name.lowercased().contains("spin") == true:
+            configuration.locationType = .indoor
+            
+        // Gym/Indoor activities
+        case .elliptical, .rowing, .stairClimbing, .jumpRope,
+             .traditionalStrengthTraining, .functionalStrengthTraining,
+             .coreTraining, .highIntensityIntervalTraining, .crossTraining:
+            configuration.locationType = .indoor
+            
+        // Mind & Body (typically indoor)
+        case .yoga, .pilates, .taiChi, .mindAndBody, .flexibility, .barre:
+            configuration.locationType = .indoor
+            
+        // Martial Arts (typically indoor)
+        case .boxing, .kickboxing, .martialArts:
+            configuration.locationType = .indoor
+            
+        // Dance (typically indoor)
+        case .cardioDance, .socialDance:
+            configuration.locationType = .indoor
+            
+        // Sports (context-dependent, default to outdoor)
+        case .basketball, .soccer, .tennis, .golf, .baseball,
+             .volleyball, .badminton, .pickleball:
+            configuration.locationType = .outdoor
+            
+        // Winter sports (outdoor)
+        case .snowboarding, .downhillSkiing, .crossCountrySkiing:
+            configuration.locationType = .outdoor
+            
+        // Water sports (outdoor)
+        case .surfingSports, .paddleSports:
+            configuration.locationType = .outdoor
+            
+        // Other outdoor activities
+        case .climbing:
+            configuration.locationType = .outdoor
+            
+        // Default for unknown or other
+        default:
+            configuration.locationType = .unknown
+        }
 
         #if os(watchOS)
             do {
@@ -145,6 +206,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
             HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,  // Display calories burned
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!, // Track running/walking distance
             HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,     // Track cycling distance
+            HKQuantityType.quantityType(forIdentifier: .distanceSwimming)!,    // Track swimming distance
             HKObjectType.workoutType()  // Read previous workouts for context
         ]
 

@@ -15,7 +15,7 @@ import os.log
 final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     // MARK: - Properties
     
-    let container = CKContainer(identifier: "iCloud.com.jimmypocock.FameFit")
+    let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
     private let stateManager = CloudKitStateManager()
     private let operationQueue = CloudKitOperationQueue()
     private let schemaManager: CloudKitSchemaService
@@ -77,7 +77,9 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     override init() {
         self.schemaManager = CloudKitSchemaService(container: container)
         super.init()
+        
     }
+    
     
     /// Start CloudKit initialization (should be called after DependencyContainer is ready)
     func startInitialization() {

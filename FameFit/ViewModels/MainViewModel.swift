@@ -145,11 +145,16 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
                 let profile = try await userProfileService.fetchCurrentUserProfile()
                 await MainActor.run {
                     self.userProfile = profile
-                    // Send user data to Watch
-                    watchConnectivityManager.sendUserData(
-                        username: profile.username,
-                        totalXP: profile.totalXP
-                    )
+                    // Sync full profile to Watch using the proper method
+                    if let enhancedManager = watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                        enhancedManager.syncUserProfile(profile)
+                    } else {
+                        // Fallback to old method if needed
+                        watchConnectivityManager.sendUserData(
+                            username: profile.username,
+                            totalXP: profile.totalXP
+                        )
+                    }
                 }
             } catch {
                 // Profile doesn't exist yet, that's ok
@@ -172,11 +177,16 @@ class MainViewModel: ObservableObject, MainViewModelProtocol {
                 let profile = try await userProfileService.fetchCurrentUserProfileFresh()
                 await MainActor.run {
                     self.userProfile = profile
-                    // Send updated user data to Watch
-                    watchConnectivityManager.sendUserData(
-                        username: profile.username,
-                        totalXP: profile.totalXP
-                    )
+                    // Sync full profile to Watch using the proper method
+                    if let enhancedManager = watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                        enhancedManager.syncUserProfile(profile)
+                    } else {
+                        // Fallback to old method if needed
+                        watchConnectivityManager.sendUserData(
+                            username: profile.username,
+                            totalXP: profile.totalXP
+                        )
+                    }
                 }
             } catch {
                 // Profile doesn't exist yet, that's ok

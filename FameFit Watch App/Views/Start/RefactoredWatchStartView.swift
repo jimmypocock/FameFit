@@ -255,24 +255,12 @@ struct WorkoutSelectionView: View {
     }
     
     private func icon(for type: HKWorkoutActivityType) -> String {
-        // Use the workout icon helper from ViewModel
-        switch type {
-        case .running: return "figure.run"
-        case .walking: return "figure.walk"
-        case .cycling: return "bicycle"
-        case .swimming: return "figure.pool.swim"
-        default: return "figure.mixed.cardio"
-        }
+        // Use centralized workout type configuration
+        return WorkoutTypes.icon(for: type)
     }
     
     private func name(for type: HKWorkoutActivityType) -> String {
-        // Use a simple name mapping
-        switch type {
-        case .running: return "Run"
-        case .walking: return "Walk"
-        case .cycling: return "Bike"
-        case .swimming: return "Swim"
-        default: return "Workout"
-        }
+        // Use centralized workout type configuration
+        return WorkoutTypes.name(for: type)
     }
 }

@@ -14,7 +14,7 @@ import Combine
 protocol DependencyFactory: AnyObject {
     // Core Services
     func createCloudKitService() -> CloudKitService
-    func createAuthenticationService(cloudKitManager: CloudKitService) -> AuthenticationService
+    func createAuthenticationService(cloudKitManager: CloudKitService, watchConnectivityManager: WatchConnectivityProtocol?) -> AuthenticationService
     func createHealthKitService() -> HealthKitProtocol
     func createWatchConnectivityManager() -> WatchConnectivityProtocol
     func createNotificationStore() -> NotificationStore
@@ -59,8 +59,8 @@ class ProductionDependencyFactory: DependencyFactory {
         CloudKitService()
     }
     
-    func createAuthenticationService(cloudKitManager: CloudKitService) -> AuthenticationService {
-        AuthenticationService(cloudKitManager: cloudKitManager)
+    func createAuthenticationService(cloudKitManager: CloudKitService, watchConnectivityManager: WatchConnectivityProtocol?) -> AuthenticationService {
+        AuthenticationService(cloudKitManager: cloudKitManager, watchConnectivityManager: watchConnectivityManager)
     }
     
     func createHealthKitService() -> HealthKitProtocol {
@@ -68,6 +68,7 @@ class ProductionDependencyFactory: DependencyFactory {
     }
     
     func createWatchConnectivityManager() -> WatchConnectivityProtocol {
+        // Create a new instance for proper dependency injection
         EnhancedWatchConnectivityManager()
     }
     

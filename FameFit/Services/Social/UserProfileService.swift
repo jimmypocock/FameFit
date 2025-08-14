@@ -13,7 +13,7 @@ import UIKit
 final class UserProfileService: UserProfileProtocol {
     // MARK: - Properties
 
-    @Published private var currentProfile: UserProfile?
+    @Published private(set) var currentProfile: UserProfile?
     @Published private var isLoading = false
 
     private let cloudKitManager: any CloudKitProtocol
@@ -91,7 +91,23 @@ final class UserProfileService: UserProfileProtocol {
             throw ProfileServiceError.profileNotFound
         }
 
+        // Log actual database being used
+        FameFitLogger.info("🔍 DATABASE: Using \(publicDatabase.databaseScope == .public ? "PUBLIC" : "PRIVATE") database", category: FameFitLogger.cloudKit)
+        FameFitLogger.info("🔍 CONTAINER: iCloud.com.jimmypocock.FameFit", category: FameFitLogger.cloudKit)
+        
+        // Check in-memory cache
+        if let cached = getCachedProfile(userID: userID) {
+            FameFitLogger.warning("⚠️ FOUND IN-MEMORY CACHED PROFILE: \(cached.username) - fetching fresh anyway", category: FameFitLogger.cloudKit)
+        }
+        
+        // Check UserDefaults cache
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedProfile_\(userID)"),
+           let cachedProfile = try? JSONDecoder().decode(UserProfile.self, from: cachedData) {
+            FameFitLogger.warning("⚠️ FOUND USERDEFAULTS CACHED PROFILE: \(cachedProfile.username) - fetching fresh from CloudKit", category: FameFitLogger.cloudKit)
+        }
+
         // Try to fetch profile by userID field (not record ID)
+        FameFitLogger.info("🌐 Fetching profile from CloudKit for userID: \(userID)", category: FameFitLogger.cloudKit)
         let profile = try await fetchProfileByUserID(userID)
         
         currentProfile = profile
@@ -135,14 +151,22 @@ final class UserProfileService: UserProfileProtocol {
         let query = CKQuery(recordType: "UserProfiles", predicate: predicate)
 
         do {
+            FameFitLogger.info("🔍 Fetching profile for userID: \(userID) from CloudKit", category: FameFitLogger.cloudKit)
+            
             let results = try await publicDatabase.records(matching: query, resultsLimit: 1)
+            
+            FameFitLogger.info("📊 CloudKit query returned \(results.matchResults.count) results", category: FameFitLogger.cloudKit)
+            
             guard let (_, result) = results.matchResults.first,
                   case let .success(record) = result,
                   let profile = UserProfile(from: record)
             else {
+                FameFitLogger.warning("❌ Profile not found in CloudKit for userID: \(userID)", category: FameFitLogger.cloudKit)
                 throw ProfileServiceError.profileNotFound
             }
 
+            FameFitLogger.info("✅ Found profile in CloudKit: \(profile.username) (created: \(record.creationDate ?? Date()))", category: FameFitLogger.cloudKit)
+            
             // Cache the profile
             cacheProfile(profile)
 
@@ -491,13 +515,18 @@ final class UserProfileService: UserProfileProtocol {
     // MARK: - Private Methods
 
     private func getCachedProfile(userID: String) -> UserProfile? {
-        guard let cached = profileCache[userID] else { return nil }
+        guard let cached = profileCache[userID] else { 
+            FameFitLogger.info("📭 No in-memory cache for userID: \(userID)", category: FameFitLogger.cloudKit)
+            return nil 
+        }
 
         // Check if cache is still valid
         if Date().timeIntervalSince(cached.timestamp) < cacheTTL {
+            FameFitLogger.warning("🎯 RETURNING IN-MEMORY CACHED PROFILE: \(cached.profile.username) (age: \(Int(Date().timeIntervalSince(cached.timestamp)))s)", category: FameFitLogger.cloudKit)
             return cached.profile
         } else {
             // Cache expired
+            FameFitLogger.info("⏰ Cache expired for \(cached.profile.username) (age: \(Int(Date().timeIntervalSince(cached.timestamp)))s)", category: FameFitLogger.cloudKit)
             profileCache.removeValue(forKey: userID)
             return nil
         }

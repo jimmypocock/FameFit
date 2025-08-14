@@ -55,6 +55,27 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
 
         // The WorkoutSyncService will handle sync automatically
+        
+        // Sync user profile to Watch when app becomes active
+        Task { @MainActor in
+            if let container = dependencyContainer,
+               let profileService = container.userProfileService as? UserProfileService,
+               let currentProfile = profileService.currentProfile,
+               let watchManager = container.watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                FameFitLogger.info("📱⌚ Syncing profile to Watch on app activation", category: FameFitLogger.connectivity)
+                watchManager.syncUserProfile(currentProfile)
+            } else if let container = dependencyContainer,
+                      let watchManager = container.watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                // Try to fetch profile if not loaded
+                do {
+                    let profile = try await container.userProfileService.fetchCurrentUserProfile()
+                    FameFitLogger.info("📱⌚ Fetched and syncing profile to Watch on app activation", category: FameFitLogger.connectivity)
+                    watchManager.syncUserProfile(profile)
+                } catch {
+                    FameFitLogger.warning("📱⌚ Could not fetch profile for Watch sync: \(error)", category: FameFitLogger.connectivity)
+                }
+            }
+        }
     }
 
     func applicationDidEnterBackground(_: UIApplication) {

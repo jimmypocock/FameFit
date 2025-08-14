@@ -65,48 +65,8 @@ final class WatchStartViewModel: ObservableObject {
     // MARK: - Setup
     
     private func setupWorkoutTypes() {
-        workoutTypes = [
-            .running,
-            .walking,
-            .cycling,
-            .swimming,
-            .functionalStrengthTraining,
-            .traditionalStrengthTraining,
-            .crossTraining,
-            .elliptical,
-            .rowing,
-            .stairs,
-            .highIntensityIntervalTraining,
-            .yoga,
-            .pilates,
-            .socialDance,
-            .martialArts,
-            .boxing,
-            .kickboxing,
-            .climbing,
-            .golf,
-            .tennis,
-            .basketball,
-            .soccer,
-            .americanFootball,
-            .baseball,
-            .volleyball,
-            .hockey,
-            .lacrosse,
-            .rugby,
-            .softball,
-            .badminton,
-            .tableTennis,
-            .paddleSports,
-            .surfingSports,
-            .snowSports,
-            .skatingSports,
-            .handCycling,
-            .coreTraining,
-            .jumpRope,
-            .flexibility,
-            .cooldown
-        ]
+        // Use all workout types from centralized configuration
+        workoutTypes = WorkoutTypes.all.map { $0.type }
     }
     
     // MARK: - Public Methods
@@ -193,70 +153,12 @@ final class WatchStartViewModel: ObservableObject {
     // MARK: - Display Helpers
     
     func workoutIcon(for type: HKWorkoutActivityType) -> String {
-        switch type {
-        case .running: return "figure.run"
-        case .walking: return "figure.walk"
-        case .cycling: return "bicycle"
-        case .swimming: return "figure.pool.swim"
-        case .functionalStrengthTraining, .traditionalStrengthTraining: return "figure.strengthtraining.traditional"
-        case .yoga: return "figure.yoga"
-        case .dance: return "figure.dance"
-        case .boxing, .kickboxing: return "figure.boxing"
-        case .basketball: return "basketball.fill"
-        case .soccer: return "soccerball"
-        case .tennis: return "tennisball.fill"
-        case .golf: return "figure.golf"
-        case .americanFootball: return "football.fill"
-        case .baseball, .softball: return "baseball.fill"
-        case .volleyball: return "volleyball.fill"
-        case .hockey: return "hockey.puck.fill"
-        default: return "figure.mixed.cardio"
-        }
+        // Use centralized workout type configuration
+        return WorkoutTypes.icon(for: type)
     }
     
     func workoutName(for type: HKWorkoutActivityType) -> String {
-        switch type {
-        case .running: return "Run"
-        case .walking: return "Walk"
-        case .cycling: return "Bike"
-        case .swimming: return "Swim"
-        case .functionalStrengthTraining: return "Functional Strength"
-        case .traditionalStrengthTraining: return "Traditional Strength"
-        case .crossTraining: return "Cross Training"
-        case .elliptical: return "Elliptical"
-        case .rowing: return "Rowing"
-        case .stairs: return "Stairs"
-        case .highIntensityIntervalTraining: return "HIIT"
-        case .yoga: return "Yoga"
-        case .pilates: return "Pilates"
-        case .dance: return "Dance"
-        case .martialArts: return "Martial Arts"
-        case .boxing: return "Boxing"
-        case .kickboxing: return "Kickboxing"
-        case .climbing: return "Climbing"
-        case .golf: return "Golf"
-        case .tennis: return "Tennis"
-        case .basketball: return "Basketball"
-        case .soccer: return "Soccer"
-        case .americanFootball: return "Football"
-        case .baseball: return "Baseball"
-        case .volleyball: return "Volleyball"
-        case .hockey: return "Hockey"
-        case .lacrosse: return "Lacrosse"
-        case .rugby: return "Rugby"
-        case .softball: return "Softball"
-        case .badminton: return "Badminton"
-        case .tableTennis: return "Table Tennis"
-        case .paddleSports: return "Paddle Sports"
-        case .surfingSports: return "Surfing"
-        case .snowSports: return "Snow Sports"
-        case .skatingSports: return "Skating"
-        case .handCycling: return "Hand Cycling"
-        case .coreTraining: return "Core Training"
-        case .jumpRope: return "Jump Rope"
-        case .flexibility: return "Flexibility"
-        case .cooldown: return "Cooldown"
-        default: return "Other"
-        }
+        // Use centralized workout type configuration
+        return WorkoutTypes.name(for: type)
     }
 }

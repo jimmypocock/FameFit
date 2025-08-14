@@ -118,6 +118,42 @@ extension WatchConnectivityManager: WCSessionDelegate {
             FameFitLogger.info("⌚ Found application context on activation: \(session.receivedApplicationContext)", category: FameFitLogger.sync)
             handleMessage(session.receivedApplicationContext)
         }
+        
+        // Request fresh user profile when Watch app activates
+        if activationState == .activated {
+            requestUserProfileFromPhone()
+        }
+    }
+    
+    // MARK: - Sync Methods
+    
+    func requestUserProfileFromPhone() {
+        guard WCSession.default.isReachable else {
+            FameFitLogger.info("⌚ iPhone not reachable for profile request", category: FameFitLogger.sync)
+            // Try using the last received application context
+            if !WCSession.default.receivedApplicationContext.isEmpty {
+                FameFitLogger.info("⌚ Using cached application context for profile", category: FameFitLogger.sync)
+                handleMessage(WCSession.default.receivedApplicationContext)
+            }
+            return
+        }
+        
+        FameFitLogger.info("⌚📱 Requesting user profile from iPhone", category: FameFitLogger.sync)
+        
+        let message = ["command": "requestUserProfile"]
+        WCSession.default.sendMessage(message, replyHandler: { [weak self] response in
+            FameFitLogger.info("⌚ Received profile response from iPhone", category: FameFitLogger.sync)
+            
+            if let profileData = response["userProfile"] as? Data {
+                DispatchQueue.main.async {
+                    self?.handleUserDataUpdate(["userProfile": profileData])
+                }
+            } else if let error = response["error"] as? String {
+                FameFitLogger.warning("⌚ Error getting profile: \(error)", category: FameFitLogger.sync)
+            }
+        }) { error in
+            FameFitLogger.error("⌚ Failed to request profile: \(error)", category: FameFitLogger.sync)
+        }
     }
     
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
@@ -151,10 +187,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
             handleUserDataUpdate(applicationContext)
         case "startGroupWorkout":
             handleGroupWorkoutCommand(applicationContext)
+        case "startWorkout", "ping":
+            // These are handled by handleMessage
+            handleMessage(applicationContext)
         default:
             FameFitLogger.info("⌚ Unknown command in application context: \(command)", category: FameFitLogger.sync)
-            // Handle as generic message
-            handleMessage(applicationContext)
         }
     }
     
@@ -208,7 +245,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             case "startGroupWorkout":
                 self.handleGroupWorkoutCommand(message)
                 
-            case "updateUserData":
+            case "updateUserData", "syncUserProfile":
                 self.handleUserDataUpdate(message)
                 
             case "ping":
@@ -286,11 +323,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
             }
         }
         
-        // Store for immediate access
-        self.lastReceivedUserData = [
-            "username": message["username"] ?? "User",
-            "totalXP": message["totalXP"] ?? 0
-        ]
+        // Store for immediate access - ensure main thread for @Published property
+        DispatchQueue.main.async {
+            self.lastReceivedUserData = [
+                "username": message["username"] ?? "User",
+                "totalXP": message["totalXP"] ?? 0
+            ]
+        }
         
         FameFitLogger.info("📱⌚ Updated user data: \(message["username"] ?? "Unknown") - \(message["totalXP"] ?? 0) XP")
     }

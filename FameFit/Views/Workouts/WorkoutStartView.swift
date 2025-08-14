@@ -87,7 +87,14 @@ struct WorkoutStartView: View {
     }
     
     private var isWatchConnected: Bool {
-        container.watchConnectivityManager.isReachable
+        // Check if Watch is paired and app is installed, not just reachable
+        // isReachable requires both apps to be running simultaneously
+        #if os(iOS)
+        return container.watchConnectivityManager.isPaired && 
+               container.watchConnectivityManager.isWatchAppInstalled
+        #else
+        return container.watchConnectivityManager.isReachable
+        #endif
     }
     
     // MARK: - Actions
@@ -96,10 +103,18 @@ struct WorkoutStartView: View {
         isCheckingWatchConnection = true
         
         Task {
-            let isConnected = container.watchConnectivityManager.isReachable
+            // Force refresh the session state
+            container.watchConnectivityManager.forceRefreshSessionState()
+            
+            // Wait a moment for state to update
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            let isPaired = container.watchConnectivityManager.isPaired
+            let isInstalled = container.watchConnectivityManager.isWatchAppInstalled
+            
             DispatchQueue.main.async {
                 isCheckingWatchConnection = false
-                if !isConnected {
+                if !isPaired || !isInstalled {
                     showWatchNotConnectedAlert = true
                 }
             }

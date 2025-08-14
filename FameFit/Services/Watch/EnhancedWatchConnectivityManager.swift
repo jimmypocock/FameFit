@@ -9,13 +9,12 @@
 import Foundation
 import WatchConnectivity
 import Combine
+#if os(iOS)
+import UIKit
+#endif
 
 /// Enhanced manager for Watch-Phone communication with testing support
 public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject, WatchConnectivityProtocol {
-    
-    // MARK: - Singleton (Deprecated - use dependency injection instead)
-    
-    public static let shared = EnhancedWatchConnectivityManager()
     
     // MARK: - Published Properties
     
@@ -290,6 +289,28 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
             return
         }
         
+        #if os(iOS)
+        // Check if Watch app is installed
+        guard session.isWatchAppInstalled else {
+            FameFitLogger.debug("📱⌚ Watch app not installed - skipping profile sync", category: FameFitLogger.connectivity)
+            return
+        }
+        #endif
+        
+        // Check if session is activated before trying to update context
+        guard session.activationState == .activated else {
+            FameFitLogger.warning("📱⌚ Cannot sync profile - WCSession not activated yet", category: FameFitLogger.connectivity)
+            // Queue the profile sync for when session activates
+            Task {
+                // Wait a moment for activation
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                if session.activationState == .activated {
+                    syncUserProfile(profile) // Retry
+                }
+            }
+            return
+        }
+        
         // Encode the profile
         guard let profileData = try? JSONEncoder().encode(profile) else {
             FameFitLogger.error("📱⌚ Failed to encode user profile", category: FameFitLogger.connectivity)
@@ -533,6 +554,44 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         #endif
     }
     
+    private func handleProfileRequest() -> [String: Any] {
+        FameFitLogger.info("📱⌚ Handling profile request from Watch", category: FameFitLogger.connectivity)
+        
+        #if os(iOS)
+        // Try to get the current profile and sync it
+        Task { @MainActor in
+            // Get the profile from the dependency container
+            if let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+               let profileService = appDelegate.dependencyContainer?.userProfileService as? UserProfileService {
+                
+                // First try to use cached profile
+                if let currentProfile = profileService.currentProfile {
+                    // Sync the profile immediately
+                    self.syncUserProfile(currentProfile)
+                    FameFitLogger.info("📱⌚ Profile synced in response to Watch request (from cache)", category: FameFitLogger.connectivity)
+                    
+                    // Profile is already synced via syncUserProfile above
+                } else {
+                    // No cached profile, fetch fresh
+                    Task {
+                        do {
+                            let profile = try await profileService.fetchCurrentUserProfile()
+                            self.syncUserProfile(profile)
+                            FameFitLogger.info("📱⌚ Fresh profile fetched and synced to Watch", category: FameFitLogger.connectivity)
+                        } catch {
+                            FameFitLogger.error("📱⌚ Failed to fetch profile for Watch", error: error, category: FameFitLogger.connectivity)
+                        }
+                    }
+                }
+            } else {
+                FameFitLogger.warning("📱⌚ No dependency container available for profile sync", category: FameFitLogger.connectivity)
+            }
+        }
+        #endif
+        
+        return ["status": "profile sync initiated"]
+    }
+    
     private func handleWorkoutCompleted(_ message: [String: Any]) -> [String: Any] {
         FameFitLogger.info("📱⌚ Received workout completion from Watch", category: FameFitLogger.connectivity)
         
@@ -588,6 +647,28 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         switch command {
         case "ping":
             return ["status": "pong"]
+            
+        case "requestUserProfile":
+            // Watch is requesting the user profile
+            FameFitLogger.info("📱⌚ Watch requested user profile", category: FameFitLogger.connectivity)
+            return handleProfileRequest()
+            
+        case "requestWorkoutSync":
+            // Watch is requesting recent workouts
+            FameFitLogger.info("📱⌚ Watch requested workout sync", category: FameFitLogger.connectivity)
+            
+            #if os(iOS)
+            // Trigger workout sync
+            if let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+               let syncManager = appDelegate.dependencyContainer?.workoutSyncManager {
+                Task {
+                    await syncManager.performManualSync()
+                    FameFitLogger.info("📱⌚ Triggered manual workout sync for Watch", category: FameFitLogger.connectivity)
+                }
+            }
+            #endif
+            
+            return ["status": "sync initiated"]
             
         case "startGroupWorkout":
             if let workoutID = message["workoutID"] as? String,

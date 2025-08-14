@@ -9,7 +9,7 @@ import Combine
 import Foundation
 import WatchConnectivity
 
-protocol WatchConnectivityProtocol {
+protocol WatchConnectivityProtocol: AnyObject {
     var isReachable: Bool { get }
     var isPaired: Bool { get }
     var isWatchAppInstalled: Bool { get }

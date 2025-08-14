@@ -95,6 +95,11 @@ struct WatchStartView: View {
         WorkoutTypeItem(type: .cooldown),
         WorkoutTypeItem(type: .other)
     ]
+    
+    // Alternative: Use centralized configuration
+    // private let workoutTypes: [WorkoutTypeItem] = WorkoutTypes.all.map { config in
+    //     WorkoutTypeItem(type: config.type)
+    // }
 
     // MARK: - View Components
     
@@ -513,39 +518,20 @@ struct WatchStartView: View {
     
     // Helper to get icon name for workout type
     private func workoutIconName(_ workoutType: String) -> String {
-        switch workoutType.lowercased() {
-        case "running": return "figure.run"
-        case "walking": return "figure.walk"
-        case "cycling": return "bicycle"
-        case "swimming": return "figure.pool.swim"
-        case "yoga": return "figure.yoga"
-        case "pilates": return "figure.pilates"
-        case "functionalstrength", "strength": return "figure.strengthtraining.functional"
-        case "hiit": return "timer"
-        case "rowing": return "figure.rower"
-        case "elliptical": return "figure.elliptical"
-        case "stairs": return "figure.stairs"
-        default: return "figure.mixed.cardio"
+        // Convert string to HKWorkoutActivityType and use centralized config
+        if let type = workoutTypeFromString(workoutType) {
+            return WorkoutTypes.icon(for: type)
         }
+        return "figure.mixed.cardio" // Default fallback
     }
     
     // Helper to get display name for workout type
     private func workoutDisplayName(_ workoutType: String) -> String {
-        switch workoutType.lowercased() {
-        case "running": return "Run"
-        case "walking": return "Walk"
-        case "cycling": return "Bike"
-        case "swimming": return "Swim"
-        case "yoga": return "Yoga"
-        case "pilates": return "Pilates"
-        case "functionalstrength": return "Functional Strength"
-        case "strength": return "Traditional Strength"
-        case "hiit": return "HIIT"
-        case "rowing": return "Row"
-        case "elliptical": return "Elliptical"
-        case "stairs": return "Stairs"
-        default: return "Workout"
+        // Convert string to HKWorkoutActivityType and use centralized config
+        if let type = workoutTypeFromString(workoutType) {
+            return WorkoutTypes.name(for: type)
         }
+        return "Workout" // Default fallback
     }
 }
 

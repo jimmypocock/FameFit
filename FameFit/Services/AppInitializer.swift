@@ -17,6 +17,7 @@ final class AppInitializer: ObservableObject {
     private let dependencyContainer: DependencyContainer
     private var hasInitialized = false
     private var userServicesStarted = false
+    private var watchSyncTimer: Timer?
     
     // MARK: - Initialization
     
@@ -137,6 +138,11 @@ final class AppInitializer: ObservableObject {
         // Stop workout sync
         dependencyContainer.workoutSyncManager.stopSync()
         
+        // Stop periodic Watch sync timer
+        watchSyncTimer?.invalidate()
+        watchSyncTimer = nil
+        FameFitLogger.info("📱⌚ Stopped periodic Watch sync timer", category: FameFitLogger.connectivity)
+        
         userServicesStarted = false
         FameFitLogger.info("User services stopped", category: FameFitLogger.app)
     }
@@ -148,6 +154,28 @@ final class AppInitializer: ObservableObject {
         // This provides more reliable workout tracking than observer queries
         // Note: WorkoutSyncManager handles its own HealthKit authorization checks
         dependencyContainer.workoutSyncManager.startReliableSync()
+        
+        // Cancel any existing timer
+        watchSyncTimer?.invalidate()
+        
+        // Set up periodic sync to Watch (every 5 minutes while app is active)
+        watchSyncTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in
+            Task { @MainActor in
+                // Sync user profile to Watch
+                if let profileService = self.dependencyContainer.userProfileService as? UserProfileService,
+                   let profile = profileService.currentProfile,
+                   let watchManager = self.dependencyContainer.watchConnectivityManager as? EnhancedWatchConnectivityManager {
+                    FameFitLogger.info("📱⌚ Periodic profile sync to Watch", category: FameFitLogger.connectivity)
+                    watchManager.syncUserProfile(profile)
+                }
+                
+                // Trigger workout sync
+                await self.dependencyContainer.workoutSyncManager.performManualSync()
+                FameFitLogger.info("📱⌚ Periodic workout sync completed", category: FameFitLogger.connectivity)
+            }
+        }
+        
+        FameFitLogger.info("📱⌚ Started periodic Watch sync timer (every 5 minutes)", category: FameFitLogger.connectivity)
     }
     
     private func setupAutoSharing() {

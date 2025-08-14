@@ -7,6 +7,7 @@
 
 import SwiftUI
 import HealthKit
+import WatchConnectivity
 
 struct RootView: View {
     // MARK: - Dependencies
@@ -106,6 +107,20 @@ struct RootView: View {
             displayMode = .active
             dependencies.sessionViewModel.updateDisplayMode(.active)
             FameFitLogger.debug("📱 App active", category: FameFitLogger.system)
+            
+            // Request fresh profile when Watch app becomes active
+            FameFitLogger.info("⌚📱 Watch app became active - requesting profile sync", category: FameFitLogger.sync)
+            WatchConnectivityManager.shared.requestUserProfileFromPhone()
+            
+            // Also request workout sync if needed
+            if WCSession.default.isReachable {
+                let message = ["command": "requestWorkoutSync"]
+                WCSession.default.sendMessage(message, replyHandler: { response in
+                    FameFitLogger.info("⌚ Received workout sync response: \(response)", category: FameFitLogger.sync)
+                }) { error in
+                    FameFitLogger.debug("⌚ Could not request workout sync: \(error)", category: FameFitLogger.sync)
+                }
+            }
             
         case .inactive:
             displayMode = .alwaysOn

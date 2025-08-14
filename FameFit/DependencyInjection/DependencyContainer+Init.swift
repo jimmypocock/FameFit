@@ -22,9 +22,9 @@ extension DependencyContainer {
     static func create(factory: DependencyFactory = ProductionDependencyFactory(), skipInitialization: Bool = false) -> DependencyContainer {
         // Phase 1: Core Services
         let cloudKitManager = factory.createCloudKitService()
-        let authenticationManager = factory.createAuthenticationService(cloudKitManager: cloudKitManager)
-        let healthKitService = factory.createHealthKitService()
         let watchConnectivityManager = factory.createWatchConnectivityManager()
+        let authenticationManager = factory.createAuthenticationService(cloudKitManager: cloudKitManager, watchConnectivityManager: watchConnectivityManager)
+        let healthKitService = factory.createHealthKitService()
         let notificationStore = factory.createNotificationStore()
         let unlockStorageService = factory.createUnlockStorageService()
         
