@@ -531,6 +531,14 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         }
     }
     
+    nonisolated public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        Task { @MainActor in
+            FameFitLogger.info("📱 Received userInfo transfer from Watch", category: FameFitLogger.connectivity)
+            self.lastReceivedMessage = userInfo
+            self.handleReceivedMessage(userInfo)
+        }
+    }
+    
     // MARK: - Helper Methods
     
     private func updateConnectionState(_ session: WCSession) {
@@ -670,6 +678,41 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
             
             return ["status": "sync initiated"]
             
+        case "workoutCompleted":
+            // Watch has completed a workout
+            if let workoutID = message["workoutID"] as? String {
+                FameFitLogger.info("📱⌚ Received workout completion from Watch: \(workoutID)", category: FameFitLogger.connectivity)
+                
+                // Store the completion info
+                lastWorkoutCompletion = WorkoutCompletionInfo(
+                    workoutID: workoutID,
+                    timestamp: message["timestamp"] as? Date ?? Date(),
+                    metrics: nil,
+                    groupWorkoutID: message["groupWorkoutID"] as? String
+                )
+                
+                // Post notification to trigger immediate sync
+                NotificationCenter.default.post(
+                    name: Notification.Name("WatchWorkoutCompleted"),
+                    object: nil,
+                    userInfo: ["workoutID": workoutID]
+                )
+                
+                #if os(iOS)
+                // Trigger immediate workout sync
+                if let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+                   let syncManager = appDelegate.dependencyContainer?.workoutSyncManager {
+                    Task {
+                        FameFitLogger.info("📱 Triggering immediate workout sync for Watch workout: \(workoutID)", category: FameFitLogger.connectivity)
+                        await syncManager.performManualSync()
+                    }
+                }
+                #endif
+                
+                return ["status": "acknowledged", "workoutID": workoutID]
+            }
+            return ["status": "error", "message": "Missing workout ID"]
+            
         case "startGroupWorkout":
             if let workoutID = message["workoutID"] as? String,
                let workoutName = message["workoutName"] as? String,
@@ -696,10 +739,6 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         case "workoutMetrics":
             // Handle incoming metrics from Watch
             return ["status": "received"]
-            
-        case "workoutCompleted":
-            // Handle workout completion from Watch
-            return handleWorkoutCompleted(message)
             
         default:
             FameFitLogger.warning("Unknown command: \(command)", category: FameFitLogger.connectivity)

@@ -59,9 +59,9 @@ struct OnboardingView: View {
 
 #Preview {
     let container = DependencyContainer()
-    return OnboardingView()
+    OnboardingView()
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }

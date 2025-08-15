@@ -738,10 +738,10 @@ private struct ProfileCreationViewWithStep: View {
 #Preview("Profile Creation - Username") {
     let container = DependencyContainer()
     let viewModel = OnboardingViewModel(container: container)
-    return ProfileCreationView(viewModel: viewModel)
+    ProfileCreationView(viewModel: viewModel)
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
@@ -752,7 +752,7 @@ private struct ProfileCreationViewWithStep: View {
     return ProfileCreationViewWithStep(viewModel: viewModel, initialStep: 1)
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
@@ -764,15 +764,15 @@ private struct ProfileCreationViewWithStep: View {
     return ProfileCreationViewWithStep(viewModel: viewModel, initialStep: 2)
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
 #Preview("Profile Creation - Small Screen", traits: .fixedLayout(width: 375, height: 667)) {
     let container = DependencyContainer()
-    return ProfileCreationView(viewModel: OnboardingViewModel(container: container))
+    ProfileCreationView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }

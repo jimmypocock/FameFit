@@ -36,9 +36,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         self.dependencyContainer = container
         self.appInitializer = AppInitializer(dependencyContainer: container)
         
-        // Configure background processor
-        BackgroundWorkoutProcessor.shared.configure(with: container)
-        
         // Perform initial app setup
         appInitializer?.performInitialSetup()
     }
@@ -83,9 +80,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Background tasks are now handled by BackgroundTaskManager
         BackgroundTaskManager.shared.scheduleBackgroundTasks()
-        
-        // Trigger background workout processing
-        BackgroundWorkoutProcessor.shared.triggerBackgroundProcessing()
     }
 
     // MARK: - Background Tasks
@@ -104,7 +98,17 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             forTaskWithIdentifier: "com.jimmypocock.FameFit.workout-processing",
             using: nil
         ) { task in
-            BackgroundWorkoutProcessor.shared.handleBackgroundTask(task)
+            Task {
+                // Process workout retry queue
+                if let workoutQueue = self.dependencyContainer?.workoutQueue {
+                    await workoutQueue.processAll()
+                }
+                // Trigger workout sync
+                if let workoutSyncService = self.dependencyContainer?.workoutSyncManager {
+                    await workoutSyncService.performManualSync()
+                }
+                task.setTaskCompleted(success: true)
+            }
         }
         
         FameFitLogger.info("Background tasks registered", category: FameFitLogger.app)
@@ -147,9 +151,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 // Handle background update
                 FameFitLogger.info("Processing silent notification", category: FameFitLogger.app)
 
-                // Trigger a sync if needed
-                if let container = dependencyContainer {
-                    container.workoutSyncQueue.processQueue()
+                // Process retry queue if needed
+                if let workoutQueue = dependencyContainer?.workoutQueue {
+                    Task {
+                        await workoutQueue.processAll()
+                    }
                 }
 
                 completionHandler(.newData)

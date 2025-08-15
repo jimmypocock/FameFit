@@ -460,6 +460,12 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                         FameFitLogger.debug("📍 WorkoutManager: Setting completedWorkout to \(workout?.uuid.uuidString ?? "nil")", category: FameFitLogger.workout)
                         self?.completedWorkout = workout
                         
+                        // Send workout completion to iPhone
+                        if let workoutID = workout?.uuid.uuidString {
+                            FameFitLogger.info("⌚ Notifying iPhone of workout completion: \(workoutID)", category: FameFitLogger.workout)
+                            WatchConnectivityManager.shared.sendWorkoutCompletion(workoutID: workoutID)
+                        }
+                        
                         // Clean up references immediately
                         // The workout data is already captured in self?.workout
                         self?.session = nil

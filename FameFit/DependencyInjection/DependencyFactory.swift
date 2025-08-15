@@ -24,9 +24,7 @@ protocol DependencyFactory: AnyObject {
     func createAPNSService(cloudKitManager: CloudKitService) -> APNSProtocol
     
     // Workflow Services
-    func createWorkoutObserver(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutObserver
     @MainActor func createWorkoutSyncService(cloudKitManager: CloudKitService, healthKitService: HealthKitProtocol) -> WorkoutSyncService
-    func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue
     
     // Social Services
     func createUserProfileService(cloudKitManager: CloudKitService) -> UserProfileProtocol
@@ -41,7 +39,6 @@ protocol DependencyFactory: AnyObject {
     func createPushNotificationService(cloudKitManager: CloudKitService, subscriptionManager: CloudKitSubscriptionProtocol) -> CloudKitPushNotificationService
     func createWorkoutKudosService(cloudKitManager: CloudKitService) -> WorkoutKudosProtocol
     func createActivitySharingSettingsService(cloudKitManager: CloudKitService) -> ActivityFeedSettingsProtocol
-    func createWorkoutAutoShareService(activityFeedService: ActivityFeedProtocol, settingsService: ActivityFeedSettingsProtocol, notificationManager: NotificationProtocol) -> WorkoutAutoShareProtocol
     func createXPTransactionService(container: CKContainer) -> XPTransactionService
     func createGroupWorkoutService(cloudKitManager: CloudKitService, userProfileService: UserProfileProtocol, notificationManager: NotificationProtocol) -> GroupWorkoutProtocol
     func createRealTimeSyncCoordinator(subscriptionManager: CloudKitSubscriptionProtocol, cloudKitManager: CloudKitService, socialFollowingService: SocialFollowingProtocol, userProfileService: UserProfileProtocol, workoutKudosService: WorkoutKudosProtocol, activityCommentsService: ActivityFeedCommentsProtocol, workoutChallengesService: WorkoutChallengesProtocol, groupWorkoutService: GroupWorkoutProtocol, activityFeedService: ActivityFeedProtocol) -> RealTimeSyncProtocol
@@ -97,16 +94,6 @@ class ProductionDependencyFactory: DependencyFactory {
     
     // MARK: - Workflow Services
     
-    func createWorkoutObserver(
-        cloudKitManager: CloudKitService,
-        healthKitService: HealthKitProtocol
-    ) -> WorkoutObserver {
-        WorkoutObserver(
-            cloudKitManager: cloudKitManager,
-            healthKitService: healthKitService
-        )
-    }
-    
     @MainActor
     func createWorkoutSyncService(
         cloudKitManager: CloudKitService,
@@ -119,10 +106,6 @@ class ProductionDependencyFactory: DependencyFactory {
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
         )
-    }
-    
-    func createWorkoutSyncQueue(cloudKitManager: CloudKitService) -> WorkoutSyncQueue {
-        WorkoutSyncQueue(cloudKitManager: cloudKitManager)
     }
     
     // MARK: - Social Services
@@ -245,22 +228,6 @@ class ProductionDependencyFactory: DependencyFactory {
     
     func createActivitySharingSettingsService(cloudKitManager: CloudKitService) -> ActivityFeedSettingsProtocol {
         ActivityFeedSettingsService(cloudKitManager: cloudKitManager)
-    }
-    
-    func createWorkoutAutoShareService(
-        activityFeedService: ActivityFeedProtocol,
-        settingsService: ActivityFeedSettingsProtocol,
-        notificationManager: NotificationProtocol
-    ) -> WorkoutAutoShareProtocol {
-        let workoutObserver = createWorkoutObserver(cloudKitManager: CloudKitService(), healthKitService: HealthKitService())
-        let notificationStore = NotificationStore()
-        return WorkoutAutoShareService(
-            workoutObserver: workoutObserver,
-            activityFeedService: activityFeedService,
-            activityFeedSettingsService: settingsService,
-            notificationManager: notificationManager,
-            notificationStore: notificationStore
-        )
     }
     
     func createXPTransactionService(container: CKContainer) -> XPTransactionService {

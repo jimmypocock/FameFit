@@ -24,6 +24,12 @@ final class WorkoutProcessor {
     private let workoutChallengesService: WorkoutChallengesProtocol
     private let workoutChallengeLinksService: WorkoutChallengeLinksProtocol
     private let activitySettingsService: ActivityFeedSettingsProtocol
+    private lazy var workoutQueue = WorkoutQueue(
+        cloudKitManager: cloudKitManager,
+        xpTransactionService: xpTransactionService,
+        activityFeedService: activityFeedService,
+        notificationManager: notificationManager
+    )
     
     // MARK: - Initialization
     
@@ -123,7 +129,6 @@ final class WorkoutProcessor {
         }
         
         // Try to fetch the user's profile - if it doesn't exist, don't process the workout
-        // Note: userID is the CloudKit user ID (starts with underscore)
         do {
             _ = try await userProfileService.fetchProfileByUserID(userID)
         } catch {
@@ -131,10 +136,9 @@ final class WorkoutProcessor {
             throw WorkoutProcessingError.profileRequired
         }
         
-        // Step 1: Calculate XP
+        // Calculate XP
         let xpResult = calculateXP(for: workout)
         
-        // Step 2: Save workout record to CloudKit
         let workoutWithXP = Workout(
             id: workout.id,
             workoutType: workout.workoutType,
@@ -144,19 +148,16 @@ final class WorkoutProcessor {
             totalEnergyBurned: workout.totalEnergyBurned,
             totalDistance: workout.totalDistance,
             averageHeartRate: workout.averageHeartRate,
-            followersEarned: xpResult.finalXP, // Legacy field
+            followersEarned: xpResult.finalXP,
             xpEarned: xpResult.finalXP,
             source: workout.source,
             groupWorkoutID: groupWorkoutID
         )
         
+        // Step 1: Save workout record
         try await saveWorkoutRecord(workoutWithXP)
         
-        // Step 3: Create XP Transaction
-        guard let userID = cloudKitManager.currentUserID else {
-            throw WorkoutProcessingError.noUserID
-        }
-        
+        // Step 2: Create XP Transaction
         _ = try await xpTransactionService.createTransaction(
             userID: userID,
             workoutID: workout.id,
@@ -165,29 +166,33 @@ final class WorkoutProcessor {
             factors: xpResult.factors
         )
         
-        // Step 4: Update user stats
+        // Step 3: Update user stats
         await updateUserStats(xpEarned: xpResult.finalXP)
         
-        // Step 5: Create activity feed item (if sharing is enabled)
+        // Step 4: Create activity feed item (optional, non-critical)
         if await shouldShareToFeed() {
-            try await createFeedItem(
-                workout: workoutWithXP,
-                xpEarned: xpResult.finalXP,
-                source: source
-            )
+            do {
+                try await createFeedItem(
+                    workout: workoutWithXP,
+                    xpEarned: xpResult.finalXP,
+                    source: source
+                )
+            } catch {
+                FameFitLogger.warning("Failed to post to activity feed: \(error)", category: FameFitLogger.workout)
+            }
         }
         
-        // Step 6: Process challenges
+        // Step 5: Process challenges (non-critical)
         await processWorkoutForChallenges(workout: workoutWithXP, userID: userID)
         
-        // Step 7: Send notifications
+        // Step 6: Send notifications (non-critical)
         await sendNotifications(
             workout: workoutWithXP,
             xpEarned: xpResult.finalXP,
             source: source
         )
         
-        // Step 8: Update user profile workout count
+        // Step 7: Update profile workout count (non-critical)
         await updateUserProfileWorkoutCount()
         
         FameFitLogger.info("✅ Workout processing complete: +\(xpResult.finalXP) XP", category: FameFitLogger.workout)
@@ -222,7 +227,7 @@ final class WorkoutProcessor {
     
     private func saveWorkoutRecord(_ workout: Workout) async throws {
         let record = CKRecord(recordType: "Workouts")
-        record["id"] = workout.id
+        record["workoutID"] = workout.id
         record["workoutType"] = workout.workoutType
         record["startDate"] = workout.startDate
         record["endDate"] = workout.endDate
@@ -238,8 +243,26 @@ final class WorkoutProcessor {
             record["groupWorkoutID"] = groupWorkoutID
         }
         
-        _ = try await cloudKitManager.privateDatabase.save(record)
-        FameFitLogger.info("💾 Saved workout record to CloudKit", category: FameFitLogger.workout)
+        // Save with retry logic
+        do {
+            _ = try await cloudKitManager.saveWithRetry(
+                record,
+                database: cloudKitManager.privateDatabase,
+                configuration: .default
+            )
+            FameFitLogger.info("💾 Saved workout record to CloudKit", category: FameFitLogger.workout)
+        } catch let error as CKError where error.isRetryable {
+            // Queue for background retry if critical
+            if let data = try? JSONEncoder().encode(WorkoutSavePayload(workout: workout, userID: cloudKitManager.currentUserID ?? "")) {
+                await cloudKitManager.queueForRetry(
+                    type: .workoutSave,
+                    data: data,
+                    priority: .high
+                )
+                FameFitLogger.warning("⚠️ Queued workout for retry: \(workout.id)", category: FameFitLogger.workout)
+            }
+            throw error
+        }
     }
     
     private func updateUserStats(xpEarned: Int) async {

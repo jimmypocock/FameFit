@@ -301,7 +301,7 @@ struct MainView: View {
     // MARK: - Helper Methods
 
     private func setupWorkoutSharingListener() {
-        container.workoutObserver.workoutCompletedPublisher
+        container.workoutSyncManager.workoutCompletedPublisher
             .receive(on: DispatchQueue.main)
             .sink { workoutHistory in
                 showWorkoutSharingPrompt(for: workoutHistory)

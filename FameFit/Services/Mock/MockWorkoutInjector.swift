@@ -68,7 +68,7 @@ final class MockWorkoutInjector {
     
     // MARK: - Public Methods
     
-    /// Injects a mock workout that will be picked up by the real WorkoutObserver
+    /// Injects a mock workout that will be picked up by the WorkoutSyncService
     func injectWorkout(scenario: Scenario, completion: @escaping (Bool) -> Void = { _ in }) {
         guard isEnabled else {
             FameFitLogger.debug("Mock injection disabled", category: FameFitLogger.healthKit)
@@ -83,7 +83,7 @@ final class MockWorkoutInjector {
                 // Save to real HealthKit
                 try await healthStore.save(workout)
                 
-                // The real WorkoutObserver will pick this up and sync to CloudKit
+                // The WorkoutSyncService will pick this up and sync to CloudKit
                 FameFitLogger.info("Injected mock workout: \(workout.workoutActivityType)", category: FameFitLogger.healthKit)
                 
                 await MainActor.run {

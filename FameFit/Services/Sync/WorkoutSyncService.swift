@@ -3,6 +3,7 @@
 //  FameFit
 //
 //  Manages reliable workout synchronization using HKAnchoredObjectQuery
+//  This is the SINGLE source of truth for HealthKit workout syncing
 //
 
 import Foundation
@@ -10,11 +11,13 @@ import HealthKit
 import CloudKit
 import os.log
 import UserNotifications
+import Combine
 
 /// Key for storing the sync anchor in UserDefaults
 private let kWorkoutSyncAnchorKey = "FameFitWorkoutSyncAnchor"
 
 /// Manages workout synchronization with HealthKit using anchored queries for reliability
+/// This service handles ALL workout syncing - there should be no other workout observers
 @MainActor
 class WorkoutSyncService: ObservableObject {
     // MARK: - Properties
@@ -23,11 +26,19 @@ class WorkoutSyncService: ObservableObject {
     private weak var cloudKitManager: CloudKitService?
     weak var notificationStore: (any NotificationStoringProtocol)?
     weak var notificationManager: (any NotificationProtocol)?
+    weak var workoutProcessor: WorkoutProcessor?
     private var anchoredQuery: HKAnchoredObjectQuery?
     
     @Published var isSyncing = false
     @Published var lastSyncDate: Date?
     @Published var syncError: FameFitError?
+    @Published var isAuthorized = false
+    
+    // Publisher for workout completion events (for sharing prompt)
+    private let workoutCompletedSubject = PassthroughSubject<Workout, Never>()
+    var workoutCompletedPublisher: AnyPublisher<Workout, Never> {
+        workoutCompletedSubject.eraseToAnyPublisher()
+    }
     
     // MARK: - Initialization
     
@@ -276,62 +287,161 @@ class WorkoutSyncService: ObservableObject {
         isSyncing = false
     }
     
-    /// Process workouts by saving to CloudKit and updating user stats
+    /// Process workouts using WorkoutProcessor for consistent handling
     private func processWorkouts(_ workouts: [HKWorkout]) async {
+        guard workoutProcessor != nil else {
+            FameFitLogger.error("WorkoutProcessor not available - falling back to basic save", category: FameFitLogger.workout)
+            // Fall back to basic CloudKit save if processor not available
+            await processWorkoutsBasic(workouts)
+            return
+        }
+        
+        var processedCount = 0
+        var failedWorkouts: [(workout: HKWorkout, error: Error)] = []
+        
+        // Process workouts with controlled concurrency
+        await withTaskGroup(of: ProcessResult.self) { group in
+            let maxConcurrent = 3
+            var activeCount = 0
+            
+            for workout in workouts {
+                // Skip future workouts (sometimes happens with manual entries)
+                guard workout.endDate <= Date() else {
+                    FameFitLogger.warning("Skipping future workout", category: FameFitLogger.workout)
+                    continue
+                }
+                
+                // Get app install date
+                let appInstallDate = UserDefaults.standard.object(forKey: "AppInstallDate") as? Date ?? Date()
+                
+                // Only process workouts after app install
+                guard workout.endDate >= appInstallDate else {
+                    FameFitLogger.info(
+                        "⏩ Skipping pre-install workout from \(workout.endDate)",
+                        category: FameFitLogger.workout
+                    )
+                    continue
+                }
+                
+                // Check if workout already synced
+                if isWorkoutAlreadySynced(workout) {
+                    FameFitLogger.debug("Workout already synced: \(workout.uuid)", category: FameFitLogger.workout)
+                    continue
+                }
+                
+                // Wait if we've hit concurrency limit
+                if activeCount >= maxConcurrent {
+                    if let result = await group.next() {
+                        handleProcessResult(result, &processedCount, &failedWorkouts)
+                        activeCount -= 1
+                    }
+                }
+                
+                group.addTask {
+                    await self.processWorkout(workout)
+                }
+                activeCount += 1
+            }
+            
+            // Collect remaining results
+            for await result in group {
+                handleProcessResult(result, &processedCount, &failedWorkouts)
+            }
+        }
+        
+        // Handle failed workouts
+        for (workout, error) in failedWorkouts {
+            if let ckError = error as? CKError, ckError.isRetryable {
+                await queueWorkoutForRetry(workout)
+            }
+        }
+        
+        if processedCount > 0 {
+            FameFitLogger.info("✅ Processed \(processedCount) new workout(s) via WorkoutProcessor", category: FameFitLogger.workout)
+        }
+        
+        if !failedWorkouts.isEmpty {
+            FameFitLogger.warning("⚠️ \(failedWorkouts.count) workout(s) failed and queued for retry", category: FameFitLogger.workout)
+        }
+    }
+    
+    private struct ProcessResult {
+        let workout: HKWorkout
+        let success: Bool
+        let error: Error?
+    }
+    
+    private func processWorkout(_ workout: HKWorkout) async -> ProcessResult {
+        do {
+            // Use WorkoutProcessor for ALL business logic
+            // This handles: XP calculation, CloudKit save, activity feed, challenges, notifications
+            try await workoutProcessor?.processHealthKitWorkout(workout)
+            
+            // Mark as synced AFTER successful processing
+            markWorkoutAsSynced(workout)
+            
+            // Publish workout completion for sharing prompt (only for recent workouts)
+            let workoutAge = Date().timeIntervalSince(workout.endDate)
+            if workoutAge < 3_600 { // Only prompt for workouts completed within the last hour
+                let workoutItem = Workout(from: workout, followersEarned: 0)
+                await MainActor.run {
+                    self.workoutCompletedSubject.send(workoutItem)
+                }
+            }
+            
+            return ProcessResult(workout: workout, success: true, error: nil)
+        } catch {
+            FameFitLogger.error("Failed to process workout \(workout.uuid)", error: error, category: FameFitLogger.workout)
+            return ProcessResult(workout: workout, success: false, error: error)
+        }
+    }
+    
+    private func handleProcessResult(
+        _ result: ProcessResult,
+        _ processedCount: inout Int,
+        _ failedWorkouts: inout [(workout: HKWorkout, error: Error)]
+    ) {
+        if result.success {
+            processedCount += 1
+        } else if let error = result.error {
+            failedWorkouts.append((workout: result.workout, error: error))
+        }
+    }
+    
+    private func queueWorkoutForRetry(_ workout: HKWorkout) async {
+        guard let cloudKitManager = cloudKitManager else { return }
+        
+        let workoutItem = Workout(from: workout, followersEarned: 0)
+        if let data = try? JSONEncoder().encode(workoutItem) {
+            await cloudKitManager.queueForRetry(
+                type: .workoutSave,
+                data: data,
+                priority: .high
+            )
+            FameFitLogger.info("📋 Queued workout \(workout.uuid) for background retry", category: FameFitLogger.workout)
+        }
+    }
+    
+    /// Fallback method for basic workout saving when WorkoutProcessor is not available
+    private func processWorkoutsBasic(_ workouts: [HKWorkout]) async {
         guard let cloudKitManager = cloudKitManager else {
             FameFitLogger.error("CloudKitService not available", category: FameFitLogger.workout)
             return
         }
         
-        var processedCount = 0
-        
         for workout in workouts {
-            // Skip future workouts (sometimes happens with manual entries)
-            guard workout.endDate <= Date() else {
-                FameFitLogger.warning("Skipping future workout", category: FameFitLogger.workout)
-                continue
-            }
-            
-            // Get app install date
+            // Skip checks (same as above)
+            guard workout.endDate <= Date() else { continue }
             let appInstallDate = UserDefaults.standard.object(forKey: "AppInstallDate") as? Date ?? Date()
+            guard workout.endDate >= appInstallDate else { continue }
+            if isWorkoutAlreadySynced(workout) { continue }
             
-            FameFitLogger.info("📅 App install date: \(appInstallDate)", category: FameFitLogger.workout)
-            FameFitLogger.info("📅 Current date: \(Date())", category: FameFitLogger.workout)
+            // Basic save with fixed XP
+            let workoutItem = Workout(from: workout, followersEarned: 10)
+            cloudKitManager.saveWorkout(workoutItem)
+            markWorkoutAsSynced(workout)
             
-            // Only process workouts after app install
-            guard workout.endDate >= appInstallDate else {
-                FameFitLogger.info(
-                    "⏩ Skipping pre-install workout from \(workout.endDate)",
-                    category: FameFitLogger.workout
-                )
-                continue
-            }
-            
-            // Check if workout already synced
-            if isWorkoutAlreadySynced(workout) {
-                FameFitLogger.debug("Workout already synced: \(workout.uuid)", category: FameFitLogger.workout)
-                continue
-            }
-            
-            // Calculate followers/XP earned (10 XP per workout)
-            let xpEarned = 10
-            
-            // Save workout to CloudKit
-            if await saveWorkoutToCloudKit(workout, xpEarned: xpEarned) {
-                processedCount += 1
-                
-                // Add XP to user's total
-                await cloudKitManager.addXPAsync(xpEarned)
-                
-                // Send local notification for XP milestone
-                if let notificationManager = notificationManager {
-                    await notificationManager.notifyXPMilestone(previousXP: cloudKitManager.totalXP - xpEarned, currentXP: cloudKitManager.totalXP)
-                }
-            }
-        }
-        
-        if processedCount > 0 {
-            FameFitLogger.info("✅ Processed \(processedCount) new workout(s)", category: FameFitLogger.workout)
+            FameFitLogger.info("💾 Saved workout via basic fallback: \(workout.uuid)", category: FameFitLogger.workout)
         }
     }
     
@@ -341,50 +451,18 @@ class WorkoutSyncService: ObservableObject {
         return syncedWorkoutIDs.contains(workout.uuid.uuidString)
     }
     
-    /// Save workout to CloudKit
-    private func saveWorkoutToCloudKit(_ workout: HKWorkout, xpEarned: Int) async -> Bool {
-        guard let cloudKitManager = cloudKitManager else { return false }
+    /// Mark a workout as synced to prevent duplicate processing
+    private func markWorkoutAsSynced(_ workout: HKWorkout) {
+        var syncedIDs = UserDefaults.standard.array(forKey: "SyncedWorkoutIDs") as? [String] ?? []
+        syncedIDs.append(workout.uuid.uuidString)
         
-        do {
-            // Create workout record
-            let record = CKRecord(recordType: "Workouts")
-            record["id"] = workout.uuid.uuidString
-            record["workoutType"] = workout.workoutActivityType.storageKey
-            record["startDate"] = workout.startDate
-            record["endDate"] = workout.endDate
-            record["duration"] = workout.duration
-            let energyBurnedQuantity = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()
-            record["totalEnergyBurned"] = energyBurnedQuantity?.doubleValue(for: .kilocalorie()) ?? 0
-            record["totalDistance"] = workout.totalDistance?.doubleValue(for: .meter()) ?? 0
-            record["averageHeartRate"] = 0 // Would need to fetch from samples
-            record["followersEarned"] = xpEarned // Legacy field
-            record["xpEarned"] = xpEarned
-            record["source"] = workout.sourceRevision.source.name
-            
-            // Save to CloudKit
-            _ = try await cloudKitManager.save(record)
-            
-            // Mark as synced
-            var syncedIDs = UserDefaults.standard.array(forKey: "SyncedWorkoutIDs") as? [String] ?? []
-            syncedIDs.append(workout.uuid.uuidString)
-            
-            // Keep only last 1000 IDs to prevent unbounded growth
-            if syncedIDs.count > 1_000 {
-                syncedIDs = Array(syncedIDs.suffix(1_000))
-            }
-            
-            UserDefaults.standard.set(syncedIDs, forKey: "SyncedWorkoutIDs")
-            
-            FameFitLogger.info(
-                "💾 Saved workout: \(workout.workoutActivityType.storageKey) +\(xpEarned) XP",
-                category: FameFitLogger.workout
-            )
-            
-            return true
-        } catch {
-            FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.workout)
-            return false
+        // Keep only last 1000 IDs to prevent unbounded growth
+        if syncedIDs.count > 1_000 {
+            syncedIDs = Array(syncedIDs.suffix(1_000))
         }
+        
+        UserDefaults.standard.set(syncedIDs, forKey: "SyncedWorkoutIDs")
+        FameFitLogger.debug("Marked workout as synced: \(workout.uuid.uuidString)", category: FameFitLogger.workout)
     }
     
     /// Save anchor to UserDefaults
@@ -439,6 +517,63 @@ class WorkoutSyncService: ObservableObject {
                 }
             } else if settings.authorizationStatus == .authorized {
                 FameFitLogger.info("Notification permissions already granted", category: FameFitLogger.notifications)
+            }
+        }
+    }
+    
+    /// Check HealthKit authorization status (from WorkoutObserver)
+    func checkHealthKitAuthorization() -> Bool {
+        guard healthKitService.isHealthDataAvailable else {
+            return false
+        }
+        
+        // We can't actually check if we have READ permission for HealthKit
+        // Apple doesn't allow this for privacy reasons
+        // Return the isAuthorized state we track
+        return isAuthorized
+    }
+    
+    /// Request HealthKit authorization with comprehensive permissions
+    func requestHealthKitAuthorization(completion: @escaping (Bool, FameFitError?) -> Void) {
+        guard healthKitService.isHealthDataAvailable else {
+            DispatchQueue.main.async {
+                self.syncError = .healthKitNotAvailable
+                completion(false, .healthKitNotAvailable)
+            }
+            return
+        }
+
+        var typesToRead: Set<HKObjectType> = [.workoutType()]
+
+        if let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) {
+            typesToRead.insert(activeEnergyType)
+        }
+        if let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) {
+            typesToRead.insert(heartRateType)
+        }
+        if let walkingRunningType = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning) {
+            typesToRead.insert(walkingRunningType)
+        }
+        if let cyclingType = HKObjectType.quantityType(forIdentifier: .distanceCycling) {
+            typesToRead.insert(cyclingType)
+        }
+
+        healthKitService.requestAuthorization { [weak self] success, error in
+            DispatchQueue.main.async {
+                if let error {
+                    self?.syncError = error.fameFitError
+                    completion(false, error.fameFitError)
+                } else if !success {
+                    self?.syncError = .healthKitAuthorizationDenied
+                    completion(false, .healthKitAuthorizationDenied)
+                } else {
+                    // We can't know for sure if READ permission was granted
+                    // but the request completed successfully
+                    self?.isAuthorized = true
+                    self?.syncError = nil
+                    completion(true, nil)
+                    // Don't automatically start observing - let onboarding control this
+                }
             }
         }
     }

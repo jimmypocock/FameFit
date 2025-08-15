@@ -29,18 +29,9 @@ extension DependencyContainer {
         let unlockStorageService = factory.createUnlockStorageService()
         
         // Phase 2: Workout Services
-        let workoutObserver = factory.createWorkoutObserver(
-            cloudKitManager: cloudKitManager,
-            healthKitService: healthKitService
-        )
-        
         let workoutSyncManager = WorkoutSyncService(
             cloudKitManager: cloudKitManager,
             healthKitService: healthKitService
-        )
-        
-        let workoutSyncQueue = factory.createWorkoutSyncQueue(
-            cloudKitManager: cloudKitManager
         )
         
         // Phase 3: Notification Services
@@ -136,11 +127,14 @@ extension DependencyContainer {
             activitySettingsService: activitySharingSettingsService
         )
         
-        let workoutAutoShareService = factory.createWorkoutAutoShareService(
+        // Create WorkoutQueue for background processing
+        let workoutQueue = WorkoutQueue(
+            cloudKitManager: cloudKitManager,
+            xpTransactionService: xpTransactionService,
             activityFeedService: activityFeedService,
-            settingsService: activitySharingSettingsService,
             notificationManager: notificationManager
         )
+        
         
         // Create verification service
         let countVerificationService = CountVerificationService(
@@ -169,7 +163,8 @@ extension DependencyContainer {
         )
         
         // Wire up WorkoutProcessor to services that need it
-        workoutObserver.workoutProcessor = workoutProcessor
+        workoutSyncManager.workoutProcessor = workoutProcessor
+        workoutSyncManager.notificationManager = notificationManager
         if let concreteGroupWorkoutService = groupWorkoutService as? GroupWorkoutService {
             concreteGroupWorkoutService.workoutProcessor = workoutProcessor
         }
@@ -201,12 +196,10 @@ extension DependencyContainer {
         let container = DependencyContainer(
             authenticationManager: authenticationManager,
             cloudKitManager: cloudKitManager,
-            workoutObserver: workoutObserver,
             workoutProcessor: workoutProcessor,
             healthKitService: healthKitService,
             watchConnectivityManager: watchConnectivityManager,
             workoutSyncManager: workoutSyncManager,
-            workoutSyncQueue: workoutSyncQueue,
             notificationStore: notificationStore,
             unlockNotificationService: unlockNotificationService,
             unlockStorageService: unlockStorageService,
@@ -227,21 +220,19 @@ extension DependencyContainer {
             activityCommentsService: activityCommentsService,
             activitySharingSettingsService: activitySharingSettingsService,
             bulkPrivacyUpdateService: bulkPrivacyUpdateService,
-            workoutAutoShareService: workoutAutoShareService,
             xpTransactionService: xpTransactionService,
             countVerificationService: countVerificationService,
-            statsSyncService: statsSyncService
+            statsSyncService: statsSyncService,
+            workoutQueue: workoutQueue
         )
         
         // Phase 11: Wire up circular dependencies (after all services are created)
         cloudKitManager.authenticationManager = authenticationManager
         cloudKitManager.xpTransactionService = xpTransactionService
         cloudKitManager.statsSyncService = statsSyncService
-        workoutObserver.cloudKitManager = cloudKitManager
         
         // Since we're already on MainActor, we can set these directly
         workoutSyncManager.notificationStore = notificationStore
-        workoutSyncManager.notificationManager = notificationManager
         
         // Start CloudKit initialization after all dependencies are wired up
         // Skip for default/fallback containers to avoid duplicate initialization

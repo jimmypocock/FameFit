@@ -19,6 +19,8 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     private let stateManager = CloudKitStateManager()
     private let operationQueue = CloudKitOperationQueue()
     private let schemaManager: CloudKitSchemaService
+    private let retryExecutor = CloudKitRetryExecutor()
+    private let retryQueue = Queue()
     
     // Recalculation tracking
     private let recalculationIntervalKey = "FameFitLastStatsRecalculation"
@@ -589,27 +591,27 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     // MARK: - Legacy Protocol Methods
     
-    func saveWorkout(_ workoutHistory: Workout) {
+    func saveWorkout(_ workout: Workout) {
         Task {
             do {
                 // Create the workout record
                 let record = CKRecord(recordType: "Workouts")
-                record["id"] = workoutHistory.id
-                record["workoutType"] = workoutHistory.workoutType
-                record["startDate"] = workoutHistory.startDate
-                record["endDate"] = workoutHistory.endDate
-                record["duration"] = workoutHistory.duration
-                record["totalEnergyBurned"] = workoutHistory.totalEnergyBurned
-                record["totalDistance"] = workoutHistory.totalDistance
-                record["averageHeartRate"] = workoutHistory.averageHeartRate
-                record["followersEarned"] = workoutHistory.followersEarned
-                record["xpEarned"] = workoutHistory.xpEarned
-                record["source"] = workoutHistory.source
+                record["workoutID"] = workout.id
+                record["workoutType"] = workout.workoutType
+                record["startDate"] = workout.startDate
+                record["endDate"] = workout.endDate
+                record["duration"] = workout.duration
+                record["totalEnergyBurned"] = workout.totalEnergyBurned
+                record["totalDistance"] = workout.totalDistance
+                record["averageHeartRate"] = workout.averageHeartRate
+                record["followersEarned"] = workout.followersEarned
+                record["xpEarned"] = workout.xpEarned
+                record["source"] = workout.source
                 
                 // Save to CloudKit
                 _ = try await privateDatabase.save(record)
                 
-                FameFitLogger.info("✅ Saved workout to CloudKit: \(workoutHistory.workoutType)", category: FameFitLogger.cloudKit)
+                FameFitLogger.info("✅ Saved workout to CloudKit: \(workout.workoutType)", category: FameFitLogger.cloudKit)
             } catch {
                 FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.cloudKit)
             }
@@ -634,7 +636,7 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
                 FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
                 
                 let workouts = records.compactMap { record -> Workout? in
-                    guard let id = record["id"] as? String,
+                    guard let id = record["workoutID"] as? String,
                           let type = record["workoutType"] as? String,
                           let startDate = record["startDate"] as? Date,
                           let endDate = record["endDate"] as? Date else {
@@ -970,4 +972,98 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         
         FameFitLogger.info("Cleared all local CloudKit data", category: FameFitLogger.cloudKit)
     }
+    
+    // MARK: - Retry Infrastructure
+    
+    /// Save a record with automatic retry logic
+    func saveWithRetry(
+        _ record: CKRecord,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws -> CKRecord {
+        let db = database ?? privateDatabase
+        let operationName = "Save \(record.recordType) record"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                try await db.save(record)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Fetch a record with automatic retry logic
+    func fetchWithRetry(
+        recordID: CKRecord.ID,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws -> CKRecord {
+        let db = database ?? privateDatabase
+        let operationName = "Fetch record \(recordID.recordName)"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                try await db.record(for: recordID)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Delete a record with automatic retry logic
+    func deleteWithRetry(
+        recordID: CKRecord.ID,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws {
+        let db = database ?? privateDatabase
+        let operationName = "Delete record \(recordID.recordName)"
+        
+        _ = try await retryExecutor.execute(
+            operation: {
+                try await db.deleteRecord(withID: recordID)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Execute a query with automatic retry logic
+    func queryWithRetry(
+        _ query: CKQuery,
+        database: CKDatabase? = nil,
+        limit: Int = CKQueryOperation.maximumResults,
+        configuration: RetryConfiguration = .default
+    ) async throws -> [CKRecord] {
+        let db = database ?? privateDatabase
+        let operationName = "Query \(query.recordType)"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                let (results, _) = try await db.records(matching: query, resultsLimit: limit)
+                return results.compactMap { _, result in
+                    try? result.get()
+                }
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Queue an operation for retry if it fails
+    func queueForRetry(
+        type: QueueItem.ItemType,
+        data: Data,
+        priority: QueueItem.Priority = .medium
+    ) async {
+        let item = QueueItem(
+            type: type,
+            data: data,
+            priority: priority
+        )
+        
+        await retryQueue.enqueue(item)
+    }
+    
 }

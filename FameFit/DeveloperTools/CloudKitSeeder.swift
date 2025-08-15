@@ -90,7 +90,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "Workouts")
-            record["id"] = workout.id
+            record["workoutID"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
@@ -172,7 +172,7 @@ final class CloudKitSeeder {
         
         for workout in workouts {
             let record = CKRecord(recordType: "WorkoutHistory")
-            record["id"] = workout.id
+            record["workoutID"] = workout.id
             record["workoutType"] = workout.workoutType
             record["startDate"] = workout.startDate
             record["endDate"] = workout.endDate
