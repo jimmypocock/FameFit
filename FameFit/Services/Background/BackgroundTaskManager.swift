@@ -32,16 +32,55 @@ final class BackgroundTaskManager: ObservableObject {
             return
         }
         
+        Task {
+            await scheduleAdaptiveBackgroundSync()
+        }
+    }
+    
+    private func scheduleAdaptiveBackgroundSync() async {
         let request = BGProcessingTaskRequest(identifier: syncTaskIdentifier)
         request.requiresNetworkConnectivity = true
         request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // 1 hour
+        
+        // Adaptive scheduling based on queue state
+        var interval: TimeInterval = 60 * 60 // Default: 1 hour
+        
+        if let container = dependencyContainer {
+            let stats = await container.workoutQueue.getQueueStats()
+            
+            if stats.pending > 0 || stats.failed > 0 {
+                // High priority: Items waiting to be processed
+                interval = 15 * 60 // 15 minutes
+                FameFitLogger.info("📊 Adaptive sync: \(stats.pending) pending, \(stats.failed) failed - scheduling in 15 min", category: FameFitLogger.app)
+            } else {
+                // Low priority: No pending items
+                interval = 2 * 60 * 60 // 2 hours
+                FameFitLogger.debug("📊 Adaptive sync: Queue empty - scheduling in 2 hours", category: FameFitLogger.app)
+            }
+        }
+        
+        request.earliestBeginDate = Date(timeIntervalSinceNow: interval)
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            FameFitLogger.info("Background sync scheduled", category: FameFitLogger.app)
+            FameFitLogger.info("Background sync scheduled for \(interval/60) minutes", category: FameFitLogger.app)
         } catch {
             FameFitLogger.error("Failed to schedule background sync: \(error)", category: FameFitLogger.app)
+        }
+    }
+    
+    /// Schedule immediate sync when critical items are pending
+    func scheduleImmediateSync() {
+        let request = BGProcessingTaskRequest(identifier: syncTaskIdentifier)
+        request.requiresNetworkConnectivity = true
+        request.requiresExternalPower = false
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 30) // 30 seconds
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            FameFitLogger.info("⚡ Immediate background sync scheduled", category: FameFitLogger.app)
+        } catch {
+            FameFitLogger.error("Failed to schedule immediate sync: \(error)", category: FameFitLogger.app)
         }
     }
     

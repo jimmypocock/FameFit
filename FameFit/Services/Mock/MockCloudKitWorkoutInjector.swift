@@ -11,6 +11,7 @@
 import Foundation
 import CloudKit
 import Darwin
+import StoreKit
 
 /// Injects mock workouts directly into CloudKit, bypassing HealthKit
 /// This allows both Watch and iPhone apps to see the same test data during development
@@ -30,16 +31,9 @@ final class MockCloudKitWorkoutInjector {
     }
     
     private func isRunningInAppStore() -> Bool {
-        // Check if running from App Store / TestFlight
         #if targetEnvironment(simulator)
-        return false  // Simulator is always development
+        return false
         #else
-        // Check for sandbox receipt (indicates App Store/TestFlight)
-        if let url = Bundle.main.appStoreReceiptURL,
-           FileManager.default.fileExists(atPath: url.path) {
-            return true
-        }
-        // Check if debugger is attached (development builds have debugger)
         return !isDebuggerAttached()
         #endif
     }

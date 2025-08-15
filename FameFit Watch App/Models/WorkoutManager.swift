@@ -43,7 +43,7 @@ class WorkoutManager: NSObject, ObservableObject, WorkoutManaging {
     @Published var groupParticipantCount: Int = 0
     private var groupWorkoutMetadata: [String: Any] = [:]
     private var metricsUploadTimer: Timer?
-    private let metricsUploadInterval: TimeInterval = 30.0 // Upload every 30 seconds to preserve battery
+    private let metricsUploadInterval: TimeInterval = WatchConfiguration.UpdateFrequency.groupWorkoutSync
     private var metricsRetryCount = 0
     private let maxRetryAttempts = 3
     private var pendingMetrics: [[String: Any]] = []
@@ -583,7 +583,7 @@ extension WorkoutManager {
     private func startMetricsUpload() {
         guard isGroupWorkout else { return }
         
-        // Start timer to upload metrics every 5 seconds
+        // Start timer to upload metrics periodically (battery-optimized)
         metricsUploadTimer = Timer.scheduledTimer(withTimeInterval: metricsUploadInterval, repeats: true) { [weak self] _ in
             self?.uploadMetrics()
         }
@@ -593,7 +593,7 @@ extension WorkoutManager {
         guard isGroupWorkout,
               let workoutID = groupWorkoutID else { return }
         
-        // Prepare metrics
+        // Prepare metrics batch
         let metrics: [String: Any] = [
             "workoutID": workoutID,
             "timestamp": Date(),
@@ -606,19 +606,39 @@ extension WorkoutManager {
         ]
         
         #if os(watchOS)
-        // Check if Watch connectivity is available
-        if WCSession.default.isReachable {
-            unreachableCount = 0 // Reset counter when reachable
+        // Use transferUserInfo for battery-efficient, automatic queuing
+        // This method handles offline scenarios automatically and coalesces updates
+        if WCSession.default.activationState == .activated {
+            // transferUserInfo is more battery efficient than sendMessage:
+            // - Automatically queued when iPhone is unreachable
+            // - Coalesces multiple updates into one transfer
+            // - Doesn't require reachability check
+            WCSession.default.transferUserInfo([
+                "type": "groupWorkoutMetricsBatch",
+                "metrics": metrics,
+                "batchTimestamp": Date()
+            ])
+            
+            FameFitLogger.debug("📊 Metrics batch queued for transfer", category: FameFitLogger.workout)
+            
+            // Reset unreachable counter since transferUserInfo handles offline
+            unreachableCount = 0
+            metricsRetryCount = 0
+            
+            // Clear any pending metrics since transferUserInfo handles queuing
+            pendingMetrics.removeAll()
+        } else if WCSession.default.isReachable {
+            // Fallback to immediate send if needed for real-time requirements
+            unreachableCount = 0
             
             // Try to send pending metrics first
             sendPendingMetrics()
             
-            // Send current metrics
+            // Send current metrics with immediate delivery
             WCSession.default.sendMessage([
                 "command": "groupWorkoutMetrics",
                 "metrics": metrics
             ], replyHandler: { [weak self] response in
-                // Success - reset retry count
                 self?.metricsRetryCount = 0
                 FameFitLogger.debug("✅ Metrics sent successfully", category: FameFitLogger.workout)
             }, errorHandler: { [weak self] error in
@@ -632,7 +652,6 @@ extension WorkoutManager {
                 FameFitLogger.warning("📱 iPhone unreachable for \(unreachableCount) attempts, pausing group sync to save battery", category: FameFitLogger.workout)
                 // Stop the timer to save battery
                 stopMetricsUpload()
-                // Still save the workout locally
                 return
             }
             

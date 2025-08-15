@@ -562,6 +562,31 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         #endif
     }
     
+    private func handleMetricsBatch(_ message: [String: Any]) -> [String: Any] {
+        guard let metrics = message["metrics"] as? [String: Any] else {
+            return ["status": "error", "message": "No metrics in batch"]
+        }
+        
+        let batchTimestamp = message["batchTimestamp"] as? Date ?? Date()
+        
+        FameFitLogger.info("📊 Received metrics batch from Watch (timestamp: \(batchTimestamp))", category: FameFitLogger.connectivity)
+        
+        // Process the batched metrics
+        #if os(iOS)
+        if metrics["workoutID"] != nil {
+            // Store or process the metrics as needed
+            // This could update UI, store in CloudKit, etc.
+            NotificationCenter.default.post(
+                name: Notification.Name("GroupWorkoutMetricsReceived"),
+                object: nil,
+                userInfo: ["metrics": metrics, "batchTimestamp": batchTimestamp]
+            )
+        }
+        #endif
+        
+        return ["status": "success", "message": "Metrics batch processed"]
+    }
+    
     private func handleProfileRequest() -> [String: Any] {
         FameFitLogger.info("📱⌚ Handling profile request from Watch", category: FameFitLogger.connectivity)
         
@@ -648,6 +673,16 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
     
     @discardableResult
     private func handleReceivedMessage(_ message: [String: Any]) -> [String: Any] {
+        // Check for batched metrics first (from transferUserInfo)
+        if let type = message["type"] as? String {
+            switch type {
+            case "groupWorkoutMetricsBatch":
+                return handleMetricsBatch(message)
+            default:
+                break
+            }
+        }
+        
         guard let command = message["command"] as? String else {
             return ["status": "error", "message": "No command specified"]
         }

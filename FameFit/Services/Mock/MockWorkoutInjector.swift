@@ -27,16 +27,9 @@ final class MockWorkoutInjector {
     }
     
     private func isRunningInAppStore() -> Bool {
-        // Check if running from App Store / TestFlight
         #if targetEnvironment(simulator)
-        return false  // Simulator is always development
+        return false
         #else
-        // Check for sandbox receipt (indicates App Store/TestFlight)
-        if let url = Bundle.main.appStoreReceiptURL,
-           FileManager.default.fileExists(atPath: url.path) {
-            return true
-        }
-        // Check if debugger is attached (development builds have debugger)
         return !isDebuggerAttached()
         #endif
     }

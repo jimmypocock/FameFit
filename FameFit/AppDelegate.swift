@@ -78,8 +78,23 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationDidEnterBackground(_: UIApplication) {
         FameFitLogger.info("App entered background", category: FameFitLogger.app)
 
-        // Background tasks are now handled by BackgroundTaskManager
-        BackgroundTaskManager.shared.scheduleBackgroundTasks()
+        // Smart trigger: Check for pending items and schedule immediate sync if needed
+        Task {
+            if let workoutQueue = dependencyContainer?.workoutQueue {
+                let stats = await workoutQueue.getQueueStats()
+                
+                if stats.pending > 0 || stats.failed > 0 {
+                    FameFitLogger.info("⚡ \(stats.pending) pending items detected - triggering immediate background sync", category: FameFitLogger.app)
+                    BackgroundTaskManager.shared.scheduleImmediateSync()
+                } else {
+                    // Normal background task scheduling
+                    BackgroundTaskManager.shared.scheduleBackgroundTasks()
+                }
+            } else {
+                // Fallback to normal scheduling
+                BackgroundTaskManager.shared.scheduleBackgroundTasks()
+            }
+        }
     }
 
     // MARK: - Background Tasks

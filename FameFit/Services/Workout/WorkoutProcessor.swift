@@ -154,46 +154,54 @@ final class WorkoutProcessor {
             groupWorkoutID: groupWorkoutID
         )
         
-        // Step 1: Save workout record
-        try await saveWorkoutRecord(workoutWithXP)
-        
-        // Step 2: Create XP Transaction
-        _ = try await xpTransactionService.createTransaction(
+        // Execute critical operations in parallel for better performance
+        async let workoutSave: Void = saveWorkoutRecord(workoutWithXP)
+        async let xpTransaction = xpTransactionService.createTransaction(
             userID: userID,
             workoutID: workout.id,
             baseXP: xpResult.baseXP,
             finalXP: xpResult.finalXP,
             factors: xpResult.factors
         )
+        async let statsUpdate: Void = updateUserStats(xpEarned: xpResult.finalXP)
         
-        // Step 3: Update user stats
-        await updateUserStats(xpEarned: xpResult.finalXP)
+        // Wait for all critical operations to complete
+        _ = try await (workoutSave, xpTransaction, statsUpdate)
         
-        // Step 4: Create activity feed item (optional, non-critical)
-        if await shouldShareToFeed() {
-            do {
-                try await createFeedItem(
-                    workout: workoutWithXP,
-                    xpEarned: xpResult.finalXP,
-                    source: source
-                )
-            } catch {
-                FameFitLogger.warning("Failed to post to activity feed: \(error)", category: FameFitLogger.workout)
+        // Execute non-critical operations asynchronously (fire-and-forget)
+        Task { @MainActor in
+            // Activity feed (non-critical)
+            if await shouldShareToFeed() {
+                do {
+                    try await createFeedItem(
+                        workout: workoutWithXP,
+                        xpEarned: xpResult.finalXP,
+                        source: source
+                    )
+                } catch {
+                    FameFitLogger.warning("Failed to post to activity feed: \(error)", category: FameFitLogger.workout)
+                }
             }
         }
         
-        // Step 5: Process challenges (non-critical)
-        await processWorkoutForChallenges(workout: workoutWithXP, userID: userID)
+        Task {
+            // Process challenges (non-critical)
+            await processWorkoutForChallenges(workout: workoutWithXP, userID: userID)
+        }
         
-        // Step 6: Send notifications (non-critical)
-        await sendNotifications(
-            workout: workoutWithXP,
-            xpEarned: xpResult.finalXP,
-            source: source
-        )
+        Task {
+            // Send notifications (non-critical)
+            await sendNotifications(
+                workout: workoutWithXP,
+                xpEarned: xpResult.finalXP,
+                source: source
+            )
+        }
         
-        // Step 7: Update profile workout count (non-critical)
-        await updateUserProfileWorkoutCount()
+        Task {
+            // Update profile workout count (non-critical)
+            await updateUserProfileWorkoutCount()
+        }
         
         FameFitLogger.info("✅ Workout processing complete: +\(xpResult.finalXP) XP", category: FameFitLogger.workout)
     }
