@@ -27,7 +27,9 @@ class WorkoutSyncService: ObservableObject {
     weak var notificationStore: (any NotificationStoringProtocol)?
     weak var notificationManager: (any NotificationProtocol)?
     weak var workoutProcessor: WorkoutProcessor?
+    var userProfileService: (any UserProfileProtocol)?
     private var anchoredQuery: HKAnchoredObjectQuery?
+    private var syncPolicy: WorkoutSyncPolicy?
     
     @Published var isSyncing = false
     @Published var lastSyncDate: Date?
@@ -311,15 +313,33 @@ class WorkoutSyncService: ObservableObject {
                     continue
                 }
                 
-                // Get app install date
-                let appInstallDate = UserDefaults.standard.object(forKey: "AppInstallDate") as? Date ?? Date()
+                // Check if workout should be synced based on policy
+                let shouldSync: Bool
+                if let profileService = userProfileService as? UserProfileService,
+                   let currentProfile = profileService.currentProfile {
+                    let policy = WorkoutSyncPolicy(profileCreatedAt: currentProfile.creationDate)
+                    shouldSync = policy.shouldSyncWorkout(workout)
+                    
+                    if !shouldSync {
+                        FameFitLogger.info(
+                            "⏩ Skipping workout outside sync window: \(workout.endDate)",
+                            category: FameFitLogger.workout
+                        )
+                    }
+                } else {
+                    // Fallback: only sync workouts from last 24 hours
+                    let twentyFourHoursAgo = Date().addingTimeInterval(-WorkoutSyncPolicy.recentSyncWindow)
+                    shouldSync = workout.endDate > twentyFourHoursAgo
+                    
+                    if !shouldSync {
+                        FameFitLogger.info(
+                            "⏩ Skipping workout older than 24 hours: \(workout.endDate)",
+                            category: FameFitLogger.workout
+                        )
+                    }
+                }
                 
-                // Only process workouts after app install
-                guard workout.endDate >= appInstallDate else {
-                    FameFitLogger.info(
-                        "⏩ Skipping pre-install workout from \(workout.endDate)",
-                        category: FameFitLogger.workout
-                    )
+                guard shouldSync else {
                     continue
                 }
                 
@@ -478,16 +498,36 @@ class WorkoutSyncService: ObservableObject {
     
     /// Fetch recent workouts (for manual sync)
     private func fetchRecentWorkouts() async throws -> [HKWorkout] {
-        let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+        // Get current user profile to determine sync policy
+        guard let profileService = userProfileService as? UserProfileService,
+              let currentProfile = profileService.currentProfile else {
+            FameFitLogger.warning("No user profile available, using default 24-hour sync window", category: FameFitLogger.workout)
+            // Fallback to 24 hours if no profile
+            let endDate = Date()
+            let startDate = endDate.addingTimeInterval(-WorkoutSyncPolicy.recentSyncWindow)
+            let predicate = HKQuery.predicateForSamples(
+                withStart: startDate,
+                end: endDate,
+                options: .strictStartDate
+            )
+            return try await fetchWorkoutsWithPredicate(predicate)
+        }
         
-        let predicate = HKQuery.predicateForSamples(
-            withStart: startDate,
-            end: endDate,
-            options: .strictStartDate
-        )
+        // Create sync policy based on profile creation date
+        let policy = WorkoutSyncPolicy(profileCreatedAt: currentProfile.creationDate)
         
+        // Log the sync window for debugging
+        FameFitLogger.info("🏃 \(policy.syncWindowDescription)", category: FameFitLogger.workout)
+        
+        // Create predicate using the policy
+        let predicate = policy.createHealthKitPredicate()
+
+        
+        return try await fetchWorkoutsWithPredicate(predicate)
+    }
+    
+    /// Helper method to fetch workouts with a predicate
+    private func fetchWorkoutsWithPredicate(_ predicate: NSPredicate) async throws -> [HKWorkout] {
         return try await withCheckedThrowingContinuation { continuation in
             healthKitService.fetchWorkoutsWithPredicate(
                 predicate,

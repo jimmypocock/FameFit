@@ -66,7 +66,7 @@ enum ProfileServiceError: Error, LocalizedError, Equatable {
 
 // MARK: - Profile Service Protocol
 
-protocol UserProfileProtocol {
+protocol UserProfileProtocol: AnyObject {
     // Publishers
     var currentProfilePublisher: AnyPublisher<UserProfile?, Never> { get }
     var isLoadingPublisher: AnyPublisher<Bool, Never> { get }

@@ -165,6 +165,7 @@ extension DependencyContainer {
         // Wire up WorkoutProcessor to services that need it
         workoutSyncManager.workoutProcessor = workoutProcessor
         workoutSyncManager.notificationManager = notificationManager
+        workoutSyncManager.userProfileService = userProfileService
         if let concreteGroupWorkoutService = groupWorkoutService as? GroupWorkoutService {
             concreteGroupWorkoutService.workoutProcessor = workoutProcessor
         }
