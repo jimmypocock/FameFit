@@ -81,6 +81,8 @@
 				Models/GroupWorkout.swift,
 				Models/Presentation/WorkoutTypes.swift,
 				Models/UserProfile.swift,
+				Services/Watch/MessageDeduplicator.swift,
+				Services/Watch/WatchConnectivityDebugger.swift,
 				Utilities/UserDefaultsKeys.swift,
 			);
 			target = 54D774F82E0F3BB100791940 /* FameFit Watch App */;

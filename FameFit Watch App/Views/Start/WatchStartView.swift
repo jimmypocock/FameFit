@@ -256,6 +256,16 @@ struct WatchStartView: View {
         .refreshable {
             await refreshGroupWorkouts()
         }
+        #if DEBUG
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                NavigationLink(destination: WatchConnectivityDebugView()) {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.caption)
+                }
+            }
+        }
+        #endif
         .onAppear {
             workoutManager.requestAuthorization()
             loadUserData()
@@ -392,31 +402,41 @@ struct WatchStartView: View {
         // First check for pending group workout from UserDefaults
         checkForPendingGroupWorkout()
         
-        // Check if there's pending content that hasn't been delivered
-        if WCSession.default.hasContentPending {
-            FameFitLogger.warning("⌚ WCSession has content pending during refresh - checking for stuck transfers", category: FameFitLogger.sync)
-            
-            // Log what's pending
-            FameFitLogger.debug("⌚ Pending transfers - UserInfo: \(WCSession.default.outstandingUserInfoTransfers.count), Files: \(WCSession.default.outstandingFileTransfers.count)", category: FameFitLogger.sync)
-            
-            // Check received application context
-            if !WCSession.default.receivedApplicationContext.isEmpty {
-                FameFitLogger.info("⌚ Found application context during refresh!", category: FameFitLogger.sync)
-                
-                // Process it if it's a group workout
-                let context = WCSession.default.receivedApplicationContext
-                if let command = context["command"] as? String,
-                   command == "startGroupWorkout" {
-                    FameFitLogger.info("⌚ Processing group workout from application context", category: FameFitLogger.sync)
-                    watchConnectivity.handleGroupWorkoutCommand(context)
+        // Check application context for latest state
+        let context = WCSession.default.receivedApplicationContext
+        if !context.isEmpty {
+            // Check for group workout state
+            if let type = context["type"] as? String {
+                switch type {
+                case "groupWorkoutState":
+                    if let hasActive = context["hasActiveWorkout"] as? Bool, hasActive,
+                       let _ = context["workoutID"] as? String,
+                       let workoutName = context["workoutName"] as? String {
+                        FameFitLogger.info("⌚ Found group workout in context: \(workoutName)", category: FameFitLogger.sync)
+                        // Process the workout...
+                    }
+                case "userProfile":
+                    if let username = context["username"] as? String,
+                       let totalXP = context["totalXP"] as? Int {
+                        self.username = username
+                        self.totalXP = totalXP
+                    }
+                default:
+                    break
                 }
             }
         }
         
-        // Also try to sync with iPhone for active workouts
+        // If reachable, request fresh data
         if WCSession.default.isReachable {
-            // Request active group workouts from iPhone
-            WCSession.default.sendMessage(["request": "activeGroupWorkout"], replyHandler: { response in
+            // Request using proper message type
+            let syncRequest: [String: Any] = [
+                "id": UUID().uuidString,
+                "type": "syncRequest",
+                "timestamp": Date()
+            ]
+            
+            WCSession.default.sendMessage(syncRequest, replyHandler: { response in
                 if let workoutData = response["groupWorkout"] as? [String: Any],
                    let workoutID = workoutData["id"] as? String,
                    let workoutName = workoutData["name"] as? String,

@@ -50,9 +50,10 @@ final class RealWatchConnectivityService: NSObject, WatchConnectivityService {
     func sendWorkoutUpdate(_ update: WorkoutUpdate) async {
         FameFitLogger.info("📤 Sending workout update to iPhone: \(update.workoutID)", category: FameFitLogger.sync)
         
-        // Prepare the message
+        // Prepare the message with ID for deduplication
         var message: [String: Any] = [
-            "command": "workoutCompleted",
+            "id": UUID().uuidString,
+            "type": "workoutCompleted",
             "workoutID": update.workoutID,
             "status": update.status.rawValue,
             "timestamp": update.timestamp
@@ -73,22 +74,25 @@ final class RealWatchConnectivityService: NSObject, WatchConnectivityService {
             message["groupWorkoutID"] = groupWorkoutID
         }
         
-        // Send the message
+        // Critical data - use transferUserInfo for guaranteed delivery
+        session.transferUserInfo(message)
+        FameFitLogger.info("📤 Workout queued for transfer via userInfo", category: FameFitLogger.sync)
+        
+        // Also update application context with latest workout state
+        let contextUpdate: [String: Any] = [
+            "type": "lastCompletedWorkout",
+            "workoutID": update.workoutID,
+            "completedAt": update.timestamp
+        ]
+        try? session.updateApplicationContext(contextUpdate)
+        
+        // If reachable, also try immediate send for faster UX
         if session.isReachable {
             session.sendMessage(message, replyHandler: { response in
-                FameFitLogger.info("✅ iPhone acknowledged workout: \(response)", category: FameFitLogger.sync)
+                FameFitLogger.info("✅ iPhone acknowledged workout immediately: \(response)", category: FameFitLogger.sync)
             }, errorHandler: { error in
-                FameFitLogger.error("❌ Failed to send workout to iPhone", error: error, category: FameFitLogger.sync)
-                // Queue for retry
-                self.pendingWorkoutUpdates.append(update)
+                FameFitLogger.debug("Immediate send failed, but transferUserInfo will deliver", category: FameFitLogger.sync)
             })
-        } else {
-            FameFitLogger.warning("⚠️ iPhone not reachable, queuing workout update", category: FameFitLogger.sync)
-            // Queue for later when iPhone becomes reachable
-            pendingWorkoutUpdates.append(update)
-            
-            // Try using userInfo transfer as fallback (works even when not reachable)
-            session.transferUserInfo(message)
         }
     }
     

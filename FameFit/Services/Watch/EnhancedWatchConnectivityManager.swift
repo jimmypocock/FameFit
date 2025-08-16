@@ -66,6 +66,8 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
     private var session: WCSession?
     private var messageQueue: [MessageQueueItem] = []
     private var isProcessingQueue = false
+    private let deduplicator = MessageDeduplicator()
+    private var debugger: WatchConnectivityDebugger?
     
     // Testing support
     private let isSimulator: Bool = {
@@ -118,6 +120,11 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
     public override init() {
         super.init()
         setupSession()
+        
+        // Initialize debugger asynchronously
+        Task { @MainActor in
+            self.debugger = WatchConnectivityDebugger.shared
+        }
     }
     
     private func setupSession() {
@@ -282,6 +289,31 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
         }
     }
     
+    // MARK: - Message Routing Methods
+    
+    /// Send group workout availability to Watch (latest state only)
+    func updateGroupWorkoutAvailability(_ workout: GroupWorkout?) {
+        let context: [String: Any] = [
+            "id": UUID().uuidString,
+            "type": "groupWorkoutState",
+            "hasActiveWorkout": workout != nil,
+            "workoutID": workout?.id as Any,
+            "workoutName": workout?.name as Any,
+            "timestamp": Date()
+        ]
+        
+        // Use applicationContext for latest state
+        do {
+            try session?.updateApplicationContext(context)
+            Task { @MainActor in
+                self.debugger?.logSent(context, method: .applicationContext)
+            }
+            FameFitLogger.info("📱→⌚ Updated group workout state", category: FameFitLogger.connectivity)
+        } catch {
+            FameFitLogger.error("Failed to update application context", error: error, category: FameFitLogger.connectivity)
+        }
+    }
+    
     /// Sync user profile to Watch
     func syncUserProfile(_ profile: UserProfile) {
         guard let session = session else {
@@ -318,7 +350,8 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
         }
         
         let context: [String: Any] = [
-            "command": "syncUserProfile",
+            "id": UUID().uuidString,
+            "type": "userProfile",
             "userProfile": profileData,
             "username": profile.username,  // Also send as separate fields for compatibility
             "totalXP": profile.totalXP,
@@ -328,16 +361,12 @@ public final class EnhancedWatchConnectivityManager: NSObject, ObservableObject,
         // Update application context (persistent, survives app restarts)
         do {
             try session.updateApplicationContext(context)
+            Task { @MainActor in
+                self.debugger?.logSent(context, method: .applicationContext)
+            }
             FameFitLogger.info("📱⌚ User profile synced to Watch via application context", category: FameFitLogger.connectivity)
         } catch {
             FameFitLogger.error("📱⌚ Failed to update application context: \(error)", category: FameFitLogger.connectivity)
-            
-            // Try sending as a message if Watch is reachable
-            if session.isReachable {
-                session.sendMessage(context, replyHandler: nil) { error in
-                    FameFitLogger.error("📱⌚ Failed to send profile message: \(error)", category: FameFitLogger.connectivity)
-                }
-            }
         }
     }
     
@@ -519,6 +548,7 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
     nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         Task { @MainActor in
             self.lastReceivedMessage = message
+            self.debugger?.logReceived(message, method: .sendMessage)
             self.handleReceivedMessage(message)
         }
     }
@@ -526,6 +556,7 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
     nonisolated public func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         Task { @MainActor in
             self.lastReceivedMessage = message
+            self.debugger?.logReceived(message, method: .sendMessage)
             let response = self.handleReceivedMessage(message)
             replyHandler(response)
         }
@@ -535,7 +566,17 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         Task { @MainActor in
             FameFitLogger.info("📱 Received userInfo transfer from Watch", category: FameFitLogger.connectivity)
             self.lastReceivedMessage = userInfo
+            self.debugger?.logReceived(userInfo, method: .transferUserInfo)
             self.handleReceivedMessage(userInfo)
+        }
+    }
+    
+    nonisolated public func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        Task { @MainActor in
+            FameFitLogger.info("📱 Received application context from Watch", category: FameFitLogger.connectivity)
+            self.lastReceivedMessage = applicationContext
+            self.debugger?.logReceived(applicationContext, method: .applicationContext)
+            self.handleReceivedMessage(applicationContext)
         }
     }
     
@@ -560,6 +601,63 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         #else
         connectionState = session.isReachable ? .reachable : .unreachable
         #endif
+    }
+    
+    private func handleWorkoutCompleted(_ message: [String: Any]) -> [String: Any] {
+        FameFitLogger.info("📱⌚ Received workout completion from Watch", category: FameFitLogger.connectivity)
+        
+        guard let workoutID = message["workoutID"] as? String else {
+            return ["status": "error", "message": "Missing workout ID"]
+        }
+        
+        // Parse metrics if available
+        var metrics: WorkoutCompletionInfo.WorkoutMetrics?
+        if let metricsDict = message["metrics"] as? [String: Any] {
+            metrics = WorkoutCompletionInfo.WorkoutMetrics(
+                heartRate: metricsDict["heartRate"] as? Double ?? 0,
+                activeEnergy: metricsDict["activeEnergy"] as? Double ?? 0,
+                distance: metricsDict["distance"] as? Double ?? 0,
+                elapsedTime: metricsDict["elapsedTime"] as? TimeInterval ?? 0
+            )
+        }
+        
+        // Create completion info
+        let completionInfo = WorkoutCompletionInfo(
+            workoutID: workoutID,
+            timestamp: message["timestamp"] as? Date ?? Date(),
+            metrics: metrics,
+            groupWorkoutID: message["groupWorkoutID"] as? String
+        )
+        
+        // Update published property
+        lastWorkoutCompletion = completionInfo
+        
+        // Trigger immediate HealthKit sync
+        NotificationCenter.default.post(
+            name: Notification.Name("WatchWorkoutCompleted"),
+            object: nil,
+            userInfo: ["workoutID": workoutID, "groupWorkoutID": message["groupWorkoutID"] as Any]
+        )
+        
+        FameFitLogger.info("✅ Workout completion processed: \(workoutID)", category: FameFitLogger.connectivity)
+        
+        // Return acknowledgment with any additional data (like XP earned)
+        return [
+            "status": "received",
+            "workoutID": workoutID,
+            "message": "Workout received and queued for sync"
+        ]
+    }
+    
+    private func handleWorkoutMetrics(_ message: [String: Any]) -> [String: Any] {
+        // Just update the latest metrics in memory
+        NotificationCenter.default.post(
+            name: Notification.Name("WatchWorkoutMetricsUpdate"),
+            object: nil,
+            userInfo: message
+        )
+        
+        return ["status": "success"]
     }
     
     private func handleMetricsBatch(_ message: [String: Any]) -> [String: Any] {
@@ -625,64 +723,35 @@ extension EnhancedWatchConnectivityManager: WCSessionDelegate {
         return ["status": "profile sync initiated"]
     }
     
-    private func handleWorkoutCompleted(_ message: [String: Any]) -> [String: Any] {
-        FameFitLogger.info("📱⌚ Received workout completion from Watch", category: FameFitLogger.connectivity)
-        
-        guard let workoutID = message["workoutID"] as? String else {
-            return ["status": "error", "message": "Missing workout ID"]
-        }
-        
-        // Parse metrics if available
-        var metrics: WorkoutCompletionInfo.WorkoutMetrics?
-        if let metricsDict = message["metrics"] as? [String: Any] {
-            metrics = WorkoutCompletionInfo.WorkoutMetrics(
-                heartRate: metricsDict["heartRate"] as? Double ?? 0,
-                activeEnergy: metricsDict["activeEnergy"] as? Double ?? 0,
-                distance: metricsDict["distance"] as? Double ?? 0,
-                elapsedTime: metricsDict["elapsedTime"] as? TimeInterval ?? 0
-            )
-        }
-        
-        // Create completion info
-        let completionInfo = WorkoutCompletionInfo(
-            workoutID: workoutID,
-            timestamp: message["timestamp"] as? Date ?? Date(),
-            metrics: metrics,
-            groupWorkoutID: message["groupWorkoutID"] as? String
-        )
-        
-        // Update published property
-        lastWorkoutCompletion = completionInfo
-        
-        // Trigger immediate HealthKit sync
-        NotificationCenter.default.post(
-            name: Notification.Name("WatchWorkoutCompleted"),
-            object: nil,
-            userInfo: ["workoutID": workoutID]
-        )
-        
-        FameFitLogger.info("✅ Workout completion processed: \(workoutID)", category: FameFitLogger.connectivity)
-        
-        // Return acknowledgment with any additional data (like XP earned)
-        return [
-            "status": "received",
-            "workoutID": workoutID,
-            "message": "Workout received and queued for sync"
-        ]
-    }
     
     @discardableResult
     private func handleReceivedMessage(_ message: [String: Any]) -> [String: Any] {
-        // Check for batched metrics first (from transferUserInfo)
+        Task {
+            // Check for deduplication
+            let shouldProcess = await deduplicator.shouldProcess(message)
+            guard shouldProcess else {
+                FameFitLogger.debug("Skipping duplicate message", category: FameFitLogger.connectivity)
+                return
+            }
+        }
+        
+        // Check for typed messages first
         if let type = message["type"] as? String {
             switch type {
             case "groupWorkoutMetricsBatch":
                 return handleMetricsBatch(message)
+            case "workoutCompleted":
+                return handleWorkoutCompleted(message)
+            case "workoutMetrics":
+                return handleWorkoutMetrics(message)
+            case "connectivityTest":
+                return ["status": "success", "message": "Test received"]
             default:
                 break
             }
         }
         
+        // Legacy command-based messages
         guard let command = message["command"] as? String else {
             return ["status": "error", "message": "No command specified"]
         }
