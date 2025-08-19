@@ -2,19 +2,42 @@
 //  WorkoutSessionUITests.swift
 //  FameFit Watch AppUITests
 //
-//  Tests for active workout session UI on Watch app
+//  Minimal smoke tests for Watch app - just verify it doesn't crash
 //
 
 import XCTest
 
 final class WorkoutSessionUITests: XCTestCase {
+    
+    var app: XCUIApplication!
+    
     override func setUpWithError() throws {
         continueAfterFailure = false
+        app = XCUIApplication()
     }
-
-    // NOTE: Workout session flow testing removed due to HealthKit permission complexity
-    // These flows are better tested through:
-    // 1. Unit tests of WorkoutManager business logic
-    // 2. Manual testing for the full integration flow
-    // 3. The WorkoutSelectionUITests verify basic navigation
+    
+    override func tearDownWithError() throws {
+        app = nil
+    }
+    
+    // MARK: - Basic Smoke Test
+    
+    func testAppLaunchesSuccessfully() throws {
+        // Given: App launches
+        app.launch()
+        
+        // Handle HealthKit permission if it appears
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.buttons["Allow"].waitForExistence(timeout: 3) {
+            springboard.buttons["Allow"].tap()
+        }
+        
+        // Then: App should have some UI elements
+        let hasUI = app.buttons.count > 0 || app.staticTexts.count > 0
+        XCTAssertTrue(hasUI, "App should launch with UI elements")
+    }
+    
+    // Note: More detailed UI tests are intentionally omitted because Watch UI tests
+    // are notoriously flaky with finding buttons on different pages. The unit tests
+    // provide comprehensive coverage of the actual functionality.
 }

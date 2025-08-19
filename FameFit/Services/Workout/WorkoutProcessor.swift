@@ -154,8 +154,10 @@ final class WorkoutProcessor {
             groupWorkoutID: groupWorkoutID
         )
         
-        // Execute critical operations in parallel for better performance
-        async let workoutSave: Void = saveWorkoutRecord(workoutWithXP)
+        // CRITICAL: Save workout first - if this fails, nothing else should happen
+        try await saveWorkoutRecord(workoutWithXP)
+        
+        // Only proceed with other operations if workout save succeeded
         async let xpTransaction = xpTransactionService.createTransaction(
             userID: userID,
             workoutID: workout.id,
@@ -165,8 +167,8 @@ final class WorkoutProcessor {
         )
         async let statsUpdate: Void = updateUserStats(xpEarned: xpResult.finalXP)
         
-        // Wait for all critical operations to complete
-        _ = try await (workoutSave, xpTransaction, statsUpdate)
+        // Wait for secondary operations to complete
+        _ = try await (xpTransaction, statsUpdate)
         
         // Execute non-critical operations asynchronously (fire-and-forget)
         Task { @MainActor in
@@ -234,22 +236,9 @@ final class WorkoutProcessor {
     }
     
     private func saveWorkoutRecord(_ workout: Workout) async throws {
-        let record = CKRecord(recordType: "Workouts")
-        record["workoutID"] = workout.id
-        record["workoutType"] = workout.workoutType
-        record["startDate"] = workout.startDate
-        record["endDate"] = workout.endDate
-        record["duration"] = workout.duration
-        record["totalEnergyBurned"] = workout.totalEnergyBurned
-        record["totalDistance"] = workout.totalDistance
-        record["averageHeartRate"] = workout.averageHeartRate
-        record["followersEarned"] = workout.followersEarned
-        record["xpEarned"] = workout.xpEarned
-        record["source"] = workout.source
-        
-        if let groupWorkoutID = workout.groupWorkoutID {
-            record["groupWorkoutID"] = groupWorkoutID
-        }
+        // Use the centralized method to create the record
+        let userID = cloudKitManager.currentUserID!  // We've already verified this exists
+        let record = workout.toCKRecord(userID: userID)
         
         // Save with retry logic
         do {

@@ -82,7 +82,7 @@ extension WorkoutManager {
             selectedWorkout: selectedWorkout,
             isWorkoutRunning: isWorkoutRunning,
             isPaused: isPaused,
-            showingSummaryView: showingSummaryView,
+            hasCompletedWorkout: completedWorkout != nil,
             hasSession: session != nil,
             hasBuilder: builder != nil,
             heartRate: heartRate,
@@ -96,7 +96,7 @@ struct WorkoutStateSnapshot: Equatable {
     let selectedWorkout: HKWorkoutActivityType?
     let isWorkoutRunning: Bool
     let isPaused: Bool
-    let showingSummaryView: Bool
+    let hasCompletedWorkout: Bool
     let hasSession: Bool
     let hasBuilder: Bool
     let heartRate: Double

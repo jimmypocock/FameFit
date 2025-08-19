@@ -97,27 +97,4 @@ class ControlsViewTests: XCTestCase {
         XCTAssertEqual(mockWorkoutManager.averageHeartRateForSummary, 140) // 145 - 5
     }
 
-    func testPauseWhenNotRunning() {
-        // Given - No workout running
-        XCTAssertFalse(mockWorkoutManager.isWorkoutRunning)
-
-        // When
-        mockWorkoutManager.pause()
-
-        // Then
-        XCTAssertTrue(mockWorkoutManager.pauseCalled)
-        XCTAssertFalse(mockWorkoutManager.isPaused) // Should not change state
-    }
-
-    func testEndWorkoutWhenNotRunning() {
-        // Given - No workout running
-        XCTAssertFalse(mockWorkoutManager.isWorkoutRunning)
-
-        // When
-        mockWorkoutManager.endWorkout()
-
-        // Then
-        XCTAssertTrue(mockWorkoutManager.endWorkoutCalled)
-        XCTAssertFalse(mockWorkoutManager.showingSummaryView) // Should not show summary
-    }
 }

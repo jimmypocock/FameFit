@@ -69,39 +69,6 @@ class WorkoutIntegrationTests: XCTestCase {
         // This would be tested in UI tests or with a device
     }
 
-    func testPauseResumeLogic() {
-        // Given: Workout is running
-        workoutManager.isWorkoutRunning = true
-        workoutManager.isPaused = false
-
-        // When: Toggle pause
-        workoutManager.togglePause()
-
-        // Then: Should call pause (can't verify without mock)
-        // In real test, we'd verify session.pause() was called
-
-        // Given: Workout is paused
-        workoutManager.isWorkoutRunning = false
-        workoutManager.isPaused = true
-
-        // When: Toggle pause again
-        workoutManager.togglePause()
-
-        // Then: Should call resume
-    }
-
-    func testEndWorkoutFlow() {
-        // Test that ending workout follows correct sequence:
-        // 1. endWorkout() called
-        // 2. session.end() called
-        // 3. Delegate receives .ended state
-        // 4. Builder ends collection
-        // 5. Workout is finished
-        // 6. Summary view is shown
-
-        // This requires mocking HKWorkoutSession which is not easily mockable
-        // Better tested through UI tests
-    }
 
     // MARK: - Data Integrity Tests
 
@@ -121,14 +88,16 @@ class WorkoutIntegrationTests: XCTestCase {
     }
 
     func testSummaryViewDismissalResetsState() {
-        // Given: Summary is showing
-        workoutManager.showingSummaryView = true
+        // Given: Workout was completed
         workoutManager.selectedWorkout = .cycling
-
-        // When: Summary is dismissed
-        workoutManager.showingSummaryView = false
+        // Note: We can't directly test summary view dismissal without UI
+        // This would require a UI test or mock implementation
+        
+        // When: Reset is called (which happens after summary dismissal)
+        workoutManager.resetWorkout()
 
         // Then: Workout should be reset
         XCTAssertNil(workoutManager.selectedWorkout)
+        XCTAssertNil(workoutManager.completedWorkout)
     }
 }

@@ -503,7 +503,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     private func recalculateStatsFromWorkouts() async {
         do {
-            let predicate = NSPredicate(value: true)
+            guard let userID = currentUserID else {
+                FameFitLogger.warning("Cannot recalculate stats - no user ID", category: FameFitLogger.cloudKit)
+                return
+            }
+            
+            let predicate = NSPredicate(format: "userID == %@", userID)
             let sortDescriptors = [NSSortDescriptor(key: "endDate", ascending: false)]
             
             // Fetch from PRIVATE database where workouts are stored
@@ -594,19 +599,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     func saveWorkout(_ workout: Workout) {
         Task {
             do {
-                // Create the workout record
-                let record = CKRecord(recordType: "Workouts")
-                record["workoutID"] = workout.id
-                record["workoutType"] = workout.workoutType
-                record["startDate"] = workout.startDate
-                record["endDate"] = workout.endDate
-                record["duration"] = workout.duration
-                record["totalEnergyBurned"] = workout.totalEnergyBurned
-                record["totalDistance"] = workout.totalDistance
-                record["averageHeartRate"] = workout.averageHeartRate
-                record["followersEarned"] = workout.followersEarned
-                record["xpEarned"] = workout.xpEarned
-                record["source"] = workout.source
+                // Use the centralized method to create the record
+                guard let userID = currentUserID else {
+                    FameFitLogger.error("No userID available for workout save", category: FameFitLogger.cloudKit)
+                    return
+                }
+                let record = workout.toCKRecord(userID: userID)
                 
                 // Save to CloudKit
                 _ = try await privateDatabase.save(record)
@@ -636,39 +634,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
                 FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
                 
                 let workouts = records.compactMap { record -> Workout? in
-                    guard let id = record["workoutID"] as? String,
-                          let type = record["workoutType"] as? String,
-                          let startDate = record["startDate"] as? Date,
-                          let endDate = record["endDate"] as? Date else {
+                    if let workout = Workout(from: record) {
+                        return workout
+                    } else {
                         FameFitLogger.warning("⚠️ Skipping workout record with missing required fields", category: FameFitLogger.cloudKit)
                         return nil
                     }
-                    
-                    // Extract individual fields to avoid type-checking timeout
-                    let workoutID = id
-                    let duration = record["duration"] as? TimeInterval ?? 0
-                    let totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
-                    let totalDistance = record["totalDistance"] as? Double
-                    let averageHeartRate = record["averageHeartRate"] as? Double
-                    let followersEarned = record["followersEarned"] as? Int ?? 5
-                    let xpEarned = record["xpEarned"] as? Int
-                    let source = record["source"] as? String ?? "Unknown"
-                    let groupWorkoutID = record["groupWorkoutID"] as? String
-                    
-                    return Workout(
-                        id: workoutID,
-                        workoutType: type,
-                        startDate: startDate,
-                        endDate: endDate,
-                        duration: duration,
-                        totalEnergyBurned: totalEnergyBurned,
-                        totalDistance: totalDistance,
-                        averageHeartRate: averageHeartRate,
-                        followersEarned: followersEarned,
-                        xpEarned: xpEarned,
-                        source: source,
-                        groupWorkoutID: groupWorkoutID
-                    )
                 }
                 
                 completion(.success(workouts))

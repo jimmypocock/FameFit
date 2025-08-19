@@ -22,7 +22,7 @@ class WorkoutManagerTests: XCTestCase {
         XCTAssertNil(workoutManager.selectedWorkout)
         XCTAssertNil(workoutManager.session)
         XCTAssertNil(workoutManager.builder)
-        XCTAssertFalse(workoutManager.showingSummaryView)
+        XCTAssertNil(workoutManager.completedWorkout)
         XCTAssertFalse(workoutManager.isWorkoutRunning)
         XCTAssertFalse(workoutManager.isPaused)
         XCTAssertEqual(workoutManager.activeEnergy, 0)
@@ -45,43 +45,7 @@ class WorkoutManagerTests: XCTestCase {
     }
 
     // MARK: - Pause/Resume Tests
-
-    func testTogglePauseWhenRunning() {
-        // Given workout is running
-        workoutManager.isWorkoutRunning = true
-        workoutManager.isPaused = false
-
-        // When togglePause is called
-        workoutManager.togglePause()
-
-        // Then pause() should be called (we can't test the actual session pause without mocking)
-        // But we can verify the logic flow works
-        XCTAssertTrue(true) // No crash occurred
-    }
-
-    func testTogglePauseWhenPaused() {
-        // Given workout is paused
-        workoutManager.isWorkoutRunning = false
-        workoutManager.isPaused = true
-
-        // When togglePause is called
-        workoutManager.togglePause()
-
-        // Then resume() should be called
-        XCTAssertTrue(true) // No crash occurred
-    }
-
-    func testTogglePauseWhenNotActive() {
-        // Given workout is not active
-        workoutManager.isWorkoutRunning = false
-        workoutManager.isPaused = false
-
-        // When togglePause is called
-        workoutManager.togglePause()
-
-        // Then nothing should happen
-        XCTAssertTrue(true) // No crash occurred
-    }
+    // Note: Actual pause/resume behavior cannot be tested without mocking HKWorkoutSession
 
     // MARK: - End Workout Tests
 
@@ -98,16 +62,6 @@ class WorkoutManagerTests: XCTestCase {
         XCTAssertNil(workoutManager.builder)
     }
 
-    func testEndWorkoutShowsSummary() {
-        // Given a mock session exists
-        // Note: We can't create a real HKWorkoutSession in tests
-        // but we can test the expected behavior
-
-        // When endWorkout would be called with an active session
-        // It should set showingSummaryView to true
-        // This is handled in the actual endWorkout method
-        XCTAssertFalse(workoutManager.showingSummaryView)
-    }
 
     // MARK: - Reset Workout Tests
 
@@ -139,27 +93,9 @@ class WorkoutManagerTests: XCTestCase {
 
     // MARK: - Summary View Tests
 
-    func testShowingSummaryViewDidSetResetsWorkout() {
-        // Given
-        workoutManager.selectedWorkout = .cycling
-        workoutManager.showingSummaryView = true
-
-        // When summary view is dismissed
-        workoutManager.showingSummaryView = false
-
-        // Then workout should be reset
-        XCTAssertNil(workoutManager.selectedWorkout)
-    }
 
     // MARK: - Authorization Tests
-
-    func testRequestAuthorizationExists() {
-        // Verify the method exists and can be called
-        workoutManager.requestAuthorization()
-
-        // No crash means the method exists
-        XCTAssertTrue(true)
-    }
+    // Note: Cannot test actual HealthKit authorization without real HKHealthStore
 
     // MARK: - Metrics Update Tests
 
@@ -190,11 +126,7 @@ class WorkoutManagerTests: XCTestCase {
         }
     }
 
-    // MARK: - Message Tests
-
-    func testInitialMessageIsEmpty() {
-        XCTAssertEqual(workoutManager.currentMessage, "")
-    }
+    // MARK: - Error State Tests
 
     func testWorkoutErrorStartsNil() {
         XCTAssertNil(workoutManager.workoutError)

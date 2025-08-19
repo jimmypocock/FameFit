@@ -177,23 +177,8 @@ final class WorkoutQueue {
         let payload = try JSONDecoder().decode(WorkoutSavePayload.self, from: item.data)
         let workout = payload.workout
         
-        // Create CloudKit record
-        let record = CKRecord(recordType: "Workouts")
-        record["workoutID"] = workout.id
-        record["workoutType"] = workout.workoutType
-        record["startDate"] = workout.startDate
-        record["endDate"] = workout.endDate
-        record["duration"] = workout.duration
-        record["totalEnergyBurned"] = workout.totalEnergyBurned
-        record["totalDistance"] = workout.totalDistance
-        record["averageHeartRate"] = workout.averageHeartRate
-        record["followersEarned"] = workout.followersEarned
-        record["xpEarned"] = workout.xpEarned
-        record["source"] = workout.source
-        
-        if let groupWorkoutID = workout.groupWorkoutID {
-            record["groupWorkoutID"] = groupWorkoutID
-        }
+        // Use the centralized method to create the record
+        let record = workout.toCKRecord(userID: payload.userID)
         
         // Save with retry
         _ = try await cloudKitManager.saveWithRetry(

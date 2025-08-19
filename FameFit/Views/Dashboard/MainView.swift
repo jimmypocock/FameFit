@@ -145,13 +145,12 @@ struct MainView: View {
                                 ToolbarItem(placement: .navigationBarLeading) {
                                     notificationButton
                                 }
-                                #if DEBUG
+                                // TODO: Add DEBUG conditional before putting on App Store
                                 ToolbarItem(placement: .navigationBarTrailing) {
                                     NavigationLink(destination: WatchConnectivityDebugView()) {
                                         Image(systemName: "applewatch.radiowaves.left.and.right")
                                     }
                                 }
-                                #endif
                                 ToolbarItem(placement: .navigationBarTrailing) {
                                     profileMenu
                                 }

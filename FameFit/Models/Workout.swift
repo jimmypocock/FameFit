@@ -1,5 +1,8 @@
 import Foundation
 import HealthKit
+#if !os(watchOS)
+import CloudKit
+#endif
 
 struct Workout: Identifiable, Codable {
     let id: String
@@ -84,9 +87,65 @@ struct Workout: Identifiable, Codable {
     var workoutActivityType: HKWorkoutActivityType {
         HKWorkoutActivityType.from(storageKey: workoutType) ?? .other
     }
+    
+    #if !os(watchOS)
+    /// Convert this Workout to a CloudKit record for saving
+    /// - Parameter userID: The CloudKit user ID (required for queries)
+    /// - Returns: A CKRecord configured with all workout fields matching the CloudKit schema
+    func toCKRecord(userID: String) -> CKRecord {
+        let record = CKRecord(recordType: "Workouts")
+        
+        // Map to CloudKit schema fields (must match exactly)
+        record["id"] = id  // Note: Schema uses "id" not "workoutID"
+        record["userID"] = userID
+        record["workoutType"] = workoutType
+        record["startDate"] = startDate
+        record["endDate"] = endDate
+        record["duration"] = duration
+        record["totalEnergyBurned"] = totalEnergyBurned
+        record["totalDistance"] = totalDistance ?? 0.0
+        record["averageHeartRate"] = averageHeartRate ?? 0.0
+        record["followersEarned"] = Int64(followersEarned)
+        record["xpEarned"] = Int64(xpEarned ?? followersEarned)
+        record["source"] = source
+        
+        if let groupWorkoutID = groupWorkoutID {
+            record["groupWorkoutID"] = groupWorkoutID
+        }
+        
+        return record
+    }
+    #endif
 }
 
 extension Workout {
+    #if !os(watchOS)
+    /// Initialize a Workout from a CloudKit record
+    /// - Parameter record: The CKRecord from CloudKit with Workouts record type
+    init?(from record: CKRecord) {
+        // Required fields - if any are missing, return nil
+        guard let id = record["id"] as? String,  // Note: Schema uses "id" not "workoutID"
+              let workoutType = record["workoutType"] as? String,
+              let startDate = record["startDate"] as? Date,
+              let endDate = record["endDate"] as? Date else {
+            return nil
+        }
+        
+        self.id = id
+        self.workoutType = workoutType
+        self.startDate = startDate
+        self.endDate = endDate
+        self.duration = record["duration"] as? TimeInterval ?? 0
+        self.totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
+        self.totalDistance = record["totalDistance"] as? Double
+        self.averageHeartRate = record["averageHeartRate"] as? Double
+        self.followersEarned = (record["followersEarned"] as? Int64).map { Int($0) } ?? 0
+        self.xpEarned = (record["xpEarned"] as? Int64).map { Int($0) }
+        self.source = record["source"] as? String ?? "Unknown"
+        self.groupWorkoutID = record["groupWorkoutID"] as? String
+    }
+    #endif
+    
     init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil, groupWorkoutID: String? = nil) {
         id = UUID().uuidString
         workoutType = workout.workoutActivityType.displayName

@@ -14,6 +14,7 @@ class MockWorkoutManager: ObservableObject, WorkoutManaging {
 
     @Published var selectedWorkout: HKWorkoutActivityType?
     @Published var showingSummaryView: Bool = false
+    @Published var completedWorkout: HKWorkout?
 
     // MARK: - Mock Control Properties
 

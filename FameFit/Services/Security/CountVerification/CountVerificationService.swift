@@ -109,17 +109,21 @@ final class CountVerificationService: CountVerificationProtocol {
         FameFitLogger.debug("🔢 Verifying workout count from workout records", category: FameFitLogger.data)
         
         // Query all workouts for current user
-        let predicate = NSPredicate(value: true) // Will be filtered by user in CloudKit
+        guard let userID = cloudKitManager.currentUserID else {
+            throw CountVerificationError.userNotAuthenticated
+        }
+        
+        let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: "Workouts", predicate: predicate)
         query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
         
         do {
             let records = try await cloudKitManager.privateDatabase.allRecords(
                 matching: query,
-                desiredKeys: ["workoutID"] // Only need IDs for counting
+                desiredKeys: ["id"] // Changed from "workoutID" to "id" to match schema
             )
             
-            FameFitLogger.debug("🔢 Found \(records.count) workout records", category: FameFitLogger.data)
+            FameFitLogger.debug("🔢 Found \(records.count) workout records for user \(userID)", category: FameFitLogger.data)
             return records.count
         } catch {
             FameFitLogger.error("🔢 Failed to fetch workout records for counting", error: error, category: FameFitLogger.data)

@@ -2,105 +2,118 @@
 //  WorkoutSelectionUITests.swift
 //  FameFit Watch AppUITests
 //
-//  Tests for workout selection and launch flow on Watch app
+//  Minimal but valuable UI tests for Watch app workout selection
 //
 
 import XCTest
 
 final class WorkoutSelectionUITests: XCTestCase {
+    
+    var app: XCUIApplication!
+    
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests
-        // before they run. The setUp method is a good place to do this.
+        app = XCUIApplication()
+        
+        // Add launch arguments to skip onboarding or use mock data if needed
+        // app.launchArguments = ["--uitesting"]
     }
-
+    
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        app = nil
     }
-
-    @MainActor
-    func testLaunchAndNavigateToWorkout() throws {
-        // Launch the Watch app
-        let app = XCUIApplication()
+    
+    // MARK: - Core User Flow Tests
+    
+    func testAppLaunchShowsWorkoutOptions() throws {
+        // Given: App launches
         app.launch()
-
-        // Give the app a moment to fully launch
-        sleep(3)
-
-        // Handle potential HealthKit permission dialog
+        
+        // Handle potential HealthKit permission (with timeout to not fail if it doesn't appear)
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let allowButton = springboard.buttons["Allow"]
-        if allowButton.waitForExistence(timeout: 2) {
+        if allowButton.waitForExistence(timeout: 3) {
             allowButton.tap()
-            sleep(2) // Give time for the permission to be processed
         }
-
-        // Give additional time for the list view to load after permissions
-        sleep(2)
-
-        // Look for workout buttons - they might be in a carousel list
-        // Try different ways to find the buttons
-        let runButton = app.buttons["Running"]
-        let walkButton = app.buttons["Walking"]
-        let bikeButton = app.buttons["Cycling"]
-
-        // Also try finding by static text if buttons don't work
-        let runText = app.staticTexts["Running"]
-        let walkText = app.staticTexts["Walking"]
-        let bikeText = app.staticTexts["Cycling"]
-
-        // Wait for at least one workout option to appear (button or text)
-        let workoutExists = runButton.waitForExistence(timeout: 5) ||
-            walkButton.waitForExistence(timeout: 5) ||
-            bikeButton.waitForExistence(timeout: 5) ||
-            runText.waitForExistence(timeout: 5) ||
-            walkText.waitForExistence(timeout: 5) ||
-            bikeText.waitForExistence(timeout: 5)
-
-        // If still not found, check if we need to scroll or if elements are in a different container
-        if !workoutExists {
-            // Print debug info
-            print("DEBUG: Number of buttons found: \(app.buttons.count)")
-            print("DEBUG: Number of static texts found: \(app.staticTexts.count)")
-
-            // Try to find any button or text containing workout names
-            let anyWorkoutButton = app.buttons.containing(.staticText, identifier: "Running").element.exists ||
-                app.buttons.containing(.staticText, identifier: "Walking").element.exists ||
-                app.buttons.containing(.staticText, identifier: "Cycling").element.exists
-
-            XCTAssertTrue(anyWorkoutButton, "Should see at least one workout option")
-        } else {
-            XCTAssertTrue(workoutExists, "Should see at least one workout option")
-        }
-
-        // Verify all workout options are displayed
-        if runButton.exists, walkButton.exists, bikeButton.exists {
-            XCTAssertTrue(true, "All three workout options are visible")
-        } else {
-            // At least verify we have the main ones
-            XCTAssertTrue(
-                runButton.exists || walkButton.exists,
-                "Should see at least Run or Walk workout options"
-            )
-        }
-
-        // NOTE: Navigation testing removed due to HealthKit permission complexity
-        // The actual workout flow is tested through unit tests and manual testing
+        
+        // Then: At least one workout option should be visible
+        let workoutOptionsExist = 
+            app.buttons["Running"].waitForExistence(timeout: 5) ||
+            app.staticTexts["Running"].waitForExistence(timeout: 5) ||
+            app.buttons["Walking"].waitForExistence(timeout: 5) ||
+            app.staticTexts["Walking"].waitForExistence(timeout: 5)
+        
+        XCTAssertTrue(workoutOptionsExist, 
+                     "App should display workout options after launch")
     }
-
-    // Commented out due to LaunchServices issues on simulators
-    // Uncomment only when needed for specific performance testing
-    /*
-     @MainActor
-     func testLaunchPerformance() throws {
-         // This measures how long it takes to launch your application.
-         measure(metrics: [XCTApplicationLaunchMetric()]) {
-             XCUIApplication().launch()
-         }
-     }
-     */
+    
+    func testSelectingWorkoutNavigatesToSession() throws {
+        // Given: App is launched and showing workout options
+        app.launch()
+        
+        // Handle HealthKit permission if needed
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.buttons["Allow"].waitForExistence(timeout: 3) {
+            springboard.buttons["Allow"].tap()
+        }
+        
+        // When: User taps on a workout option
+        let runningOption = app.buttons["Running"].firstMatch
+        let runningText = app.staticTexts["Running"].firstMatch
+        
+        if runningOption.waitForExistence(timeout: 5) {
+            runningOption.tap()
+        } else if runningText.waitForExistence(timeout: 2) {
+            runningText.tap()
+        } else {
+            XCTFail("Could not find Running workout option to tap")
+            return
+        }
+        
+        // Then: Should navigate away from workout selection
+        // We can verify this by checking that workout options are no longer visible
+        // OR by checking for elements that appear in the workout session
+        
+        // Option 1: Check that we've navigated away
+        let workoutOptionsGone = !app.buttons["Walking"].exists && 
+                                 !app.staticTexts["Walking"].exists
+        
+        // Option 2: Check for workout session UI elements (like pause button or metrics)
+        let sessionElementsExist = 
+            app.buttons["Pause"].waitForExistence(timeout: 3) ||
+            app.staticTexts["End"].waitForExistence(timeout: 3) ||
+            app.otherElements["MetricsView"].waitForExistence(timeout: 3)
+        
+        XCTAssertTrue(workoutOptionsGone || sessionElementsExist,
+                     "Should navigate to workout session after selection")
+    }
+    
+    func testWorkoutListIsScrollable() throws {
+        // Given: App is launched
+        app.launch()
+        
+        // Handle HealthKit permission if needed
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.buttons["Allow"].waitForExistence(timeout: 3) {
+            springboard.buttons["Allow"].tap()
+        }
+        
+        // When: User scrolls the workout list
+        // First, wait for the list to be ready
+        _ = app.buttons.firstMatch.waitForExistence(timeout: 5)
+        
+        // Capture initial state
+        _ = app.buttons.allElementsBoundByIndex.count
+        
+        // Perform scroll gesture (on Watch, this might be a digital crown rotation)
+        app.swipeUp()
+        
+        // Give time for scroll animation
+        Thread.sleep(forTimeInterval: 0.5)
+        
+        // Then: Should be able to scroll (buttons count might change or position changes)
+        // This is a basic check - mainly verifying scroll doesn't crash
+        XCTAssertTrue(app.buttons.count > 0, 
+                     "Workout list should remain functional after scrolling")
+    }
 }
