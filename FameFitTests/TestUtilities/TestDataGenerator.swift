@@ -29,11 +29,11 @@ enum TestDataGenerator {
         ]
 
         for (index, workout) in workoutTypes.enumerated() {
-            let workoutId = UUID()
+            let workoutId = UUID().uuidString
             let xpEarned = Int.random(in: 50 ... 150)
             let followersEarned = Int.random(in: 5 ... 25)
 
-            let workoutHistory = WorkoutItem(
+            let workoutHistory = Workout(
                 id: workoutId,
                 workoutType: workout.name,
                 startDate: Date().addingTimeInterval(TimeInterval(-index * 3_600)),

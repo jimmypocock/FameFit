@@ -2,7 +2,7 @@
 //  MockNotificationStore.swift
 //  FameFitTests
 //
-//  Mock implementation of NotificationStoring for unit testing
+//  Mock implementation of NotificationStoringProtocol for unit testing
 //
 
 @testable import FameFit
@@ -10,7 +10,7 @@ import Foundation
 import SwiftUI
 
 /// Mock notification store for testing
-class MockNotificationStore: ObservableObject, NotificationStoring {
+class MockNotificationStore: ObservableObject, NotificationStoringProtocol {
     @Published var notifications: [FameFitNotification] = []
     @Published var unreadCount: Int = 0
 
@@ -26,7 +26,7 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
     var loadNotificationsCalled = false
     var saveNotificationsCalled = false
 
-    var lastAddedNotification: Notification?
+    var lastAddedNotification: FameFitNotification?
     var lastMarkedReadId: String?
     var lastDeletedOffsets: IndexSet?
 
@@ -36,7 +36,7 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
 
     private let maxNotifications = 50
 
-    func addFameFitNotification(_ item: Notification) {
+    func addFameFitNotification(_ item: FameFitNotification) {
         addNotificationCalled = true
         lastAddedNotification = item
 
@@ -155,11 +155,9 @@ class MockNotificationStore: ObservableObject, NotificationStoring {
 
         for index in 1 ... count {
             let notification = FameFitNotification(
+                type: .workoutCompleted,
                 title: "Test Notification \(index)",
-                body: "Body \(index)",
-                workoutDuration: 30 * index,
-                calories: 100 * index,
-                followersEarned: 5
+                body: "Body \(index)"
             )
 
             if index > (count - unreadCount) {

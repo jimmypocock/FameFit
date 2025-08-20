@@ -72,7 +72,8 @@ enum TestWorkoutBuilder {
         startDate: Date,
         endDate: Date,
         distance: Double? = nil,
-        calories: Double? = nil
+        calories: Double? = nil,
+        metadata: [String: Any]? = nil
     ) -> HKWorkout {
         // Create energy and distance quantities
         var totalEnergyBurned: HKQuantity?
@@ -110,9 +111,8 @@ enum TestWorkoutBuilder {
         //
         // When Apple provides a proper testing API, we'll migrate immediately.
         // Using deprecated API for testing - no viable alternative exists for unit testing
-        #if compiler(>=5.9)
-            @available(iOS, deprecated: 17.0)
-        #endif
+        
+        // Intentionally using deprecated API - no alternative exists for unit testing
         let workout = HKWorkout(
             activityType: type,
             start: startDate,
@@ -120,12 +120,36 @@ enum TestWorkoutBuilder {
             duration: endDate.timeIntervalSince(startDate),
             totalEnergyBurned: totalEnergyBurned,
             totalDistance: totalDistance,
-            metadata: nil
+            metadata: metadata
         )
 
         return workout
     }
 
+    /// Convenience method for creating workouts with HKQuantity parameters
+    static func createWorkout(
+        type: HKWorkoutActivityType = .running,
+        duration: TimeInterval = 3600,
+        totalEnergyBurned: HKQuantity? = nil,
+        totalDistance: HKQuantity? = nil,
+        metadata: [String: Any]? = nil
+    ) -> HKWorkout {
+        let startDate = Date().addingTimeInterval(-duration - 60)
+        let endDate = startDate.addingTimeInterval(duration)
+        
+        let calories = totalEnergyBurned?.doubleValue(for: .kilocalorie())
+        let distance = totalDistance?.doubleValue(for: .meter())
+        
+        return createWorkout(
+            type: type,
+            startDate: startDate,
+            endDate: endDate,
+            distance: distance,
+            calories: calories,
+            metadata: metadata
+        )
+    }
+    
     // MARK: - Test Scenarios
 
     /// Creates multiple workouts for testing

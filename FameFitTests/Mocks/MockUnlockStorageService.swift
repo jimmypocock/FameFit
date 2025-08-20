@@ -8,7 +8,7 @@
 @testable import FameFit
 import Foundation
 
-final class MockUnlockStorageService: UnlockStorageServiceProtocol {
+final class MockUnlockStorageService: UnlockStorageProtocol {
     var mockUnlocks: [XPUnlock] = []
     var mockTimestamps: [String: Date] = [:] // key is unlock.name
 

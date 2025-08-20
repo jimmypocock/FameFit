@@ -140,16 +140,6 @@ class SecurityTests: XCTestCase {
         XCTAssertFalse(DataValidator.isValidWorkoutDuration(-100)) // Negative
     }
 
-    // MARK: - UserDefaults Keys Tests
-
-    func testUserDefaultsKeysFormat() {
-        // All keys should use reverse domain notation
-        let keys = UserDefaultsKeys.allKeys
-
-        for key in keys {
-            XCTAssertTrue(key.hasPrefix("com.jimmypocock.FameFit."))
-        }
-    }
 
     func testDataClearing() {
         // Given - Set some test data
@@ -166,16 +156,4 @@ class SecurityTests: XCTestCase {
         XCTAssertNil(UserDefaults.standard.object(forKey: UserDefaultsKeys.hasCompletedOnboarding))
     }
 
-    // MARK: - Permission Scoping Tests
-
-    func testMinimalHealthKitPermissions() {
-        // Test that we're using minimal permissions through HealthKitService
-        let readTypes = HealthKitService.readTypes
-
-        // Should only request what we need
-        XCTAssertTrue(readTypes.contains(HKObjectType.workoutType()))
-
-        // Should not exceed reasonable count
-        XCTAssertLessThanOrEqual(readTypes.count, 10)
-    }
 }

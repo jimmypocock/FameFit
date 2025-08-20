@@ -18,10 +18,10 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
     private(set) var updateCommentCalled = false
     private(set) var getCommentCountCalled = false
     
-    var mockComments: [CommentWithUser] = []
+    var mockComments: [ActivityFeedCommentWithUser] = []
     var mockCommentCount = 0
     
-    func fetchComments(for activityFeedID: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchComments(for activityFeedID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         fetchCommentsCalled = true
         if shouldFail {
             throw error
@@ -32,10 +32,10 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
     func postComment(
         activityFeedID: String,
         sourceType: String,
-        sourceRecordId: String,
-        activityOwnerId: String,
+        sourceID: String,
+        activityOwnerID: String,
         content: String,
-        parentCommentId: String?
+        parentCommentID: String?
     ) async throws -> ActivityFeedComment {
         postCommentCalled = true
         if shouldFail {
@@ -46,48 +46,48 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
             id: UUID().uuidString,
             activityFeedID: activityFeedID,
             sourceType: sourceType,
-            sourceRecordId: sourceRecordId,
-            userId: "test-user",
-            activityOwnerId: activityOwnerId,
+            sourceID: sourceID,
+            userID: "test-user",
+            activityOwnerID: activityOwnerID,
             content: content,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
-            parentCommentId: parentCommentId,
+            creationDate: Date(),
+            modificationDate: Date(),
+            parentCommentID: parentCommentID,
             isEdited: false,
             likeCount: 0
         )
     }
     
-    func deleteComment(commentId: String) async throws {
+    func deleteComment(commentID: String) async throws {
         deleteCommentCalled = true
         if shouldFail {
             throw error
         }
     }
     
-    func updateComment(commentId: String, newContent: String) async throws -> ActivityFeedComment {
+    func updateComment(commentID: String, newContent: String) async throws -> ActivityFeedComment {
         updateCommentCalled = true
         if shouldFail {
             throw error
         }
         
         return ActivityFeedComment(
-            id: commentId,
+            id: commentID,
             activityFeedID: "test-feed",
             sourceType: "workout",
-            sourceRecordId: "test-workout",
-            userId: "test-user",
-            activityOwnerId: "test-owner",
+            sourceID: "test-workout",
+            userID: "test-user",
+            activityOwnerID: "test-owner",
             content: newContent,
-            createdTimestamp: Date().addingTimeInterval(-3_600),
-            modifiedTimestamp: Date(),
-            parentCommentId: nil,
+            creationDate: Date().addingTimeInterval(-3_600),
+            modificationDate: Date(),
+            parentCommentID: nil,
             isEdited: true,
             likeCount: 0
         )
     }
     
-    func fetchCommentsBySource(sourceType: String, sourceRecordId: String, limit: Int) async throws -> [CommentWithUser] {
+    func fetchCommentsBySource(sourceType: String, sourceID: String, limit: Int) async throws -> [ActivityFeedCommentWithUser] {
         fetchCommentsCalled = true
         if shouldFail {
             throw error
@@ -95,14 +95,14 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
         return mockComments
     }
     
-    func likeComment(commentId: String) async throws -> Int {
+    func likeComment(commentID: String) async throws -> Int {
         if shouldFail {
             throw error
         }
         return 1
     }
     
-    func unlikeComment(commentId: String) async throws -> Int {
+    func unlikeComment(commentID: String) async throws -> Int {
         if shouldFail {
             throw error
         }
@@ -117,7 +117,7 @@ final class MockActivityFeedCommentsService: ActivityFeedCommentsProtocol {
         return mockCommentCount
     }
     
-    func fetchCommentCountBySource(sourceType: String, sourceRecordId: String) async throws -> Int {
+    func fetchCommentCountBySource(sourceType: String, sourceID: String) async throws -> Int {
         getCommentCountCalled = true
         if shouldFail {
             throw error

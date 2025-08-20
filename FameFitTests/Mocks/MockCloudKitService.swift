@@ -5,12 +5,63 @@ import Foundation
 import HealthKit
 
 /// Mock CloudKitService for unit testing
-class MockCloudKitService: CloudKitService {
-    // MARK: - Database Mocking
-
+class MockCloudKitService: ObservableObject, CloudKitProtocol {
+    // MARK: - CloudKitProtocol Properties
+    
+    @Published var isAvailable: Bool = true
+    @Published var currentUserID: String? = "mock-user-id"
+    @Published var totalXP: Int = 100
+    @Published var totalWorkouts: Int = 20
+    @Published var currentStreak: Int = 5
+    @Published var username: String = "Test User"
+    @Published var lastWorkoutTimestamp: Date? = Date().addingTimeInterval(-24 * 60 * 60)
+    @Published var lastError: FameFitError?
+    
+    // Publishers
+    var isAvailablePublisher: AnyPublisher<Bool, Never> {
+        $isAvailable.eraseToAnyPublisher()
+    }
+    
+    var totalXPPublisher: AnyPublisher<Int, Never> {
+        $totalXP.eraseToAnyPublisher()
+    }
+    
+    var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
+        $totalWorkouts.eraseToAnyPublisher()
+    }
+    
+    var currentStreakPublisher: AnyPublisher<Int, Never> {
+        $currentStreak.eraseToAnyPublisher()
+    }
+    
+    var usernamePublisher: AnyPublisher<String, Never> {
+        $username.eraseToAnyPublisher()
+    }
+    
+    var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
+        $lastWorkoutTimestamp.eraseToAnyPublisher()
+    }
+    
+    var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
+        $lastError.eraseToAnyPublisher()
+    }
+    
+    // CloudKit databases
+    var database: CKDatabase { 
+        CKContainer(identifier: CloudKitConfiguration.containerIdentifier).privateCloudDatabase 
+    }
+    var publicDatabase: CKDatabase { 
+        CKContainer(identifier: CloudKitConfiguration.containerIdentifier).publicCloudDatabase 
+    }
+    var privateDatabase: CKDatabase { 
+        CKContainer(identifier: CloudKitConfiguration.containerIdentifier).privateCloudDatabase 
+    }
+    
+    // MARK: - Mock Properties
+    
     var mockPublicDatabase: MockCKDatabase!
     var mockPrivateDatabase: MockCKDatabase!
-
+    
     // Track method calls
     var addFollowersCalled = false
     var addFollowersCallCount = 0
@@ -22,90 +73,148 @@ class MockCloudKitService: CloudKitService {
     var recordWorkoutCalled = false
     var addFollowersCalls: [(count: Int, date: Date)] = []
     var addXPCalls: [(xp: Int, date: Date)] = []
-    var saveCallCount = 0 // Add this property
-    var mockRecords: [CKRecord] = [] // Add this property
-    var mockRecordsByID: [String: CKRecord] = [:] // For lookup by ID
-    var mockQueryResults: [CKRecord] = [] // Add this property
-    var savedRecords: [CKRecord] = [] // Track saved records
+    var saveCallCount = 0
+    var mockRecords: [CKRecord] = []
+    var mockRecordsByID: [String: CKRecord] = [:]
+    var mockQueryResults: [CKRecord] = []
+    var savedRecords: [CKRecord] = []
     
     // Control test behavior
-    var shouldFail = false // General failure flag
+    var shouldFail = false
     var shouldFailAddFollowers = false
     var shouldFailAddXP = false
     var shouldFailFetchUserRecord = false
     var mockIsAvailable = true
     var mockCurrentUserID: String? = "mock-user-id"
-
-    // Override parent properties to set initial values
-    override init() {
-        // Initialize mock databases first
+    
+    // Additional mock properties
+    var isSignedIn = true
+    var userRecord: CKRecord?
+    var workoutHistory: [Workout] = []
+    
+    // MARK: - Initialization
+    
+    init() {
+        // Initialize mock databases
         mockPublicDatabase = MockCKDatabase()
         mockPrivateDatabase = MockCKDatabase()
-
-        super.init()
-
-        // Set initial test values
-        isSignedIn = true
-        totalXP = 100
-        userName = "Test User"
-        currentStreak = 5
-        totalWorkouts = 20
-        lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
     }
-
-    // Note: We can't expose publicDatabase/privateDatabase as CKDatabase
-    // because MockCKDatabase can't inherit from CKDatabase (no public init)
-
-    // Publishers
-    override var isAvailablePublisher: AnyPublisher<Bool, Never> {
-        Just(isAvailable).eraseToAnyPublisher()
-    }
-
-    override var totalXPPublisher: AnyPublisher<Int, Never> {
-        $totalXP.eraseToAnyPublisher()
-    }
-
-    override var totalWorkoutsPublisher: AnyPublisher<Int, Never> {
-        $totalWorkouts.eraseToAnyPublisher()
-    }
-
-    override var currentStreakPublisher: AnyPublisher<Int, Never> {
-        $currentStreak.eraseToAnyPublisher()
-    }
-
-    override var userNamePublisher: AnyPublisher<String, Never> {
-        $userName.eraseToAnyPublisher()
-    }
-
-    override var lastWorkoutTimestampPublisher: AnyPublisher<Date?, Never> {
-        $lastWorkoutTimestamp.eraseToAnyPublisher()
-    }
-
-    override var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
-        $lastError.eraseToAnyPublisher()
-    }
-
-    // Override CloudKit availability
-    override var isAvailable: Bool {
-        mockIsAvailable
-    }
-
-    override var currentUserID: String? {
-        get { mockCurrentUserID }
-        set { mockCurrentUserID = newValue }
-    }
-
-    override func checkAccountStatus() {
+    
+    // MARK: - CloudKitProtocol Methods
+    
+    func checkAccountStatus() {
         // Mock is always signed in and ready
         isSignedIn = true
     }
-
-    func checkAvailability() async {
-        // Mock is always available
-        isSignedIn = true
+    
+    func fetchUserRecord() {
+        fetchUserRecordCalled = true
+        
+        if shouldFailFetchUserRecord {
+            lastError = .cloudKitUserNotFound
+        } else {
+            // Simulate successful fetch with no changes
+            lastError = nil
+        }
     }
-
-    // Mock CloudKit database access
+    
+    func addXP(_ xp: Int) {
+        addXPCalled = true
+        addXPCallCount += 1
+        lastAddedXPCount = xp
+        addXPCalls.append((xp: xp, date: Date()))
+        
+        if !shouldFailAddXP {
+            // Update values synchronously
+            let newXP = totalXP + xp
+            let newWorkoutCount = totalWorkouts + 1
+            
+            totalXP = newXP
+            totalWorkouts = newWorkoutCount
+            lastWorkoutTimestamp = Date()
+            lastError = nil
+        } else {
+            lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
+    }
+    
+    func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void) {
+        recordWorkoutCalled = true
+        
+        DispatchQueue.main.async {
+            completion(!self.shouldFailAddFollowers)
+        }
+    }
+    
+    func getXPTitle() -> String {
+        switch totalXP {
+        case 0 ..< 100:
+            return "Fitness Newbie"
+        case 100 ..< 1_000:
+            return "Micro-Influencer"
+        case 1_000 ..< 10_000:
+            return "Rising Star"
+        case 10_000 ..< 100_000:
+            return "Verified Influencer"
+        default:
+            return "FameFit Elite"
+        }
+    }
+    
+    func saveWorkout(_ workout: Workout) {
+        workoutHistory.append(workout)
+    }
+    
+    func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
+        // Sort by endDate descending to match CloudKit implementation
+        let sortedHistory = workoutHistory.sorted { $0.endDate > $1.endDate }
+        completion(.success(sortedHistory))
+    }
+    
+    func recalculateStatsIfNeeded() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    func recalculateUserStats() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    func clearAllWorkoutsAndResetStats() async throws {
+        // Mock implementation - reset all stats
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+        workoutHistory = []
+    }
+    
+    func debugCloudKitEnvironment() async throws {
+        // Mock implementation - no-op for tests
+    }
+    
+    func forceResetStats() async throws {
+        // Mock implementation - reset all stats
+        totalXP = 0
+        totalWorkouts = 0
+        currentStreak = 0
+        lastWorkoutTimestamp = nil
+    }
+    
+    // CloudKit operations
+    func fetchRecords(withQuery query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?) async throws -> [CKRecord] {
+        if shouldFail {
+            throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
+        return mockQueryResults
+    }
+    
+    func fetchRecords(ofType recordType: String, predicate: NSPredicate?, sortDescriptors: [NSSortDescriptor]?, limit: Int?) async throws -> [CKRecord] {
+        if shouldFail {
+            throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
+        return mockRecords
+    }
+    
     func save(_ record: CKRecord) async throws -> CKRecord {
         saveCallCount += 1
         mockRecords.append(record)
@@ -116,70 +225,34 @@ class MockCloudKitService: CloudKitService {
         }
         return record
     }
-
-    func query(_: CKQuery, in _: CKDatabase? = nil) async throws -> [CKRecord] {
-        mockQueryResults
-    }
     
-    func performQuery(_ query: CKQuery, inZoneWith zoneID: CKRecordZone.ID?, desiredKeys: [CKRecord.FieldKey]?) async throws -> [CKRecord] {
+    func delete(withRecordID recordID: CKRecord.ID) async throws {
         if shouldFail {
             throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
         }
-        
-        // Return mockRecords for testing
-        return mockRecords
+        mockRecordsByID.removeValue(forKey: recordID.recordName)
+        mockRecords.removeAll { $0.recordID == recordID }
     }
-
-    override func addFollowers(_ count: Int) {
+    
+    func getCurrentUserID() async throws -> String {
+        guard let userID = currentUserID else {
+            throw FameFitError.cloudKitUserNotFound
+        }
+        return userID
+    }
+    
+    // MARK: - Test Helper Methods
+    
+    func addFollowers(_ count: Int) {
         addFollowersCalled = true
         addFollowersCallCount += 1
         lastAddedFollowerCount = count
         addFollowersCalls.append((count: count, date: Date()))
-
+        
         // Match the real implementation - addFollowers calls addXP
         addXP(count)
     }
-
-    override func addXP(_ xp: Int) {
-        addXPCalled = true
-        addXPCallCount += 1
-        lastAddedXPCount = xp
-        addXPCalls.append((xp: xp, date: Date()))
-
-        if !shouldFailAddXP {
-            // Update values synchronously
-            let newXP = totalXP + xp
-            let newWorkoutCount = totalWorkouts + 1
-
-            totalXP = newXP
-            totalWorkouts = newWorkoutCount
-            lastWorkoutTimestamp = Date()
-            lastError = nil
-        } else {
-            lastError = .cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
-        }
-    }
-
-    override func fetchUserRecord() {
-        fetchUserRecordCalled = true
-
-        if shouldFailFetchUserRecord {
-            lastError = .cloudKitUserNotFound
-        } else {
-            // Simulate successful fetch with no changes
-            lastError = nil
-        }
-    }
-
-    override func recordWorkout(_: HKWorkout, completion: @escaping (Bool) -> Void) {
-        recordWorkoutCalled = true
-
-        DispatchQueue.main.async {
-            completion(!self.shouldFailAddFollowers)
-        }
-    }
-
-    // Test helper methods
+    
     func reset() {
         addFollowersCalled = false
         addFollowersCallCount = 0
@@ -191,52 +264,22 @@ class MockCloudKitService: CloudKitService {
         recordWorkoutCalled = false
         addFollowersCalls.removeAll()
         addXPCalls.removeAll()
-
+        
         totalXP = 100
         totalWorkouts = 20
         currentStreak = 5
         lastWorkoutTimestamp = Date().addingTimeInterval(-24 * 60 * 60)
         lastError = nil
     }
-
+    
     func simulateUserSignOut() {
         isSignedIn = false
         userRecord = nil
         totalXP = 0
-        userName = ""
+        username = ""
         currentStreak = 0
         totalWorkouts = 0
         lastWorkoutTimestamp = nil
-    }
-
-    // MARK: - Workout History
-
-    private var workoutHistory: [WorkoutItem] = []
-
-    override func saveWorkout(_ workoutHistory: WorkoutItem) {
-        self.workoutHistory.append(workoutHistory)
-    }
-
-    override func fetchWorkouts(completion: @escaping (Result<[WorkoutItem], Error>) -> Void) {
-        // Sort by endDate descending to match CloudKit implementation
-        let sortedHistory = workoutHistory.sorted { $0.endDate > $1.endDate }
-        completion(.success(sortedHistory))
-    }
-
-    // Override the new XP title method
-    override func getXPTitle() -> String {
-        switch totalXP {
-        case 0 ..< 100:
-            "Fitness Newbie"
-        case 100 ..< 1_000:
-            "Micro-Influencer"
-        case 1_000 ..< 10_000:
-            "Rising Star"
-        case 10_000 ..< 100_000:
-            "Verified Influencer"
-        default:
-            "FameFit Elite"
-        }
     }
     
     func resetUserStats() {
@@ -246,42 +289,8 @@ class MockCloudKitService: CloudKitService {
         lastWorkoutTimestamp = nil
     }
     
-    // MARK: - New Protocol Methods
-    
-    override func saveWorkout(_ workoutHistory: Workout) {
-        // Mock implementation - no-op for tests
-    }
-    
-    override func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
-        completion(.success([]))
-    }
-    
-    override func recalculateStatsIfNeeded() async throws {
-        // Mock implementation - no-op for tests
-    }
-    
-    override func recalculateUserStats() async throws {
-        // Mock implementation - no-op for tests
-    }
-    
-    override func clearAllWorkoutsAndResetStats() async throws {
-        // Mock implementation - reset all stats
-        totalXP = 0
-        totalWorkouts = 0
-        currentStreak = 0
-        lastWorkoutTimestamp = nil
-        workoutHistory = []
-    }
-    
-    override func debugCloudKitEnvironment() async throws {
-        // Mock implementation - no-op for tests
-    }
-    
-    override func forceResetStats() async throws {
-        // Mock implementation - reset all stats
-        totalXP = 0
-        totalWorkouts = 0
-        currentStreak = 0
-        lastWorkoutTimestamp = nil
+    func checkAvailability() async {
+        // Mock is always available
+        isSignedIn = true
     }
 }

@@ -1,23 +1,23 @@
 //
-//  NotificationPreferencesTests.swift
+//  NotificationSettingsTests.swift
 //  FameFitTests
 //
-//  Tests for NotificationPreferences model and persistence
+//  Tests for NotificationSettings model and persistence
 //
 
 @testable import FameFit
 import XCTest
 
-class NotificationPreferencesTests: XCTestCase {
+class NotificationSettingsTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Clear UserDefaults before each test to ensure clean state
-        UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
+        UserDefaults.standard.removeObject(forKey: NotificationSettings.storageKey)
     }
 
     override func tearDown() {
         // Clear UserDefaults after each test - use the correct storage key
-        UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
+        UserDefaults.standard.removeObject(forKey: NotificationSettings.storageKey)
         super.tearDown()
     }
 
@@ -25,7 +25,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testDefaultInitialization_SetsCorrectDefaults() {
         // When
-        let preferences = NotificationPreferences()
+        let preferences = NotificationSettings()
 
         // Then
         XCTAssertTrue(preferences.pushNotificationsEnabled)
@@ -46,7 +46,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testSave_PersistsToUserDefaults() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.pushNotificationsEnabled = false
         preferences.maxNotificationsPerHour = 5
         preferences.quietHoursEnabled = true
@@ -57,7 +57,7 @@ class NotificationPreferencesTests: XCTestCase {
         preferences.save()
 
         // Then
-        let loaded = NotificationPreferences.load()
+        let loaded = NotificationSettings.load()
         XCTAssertEqual(loaded.pushNotificationsEnabled, false)
         XCTAssertEqual(loaded.maxNotificationsPerHour, 5)
         XCTAssertTrue(loaded.quietHoursEnabled)
@@ -67,10 +67,10 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testLoad_ReturnsDefaultsWhenNoSavedData() {
         // Given - No saved preferences
-        UserDefaults.standard.removeObject(forKey: NotificationPreferences.storageKey)
+        UserDefaults.standard.removeObject(forKey: NotificationSettings.storageKey)
 
         // When
-        let loaded = NotificationPreferences.load()
+        let loaded = NotificationSettings.load()
 
         // Then
         XCTAssertTrue(loaded.pushNotificationsEnabled)
@@ -81,7 +81,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsInQuietHours_WhenDisabled_ReturnsFalse() {
         // Given
-        let preferences = NotificationPreferences()
+        let preferences = NotificationSettings()
         XCTAssertFalse(preferences.quietHoursEnabled)
 
         // When/Then
@@ -90,7 +90,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsInQuietHours_WhenEnabledButNoTimes_ReturnsFalse() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.quietHoursEnabled = true
         // No start/end times set
 
@@ -100,7 +100,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsInQuietHours_DuringQuietHours_ReturnsTrue() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.quietHoursEnabled = true
 
         let calendar = Calendar.current
@@ -114,7 +114,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsInQuietHours_OutsideQuietHours_ReturnsFalse() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.quietHoursEnabled = true
 
         let calendar = Calendar.current
@@ -128,7 +128,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsInQuietHours_AcrossMidnight_HandlesCorrectly() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.quietHoursEnabled = true
 
         let calendar = Calendar.current
@@ -153,7 +153,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsNotificationTypeEnabled_DefaultsToTrue() {
         // Given
-        let preferences = NotificationPreferences()
+        let preferences = NotificationSettings()
 
         // When/Then
         for type in NotificationType.allCases {
@@ -163,7 +163,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsNotificationTypeEnabled_RespectsDisabledTypes() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.enabledTypes[.workoutCompleted] = false
         preferences.enabledTypes[.newFollower] = false
 
@@ -175,7 +175,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testIsNotificationTypeEnabled_WhenPushDisabled_ReturnsFalse() {
         // Given
-        var preferences = NotificationPreferences()
+        var preferences = NotificationSettings()
         preferences.pushNotificationsEnabled = false
 
         // When/Then
@@ -188,7 +188,7 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testCodable_EncodesAndDecodes() throws {
         // Given
-        var original = NotificationPreferences()
+        var original = NotificationSettings()
         original.pushNotificationsEnabled = false
         original.maxNotificationsPerHour = 7
         original.quietHoursEnabled = true
@@ -201,7 +201,7 @@ class NotificationPreferencesTests: XCTestCase {
 
         // When
         let encoded = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(NotificationPreferences.self, from: encoded)
+        let decoded = try JSONDecoder().decode(NotificationSettings.self, from: encoded)
 
         // Then
         XCTAssertEqual(decoded.pushNotificationsEnabled, original.pushNotificationsEnabled)
@@ -217,8 +217,8 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testEquatable_SameValues_AreEqual() {
         // Given
-        let preferences1 = NotificationPreferences()
-        let preferences2 = NotificationPreferences()
+        let preferences1 = NotificationSettings()
+        let preferences2 = NotificationSettings()
 
         // When/Then
         XCTAssertEqual(preferences1, preferences2)
@@ -226,8 +226,8 @@ class NotificationPreferencesTests: XCTestCase {
 
     func testEquatable_DifferentValues_AreNotEqual() {
         // Given
-        let preferences1 = NotificationPreferences()
-        var preferences2 = NotificationPreferences()
+        let preferences1 = NotificationSettings()
+        var preferences2 = NotificationSettings()
         preferences2.maxNotificationsPerHour = 5
 
         // When/Then

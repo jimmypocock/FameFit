@@ -46,7 +46,7 @@ final class MockUserProfileService: UserProfileProtocol {
         settings[UserSettings.mockPrivateSettings.userID] = UserSettings.mockPrivateSettings
     }
 
-    func fetchProfile(userId: String) async throws -> UserProfile {
+    func fetchProfile(userID: String) async throws -> UserProfile {
         isLoading = true
         defer { isLoading = false }
 
@@ -61,7 +61,7 @@ final class MockUserProfileService: UserProfileProtocol {
             throw ProfileServiceError.profileNotFound
         }
 
-        guard let profile = profiles[userId] else {
+        guard let profile = profiles[userID] else {
             throw ProfileServiceError.profileNotFound
         }
 
@@ -186,7 +186,7 @@ final class MockUserProfileService: UserProfileProtocol {
         return profile
     }
 
-    func deleteProfile(userId: String) async throws {
+    func deleteProfile(userID: String) async throws {
         isLoading = true
         defer { isLoading = false }
 
@@ -194,10 +194,10 @@ final class MockUserProfileService: UserProfileProtocol {
         try await Task.sleep(nanoseconds: 200_000_000)
 
         // Remove profile and settings
-        profiles.removeValue(forKey: userId)
-        settings.removeValue(forKey: userId)
+        profiles.removeValue(forKey: userID)
+        settings.removeValue(forKey: userID)
 
-        if currentProfile?.id == userId {
+        if currentProfile?.id == userID {
             currentProfile = nil
         }
     }
@@ -217,11 +217,11 @@ final class MockUserProfileService: UserProfileProtocol {
         return .success(())
     }
 
-    func fetchSettings(userId: String) async throws -> UserSettings {
+    func fetchSettings(userID: String) async throws -> UserSettings {
         // Simulate network delay
         try await Task.sleep(nanoseconds: 50_000_000)
 
-        return settings[userId] ?? UserSettings.defaultSettings(for: userId)
+        return settings[userID] ?? UserSettings.defaultSettings(for: userID)
     }
 
     func updateSettings(_ settings: UserSettings) async throws -> UserSettings {
@@ -273,8 +273,8 @@ final class MockUserProfileService: UserProfileProtocol {
 
         let publicProfiles = profiles.values.filter { profile in
             profile.privacyLevel == .publicProfile &&
-                profile.modifiedTimestamp >= startDate &&
-                profile.modifiedTimestamp <= endDate
+                profile.modificationDate >= startDate &&
+                profile.modificationDate <= endDate
         }
 
         let sorted = publicProfiles.sorted { $0.totalXP > $1.totalXP }
@@ -287,7 +287,7 @@ final class MockUserProfileService: UserProfileProtocol {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         let publicProfiles = profiles.values.filter { $0.privacyLevel == .publicProfile }
-        let sorted = publicProfiles.sorted { $0.modifiedTimestamp > $1.modifiedTimestamp }
+        let sorted = publicProfiles.sorted { $0.modificationDate > $1.modificationDate }
 
         return Array(sorted.prefix(limit))
     }
@@ -296,9 +296,9 @@ final class MockUserProfileService: UserProfileProtocol {
         // No-op for mock
     }
 
-    func clearCache(for userId: String) {
+    func clearCache(for userID: String) {
         // Mock implementation - track cleared cache user IDs
-        clearedCacheUserIds.append(userId)
+        clearedCacheUserIds.append(userID)
     }
     
     func clearAllCaches() {

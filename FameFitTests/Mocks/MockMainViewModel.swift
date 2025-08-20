@@ -2,7 +2,7 @@
 //  MockMainViewModel.swift
 //  FameFitTests
 //
-//  Mock implementation of MainViewModeling for testing
+//  Mock implementation of MainViewModelProtocol for testing
 //
 
 import Combine
@@ -10,10 +10,10 @@ import Combine
 import Foundation
 
 /// Mock view model for testing MainView
-class MockMainViewModel: MainViewModeling {
+class MockMainViewModel: MainViewModelProtocol {
     // MARK: - Published Properties
 
-    @Published var userName: String = "Test User"
+    @Published var username: String = "Test User"
     @Published var totalXP: Int = 42
     @Published var xpTitle: String = "Rising Star"
     @Published var totalWorkouts: Int = 15
@@ -72,7 +72,7 @@ class MockMainViewModel: MainViewModeling {
         }
 
         // Simulate successful sign out - reset data
-        userName = ""
+        username = ""
         totalXP = 0
         xpTitle = ""
         totalWorkouts = 0
@@ -134,7 +134,7 @@ class MockMainViewModel: MainViewModeling {
         shouldFailRefresh = false
         shouldFailSignOut = false
 
-        userName = "Test User"
+        username = "Test User"
         totalXP = 42
         xpTitle = "Rising Star"
         totalWorkouts = 15
