@@ -17,7 +17,7 @@ enum TestDataGenerator {
         let calories: Double
     }
     
-    static func generateTestWorkouts(using cloudKitManager: CloudKitService) async {
+    static func generateTestWorkouts(using cloudKitManager: CloudKitService) async throws {
         let workoutTypes: [WorkoutTemplate] = [
             WorkoutTemplate(type: .running, name: "Morning Run 🌅", duration: 1_560, calories: 320),
             WorkoutTemplate(type: .cycling, name: "Evening Ride 🚴", duration: 3_600, calories: 580),
@@ -47,7 +47,7 @@ enum TestDataGenerator {
                 source: "com.apple.watch"
             )
 
-            cloudKitManager.saveWorkout(workoutHistory)
+            try await cloudKitManager.saveWorkout(workoutHistory)
             print("✅ Generated test workout: \(workout.name)")
         }
     }

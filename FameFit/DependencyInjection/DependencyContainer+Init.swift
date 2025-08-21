@@ -234,6 +234,8 @@ extension DependencyContainer {
         
         // Since we're already on MainActor, we can set these directly
         workoutSyncManager.notificationStore = notificationStore
+        workoutSyncManager.workoutProcessor = workoutProcessor
+        workoutSyncManager.userProfileService = userProfileService
         
         // Start CloudKit initialization after all dependencies are wired up
         // Skip for default/fallback containers to avoid duplicate initialization

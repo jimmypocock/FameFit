@@ -113,6 +113,9 @@ enum TestWorkoutBuilder {
         // Using deprecated API for testing - no viable alternative exists for unit testing
         
         // Intentionally using deprecated API - no alternative exists for unit testing
+        #if compiler(>=5.9)
+        @available(iOS, deprecated: 17.0)
+        #endif
         let workout = HKWorkout(
             activityType: type,
             start: startDate,

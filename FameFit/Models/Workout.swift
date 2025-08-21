@@ -88,6 +88,11 @@ struct Workout: Identifiable, Codable {
         HKWorkoutActivityType.from(storageKey: workoutType) ?? .other
     }
     
+    var displayName: String {
+        // Convert storage key back to display name for UI
+        workoutActivityType.displayName
+    }
+    
     #if !os(watchOS)
     /// Convert this Workout to a CloudKit record for saving
     /// - Parameter userID: The CloudKit user ID (required for queries)
@@ -147,8 +152,9 @@ extension Workout {
     #endif
     
     init(from workout: HKWorkout, followersEarned: Int = 5, xpEarned: Int? = nil, groupWorkoutID: String? = nil) {
-        id = UUID().uuidString
-        workoutType = workout.workoutActivityType.displayName
+        id = workout.uuid.uuidString
+        // Use storageKey for consistency across the app (not displayName)
+        workoutType = workout.workoutActivityType.storageKey
         startDate = workout.startDate
         endDate = workout.endDate
         duration = workout.duration
@@ -170,7 +176,14 @@ extension Workout {
         averageHeartRate = workout.averageHeartRate?.doubleValue(for: .count().unitDivided(by: .minute()))
         self.followersEarned = followersEarned
         source = workout.sourceRevision.source.name
-        self.groupWorkoutID = groupWorkoutID
+        // Extract groupWorkoutID from metadata if not explicitly provided
+        if let providedGroupID = groupWorkoutID {
+            self.groupWorkoutID = providedGroupID
+        } else if let metadataGroupID = workout.metadata?["groupWorkoutID"] as? String {
+            self.groupWorkoutID = metadataGroupID
+        } else {
+            self.groupWorkoutID = nil
+        }
     }
 }
 

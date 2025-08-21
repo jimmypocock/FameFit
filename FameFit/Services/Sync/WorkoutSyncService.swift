@@ -314,29 +314,25 @@ class WorkoutSyncService: ObservableObject {
                 }
                 
                 // Check if workout should be synced based on policy
-                let shouldSync: Bool
-                if let profileService = userProfileService as? UserProfileService,
-                   let currentProfile = profileService.currentProfile {
-                    let policy = WorkoutSyncPolicy(profileCreatedAt: currentProfile.creationDate)
-                    shouldSync = policy.shouldSyncWorkout(workout)
-                    
-                    if !shouldSync {
-                        FameFitLogger.info(
-                            "⏩ Skipping workout outside sync window: \(workout.endDate)",
-                            category: FameFitLogger.workout
-                        )
-                    }
-                } else {
-                    // Fallback: only sync workouts from last 24 hours
-                    let twentyFourHoursAgo = Date().addingTimeInterval(-WorkoutSyncPolicy.recentSyncWindow)
-                    shouldSync = workout.endDate > twentyFourHoursAgo
-                    
-                    if !shouldSync {
-                        FameFitLogger.info(
-                            "⏩ Skipping workout older than 24 hours: \(workout.endDate)",
-                            category: FameFitLogger.workout
-                        )
-                    }
+                // IMPORTANT: We require a user profile to sync workouts
+                guard let profileService = userProfileService as? UserProfileService,
+                      let currentProfile = profileService.currentProfile else {
+                    FameFitLogger.warning(
+                        "⏸️ Cannot sync workouts yet - waiting for user profile to load",
+                        category: FameFitLogger.workout
+                    )
+                    // Skip this entire sync attempt - will retry when profile is available
+                    return
+                }
+                
+                let policy = WorkoutSyncPolicy(profileCreatedAt: currentProfile.creationDate)
+                let shouldSync = policy.shouldSyncWorkout(workout)
+                
+                if !shouldSync {
+                    FameFitLogger.info(
+                        "⏩ Skipping workout outside sync window: \(workout.endDate)",
+                        category: FameFitLogger.workout
+                    )
                 }
                 
                 guard shouldSync else {
@@ -458,10 +454,15 @@ class WorkoutSyncService: ObservableObject {
             
             // Basic save with fixed XP
             let workoutItem = Workout(from: workout, followersEarned: 10)
-            cloudKitManager.saveWorkout(workoutItem)
-            markWorkoutAsSynced(workout)
-            
-            FameFitLogger.info("💾 Saved workout via basic fallback: \(workout.uuid)", category: FameFitLogger.workout)
+            do {
+                try await cloudKitManager.saveWorkout(workoutItem)
+                // Only mark as synced AFTER successful save
+                markWorkoutAsSynced(workout)
+                FameFitLogger.info("💾 Saved workout via basic fallback: \(workout.uuid)", category: FameFitLogger.workout)
+            } catch {
+                FameFitLogger.error("Failed to save workout \(workout.uuid)", error: error, category: FameFitLogger.workout)
+                // Don't mark as synced if save failed - will retry next time
+            }
         }
     }
     
@@ -501,16 +502,10 @@ class WorkoutSyncService: ObservableObject {
         // Get current user profile to determine sync policy
         guard let profileService = userProfileService as? UserProfileService,
               let currentProfile = profileService.currentProfile else {
-            FameFitLogger.warning("No user profile available, using default 24-hour sync window", category: FameFitLogger.workout)
-            // Fallback to 24 hours if no profile
-            let endDate = Date()
-            let startDate = endDate.addingTimeInterval(-WorkoutSyncPolicy.recentSyncWindow)
-            let predicate = HKQuery.predicateForSamples(
-                withStart: startDate,
-                end: endDate,
-                options: .strictStartDate
-            )
-            return try await fetchWorkoutsWithPredicate(predicate)
+            FameFitLogger.warning("No user profile available - cannot determine sync window", category: FameFitLogger.workout)
+            // Return empty array - we need profile to sync properly
+            // This prevents syncing with wrong date range and potential duplicates
+            return []
         }
         
         // Create sync policy based on profile creation date

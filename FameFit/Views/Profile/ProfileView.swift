@@ -638,14 +638,23 @@ struct ProfileView: View {
                 statsVerificationMessage = nil
             }
         } catch {
-            print("❌ Verification error: \(error)")
-            statsVerificationMessage = "Verification failed: \(error.localizedDescription)"
+            FameFitLogger.error("❌ Verification error", error: error, category: FameFitLogger.app)
             
-            // Clear message after delay
-            Task {
-                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds to read error
-                statsVerificationMessage = nil
+            // Show more detailed error message
+            if let verificationError = error as? CountVerificationError {
+                switch verificationError {
+                case .userNotAuthenticated:
+                    statsVerificationMessage = "Error: User not authenticated"
+                case .queryFailed(let underlyingError):
+                    statsVerificationMessage = "Query failed: \(underlyingError.localizedDescription)"
+                case .profileNotFound:
+                    statsVerificationMessage = "Error: User profile not found"
+                }
+            } else {
+                statsVerificationMessage = "Error: \(error.localizedDescription)"
             }
+            
+            // Don't clear error messages automatically - let user see them
         }
         
         isVerifyingStats = false

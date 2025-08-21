@@ -236,8 +236,12 @@ final class WorkoutProcessor {
     }
     
     private func saveWorkoutRecord(_ workout: Workout) async throws {
+        // Get the user ID (should already be verified, but let's be safe)
+        guard let userID = cloudKitManager.currentUserID else {
+            throw WorkoutProcessingError.noUserID
+        }
+        
         // Use the centralized method to create the record
-        let userID = cloudKitManager.currentUserID!  // We've already verified this exists
         let record = workout.toCKRecord(userID: userID)
         
         // Save with retry logic
@@ -250,7 +254,7 @@ final class WorkoutProcessor {
             FameFitLogger.info("💾 Saved workout record to CloudKit", category: FameFitLogger.workout)
         } catch let error as CKError where error.isRetryable {
             // Queue for background retry if critical
-            if let data = try? JSONEncoder().encode(WorkoutSavePayload(workout: workout, userID: cloudKitManager.currentUserID ?? "")) {
+            if let data = try? JSONEncoder().encode(WorkoutSavePayload(workout: workout, userID: userID)) {
                 await cloudKitManager.queueForRetry(
                     type: .workoutSave,
                     data: data,

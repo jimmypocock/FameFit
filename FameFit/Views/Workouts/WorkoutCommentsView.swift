@@ -121,7 +121,7 @@ struct WorkoutCommentsView: View {
                         .font(.system(size: 20))
                         .foregroundColor(.blue)
 
-                    Text(workout.workoutType)
+                    Text(workout.displayName)
                         .font(.system(size: 18, weight: .semibold))
                 }
 

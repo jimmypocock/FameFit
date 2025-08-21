@@ -596,24 +596,19 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     // MARK: - Legacy Protocol Methods
     
-    func saveWorkout(_ workout: Workout) {
-        Task {
-            do {
-                // Use the centralized method to create the record
-                guard let userID = currentUserID else {
-                    FameFitLogger.error("No userID available for workout save", category: FameFitLogger.cloudKit)
-                    return
-                }
-                let record = workout.toCKRecord(userID: userID)
-                
-                // Save to CloudKit
-                _ = try await privateDatabase.save(record)
-                
-                FameFitLogger.info("✅ Saved workout to CloudKit: \(workout.workoutType)", category: FameFitLogger.cloudKit)
-            } catch {
-                FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.cloudKit)
-            }
-        }
+    func saveWorkout(_ workout: Workout) async throws {
+        // Get or fetch the user ID (will fetch from CloudKit if not cached)
+        let userID = try await getCurrentUserID()
+        
+        FameFitLogger.info("Saving workout with userID: \(userID)", category: FameFitLogger.cloudKit)
+        
+        // Use the centralized method to create the record
+        let record = workout.toCKRecord(userID: userID)
+        
+        // Save to CloudKit and wait for completion
+        _ = try await privateDatabase.save(record)
+        
+        FameFitLogger.info("✅ Saved workout to CloudKit: \(workout.workoutType)", category: FameFitLogger.cloudKit)
     }
     
     func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {

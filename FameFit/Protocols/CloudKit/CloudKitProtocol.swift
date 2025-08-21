@@ -34,7 +34,7 @@ protocol CloudKitProtocol: ObservableObject {
     func addXP(_ xp: Int)
     func recordWorkout(_ workout: HKWorkout, completion: @escaping (Bool) -> Void)
     func getXPTitle() -> String
-    func saveWorkout(_ workoutHistory: Workout)
+    func saveWorkout(_ workoutHistory: Workout) async throws
     func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void)
     func recalculateStatsIfNeeded() async throws
     func recalculateUserStats() async throws

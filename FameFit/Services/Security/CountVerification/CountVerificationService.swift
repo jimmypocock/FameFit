@@ -110,8 +110,11 @@ final class CountVerificationService: CountVerificationProtocol {
         
         // Query all workouts for current user
         guard let userID = cloudKitManager.currentUserID else {
+            FameFitLogger.error("🔢 No current user ID available", category: FameFitLogger.data)
             throw CountVerificationError.userNotAuthenticated
         }
+        
+        FameFitLogger.info("🔢 Querying workouts for userID: \(userID)", category: FameFitLogger.data)
         
         let predicate = NSPredicate(format: "userID == %@", userID)
         let query = CKQuery(recordType: "Workouts", predicate: predicate)

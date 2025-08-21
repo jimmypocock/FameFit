@@ -161,7 +161,10 @@ class MockCloudKitService: ObservableObject, CloudKitProtocol {
         }
     }
     
-    func saveWorkout(_ workout: Workout) {
+    func saveWorkout(_ workout: Workout) async throws {
+        if shouldFail {
+            throw FameFitError.cloudKitSyncFailed(NSError(domain: "MockError", code: 1))
+        }
         workoutHistory.append(workout)
     }
     

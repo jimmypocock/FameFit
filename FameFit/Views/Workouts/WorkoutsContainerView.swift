@@ -16,17 +16,24 @@ struct WorkoutsContainerView: View {
             Picker("Workout View", selection: $selectedTab) {
                 Text("Start").tag(0)
                 Text("History").tag(1)
+                Text("Sync").tag(2)
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
             
             // Content
-            if selectedTab == 0 {
+            switch selectedTab {
+            case 0:
                 // Start tab
                 WorkoutStartView()
-            } else {
+            case 1:
                 // History tab
                 WorkoutHistoryView()
+            case 2:
+                // Sync tab
+                WorkoutSyncTabView()
+            default:
+                WorkoutStartView()
             }
         }
     }
