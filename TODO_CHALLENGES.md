@@ -1,337 +1,449 @@
-# FameFit Challenge System Enhancements
+# FameFit Challenge System - Implementation Status & Roadmap
 
-This document outlines planned enhancements for the FameFit challenge system, building on the existing comprehensive implementation.
+Last Updated: 2025-08-26
 
-## Current Status
+## 🎯 Executive Summary
 
-The challenge system is **fully implemented** with:
-- ✅ 6 challenge types (distance, duration, calories, workout count, XP, specific workout)
-- ✅ XP staking system with winner-takes-all
-- ✅ Public/private challenges with join codes
-- ✅ Real-time progress tracking and leaderboards
-- ✅ CloudKit integration with subscriptions
-- ✅ Comprehensive UI (Tab 4 - Trophy icon)
-- ✅ Full test coverage
+The FameFit challenge system provides competitive workout challenges with XP staking. While the core functionality exists, critical gaps in CloudKit configuration and UI flows need immediate attention before adding new features.
 
-## Planned Enhancements
+## 📊 Current Implementation Status
 
-### 1. 🏆 Challenge Templates
+### ✅ What's Fully Implemented
 
-**Priority**: High  
-**Impact**: Significant - Reduces friction for challenge creation  
-**Duration**: 1 week
+#### Core Architecture
+- **Data Models**: `WorkoutChallenge`, `WorkoutChallengeLink` with comprehensive fields
+- **Challenge Types**: 6 types (distance, duration, calories, workout count, XP, specific workout)
+- **XP Staking**: Winner-takes-all mechanism with configurable stakes
+- **Access Control**: Public/private challenges with join codes
+- **Service Layer**: Proper separation of concerns with dedicated services
 
-#### Popular Templates to Implement
+#### Services (Following Modern Swift Patterns)
+- `WorkoutChallengesService`: CRUD operations, state management, CloudKit sync
+- `WorkoutChallengeLinksService`: Many-to-many workout/challenge relationships
+- **Verification System**: Multiple states (pending, auto-verified, manually-verified, grace-verified, failed)
+- **Retry Logic**: Exponential backoff for failed verifications
+- **Integration**: Automatic progress tracking via `WorkoutProcessor`
 
-**Quick Start Templates:**
-- **"7-Day Step Up"** - Complete 7 workouts in 7 days
-- **"Weekend Warrior"** - 3 workouts over the weekend
-- **"5K Face-Off"** - First to run 5K total distance
-- **"Burn Battle"** - 1000 calories in a week
-- **"Morning Motivation"** - 5 morning workouts (before 9am)
-- **"Lunch Break Challenge"** - 10 workouts under 30 minutes
-- **"Marathon Month"** - 26.2 miles total in 30 days
-- **"Century Club"** - 100 minutes of exercise in 3 days
-- **"Daily Dozen"** - 12 consecutive days with workouts
+#### UI Components 
+- `ChallengesView`: Three-tab interface (Active, Pending, Completed)
+- `CreateChallengeView`: Challenge creation flow
+- `ChallengeDetailView`: Challenge details and leaderboard
+- `ChallengeVerificationView`: Manual verification interface
+- **Visual Elements**: Progress bars, participant avatars, leaderboard displays
 
-**Seasonal Templates:**
-- **"New Year, New Me"** - 31 workouts in January
-- **"Summer Shred"** - 2000 calories/week for 4 weeks
-- **"Fall into Fitness"** - 50 miles in September
-- **"Holiday Hustle"** - Stay active through December
+### ⚠️ Critical Issues Requiring Immediate Fix
 
-#### Implementation Details
-
-**CloudKit Schema Addition:**
+#### 1. CloudKit Schema Configuration
+**MISSING: WorkoutChallengeLinks Record Type**
 ```swift
-ChallengeTemplate (Public Database)
-- templateId: String (CKRecord.ID)
-- name: String - QUERYABLE
-- description: String
-- iconName: String
-- challengeType: String
-- targetValue: Double
-- duration: Int64 (days)
-- suggestedStake: Int64
-- category: String - QUERYABLE ("popular", "seasonal", "beginner", "advanced")
-- popularity: Int64 - SORTABLE (usage count)
-- isActive: Int64 - QUERYABLE
-- createdAt: Date
-- tags: [String] - QUERYABLE
+// Required CloudKit Record Type (NOT DOCUMENTED)
+WorkoutChallengeLinks (Public Database)
+- challengeID: String - QUERYABLE, SORTABLE
+- workoutID: String - QUERYABLE, SORTABLE  
+- userID: String - QUERYABLE, SORTABLE
+- contributionAmount: Double
+- verificationStatus: String - QUERYABLE
+- verificationAttempts: Int64
+- lastVerificationAttempt: Date
+- ___recordID: QUERYABLE // CRITICAL INDEX
 ```
 
-**UI Components:**
-- Template selection view with categories
-- Preview showing challenge details before creation
-- One-tap creation with auto-filled values
-- Friend selection step for private challenges
-- Customization option to modify template values
+**Action Required**: Add to CloudKit Dashboard immediately to prevent runtime errors
 
-**Service Layer:**
+#### 2. Progress Tracking Data Flow Issues
+- Verification failures fail silently without user notification
+- `processWorkoutForChallenges` errors are swallowed (non-critical path)
+- Fallback to legacy progress calculation may show incorrect data
+- No automatic challenge expiration handling
+
+#### 3. Missing UI Features
+- Join challenge by code UI not exposed
+- Public challenge discovery not implemented  
+- No access to manual verification from main UI
+- Missing challenge completion celebrations
+
+### 🔧 Code Quality & Best Practices Audit
+
+#### ✅ Following Best Practices
+- Proper async/await usage throughout services
+- Dependency injection via `DependencyContainer`
+- Protocol-oriented design for services
+- Proper error handling with typed errors
+- SwiftUI state management with `@Published` properties
+
+#### ⚠️ Needs Improvement
+1. **Error Handling**: Silent failures should bubble up to UI
+2. **Testing**: Missing integration and UI tests for challenge flows
+3. **Documentation**: CloudKit schema needs complete documentation
+4. **Performance**: Challenge queries could benefit from proper indexing
+5. **Concurrency**: Some operations could use actor isolation for thread safety
+
+## 🚀 Prioritized Roadmap
+
+### Phase 0: Fix Critical Issues (1 week) - DO THIS FIRST
+
+#### 0.1 CloudKit Schema Completion
 ```swift
-protocol ChallengeTemplateService {
-    func getPopularTemplates() async throws -> [ChallengeTemplate]
-    func getSeasonalTemplates() async throws -> [ChallengeTemplate]
-    func createChallengeFromTemplate(_ template: ChallengeTemplate, participants: [String]) async throws -> WorkoutChallenge
-    func trackTemplateUsage(_ templateId: String) async throws
-}
+// Add to docs/CLOUDKIT_SCHEMA.md
+#### WorkoutChallengeLinks
+| Field | Type | Required | Queryable | Indexed | Description |
+|-------|------|----------|-----------|---------|-------------|
+| challengeID | String | Yes | Yes | Yes | Reference to WorkoutChallenge |
+| workoutID | String | Yes | Yes | Yes | Reference to Workout |
+| userID | String | Yes | Yes | Yes | User who contributed workout |
+| contributionAmount | Double | Yes | No | No | Amount contributed to challenge |
+| verificationStatus | String | Yes | Yes | No | Verification state |
+| verificationAttempts | Int64 | Yes | No | No | Number of verification attempts |
+| lastVerificationAttempt | Date | No | Yes | No | Last verification timestamp |
+
+Required Indexes:
+- ___recordID (QUERYABLE)
+- Compound: challengeID + userID
+- Compound: workoutID + challengeID
 ```
 
-### 2. 🔔 Challenge Reminders & Notifications
-
-**Priority**: High  
-**Impact**: High - Increases engagement and completion rates  
-**Duration**: 1 week
-
-#### Notification Types
-
-**Pre-Challenge:**
-- "Challenge starts tomorrow! Get ready 💪"
-- "Your challenge with @username begins in 1 hour"
-
-**During Challenge:**
-- "3 days left in your challenge - you're in 2nd place!"
-- "You're falling behind! Complete a workout to stay competitive"
-- "@username just took the lead in your challenge"
-- "Last day of your challenge - make it count!"
-- "You're 80% to your goal - one more workout!"
-
-**Post-Challenge:**
-- "Challenge complete! You earned 250 XP 🎉"
-- "You won the challenge against @username!"
-- "Challenge expired - better luck next time"
-
-#### Implementation Details
-
-**Notification Scheduling:**
+#### 0.2 Fix Progress Tracking
 ```swift
-struct ChallengeNotificationScheduler {
-    func scheduleReminders(for challenge: WorkoutChallenge) {
-        // 24 hours before start
-        // 1 hour before start
-        // Daily progress updates at 8am
-        // When someone passes you
-        // 24 hours before end
-        // 1 hour before end
-        // Completion notification
+// Update WorkoutChallengesService to surface errors
+func processWorkoutForChallenges(_ workout: Workout) async throws {
+    // Current: errors are silently caught
+    // Fix: Propagate errors to UI layer with proper handling
+    
+    do {
+        // Process challenges
+    } catch {
+        // Log error
+        await notificationService.sendChallengeVerificationFailed(workout, error)
+        throw ChallengeError.verificationFailed(error)
     }
 }
 ```
 
-**User Preferences:**
+#### 0.3 Complete UI Flows
+- Wire up join challenge by code in `ChallengesView`
+- Add manual verification button to `ChallengeDetailView`
+- Implement public challenge browser
+- Add challenge completion animations
+
+### Phase 1: Challenge Templates (1 week)
+
+**Modern Swift Implementation Pattern:**
+
 ```swift
-struct ChallengeNotificationPreferences {
-    var startReminders: Bool = true
-    var progressUpdates: Bool = true
-    var leaderboardChanges: Bool = true
-    var endReminders: Bool = true
-    var dailyDigest: Bool = false
-    var quietHours: DateInterval?
+// Using async/await and actors for thread safety
+actor ChallengeTemplateService {
+    private let cloudKitManager: CloudKitManager
+    private let cache: NSCache<NSString, ChallengeTemplate> = .init()
+    
+    func getPopularTemplates() async throws -> [ChallengeTemplate] {
+        // Check cache first
+        if let cached = getCachedTemplates() { return cached }
+        
+        // Fetch from CloudKit with proper error handling
+        let templates = try await cloudKitManager.fetchTemplates(
+            predicate: NSPredicate(format: "category == %@", "popular"),
+            sortBy: "popularity"
+        )
+        
+        // Update cache
+        cacheTemplates(templates)
+        return templates
+    }
+    
+    func createChallengeFromTemplate(
+        _ template: ChallengeTemplate,
+        participants: [String]
+    ) async throws -> WorkoutChallenge {
+        // Validate inputs
+        guard !participants.isEmpty else {
+            throw ChallengeError.noParticipants
+        }
+        
+        // Create challenge with template values
+        let challenge = WorkoutChallenge(from: template)
+        challenge.participants = participants
+        
+        // Save to CloudKit
+        try await cloudKitManager.save(challenge)
+        
+        // Track usage analytics
+        Task { await trackTemplateUsage(template.id) }
+        
+        return challenge
+    }
 }
 ```
 
-**Smart Notifications:**
-- Don't notify if user just opened app
-- Batch multiple updates into digest
-- Respect quiet hours/Do Not Disturb
-- Personalized message tone based on position
+**Templates to Implement:**
+- 15-20 pre-configured challenges (as listed in original doc)
+- Categories: Popular, Seasonal, Beginner, Advanced
+- One-tap creation with customization options
 
-### 3. 📊 Head-to-Head Statistics
+### Phase 2: Smart Notifications (1 week)
 
-**Priority**: Medium  
-**Impact**: High - Adds competitive depth  
-**Duration**: 1.5 weeks
+**Modern Implementation with UNUserNotificationCenter:**
 
-#### Statistics to Track
-
-**Overall Stats:**
-- Total challenges participated
-- Win rate percentage
-- Current win streak
-- Longest win streak
-- Average placement
-- Total XP won/lost
-
-**Friend Rivalry Stats:**
-- Head-to-head record with each friend
-- Recent match history (last 5 challenges)
-- Total XP exchanged
-- Favorite challenge types
-- Win streaks against specific users
-- "Nemesis" (most losses to)
-- "Dominated" (most wins against)
-
-#### Implementation Details
-
-**CloudKit Schema:**
 ```swift
-UserChallengeStats (Public Database)
-- userId: String (CKRecord.ID) - QUERYABLE
-- totalChallenges: Int64
-- totalWins: Int64
-- currentStreak: Int64
-- longestStreak: Int64
-- totalXPWon: Int64
-- totalXPLost: Int64
-- lastUpdated: Date
-
-HeadToHeadStats (Public Database)
-- recordId: String (user1_vs_user2)
-- user1Id: String - QUERYABLE
-- user2Id: String - QUERYABLE
-- user1Wins: Int64
-- user2Wins: Int64
-- draws: Int64
-- totalXPExchanged: Int64
-- lastChallenge: Date
-- currentStreak: String (userId)
-- currentStreakCount: Int64
-```
-
-**UI Components:**
-- Stats card on user profile
-- Rivalry view showing H2H records
-- Challenge history with filters
-- Leaderboard of top rivals
-- Streak indicators and badges
-
-**Analytics Service:**
-```swift
-protocol ChallengeAnalyticsService {
-    func getUserStats(_ userId: String) async throws -> UserChallengeStats
-    func getHeadToHeadStats(_ user1: String, _ user2: String) async throws -> HeadToHeadStats
-    func updateStatsAfterChallenge(_ challenge: WorkoutChallenge) async throws
-    func getTopRivals(for userId: String) async throws -> [Rivalry]
+// Using modern notification patterns
+@MainActor
+final class ChallengeNotificationScheduler {
+    private let notificationCenter = UNUserNotificationCenter.current()
+    
+    func scheduleReminders(for challenge: WorkoutChallenge) async throws {
+        // Request permission if needed
+        let settings = await notificationCenter.notificationSettings()
+        guard settings.authorizationStatus == .authorized else {
+            throw NotificationError.notAuthorized
+        }
+        
+        // Schedule smart notifications
+        let notifications = buildNotificationRequests(for: challenge)
+        for notification in notifications {
+            try await notificationCenter.add(notification)
+        }
+    }
+    
+    private func buildNotificationRequests(
+        for challenge: WorkoutChallenge
+    ) -> [UNNotificationRequest] {
+        var requests: [UNNotificationRequest] = []
+        
+        // 24 hours before start
+        if let dayBefore = challenge.startDate.addingTimeInterval(-86400) {
+            let content = UNMutableNotificationContent()
+            content.title = "Challenge Starting Soon!"
+            content.body = "Your \(challenge.name) challenge starts tomorrow"
+            content.sound = .default
+            content.userInfo = ["challengeID": challenge.id]
+            
+            let trigger = UNCalendarNotificationTrigger(
+                dateMatching: Calendar.current.dateComponents(
+                    [.year, .month, .day, .hour, .minute],
+                    from: dayBefore
+                ),
+                repeats: false
+            )
+            
+            requests.append(UNNotificationRequest(
+                identifier: "\(challenge.id)_day_before",
+                content: content,
+                trigger: trigger
+            ))
+        }
+        
+        // Add more notification types...
+        return requests
+    }
 }
 ```
 
-### 4. 🏅 Challenge Achievement Badges
+### Phase 3: Head-to-Head Statistics (1.5 weeks)
 
-**Priority**: Medium  
-**Impact**: Medium - Increases long-term engagement  
-**Duration**: 1 week
+**SwiftUI Observable Pattern:**
 
-#### Badge Categories
-
-**Participation Badges:**
-- "First Challenge" - Complete your first challenge
-- "Challenge Regular" - Complete 10 challenges
-- "Challenge Veteran" - Complete 50 challenges
-- "Challenge Legend" - Complete 100 challenges
-
-**Victory Badges:**
-- "First Victory" - Win your first challenge
-- "Champion" - Win 10 challenges
-- "Dominator" - Win 25 challenges
-- "Undefeated" - Win 5 challenges in a row
-- "Comeback Kid" - Win after 3 losses
-- "Giant Slayer" - Beat someone 10+ levels higher
-
-**Specialty Badges:**
-- "Distance Demon" - Win 5 distance challenges
-- "Time Titan" - Win 5 duration challenges
-- "Calorie Crusher" - Win 5 calorie challenges
-- "XP Expert" - Win 5 XP challenges
-- "Versatile Victor" - Win each challenge type
-- "High Roller" - Win challenge with 500+ XP stake
-- "Underdog" - Win when starting in last place
-- "Photo Finish" - Win by less than 1%
-
-**Social Badges:**
-- "Friendly Rivalry" - Complete 10 challenges with same person
-- "Social Butterfly" - Challenge 20 different people
-- "Challenge Creator" - Create 25 challenges
-- "Popular Host" - Have 50 people join your challenges
-
-#### Implementation Details
-
-**Badge Model:**
 ```swift
-struct ChallengeBadge {
-    let id: String
-    let name: String
-    let description: String
-    let iconName: String
-    let category: BadgeCategory
-    let requirement: BadgeRequirement
-    let xpReward: Int
-    let rarity: BadgeRarity
-    var unlockedDate: Date?
-    var progress: Double // 0.0 to 1.0
-}
-
-enum BadgeRarity {
-    case common, uncommon, rare, epic, legendary
+@MainActor
+final class ChallengeStatsViewModel: ObservableObject {
+    @Published private(set) var userStats: UserChallengeStats?
+    @Published private(set) var headToHeadStats: [HeadToHeadStats] = []
+    @Published private(set) var topRivals: [Rivalry] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: Error?
+    
+    private let analyticsService: ChallengeAnalyticsService
+    
+    func loadStats(for userId: String) async {
+        isLoading = true
+        error = nil
+        
+        do {
+            // Parallel fetch for performance
+            async let userStatsTask = analyticsService.getUserStats(userId)
+            async let rivalsTask = analyticsService.getTopRivals(for: userId)
+            
+            let (stats, rivals) = try await (userStatsTask, rivalsTask)
+            
+            self.userStats = stats
+            self.topRivals = rivals
+            
+            // Load H2H stats for top rivals
+            await loadHeadToHeadStats(for: userId, rivals: rivals)
+            
+        } catch {
+            self.error = error
+        }
+        
+        isLoading = false
+    }
+    
+    private func loadHeadToHeadStats(
+        for userId: String,
+        rivals: [Rivalry]
+    ) async {
+        let h2hStats = await withTaskGroup(
+            of: HeadToHeadStats?.self
+        ) { group in
+            for rival in rivals.prefix(5) {
+                group.addTask { [weak self] in
+                    try? await self?.analyticsService.getHeadToHeadStats(
+                        userId,
+                        rival.userId
+                    )
+                }
+            }
+            
+            var results: [HeadToHeadStats] = []
+            for await stat in group {
+                if let stat = stat {
+                    results.append(stat)
+                }
+            }
+            return results
+        }
+        
+        self.headToHeadStats = h2hStats
+    }
 }
 ```
 
-**Badge Tracking:**
+### Phase 4: Achievement Badges (1 week)
+
+**Modern Swift with Property Wrappers:**
+
 ```swift
-protocol ChallengeBadgeService {
-    func checkBadgeProgress(for userId: String, after challenge: WorkoutChallenge) async throws -> [BadgeUpdate]
-    func awardBadge(_ badge: ChallengeBadge, to userId: String) async throws
-    func getUserBadges(_ userId: String) async throws -> [ChallengeBadge]
-    func getBadgeShowcase(_ userId: String) async throws -> [ChallengeBadge] // Top 3
+// Custom property wrapper for badge progress
+@propertyWrapper
+struct BadgeProgress {
+    private var value: Double
+    var wrappedValue: Double {
+        get { value }
+        set { value = min(1.0, max(0.0, newValue)) }
+    }
+    
+    init(wrappedValue: Double) {
+        self.value = min(1.0, max(0.0, wrappedValue))
+    }
+}
+
+// Badge tracking with async streams
+actor ChallengeBadgeTracker {
+    private var progressStreams: [String: AsyncStream<BadgeUpdate>] = [:]
+    
+    func trackProgress(
+        for userId: String,
+        challenge: WorkoutChallenge
+    ) -> AsyncStream<BadgeUpdate> {
+        AsyncStream { continuation in
+            Task {
+                // Check all badge requirements
+                let updates = await checkAllBadges(userId, challenge)
+                
+                for update in updates {
+                    continuation.yield(update)
+                    
+                    // Award badge if completed
+                    if update.progress >= 1.0 {
+                        await awardBadge(update.badge, to: userId)
+                    }
+                }
+                
+                continuation.finish()
+            }
+        }
+    }
 }
 ```
 
-**UI Components:**
-- Badge gallery in profile
-- Badge showcase (featured 3)
-- Progress indicators for locked badges
-- Unlock celebration animation
-- Badge detail view with requirements
-- Rarity indicators (color/effects)
+## 🧪 Testing Strategy
 
-## Implementation Timeline
+### Unit Tests Required
+```swift
+// Example test structure following best practices
+final class ChallengeServiceTests: XCTestCase {
+    var sut: WorkoutChallengesService!
+    var mockCloudKit: MockCloudKitManager!
+    
+    override func setUp() {
+        super.setUp()
+        mockCloudKit = MockCloudKitManager()
+        sut = WorkoutChallengesService(cloudKitManager: mockCloudKit)
+    }
+    
+    func testChallengeCreation() async throws {
+        // Given
+        let challenge = WorkoutChallenge(/* test data */)
+        
+        // When
+        try await sut.createChallenge(challenge)
+        
+        // Then
+        XCTAssertEqual(mockCloudKit.savedRecords.count, 1)
+        XCTAssertEqual(mockCloudKit.savedRecords.first?.recordType, "WorkoutChallenges")
+    }
+    
+    func testVerificationRetryLogic() async throws {
+        // Test exponential backoff
+        // Test max retry limit
+        // Test successful verification after retry
+    }
+}
+```
 
-**Phase 1 (Week 1-2):** Challenge Templates
-- Design and implement template system
-- Create initial set of 15-20 templates
-- Build template selection UI
-- Add usage tracking
+### UI Tests Required
+- Challenge creation flow
+- Join challenge by code
+- Progress visualization
+- Completion celebration
 
-**Phase 2 (Week 2-3):** Notifications
-- Implement notification scheduler
-- Add user preferences
-- Create notification templates
-- Test delivery timing
+## 📈 Success Metrics
 
-**Phase 3 (Week 3-4):** Head-to-Head Stats
-- Create stats tracking infrastructure
-- Build rivalry detection algorithm
-- Design stats UI components
-- Implement historical data migration
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Template Usage | >50% challenges from templates | CloudKit analytics |
+| Completion Rate | 30% increase | Challenge status tracking |
+| H2H Engagement | 2x/week average views | View analytics |
+| Badge Collection | 80% users with 5+ badges | Badge award tracking |
+| Verification Success | >95% auto-verification | Error monitoring |
 
-**Phase 4 (Week 4-5):** Achievement Badges
-- Design badge system and requirements
-- Create badge artwork/icons
-- Implement progress tracking
-- Build badge gallery UI
+## 🔒 Security & Privacy Considerations
 
-## Success Metrics
+1. **XP Staking**: Validate stake amounts server-side to prevent manipulation
+2. **Join Codes**: Use secure random generation (not sequential)
+3. **Private Challenges**: Enforce access control at CloudKit level
+4. **Notifications**: Respect user privacy settings and quiet hours
+5. **Progress Updates**: Rate limit to prevent spam
 
-- **Template Usage**: >50% of challenges created from templates
-- **Notification Engagement**: 30% increase in challenge completion
-- **Stats Viewing**: Users check H2H stats 2x per week average
-- **Badge Collection**: 80% of users unlock 5+ badges in first month
+## 🚨 Action Items for Development
 
-## Technical Considerations
+### Immediate (This Week)
+- [ ] Add WorkoutChallengeLinks to CloudKit schema
+- [ ] Deploy schema changes to production
+- [ ] Fix silent error handling in services
+- [ ] Complete missing UI flows
+- [ ] Add integration tests for challenge flows
 
-- All features must maintain real-time sync via CloudKit
-- Notifications require APNs configuration
-- Stats calculations should be efficient (background processing)
-- Badge checks should be performant (cache recent challenges)
-- Templates should be versioned for future updates
+### Next Sprint
+- [ ] Implement Phase 1 (Templates)
+- [ ] Begin Phase 2 (Notifications)
+- [ ] Set up analytics tracking
 
-## Testing Requirements
+### Future
+- [ ] Complete remaining phases
+- [ ] Performance optimization
+- [ ] Advanced features (team challenges, tournaments)
 
-- Unit tests for all new services
-- UI tests for template selection flow
-- Integration tests for notification delivery
-- Performance tests for stats calculations
-- Manual testing of badge unlock scenarios
+## 📝 Notes on Modern Swift Patterns
+
+The implementation should follow these modern Swift conventions:
+- **Async/Await**: All asynchronous operations
+- **Actors**: For thread-safe state management
+- **@MainActor**: For UI-bound view models
+- **Structured Concurrency**: TaskGroup for parallel operations
+- **Property Wrappers**: For reusable logic (e.g., @BadgeProgress)
+- **Result Builders**: For DSL-style challenge creation
+- **AsyncSequence**: For real-time progress updates
+- **Observation**: @Observable macro when iOS 17 minimum is reached
 
 ---
 
-Last Updated: 2025-08-06
+**Remember**: Fix critical issues FIRST before adding new features. The system architecture is solid but needs these gaps filled to work reliably.
