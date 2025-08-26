@@ -50,13 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const stats = document.querySelectorAll('.stat-number');
     stats.forEach(stat => observer.observe(stat));
     
-    // Parallax effect for hero section
+    // Parallax effect for hero section (desktop only)
     const heroVisual = document.querySelector('.hero-visual');
-    if (heroVisual) {
+    if (heroVisual && window.innerWidth > 968) {
         window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const parallaxSpeed = 0.5;
-            heroVisual.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
+            // Only apply parallax on desktop
+            if (window.innerWidth > 968) {
+                const scrolled = window.pageYOffset;
+                const parallaxSpeed = 0.5;
+                heroVisual.style.transform = `translateY(${scrolled * parallaxSpeed}px)`;
+            }
         });
     }
     

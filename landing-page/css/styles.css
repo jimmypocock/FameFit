@@ -210,6 +210,8 @@ body {
     justify-content: center;
     align-items: center;
     overflow: visible;
+    width: 100%;
+    height: 100%;
 }
 
 .iphone-mockup {
@@ -395,10 +397,11 @@ body {
         grid-template-columns: 1fr;
         text-align: center;
         padding: 3rem 1.5rem;
+        gap: 2rem;
     }
     
     .hero-content {
-        margin-bottom: 3rem;
+        margin-bottom: 1rem;
     }
     
     .hero-title {
@@ -415,6 +418,9 @@ body {
     
     .hero-visual {
         transform: scale(0.85);
+        position: relative;
+        z-index: 1;
+        margin-bottom: 2rem;
     }
     
     .watch-mockup {
@@ -430,9 +436,21 @@ body {
 }
 
 @media (max-width: 640px) {
+    .hero {
+        padding: 2rem 1rem;
+        gap: 1rem;
+        min-height: auto;
+    }
+    
+    .hero-content {
+        margin-bottom: 0.5rem;
+    }
+    
     .hero-visual {
         transform: scale(0.65);
         margin-bottom: 2rem;
+        position: relative;
+        z-index: 1;
     }
     
     .device-screen {
@@ -446,5 +464,10 @@ body {
     
     .watch-mockup .device-screen {
         height: 180px;
+    }
+    
+    .coming-soon {
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
     }
 }
