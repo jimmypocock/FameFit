@@ -1,0 +1,158 @@
+/* Legal Pages Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #EC4899;
+    --primary-dark: #BE185D;
+    --dark: #111827;
+    --gray: #6B7280;
+    --light-gray: #F3F4F6;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: var(--dark);
+    background: white;
+    min-height: 100vh;
+}
+
+.legal-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.back-link {
+    display: inline-block;
+    color: var(--primary);
+    text-decoration: none;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+}
+
+.back-link:hover {
+    opacity: 0.7;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #EC4899 0%, #F9A8D4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.last-updated {
+    color: var(--gray);
+    font-size: 0.875rem;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    color: var(--dark);
+}
+
+h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--dark);
+}
+
+section {
+    margin-bottom: 2rem;
+}
+
+p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+ul {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+li {
+    margin-bottom: 0.5rem;
+}
+
+ul ul {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+strong {
+    font-weight: 600;
+    color: var(--dark);
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+a:hover {
+    opacity: 0.7;
+}
+
+.important-notice {
+    background: #FEF2F2;
+    border-left: 4px solid #EF4444;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.important-notice h2 {
+    color: #DC2626;
+    margin-top: 0;
+}
+
+.important-notice p {
+    color: #7F1D1D;
+}
+
+footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--light-gray);
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .legal-container {
+        padding: 1.5rem;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3 {
+        font-size: 1.125rem;
+    }
+}
