@@ -257,8 +257,8 @@ body {
 
 .watch-mockup {
     position: absolute;
-    right: 20px;
-    bottom: 20px;
+    right: -20%;  /* Slightly overlap the iPhone's right edge */
+    bottom: 2%;  /* Position near iPhone's bottom corner */
     animation: subtleFloat 12s ease-in-out infinite;
     animation-delay: 1s;
     z-index: 10;
@@ -417,16 +417,23 @@ body {
     }
     
     .hero-visual {
-        transform: scale(0.85);
         position: relative;
         z-index: 1;
         margin-bottom: 2rem;
     }
     
+    .iphone-mockup {
+        animation: none;
+        transform: none;
+    }
+    
     .watch-mockup {
-        right: 10px;
-        bottom: 30px;
-        transform: perspective(2000px) rotateX(2deg) rotateY(-3deg) translateZ(30px);
+        right: -20%;  /* Keep the overlap */
+        bottom: 2%;   /* Keep the position */
+        animation: none !important;
+        transform: none !important;
+        transition: none !important;
+        will-change: auto !important;
     }
     
     .footer-content {
@@ -447,23 +454,68 @@ body {
     }
     
     .hero-visual {
-        transform: scale(0.65);
         margin-bottom: 2rem;
         position: relative;
         z-index: 1;
     }
     
-    .device-screen {
-        max-height: 550px;
+    .device-container {
+        /* No scaling needed */
+    }
+    
+    .iphone-mockup {
+        /* Disable complex animations on mobile */
+        animation: none;
+        transform: none;
+    }
+    
+    .iphone-mockup .device-screen {
+        max-height: 400px;  /* Smaller height for mobile */
+        height: auto;
+    }
+    
+    /* Lighter shadows on mobile */
+    .iphone-mockup .device-screen {
+        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25)) brightness(1.02) contrast(1.05);
     }
     
     .watch-mockup {
-        right: -10px;
-        bottom: 15px;
+        /* Force stable positioning on mobile */
+        position: absolute !important;
+        right: -20% !important;
+        bottom: 2% !important;
+        animation: none !important;
+        transform: none !important;
+        transition: none !important;
+        will-change: auto !important;
+        transform-style: flat !important;
+        -webkit-transform: none !important;
+        -webkit-animation: none !important;
     }
     
     .watch-mockup .device-screen {
-        height: 180px;
+        height: 150px;  /* Smaller watch for mobile */
+        width: auto !important;
+        max-width: none !important;
+        /* Lighter shadow for watch on mobile */
+        filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.3)) brightness(1.03) contrast(1.05);
+        transform: none !important;
+        -webkit-transform: none !important;
+    }
+    
+    /* Disable shimmer on mobile for performance */
+    .shimmer-container,
+    .shimmer,
+    .shimmer-container::before,
+    .shimmer-container::after {
+        display: none;
+    }
+    
+    /* Disable backdrop-filter on mobile for performance */
+    .footer {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.2);
     }
     
     .coming-soon {

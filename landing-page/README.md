@@ -5,60 +5,48 @@ A sleek, modern landing page for FameFit - designed to match Apple's aesthetic w
 ## 🚀 Quick Deploy to AWS S3
 
 ### Prerequisites
-- AWS CLI installed and configured
-- S3 bucket created
-- Route53 domain configured (optional)
+- AWS CLI installed (v2 recommended)
+- AWS SSO profile configured
+- S3 bucket: `famefitapp.com`
+- CloudFront distribution (optional but recommended)
 
-### Deployment Steps
+### Setup AWS SSO (one-time)
 
-1. **Create S3 Bucket** (if not already created):
 ```bash
-aws s3 mb s3://famefit-landing --region us-east-1
+# Configure your SSO profile
+aws configure sso
+# Follow prompts and name it something like "famefit-prod"
 ```
 
-2. **Configure bucket for static website hosting**:
+### Deploy
+
+1. **Login to AWS SSO**:
 ```bash
-aws s3 website s3://famefit-landing \
-  --index-document index.html \
-  --error-document error.html
+aws sso login --profile your-profile-name
 ```
 
-3. **Set bucket policy for public access**:
-```bash
-aws s3api put-bucket-policy --bucket famefit-landing --policy '{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObject",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::famefit-landing/*"
-    }
-  ]
-}'
-```
-
-4. **Deploy the files**:
+2. **Run the deploy script**:
 ```bash
 # From the landing-page directory
-aws s3 sync . s3://famefit-landing \
-  --exclude ".git/*" \
-  --exclude "README.md" \
-  --exclude ".DS_Store" \
-  --cache-control "max-age=86400"
+./deploy.sh your-profile-name
 ```
 
-5. **Set up CloudFront (recommended for performance)**:
+Example:
 ```bash
-aws cloudfront create-distribution \
-  --origin-domain-name famefit-landing.s3-website-us-east-1.amazonaws.com \
-  --default-root-object index.html
+./deploy.sh famefit-prod
 ```
 
-6. **Configure Route53** (if using custom domain):
-- Create A record pointing to CloudFront distribution
-- Or point directly to S3 website endpoint
+The script will:
+- ✅ Verify AWS credentials
+- ✅ Sync files to S3 (famefitapp.com)
+- ✅ Set cache headers
+- ✅ Create CloudFront invalidation (if configured)
+- ✅ Exclude unnecessary files (.DS_Store, README.md, etc.)
+
+### Security Notes
+- Never commit AWS credentials
+- Always use SSO profiles (not access keys)
+- Safe for public repos - no credentials stored
 
 ## 🎨 Design Features
 

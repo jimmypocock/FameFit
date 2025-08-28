@@ -110,19 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
     }
     
-    // Device mockup subtle animation
-    const iphoneMockup = document.querySelector('.iphone-mockup');
-    const watchMockup = document.querySelector('.watch-mockup');
-    
-    if (iphoneMockup && watchMockup) {
-        setInterval(() => {
-            // Simulate notification on watch
-            watchMockup.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                watchMockup.style.transform = 'scale(1)';
-            }, 300);
-        }, 5000);
-    }
 });
 
 // Smooth scroll for anchor links (if you add any)
