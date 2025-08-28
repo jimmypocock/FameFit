@@ -148,7 +148,7 @@ struct HealthKitSettingsView: View {
         errorMessage = nil
         requestSucceeded = false
         
-        container.workoutObserver.requestHealthKitAuthorization { success, error in
+        container.workoutSyncManager.requestHealthKitAuthorization { success, error in
             DispatchQueue.main.async {
                 isRequesting = false
                 

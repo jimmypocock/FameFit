@@ -22,7 +22,7 @@ final class BackgroundTaskManager: ObservableObject {
     
     func scheduleBackgroundTasks() {
         scheduleBackgroundSync()
-        BackgroundWorkoutProcessor.shared.scheduleNextBackgroundTask()
+        scheduleWorkoutProcessing()
     }
     
     private func scheduleBackgroundSync() {
@@ -32,16 +32,55 @@ final class BackgroundTaskManager: ObservableObject {
             return
         }
         
+        Task {
+            await scheduleAdaptiveBackgroundSync()
+        }
+    }
+    
+    private func scheduleAdaptiveBackgroundSync() async {
         let request = BGProcessingTaskRequest(identifier: syncTaskIdentifier)
         request.requiresNetworkConnectivity = true
         request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // 1 hour
+        
+        // Adaptive scheduling based on queue state
+        var interval: TimeInterval = 60 * 60 // Default: 1 hour
+        
+        if let container = dependencyContainer {
+            let stats = await container.workoutQueue.getQueueStats()
+            
+            if stats.pending > 0 || stats.failed > 0 {
+                // High priority: Items waiting to be processed
+                interval = 15 * 60 // 15 minutes
+                FameFitLogger.info("📊 Adaptive sync: \(stats.pending) pending, \(stats.failed) failed - scheduling in 15 min", category: FameFitLogger.app)
+            } else {
+                // Low priority: No pending items
+                interval = 2 * 60 * 60 // 2 hours
+                FameFitLogger.debug("📊 Adaptive sync: Queue empty - scheduling in 2 hours", category: FameFitLogger.app)
+            }
+        }
+        
+        request.earliestBeginDate = Date(timeIntervalSinceNow: interval)
         
         do {
             try BGTaskScheduler.shared.submit(request)
-            FameFitLogger.info("Background sync scheduled", category: FameFitLogger.app)
+            FameFitLogger.info("Background sync scheduled for \(interval/60) minutes", category: FameFitLogger.app)
         } catch {
             FameFitLogger.error("Failed to schedule background sync: \(error)", category: FameFitLogger.app)
+        }
+    }
+    
+    /// Schedule immediate sync when critical items are pending
+    func scheduleImmediateSync() {
+        let request = BGProcessingTaskRequest(identifier: syncTaskIdentifier)
+        request.requiresNetworkConnectivity = true
+        request.requiresExternalPower = false
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 30) // 30 seconds
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            FameFitLogger.info("⚡ Immediate background sync scheduled", category: FameFitLogger.app)
+        } catch {
+            FameFitLogger.error("Failed to schedule immediate sync: \(error)", category: FameFitLogger.app)
         }
     }
     
@@ -60,11 +99,11 @@ final class BackgroundTaskManager: ObservableObject {
                     throw NSError(domain: "BackgroundSync", code: 0, userInfo: [NSLocalizedDescriptionKey: "No dependency container"])
                 }
                 
-                // Process any queued workouts
-                container.workoutSyncQueue.processQueue()
+                // Process workout queue
+                await container.workoutQueue.processAll()
                 
-                // Wait a moment for processing to complete
-                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                // Trigger workout sync
+                await container.workoutSyncManager.performManualSync()
                 
                 FameFitLogger.info("Background sync completed successfully", category: FameFitLogger.app)
                 task.setTaskCompleted(success: true)
@@ -72,6 +111,26 @@ final class BackgroundTaskManager: ObservableObject {
                 FameFitLogger.error("Background sync failed: \(error)", category: FameFitLogger.app)
                 task.setTaskCompleted(success: false)
             }
+        }
+    }
+    
+    private func scheduleWorkoutProcessing() {
+        // Skip in test environment
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            FameFitLogger.debug("Skipping workout processing in test environment", category: FameFitLogger.app)
+            return
+        }
+        
+        let request = BGProcessingTaskRequest(identifier: workoutTaskIdentifier)
+        request.requiresNetworkConnectivity = true
+        request.requiresExternalPower = false
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 30 * 60) // 30 minutes
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            FameFitLogger.info("Workout processing scheduled", category: FameFitLogger.app)
+        } catch {
+            FameFitLogger.error("Failed to schedule workout processing: \(error)", category: FameFitLogger.app)
         }
     }
 }

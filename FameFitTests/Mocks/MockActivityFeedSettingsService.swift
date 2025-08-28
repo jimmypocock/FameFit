@@ -12,14 +12,14 @@ import Foundation
 final class MockActivityFeedSettingsService: ActivityFeedSettingsProtocol {
     // MARK: - Mock State
     
-    var mockSettings = ActivityFeedSettings()
+    var mockSettings = ActivityFeedSettings(userID: "mock-user-id")
     var shouldFail = false
     var loadSettingsCallCount = 0
     var saveSettingsCallCount = 0
     var resetToDefaultsCallCount = 0
     var lastSavedSettings: ActivityFeedSettings?
     
-    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings())
+    private let settingsSubject = CurrentValueSubject<ActivityFeedSettings, Never>(ActivityFeedSettings(userID: "mock-user-id"))
     
     // MARK: - Protocol Implementation
     
@@ -56,20 +56,20 @@ final class MockActivityFeedSettingsService: ActivityFeedSettingsProtocol {
             throw MockError.testError
         }
         
-        mockSettings = ActivityFeedSettings()
+        mockSettings = ActivityFeedSettings(userID: "mock-user-id")
         settingsSubject.send(mockSettings)
     }
     
     // MARK: - Test Helpers
     
     func reset() {
-        mockSettings = ActivityFeedSettings()
+        mockSettings = ActivityFeedSettings(userID: "mock-user-id")
         shouldFail = false
         loadSettingsCallCount = 0
         saveSettingsCallCount = 0
         resetToDefaultsCallCount = 0
         lastSavedSettings = nil
-        settingsSubject.send(ActivityFeedSettings())
+        settingsSubject.send(ActivityFeedSettings(userID: "mock-user-id"))
     }
     
     func updateSettings(_ settings: ActivityFeedSettings) {

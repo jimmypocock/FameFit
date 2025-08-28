@@ -26,10 +26,8 @@ final class DependencyContainer: ObservableObject {
     
     // MARK: - Workout Services
     
-    let workoutObserver: WorkoutObserver
     let workoutProcessor: WorkoutProcessor
     let workoutSyncManager: WorkoutSyncService
-    let workoutSyncQueue: WorkoutSyncQueue
     
     // MARK: - Notification Services
     
@@ -53,7 +51,6 @@ final class DependencyContainer: ObservableObject {
     let activityCommentsService: ActivityFeedCommentsProtocol
     let workoutKudosService: WorkoutKudosProtocol
     let activitySharingSettingsService: ActivityFeedSettingsProtocol
-    let workoutAutoShareService: WorkoutAutoShareProtocol
     
     // MARK: - Privacy & Settings Services
     
@@ -82,6 +79,10 @@ final class DependencyContainer: ObservableObject {
     
     let statsSyncService: StatsSyncProtocol
     
+    // MARK: - Queue Services
+    
+    let workoutQueue: WorkoutQueue
+    
     // MARK: - Base Initializer
     
     /// Base initializer that accepts all dependencies
@@ -90,12 +91,10 @@ final class DependencyContainer: ObservableObject {
     init(
         authenticationManager: AuthenticationService,
         cloudKitManager: CloudKitService,
-        workoutObserver: WorkoutObserver,
         workoutProcessor: WorkoutProcessor,
         healthKitService: HealthKitProtocol,
         watchConnectivityManager: WatchConnectivityProtocol,
         workoutSyncManager: WorkoutSyncService,
-        workoutSyncQueue: WorkoutSyncQueue,
         notificationStore: NotificationStore,
         unlockNotificationService: UnlockNotificationService,
         unlockStorageService: UnlockStorageService,
@@ -116,19 +115,17 @@ final class DependencyContainer: ObservableObject {
         activityCommentsService: ActivityFeedCommentsProtocol,
         activitySharingSettingsService: ActivityFeedSettingsProtocol,
         bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol,
-        workoutAutoShareService: WorkoutAutoShareProtocol,
         xpTransactionService: XPTransactionService,
         countVerificationService: CountVerificationProtocol,
-        statsSyncService: StatsSyncProtocol
+        statsSyncService: StatsSyncProtocol,
+        workoutQueue: WorkoutQueue
     ) {
         self.authenticationManager = authenticationManager
         self.cloudKitManager = cloudKitManager
-        self.workoutObserver = workoutObserver
         self.workoutProcessor = workoutProcessor
         self.healthKitService = healthKitService
         self.watchConnectivityManager = watchConnectivityManager
         self.workoutSyncManager = workoutSyncManager
-        self.workoutSyncQueue = workoutSyncQueue
         self.notificationStore = notificationStore
         self.unlockNotificationService = unlockNotificationService
         self.unlockStorageService = unlockStorageService
@@ -149,10 +146,10 @@ final class DependencyContainer: ObservableObject {
         self.activityCommentsService = activityCommentsService
         self.activitySharingSettingsService = activitySharingSettingsService
         self.bulkPrivacyUpdateService = bulkPrivacyUpdateService
-        self.workoutAutoShareService = workoutAutoShareService
         self.xpTransactionService = xpTransactionService
         self.countVerificationService = countVerificationService
         self.statsSyncService = statsSyncService
+        self.workoutQueue = workoutQueue
     }
     
     /// Convenience initializer using factory pattern
@@ -165,12 +162,10 @@ final class DependencyContainer: ObservableObject {
         self.init(
             authenticationManager: container.authenticationManager,
             cloudKitManager: container.cloudKitManager,
-            workoutObserver: container.workoutObserver,
             workoutProcessor: container.workoutProcessor,
             healthKitService: container.healthKitService,
             watchConnectivityManager: container.watchConnectivityManager,
             workoutSyncManager: container.workoutSyncManager,
-            workoutSyncQueue: container.workoutSyncQueue,
             notificationStore: container.notificationStore,
             unlockNotificationService: container.unlockNotificationService,
             unlockStorageService: container.unlockStorageService,
@@ -191,10 +186,10 @@ final class DependencyContainer: ObservableObject {
             activityCommentsService: container.activityCommentsService,
             activitySharingSettingsService: container.activitySharingSettingsService,
             bulkPrivacyUpdateService: container.bulkPrivacyUpdateService,
-            workoutAutoShareService: container.workoutAutoShareService,
             xpTransactionService: container.xpTransactionService,
             countVerificationService: container.countVerificationService,
-            statsSyncService: container.statsSyncService
+            statsSyncService: container.statsSyncService,
+            workoutQueue: container.workoutQueue
         )
     }
 }

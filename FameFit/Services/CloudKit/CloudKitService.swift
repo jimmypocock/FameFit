@@ -19,6 +19,8 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     private let stateManager = CloudKitStateManager()
     private let operationQueue = CloudKitOperationQueue()
     private let schemaManager: CloudKitSchemaService
+    private let retryExecutor = CloudKitRetryExecutor()
+    private let retryQueue = Queue()
     
     // Recalculation tracking
     private let recalculationIntervalKey = "FameFitLastStatsRecalculation"
@@ -501,7 +503,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     private func recalculateStatsFromWorkouts() async {
         do {
-            let predicate = NSPredicate(value: true)
+            guard let userID = currentUserID else {
+                FameFitLogger.warning("Cannot recalculate stats - no user ID", category: FameFitLogger.cloudKit)
+                return
+            }
+            
+            let predicate = NSPredicate(format: "userID == %@", userID)
             let sortDescriptors = [NSSortDescriptor(key: "endDate", ascending: false)]
             
             // Fetch from PRIVATE database where workouts are stored
@@ -589,31 +596,19 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
     
     // MARK: - Legacy Protocol Methods
     
-    func saveWorkout(_ workoutHistory: Workout) {
-        Task {
-            do {
-                // Create the workout record
-                let record = CKRecord(recordType: "Workouts")
-                record["id"] = workoutHistory.id
-                record["workoutType"] = workoutHistory.workoutType
-                record["startDate"] = workoutHistory.startDate
-                record["endDate"] = workoutHistory.endDate
-                record["duration"] = workoutHistory.duration
-                record["totalEnergyBurned"] = workoutHistory.totalEnergyBurned
-                record["totalDistance"] = workoutHistory.totalDistance
-                record["averageHeartRate"] = workoutHistory.averageHeartRate
-                record["followersEarned"] = workoutHistory.followersEarned
-                record["xpEarned"] = workoutHistory.xpEarned
-                record["source"] = workoutHistory.source
-                
-                // Save to CloudKit
-                _ = try await privateDatabase.save(record)
-                
-                FameFitLogger.info("✅ Saved workout to CloudKit: \(workoutHistory.workoutType)", category: FameFitLogger.cloudKit)
-            } catch {
-                FameFitLogger.error("Failed to save workout to CloudKit", error: error, category: FameFitLogger.cloudKit)
-            }
-        }
+    func saveWorkout(_ workout: Workout) async throws {
+        // Get or fetch the user ID (will fetch from CloudKit if not cached)
+        let userID = try await getCurrentUserID()
+        
+        FameFitLogger.info("Saving workout with userID: \(userID)", category: FameFitLogger.cloudKit)
+        
+        // Use the centralized method to create the record
+        let record = workout.toCKRecord(userID: userID)
+        
+        // Save to CloudKit and wait for completion
+        _ = try await privateDatabase.save(record)
+        
+        FameFitLogger.info("✅ Saved workout to CloudKit: \(workout.workoutType)", category: FameFitLogger.cloudKit)
     }
     
     func fetchWorkouts(completion: @escaping (Result<[Workout], Error>) -> Void) {
@@ -634,39 +629,12 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
                 FameFitLogger.info("📊 Fetched \(records.count) workout records from CloudKit", category: FameFitLogger.cloudKit)
                 
                 let workouts = records.compactMap { record -> Workout? in
-                    guard let id = record["id"] as? String,
-                          let type = record["workoutType"] as? String,
-                          let startDate = record["startDate"] as? Date,
-                          let endDate = record["endDate"] as? Date else {
+                    if let workout = Workout(from: record) {
+                        return workout
+                    } else {
                         FameFitLogger.warning("⚠️ Skipping workout record with missing required fields", category: FameFitLogger.cloudKit)
                         return nil
                     }
-                    
-                    // Extract individual fields to avoid type-checking timeout
-                    let workoutID = id
-                    let duration = record["duration"] as? TimeInterval ?? 0
-                    let totalEnergyBurned = record["totalEnergyBurned"] as? Double ?? 0
-                    let totalDistance = record["totalDistance"] as? Double
-                    let averageHeartRate = record["averageHeartRate"] as? Double
-                    let followersEarned = record["followersEarned"] as? Int ?? 5
-                    let xpEarned = record["xpEarned"] as? Int
-                    let source = record["source"] as? String ?? "Unknown"
-                    let groupWorkoutID = record["groupWorkoutID"] as? String
-                    
-                    return Workout(
-                        id: workoutID,
-                        workoutType: type,
-                        startDate: startDate,
-                        endDate: endDate,
-                        duration: duration,
-                        totalEnergyBurned: totalEnergyBurned,
-                        totalDistance: totalDistance,
-                        averageHeartRate: averageHeartRate,
-                        followersEarned: followersEarned,
-                        xpEarned: xpEarned,
-                        source: source,
-                        groupWorkoutID: groupWorkoutID
-                    )
                 }
                 
                 completion(.success(workouts))
@@ -970,4 +938,98 @@ final class CloudKitService: NSObject, ObservableObject, CloudKitProtocol {
         
         FameFitLogger.info("Cleared all local CloudKit data", category: FameFitLogger.cloudKit)
     }
+    
+    // MARK: - Retry Infrastructure
+    
+    /// Save a record with automatic retry logic
+    func saveWithRetry(
+        _ record: CKRecord,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws -> CKRecord {
+        let db = database ?? privateDatabase
+        let operationName = "Save \(record.recordType) record"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                try await db.save(record)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Fetch a record with automatic retry logic
+    func fetchWithRetry(
+        recordID: CKRecord.ID,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws -> CKRecord {
+        let db = database ?? privateDatabase
+        let operationName = "Fetch record \(recordID.recordName)"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                try await db.record(for: recordID)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Delete a record with automatic retry logic
+    func deleteWithRetry(
+        recordID: CKRecord.ID,
+        database: CKDatabase? = nil,
+        configuration: RetryConfiguration = .default
+    ) async throws {
+        let db = database ?? privateDatabase
+        let operationName = "Delete record \(recordID.recordName)"
+        
+        _ = try await retryExecutor.execute(
+            operation: {
+                try await db.deleteRecord(withID: recordID)
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Execute a query with automatic retry logic
+    func queryWithRetry(
+        _ query: CKQuery,
+        database: CKDatabase? = nil,
+        limit: Int = CKQueryOperation.maximumResults,
+        configuration: RetryConfiguration = .default
+    ) async throws -> [CKRecord] {
+        let db = database ?? privateDatabase
+        let operationName = "Query \(query.recordType)"
+        
+        return try await retryExecutor.execute(
+            operation: {
+                let (results, _) = try await db.records(matching: query, resultsLimit: limit)
+                return results.compactMap { _, result in
+                    try? result.get()
+                }
+            },
+            configuration: configuration,
+            operationName: operationName
+        )
+    }
+    
+    /// Queue an operation for retry if it fails
+    func queueForRetry(
+        type: QueueItem.ItemType,
+        data: Data,
+        priority: QueueItem.Priority = .medium
+    ) async {
+        let item = QueueItem(
+            type: type,
+            data: data,
+            priority: priority
+        )
+        
+        await retryQueue.enqueue(item)
+    }
+    
 }

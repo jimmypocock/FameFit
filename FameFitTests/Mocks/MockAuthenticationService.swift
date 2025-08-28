@@ -15,8 +15,8 @@ class MockAuthenticationService: AuthenticationProtocol {
     // MARK: - Published Properties
 
     @Published var isAuthenticated: Bool = false
-    @Published var userID: String?
-    @Published var userName: String?
+    @Published var authUserID: String?
+    @Published var username: String?
     @Published var lastError: FameFitError?
     @Published var hasCompletedOnboarding: Bool = false
 
@@ -26,12 +26,12 @@ class MockAuthenticationService: AuthenticationProtocol {
         $isAuthenticated.eraseToAnyPublisher()
     }
 
-    var userIDPublisher: AnyPublisher<String?, Never> {
-        $userID.eraseToAnyPublisher()
+    var authUserIDPublisher: AnyPublisher<String?, Never> {
+        $authUserID.eraseToAnyPublisher()
     }
 
-    var userNamePublisher: AnyPublisher<String?, Never> {
-        $userName.eraseToAnyPublisher()
+    var usernamePublisher: AnyPublisher<String?, Never> {
+        $username.eraseToAnyPublisher()
     }
 
     var lastErrorPublisher: AnyPublisher<FameFitError?, Never> {
@@ -62,12 +62,12 @@ class MockAuthenticationService: AuthenticationProtocol {
 
         if shouldFailAuthentication {
             isAuthenticated = false
-            userID = nil
-            userName = nil
+            authUserID = nil
+            username = nil
             lastError = .authenticationFailed(NSError(domain: "MockAuthError", code: 1))
         } else {
             // Simulate checking stored credentials
-            if userID != nil {
+            if authUserID != nil {
                 isAuthenticated = true
                 lastError = nil
             }
@@ -84,8 +84,8 @@ class MockAuthenticationService: AuthenticationProtocol {
         }
 
         // Simulate successful sign in
-        userID = credential.user
-        userName = "Test User"
+        authUserID = credential.user
+        username = "Test User"
         isAuthenticated = true
         lastError = nil
     }
@@ -104,8 +104,8 @@ class MockAuthenticationService: AuthenticationProtocol {
 
         // Simulate successful sign out
         isAuthenticated = false
-        userID = nil
-        userName = nil
+        authUserID = nil
+        username = nil
         hasCompletedOnboarding = false
         lastError = nil
     }
@@ -129,9 +129,9 @@ class MockAuthenticationService: AuthenticationProtocol {
 
     // MARK: - Test Helpers
 
-    func simulateAuthentication(userID: String = "test-user", userName: String = "Test User") {
-        self.userID = userID
-        self.userName = userName
+    func simulateAuthentication(userID: String = "test-user", username: String = "Test User") {
+        self.authUserID = userID
+        self.username = username
         isAuthenticated = true
         hasCompletedOnboarding = true
         lastError = nil
@@ -142,8 +142,8 @@ class MockAuthenticationService: AuthenticationProtocol {
         code: 3
     ))) {
         isAuthenticated = false
-        userID = nil
-        userName = nil
+        authUserID = nil
+        username = nil
         lastError = error
     }
 
@@ -157,8 +157,8 @@ class MockAuthenticationService: AuthenticationProtocol {
         shouldFailOnboarding = false
 
         isAuthenticated = false
-        userID = nil
-        userName = nil
+        authUserID = nil
+        username = nil
         lastError = nil
         hasCompletedOnboarding = false
     }

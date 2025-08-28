@@ -195,6 +195,52 @@ extension WatchConnectivityManager: WCSessionDelegate {
         }
     }
     
+    // MARK: - Workout Completion
+    
+    /// Send workout completion notification to iPhone
+    func sendWorkoutCompletion(workoutID: String) {
+        guard WCSession.default.activationState == .activated else {
+            FameFitLogger.warning("⌚ Cannot send workout completion - session not activated", category: FameFitLogger.sync)
+            return
+        }
+        
+        let message: [String: Any] = [
+            "command": "workoutCompleted",
+            "workoutID": workoutID,
+            "timestamp": Date()
+        ]
+        
+        FameFitLogger.info("⌚ Sending workout completion to iPhone: \(workoutID)", category: FameFitLogger.sync)
+        
+        // Try multiple methods to ensure delivery
+        
+        // 1. Send as message if reachable
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: { response in
+                FameFitLogger.info("⌚ iPhone acknowledged workout completion", category: FameFitLogger.sync)
+            }) { error in
+                FameFitLogger.error("⌚ Failed to send workout completion via message", error: error, category: FameFitLogger.sync)
+                // Fall back to userInfo transfer
+                self.sendWorkoutViaUserInfo(message)
+            }
+        } else {
+            // 2. Send as userInfo transfer (guaranteed delivery when iPhone is available)
+            sendWorkoutViaUserInfo(message)
+        }
+        
+        // 3. Also post notification for immediate sync trigger
+        NotificationCenter.default.post(
+            name: Notification.Name("WatchWorkoutCompleted"),
+            object: nil,
+            userInfo: ["workoutID": workoutID]
+        )
+    }
+    
+    private func sendWorkoutViaUserInfo(_ message: [String: Any]) {
+        WCSession.default.transferUserInfo(message)
+        FameFitLogger.info("⌚ Queued workout completion for background delivery", category: FameFitLogger.sync)
+    }
+    
     func sessionReachabilityDidChange(_ session: WCSession) {
         FameFitLogger.info("WCSession reachability changed: \(session.isReachable)", category: FameFitLogger.sync)
     }

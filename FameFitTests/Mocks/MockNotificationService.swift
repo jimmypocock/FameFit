@@ -40,12 +40,12 @@ class MockNotificationService: NotificationProtocol {
     var mockPermissionStatus: UNAuthorizationStatus = .authorized
     var currentAuthStatus: UNAuthorizationStatus = .authorized
     var shouldRequestPermissionSucceed = true
-    var mockPreferences = NotificationPreferences()
+    var mockPreferences = NotificationSettings()
 
     // Additional tracking properties expected by tests
     var scheduleNotificationCalled = false
     var lastScheduledUserId: String?
-    var lastScheduledNotification: Notification?
+    var lastScheduledNotification: FameFitNotification?
     var allScheduledNotifications: [FameFitNotification] = []
 
     // Permission management
@@ -60,7 +60,7 @@ class MockNotificationService: NotificationProtocol {
     }
 
     // Workout notifications
-    func notifyWorkoutCompleted(_ workout: WorkoutItem) async {
+    func notifyWorkoutCompleted(_ workout: Workout) async {
         notifyWorkoutCompletedCalled = true
         scheduleNotificationCalled = true
         sentNotifications.append("workout_completed")
@@ -86,19 +86,55 @@ class MockNotificationService: NotificationProtocol {
         sentNotifications.append("streak_update")
     }
     
-    func notifyWorkoutShared(_ workout: WorkoutItem, privacy: WorkoutPrivacy) async {
+    // Group workout notifications
+    func notifyGroupWorkoutInvite(workout: GroupWorkout, from host: UserProfile) async {
+        sentNotifications.append("group_workout_invite")
+        lastUserId = host.id
+    }
+    
+    func notifyGroupWorkoutStart(workout: GroupWorkout) async {
+        sentNotifications.append("group_workout_start")
+    }
+    
+    func notifyGroupWorkoutUpdate(workout: GroupWorkout, changeType: String) async {
+        sentNotifications.append("group_workout_update")
+    }
+    
+    func notifyGroupWorkoutCancellation(workout: GroupWorkout) async {
+        sentNotifications.append("group_workout_cancellation")
+    }
+    
+    func notifyGroupWorkoutParticipantJoined(workout: GroupWorkout, participant: UserProfile) async {
+        sentNotifications.append("group_workout_participant_joined")
+        lastUserId = participant.id
+    }
+    
+    func notifyGroupWorkoutParticipantLeft(workout: GroupWorkout, participant: UserProfile) async {
+        sentNotifications.append("group_workout_participant_left")
+        lastUserId = participant.id
+    }
+    
+    func scheduleGroupWorkoutReminder(workout: GroupWorkout) async {
         scheduleNotificationCalled = true
-        sentNotifications.append("workout_shared")
-        lastWorkoutId = workout.id
-        
-        // Create mock notification for tracking
-        let notification = FameFitNotification(
-            type: .workoutShared,
-            title: "Workout Shared!",
-            body: "Your workout was shared to your activity feed."
-        )
-        lastScheduledNotification = notification
-        allScheduledNotifications.append(notification)
+        sentNotifications.append("group_workout_reminder")
+    }
+    
+    // Challenge notifications
+    func notifyChallengeInvite(challenge: WorkoutChallenge, from user: UserProfile) async {
+        sentNotifications.append("challenge_invite")
+        lastUserId = user.id
+    }
+    
+    func notifyChallengeStart(challenge: WorkoutChallenge) async {
+        sentNotifications.append("challenge_start")
+    }
+    
+    func notifyChallengeComplete(challenge: WorkoutChallenge, isWinner: Bool) async {
+        sentNotifications.append("challenge_complete")
+    }
+    
+    func notifyChallengeVerificationFailure(linkID: String, workoutName: String) async {
+        sentNotifications.append("challenge_verification_failure")
     }
 
     // Social notifications
@@ -120,18 +156,18 @@ class MockNotificationService: NotificationProtocol {
         lastUserId = user.id
     }
 
-    func notifyWorkoutKudos(from user: UserProfile, for workoutId: String) async {
+    func notifyWorkoutKudos(from user: UserProfile, for workoutID: String) async {
         notifyWorkoutKudosCalled = true
         sentNotifications.append("workout_kudos")
-        lastWorkoutId = workoutId
+        lastWorkoutId = workoutID
         lastUserId = user.id
     }
 
-    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutId: String) async {
+    func notifyWorkoutComment(from user: UserProfile, comment: String, for workoutID: String) async {
         notifyWorkoutCommentCalled = true
         scheduleNotificationCalled = true
         sentNotifications.append("workout_comment")
-        lastWorkoutId = workoutId
+        lastWorkoutId = workoutID
         lastComment = comment
         lastUserId = user.id
         lastScheduledUserId = user.id
@@ -166,12 +202,12 @@ class MockNotificationService: NotificationProtocol {
     }
 
     // Preference management
-    func updatePreferences(_ preferences: NotificationPreferences) {
+    func updatePreferences(_ preferences: NotificationSettings) {
         updatePreferencesCalled = true
         mockPreferences = preferences
     }
 
-    func getPreferences() -> NotificationPreferences {
+    func getPreferences() -> NotificationSettings {
         getPreferencesCalled = true
         return mockPreferences
     }
@@ -203,6 +239,6 @@ class MockNotificationService: NotificationProtocol {
 
         mockPermissionStatus = .authorized
         shouldRequestPermissionSucceed = true
-        mockPreferences = NotificationPreferences()
+        mockPreferences = NotificationSettings()
     }
 }

@@ -302,18 +302,18 @@ struct HealthKitFeatureRow: View {
 
 #Preview("HealthKit Permission") {
     let container = DependencyContainer()
-    return HealthKitPermissionView(viewModel: OnboardingViewModel(container: container))
+    HealthKitPermissionView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
 #Preview("HealthKit - Small Screen", traits: .fixedLayout(width: 375, height: 667)) {
     let container = DependencyContainer()
-    return HealthKitPermissionView(viewModel: OnboardingViewModel(container: container))
+    HealthKitPermissionView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }

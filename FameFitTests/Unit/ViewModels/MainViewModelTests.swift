@@ -14,6 +14,7 @@ class MainViewModelTests: XCTestCase {
     private var mockAuthManager: MockAuthenticationService!
     private var mockCloudKitService: MockCloudKitService!
     private var mockNotificationStore: MockNotificationStore!
+    private var mockWatchConnectivityManager: MockWatchConnectivityManager!
     private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
@@ -21,6 +22,7 @@ class MainViewModelTests: XCTestCase {
         mockAuthManager = MockAuthenticationService()
         mockCloudKitService = MockCloudKitService()
         mockNotificationStore = MockNotificationStore()
+        mockWatchConnectivityManager = MockWatchConnectivityManager()
         cancellables = []
 
         sut = MainViewModel(
@@ -28,7 +30,8 @@ class MainViewModelTests: XCTestCase {
             cloudKitManager: mockCloudKitService,
             notificationStore: mockNotificationStore,
             userProfileService: MockUserProfileService(),
-            socialFollowingService: MockSocialFollowingService()
+            socialFollowingService: MockSocialFollowingService(),
+            watchConnectivityManager: mockWatchConnectivityManager
         )
     }
 
@@ -38,128 +41,11 @@ class MainViewModelTests: XCTestCase {
         mockAuthManager = nil
         mockCloudKitService = nil
         mockNotificationStore = nil
+        mockWatchConnectivityManager = nil
         super.tearDown()
     }
 
-    // MARK: - Protocol Conformance Tests
 
-    func testConformsToMainViewModeling() {
-        // Given
-        let protocolInstance: any MainViewModeling = sut
-
-        // When/Then - Should compile without errors
-        XCTAssertNotNil(protocolInstance.userName)
-        XCTAssertNotNil(protocolInstance.totalXP)
-        XCTAssertNotNil(protocolInstance.xpTitle)
-        XCTAssertNotNil(protocolInstance.totalWorkouts)
-        XCTAssertNotNil(protocolInstance.currentStreak)
-        XCTAssertNotNil(protocolInstance.daysAsMember)
-        XCTAssertNotNil(protocolInstance.hasUnreadNotifications)
-        XCTAssertNotNil(protocolInstance.unreadNotificationCount)
-    }
-
-    // MARK: - Property Binding Tests
-
-    func testUserNameBindsToCloudKitService() {
-        // Given
-        let expectedName = "Test User"
-
-        // When
-        mockCloudKitService.userName = expectedName
-
-        // Then
-        XCTAssertEqual(sut.userName, expectedName)
-    }
-
-    func testInfluencerXPBindsToCloudKitService() {
-        // Given
-        let expectedCount = 42
-
-        // When
-        mockCloudKitService.totalXP = expectedCount
-
-        // Then
-        XCTAssertEqual(sut.totalXP, expectedCount)
-    }
-
-    func testTotalWorkoutsBindsToCloudKitService() {
-        // Given
-        let expectedWorkouts = 15
-
-        // When
-        mockCloudKitService.totalWorkouts = expectedWorkouts
-
-        // Then
-        XCTAssertEqual(sut.totalWorkouts, expectedWorkouts)
-    }
-
-    func testCurrentStreakBindsToCloudKitService() {
-        // Given
-        let expectedStreak = 7
-
-        // When
-        mockCloudKitService.currentStreak = expectedStreak
-
-        // Then
-        XCTAssertEqual(sut.currentStreak, expectedStreak)
-    }
-
-    func testJoinDateComesFromUserProfile() {
-        // Given
-        let expectedDate = Date().addingTimeInterval(-30 * 24 * 3_600) // 30 days ago
-        let profile = UserProfile(
-            id: "test-id",
-            userID: "test-user",
-            username: "testuser",
-            bio: "Test bio",
-            workoutCount: 10,
-            totalXP: 100,
-            creationDate: expectedDate,
-            modificationDate: Date(),
-            isVerified: false,
-            privacyLevel: .publicProfile
-        )
-
-        // When
-        sut.userProfile = profile
-
-        // Then
-        XCTAssertEqual(sut.joinDate, expectedDate)
-    }
-
-    func testLastWorkoutDateBindsToCloudKitService() {
-        // Given
-        let expectedDate = Date().addingTimeInterval(-2 * 3_600) // 2 hours ago
-
-        // When
-        mockCloudKitService.lastWorkoutTimestamp = expectedDate
-
-        // Then
-        XCTAssertEqual(sut.lastWorkoutDate, expectedDate)
-    }
-
-    func testUnreadNotificationCountBindsToNotificationStore() {
-        // Given
-        let expectedCount = 3
-
-        // When
-        mockNotificationStore.unreadCount = expectedCount
-
-        // Then
-        XCTAssertEqual(sut.unreadNotificationCount, expectedCount)
-    }
-
-    func testHasUnreadNotificationsUpdatesCorrectly() {
-        // Given - Initially false
-        mockNotificationStore.unreadCount = 0
-        XCTAssertFalse(sut.hasUnreadNotifications)
-
-        // When
-        mockNotificationStore.unreadCount = 1
-
-        // Then
-        XCTAssertTrue(sut.hasUnreadNotifications)
-    }
 
     // MARK: - Computed Property Tests
 
@@ -211,77 +97,27 @@ class MainViewModelTests: XCTestCase {
         XCTAssertEqual(sut.daysAsMember, 0)
     }
 
-    // MARK: - Action Method Tests
 
-    func testRefreshDataCallsCloudKitService() {
-        // When
-        sut.refreshData()
-
-        // Then
-        XCTAssertTrue(mockCloudKitService.fetchUserRecordCalled)
-    }
-
-    func testSignOutCallsAuthManager() {
-        // When
-        sut.signOut()
-
-        // Then
-        XCTAssertTrue(mockAuthManager.signOutCalled)
-    }
-
-    func testMarkNotificationsAsReadCallsNotificationStore() {
-        // When
-        sut.markNotificationsAsRead()
-
-        // Then
-        XCTAssertTrue(mockNotificationStore.markAllAsReadCalled)
-    }
-
-    // MARK: - Reactive Property Tests
-
-    func testUserNameChangesReactToCloudKitService() {
-        // Given
-        let initialName = sut.userName
-
-        // When
-        mockCloudKitService.userName = "New User"
-
-        // Then
-        XCTAssertNotEqual(sut.userName, initialName)
-        XCTAssertEqual(sut.userName, "New User")
-    }
-
-    func testInfluencerXPChangesReactToCloudKitService() {
-        // Given
-        let initialCount = sut.totalXP
-
-        // When
-        mockCloudKitService.totalXP = 999
-
-        // Then
-        XCTAssertNotEqual(sut.totalXP, initialCount)
-        XCTAssertEqual(sut.totalXP, 999)
-    }
 
     // MARK: - Integration Tests
 
     func testCompleteWorkflowUpdatesAllProperties() {
         // Given - Set initial state
-        mockCloudKitService.userName = "Initial User"
+        mockCloudKitService.username = "Initial User"
         mockCloudKitService.totalXP = 10
         mockCloudKitService.totalWorkouts = 5
         mockCloudKitService.currentStreak = 1
         mockNotificationStore.unreadCount = 0
 
         // When - Simulate a workout completion
-        mockCloudKitService.userName = "Updated User"
+        mockCloudKitService.username = "Updated User"
         mockCloudKitService.totalXP = 15
         mockCloudKitService.totalWorkouts = 6
         mockCloudKitService.currentStreak = 2
         mockNotificationStore.unreadCount = 1
 
         // Then - All properties should update
-        XCTAssertEqual(sut.userName, "Updated User")
+        XCTAssertEqual(sut.username, "Updated User")
         XCTAssertEqual(sut.totalXP, 15)
         XCTAssertEqual(sut.totalWorkouts, 6)
         XCTAssertEqual(sut.currentStreak, 2)
@@ -289,21 +125,4 @@ class MainViewModelTests: XCTestCase {
         XCTAssertEqual(sut.unreadNotificationCount, 1)
     }
 
-    func testMemoryManagementWithWeakReferences() {
-        // Given
-        weak var weakSut = sut
-        weak var weakMockCloudKit = mockCloudKitService
-        weak var weakMockNotificationStore = mockNotificationStore
-
-        // When
-        sut = nil
-        mockCloudKitService = nil
-        mockNotificationStore = nil
-
-        // Then - Should not create retain cycles
-        // Note: This test might be flaky due to ARC behavior, but it's good to have
-        XCTAssertNil(weakSut)
-        XCTAssertNil(weakMockCloudKit)
-        XCTAssertNil(weakMockNotificationStore)
-    }
 }

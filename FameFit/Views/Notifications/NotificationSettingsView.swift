@@ -250,10 +250,9 @@ struct NotificationSettingsView: View {
         // Update notification scheduler with new preferences
         container.notificationScheduler.updatePreferences(preferences)
 
-        // Also update notification manager, unlock service, and workout observer
+        // Also update notification manager and unlock service
         container.notificationManager.updatePreferences(preferences)
         container.unlockNotificationService.updatePreferences(preferences)
-        container.workoutObserver.updatePreferences(preferences)
 
         isLoading = false
     }

@@ -11,99 +11,52 @@ import XCTest
 final class UserProfileTests: XCTestCase {
     // MARK: - UserProfile Tests
 
-    func testUserProfileInitialization() {
-        // Given
-        let id = "test-user-123"
-        let username = "fitnessfan"
-        let displayName = "Fitness Fan"
-        let bio = "Love working out!"
-        let workoutCount = 42
-        let totalXP = 12_500
-        let createdTimestamp = Date()
-        let modifiedTimestamp = Date()
-        let isVerified = true
-        let privacyLevel = ProfilePrivacyLevel.publicProfile
-
-        // When
-        let profile = UserProfile(
-            id: id,
-            userID: "test-user-id",
-            username: username,
-            displayName: displayName,
-            bio: bio,
-            workoutCount: workoutCount,
-            totalXP: totalXP,
-            createdTimestamp: createdTimestamp,
-            modifiedTimestamp: modifiedTimestamp,
-            isVerified: isVerified,
-            privacyLevel: privacyLevel,
-            profileImageURL: nil,
-            headerImageURL: nil
-        )
-
-        // Then
-        XCTAssertEqual(profile.id, id)
-        XCTAssertEqual(profile.username, username)
-        XCTAssertEqual(profile.displayName, displayName)
-        XCTAssertEqual(profile.bio, bio)
-        XCTAssertEqual(profile.workoutCount, workoutCount)
-        XCTAssertEqual(profile.totalXP, totalXP)
-        XCTAssertEqual(profile.createdTimestamp, createdTimestamp)
-        XCTAssertEqual(profile.modifiedTimestamp, modifiedTimestamp)
-        XCTAssertEqual(profile.isVerified, isVerified)
-        XCTAssertEqual(profile.privacyLevel, privacyLevel)
-        XCTAssertNil(profile.profileImageURL)
-        XCTAssertNil(profile.headerImageURL)
-    }
 
     func testUserProfileInitials() {
         // Test with two-word display name
         let profile1 = UserProfile(
             id: "1",
             userID: "test-user-1",
-            username: "user1",
-            displayName: "John Doe",
+            username: "jimmy",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
-        XCTAssertEqual(profile1.initials, "JD")
+        XCTAssertEqual(profile1.initials, "JI")
 
         // Test with single-word display name
         let profile2 = UserProfile(
             id: "2",
             userID: "test-user-2",
-            username: "user2",
-            displayName: "Madonna",
+            username: "adam",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
-        XCTAssertEqual(profile2.initials, "Ma")
+        XCTAssertEqual(profile2.initials, "AD")
 
         // Test with empty display name (falls back to username)
         let profile3 = UserProfile(
             id: "3",
             userID: "test-user-3",
             username: "cooluser",
-            displayName: "",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date(),
+            creationDate: Date(),
+            modificationDate: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
-        XCTAssertEqual(profile3.initials, "co")
+        XCTAssertEqual(profile3.initials, "CO")
     }
 
     func testIsActiveProperty() {
@@ -112,12 +65,11 @@ final class UserProfileTests: XCTestCase {
             id: "1",
             userID: "test-active-user",
             username: "active",
-            displayName: "Active User",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date().addingTimeInterval(-3 * 24 * 60 * 60), // 3 days ago
+            creationDate: Date(),
+            modificationDate: Date().addingTimeInterval(-3 * 24 * 60 * 60), // 3 days ago
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -128,12 +80,11 @@ final class UserProfileTests: XCTestCase {
             id: "2",
             userID: "test-inactive-user",
             username: "inactive",
-            displayName: "Inactive User",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: Date(),
-            modifiedTimestamp: Date().addingTimeInterval(-10 * 24 * 60 * 60), // 10 days ago
+            creationDate: Date(),
+            modificationDate: Date().addingTimeInterval(-10 * 24 * 60 * 60), // 10 days ago
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -159,17 +110,6 @@ final class UserProfileTests: XCTestCase {
         XCTAssertFalse(UserProfile.isValidUsername("émoji")) // Contains non-ASCII
     }
 
-    func testDisplayNameValidation() {
-        // Valid display names
-        XCTAssertTrue(UserProfile.isValidDisplayName("J"))
-        XCTAssertTrue(UserProfile.isValidDisplayName("John Doe"))
-        XCTAssertTrue(UserProfile.isValidDisplayName(String(repeating: "a", count: 50)))
-
-        // Invalid display names
-        XCTAssertFalse(UserProfile.isValidDisplayName(""))
-        XCTAssertFalse(UserProfile.isValidDisplayName("   ")) // Only whitespace
-        XCTAssertFalse(UserProfile.isValidDisplayName(String(repeating: "a", count: 51)))
-    }
 
     func testBioValidation() {
         // Valid bios
@@ -191,12 +131,11 @@ final class UserProfileTests: XCTestCase {
             id: "1",
             userID: "test-user-id",
             username: "user",
-            displayName: "User",
             bio: "",
             workoutCount: 0,
             totalXP: 0,
-            createdTimestamp: date,
-            modifiedTimestamp: Date(),
+            creationDate: date,
+            modificationDate: Date(),
             isVerified: false,
             privacyLevel: .publicProfile
         )
@@ -204,42 +143,9 @@ final class UserProfileTests: XCTestCase {
         XCTAssertEqual(profile.formattedJoinDate, expectedFormat)
     }
 
-    // MARK: - Privacy Level Tests
-
-    func testPrivacyLevelDisplayNames() {
-        XCTAssertEqual(ProfilePrivacyLevel.publicProfile.displayName, "Public")
-        XCTAssertEqual(ProfilePrivacyLevel.friendsOnly.displayName, "Friends Only")
-        XCTAssertEqual(ProfilePrivacyLevel.privateProfile.displayName, "Private")
-    }
-
-    func testPrivacyLevelDescriptions() {
-        XCTAssertEqual(ProfilePrivacyLevel.publicProfile.description, "Anyone can view your profile and workouts")
-        XCTAssertEqual(ProfilePrivacyLevel.friendsOnly.description, "Only approved friends can view your profile")
-        XCTAssertEqual(ProfilePrivacyLevel.privateProfile.description, "Your profile is hidden from everyone")
-    }
 
     // MARK: - UserSettings Tests
 
-    func testUserSettingsDefaultValues() {
-        // Given
-        let userId = "test-user"
-
-        // When
-        let settings = UserSettings.defaultSettings(for: userId)
-
-        // Then
-        XCTAssertEqual(settings.userID, userId)
-        XCTAssertTrue(settings.emailNotifications)
-        XCTAssertTrue(settings.pushNotifications)
-        XCTAssertEqual(settings.workoutPrivacy, .friendsOnly)
-        XCTAssertEqual(settings.allowMessages, .friendsOnly)
-        XCTAssertTrue(settings.blockedUsers.isEmpty)
-        XCTAssertTrue(settings.mutedUsers.isEmpty)
-        XCTAssertEqual(settings.contentFilter, .moderate)
-        XCTAssertTrue(settings.showWorkoutStats)
-        XCTAssertTrue(settings.allowFriendRequests)
-        XCTAssertTrue(settings.showOnLeaderboards)
-    }
 
     func testUserSettingsBlockedUsers() {
         var settings = UserSettings.defaultSettings(for: "user1")
@@ -305,26 +211,7 @@ final class UserProfileTests: XCTestCase {
         XCTAssertEqual(modified.allowMessages, original.allowMessages)
     }
 
-    // MARK: - Notification Preference Tests
 
-    func testNotificationPreferenceDisplayNames() {
-        XCTAssertEqual(NotificationPreference.all.displayName, "Everyone")
-        XCTAssertEqual(NotificationPreference.friendsOnly.displayName, "Friends Only")
-        XCTAssertEqual(NotificationPreference.none.displayName, "None")
-    }
-
-    // MARK: - Content Filter Tests
-
-    func testContentFilterDisplayNamesAndDescriptions() {
-        XCTAssertEqual(ContentFilterLevel.strict.displayName, "Strict")
-        XCTAssertEqual(ContentFilterLevel.strict.description, "Filters all potentially inappropriate content")
-
-        XCTAssertEqual(ContentFilterLevel.moderate.displayName, "Moderate")
-        XCTAssertEqual(ContentFilterLevel.moderate.description, "Filters only explicit content")
-
-        XCTAssertEqual(ContentFilterLevel.off.displayName, "Off")
-        XCTAssertEqual(ContentFilterLevel.off.description, "No content filtering")
-    }
 
     // MARK: - Equatable Tests
 

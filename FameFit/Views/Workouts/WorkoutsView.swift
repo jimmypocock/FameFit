@@ -120,7 +120,7 @@ struct WorkoutRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(workout.workoutType)
+                    Text(workout.displayName)
                         .font(.headline)
 
                     Text(workout.startDate.workoutDisplayDate)

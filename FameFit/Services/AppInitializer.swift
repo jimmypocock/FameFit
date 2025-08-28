@@ -117,7 +117,6 @@ final class AppInitializer: ObservableObject {
         startWorkoutSync()
         
         // Setup auto-sharing
-        setupAutoSharing()
         
         // Start group workout service (sets up CloudKit subscriptions)
         startGroupWorkoutService()
@@ -178,10 +177,6 @@ final class AppInitializer: ObservableObject {
         FameFitLogger.info("📱⌚ Started periodic Watch sync timer (every 5 minutes)", category: FameFitLogger.connectivity)
     }
     
-    private func setupAutoSharing() {
-        // Start auto-sharing service for workouts
-        dependencyContainer.workoutAutoShareService.setupAutoSharing()
-    }
     
     private func startGroupWorkoutService() {
         // Start group workout service and setup CloudKit subscriptions

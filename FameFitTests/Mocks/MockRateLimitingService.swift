@@ -5,68 +5,69 @@
 //  Mock implementation of RateLimitingProtocol for testing
 //
 
-@testable import FameFit
 import Foundation
 
+@testable import FameFit
+
 final class MockRateLimitingService: RateLimitingProtocol {
-    var shouldAllow = true
-    var shouldThrowRateLimitError = false
-    var shouldThrowError = false
-    var errorToThrow: Error?
-    var recordedActions: [(action: RateLimitAction, userId: String, date: Date)] = []
-    var remainingActions: [RateLimitAction: Int] = [:]
-    var resetTimes: [RateLimitAction: Date] = [:]
-    var checkLimitCalled = false
-    var recordActionCalled = false
-    var recordActionCallCount = 0
+  var shouldAllow = true
+  var shouldThrowRateLimitError = false
+  var shouldThrowError = false
+  var errorToThrow: Error?
+  var recordedActions: [(action: RateLimitAction, userID: String, date: Date)] = []
+  var remainingActions: [RateLimitAction: Int] = [:]
+  var resetTimes: [RateLimitAction: Date] = [:]
+  var checkLimitCalled = false
+  var recordActionCalled = false
+  var recordActionCallCount = 0
 
-    func checkLimit(for action: RateLimitAction, userId: String) async throws -> Bool {
-        checkLimitCalled = true
-        recordedActions.append((action: action, userId: userId, date: Date()))
+  func checkLimit(for action: RateLimitAction, userID: String) async throws -> Bool {
+    checkLimitCalled = true
+    recordedActions.append((action: action, userID: userID, date: Date()))
 
-        if shouldThrowError, let error = errorToThrow {
-            throw error
-        }
-
-        if shouldThrowRateLimitError || !shouldAllow {
-            throw SocialServiceError.rateLimitExceeded(
-                action: action.rawValue,
-                resetTime: resetTimes[action] ?? Date().addingTimeInterval(3_600)
-            )
-        }
-
-        return true
+    if shouldThrowError, let error = errorToThrow {
+      throw error
     }
 
-    func recordAction(_ action: RateLimitAction, userId: String) async {
-        recordActionCalled = true
-        recordActionCallCount += 1
-        recordedActions.append((action: action, userId: userId, date: Date()))
+    if shouldThrowRateLimitError || !shouldAllow {
+      throw SocialServiceError.rateLimitExceeded(
+        action: action.rawValue,
+        resetTime: resetTimes[action] ?? Date().addingTimeInterval(3_600)
+      )
     }
 
-    func resetLimits(for userId: String) async {
-        recordedActions.removeAll { $0.userId == userId }
-    }
+    return true
+  }
 
-    func getRemainingActions(for action: RateLimitAction, userId _: String) async -> Int {
-        remainingActions[action] ?? 10
-    }
+  func recordAction(_ action: RateLimitAction, userID: String) async {
+    recordActionCalled = true
+    recordActionCallCount += 1
+    recordedActions.append((action: action, userID: userID, date: Date()))
+  }
 
-    func getResetTime(for action: RateLimitAction, userId _: String) async -> Date? {
-        resetTimes[action]
-    }
+  func resetLimits(for userID: String) async {
+    recordedActions.removeAll { $0.userID == userID }
+  }
 
-    // Test helpers
-    func reset() {
-        shouldAllow = true
-        shouldThrowRateLimitError = false
-        shouldThrowError = false
-        errorToThrow = nil
-        recordedActions.removeAll()
-        remainingActions.removeAll()
-        resetTimes.removeAll()
-        checkLimitCalled = false
-        recordActionCalled = false
-        recordActionCallCount = 0
-    }
+  func getRemainingActions(for action: RateLimitAction, userID _: String) async -> Int {
+    remainingActions[action] ?? 10
+  }
+
+  func getResetTime(for action: RateLimitAction, userID _: String) async -> Date? {
+    resetTimes[action]
+  }
+
+  // Test helpers
+  func reset() {
+    shouldAllow = true
+    shouldThrowRateLimitError = false
+    shouldThrowError = false
+    errorToThrow = nil
+    recordedActions.removeAll()
+    remainingActions.removeAll()
+    resetTimes.removeAll()
+    checkLimitCalled = false
+    recordActionCalled = false
+    recordActionCallCount = 0
+  }
 }

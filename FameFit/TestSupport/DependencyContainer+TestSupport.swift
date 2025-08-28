@@ -52,11 +52,9 @@ extension DependencyContainer {
     convenience init(
         authenticationManager: AuthenticationService,
         cloudKitManager: CloudKitService,
-        workoutObserver: WorkoutObserver,
         healthKitService: HealthKitProtocol? = nil,
         watchConnectivityManager: WatchConnectivityProtocol? = nil,
         workoutSyncManager: WorkoutSyncService? = nil,
-        workoutSyncQueue: WorkoutSyncQueue? = nil,
         notificationStore: NotificationStore? = nil,
         unlockNotificationService: UnlockNotificationService? = nil,
         unlockStorageService: UnlockStorageService? = nil,
@@ -76,10 +74,10 @@ extension DependencyContainer {
         activityCommentsService: ActivityFeedCommentsProtocol? = nil,
         activitySharingSettingsService: ActivityFeedSettingsProtocol? = nil,
         bulkPrivacyUpdateService: BulkPrivacyUpdateProtocol? = nil,
-        workoutAutoShareService: WorkoutAutoShareProtocol? = nil,
         xpTransactionService: XPTransactionService? = nil,
         countVerificationService: CountVerificationProtocol? = nil,
-        statsSyncService: StatsSyncProtocol? = nil
+        statsSyncService: StatsSyncProtocol? = nil,
+        workoutQueue: WorkoutQueue? = nil
     ) {
         // Create default instances for optional dependencies
         let resolvedHealthKitService = healthKitService ?? HealthKitService()
@@ -107,10 +105,6 @@ extension DependencyContainer {
         let resolvedWorkoutSyncService = workoutSyncManager ?? WorkoutSyncService(
             cloudKitManager: cloudKitManager,
             healthKitService: resolvedHealthKitService
-        )
-        
-        let resolvedWorkoutSyncQueue = workoutSyncQueue ?? WorkoutSyncQueue(
-            cloudKitManager: cloudKitManager
         )
         
         // Create user and social services
@@ -184,13 +178,6 @@ extension DependencyContainer {
             container: cloudKitManager.container
         )
         
-        let resolvedWorkoutAutoShareService = workoutAutoShareService ?? WorkoutAutoShareService(
-            workoutObserver: workoutObserver,
-            activityFeedService: resolvedActivityFeedService,
-            activityFeedSettingsService: resolvedActivitySharingSettingsService,
-            notificationManager: resolvedNotificationService,
-            notificationStore: resolvedNotificationStore
-        )
         
         // Create real-time sync coordinator
         let resolvedRealTimeSyncCoordinator = realTimeSyncCoordinator ?? RealTimeSyncCoordinator(
@@ -230,16 +217,22 @@ extension DependencyContainer {
             operationQueue: CloudKitOperationQueue()
         )
         
+        // Create workout queue
+        let resolvedWorkoutQueue = workoutQueue ?? WorkoutQueue(
+            cloudKitManager: cloudKitManager,
+            xpTransactionService: resolvedXpTransactionService,
+            activityFeedService: resolvedActivityFeedService,
+            notificationManager: resolvedNotificationService
+        )
+        
         // Call designated initializer
         self.init(
             authenticationManager: authenticationManager,
             cloudKitManager: cloudKitManager,
-            workoutObserver: workoutObserver,
             workoutProcessor: resolvedWorkoutProcessor,
             healthKitService: resolvedHealthKitService,
             watchConnectivityManager: resolvedWatchConnectivityManager,
             workoutSyncManager: resolvedWorkoutSyncService,
-            workoutSyncQueue: resolvedWorkoutSyncQueue,
             notificationStore: resolvedNotificationStore,
             unlockNotificationService: resolvedUnlockNotificationService,
             unlockStorageService: resolvedUnlockStorageService,
@@ -260,10 +253,10 @@ extension DependencyContainer {
             activityCommentsService: resolvedActivityCommentsService,
             activitySharingSettingsService: resolvedActivitySharingSettingsService,
             bulkPrivacyUpdateService: resolvedBulkPrivacyUpdateService,
-            workoutAutoShareService: resolvedWorkoutAutoShareService,
             xpTransactionService: resolvedXpTransactionService,
             countVerificationService: resolvedCountVerificationService,
-            statsSyncService: resolvedStatsSyncService
+            statsSyncService: resolvedStatsSyncService,
+            workoutQueue: resolvedWorkoutQueue
         )
     }
 }

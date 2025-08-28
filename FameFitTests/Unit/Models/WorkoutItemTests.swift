@@ -2,8 +2,8 @@
 import HealthKit
 import XCTest
 
-final class WorkoutItemTests: XCTestCase {
-    func testWorkoutItemInitialization() {
+final class WorkoutTests: XCTestCase {
+    func testWorkoutInitialization() {
         let id = UUID()
         let workoutType = "Running"
         let startDate = Date().addingTimeInterval(-3_600) // 1 hour ago
@@ -15,8 +15,8 @@ final class WorkoutItemTests: XCTestCase {
         let followersEarned = 5
         let source = "Apple Watch"
 
-        let historyItem = WorkoutItem(
-            id: id,
+        let historyItem = Workout(
+            id: id.uuidString,
             workoutType: workoutType,
             startDate: startDate,
             endDate: endDate,
@@ -29,7 +29,7 @@ final class WorkoutItemTests: XCTestCase {
             source: source
         )
 
-        XCTAssertEqual(historyItem.id, id)
+        XCTAssertEqual(historyItem.id, id.uuidString)
         XCTAssertEqual(historyItem.workoutType, workoutType)
         XCTAssertEqual(historyItem.startDate, startDate)
         XCTAssertEqual(historyItem.endDate, endDate)
@@ -42,8 +42,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testFormattedDuration() {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
@@ -60,8 +60,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testFormattedCalories() {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
@@ -78,8 +78,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testFormattedDistance() {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
@@ -96,8 +96,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testFormattedDistanceNil() {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "Yoga",
             startDate: Date(),
             endDate: Date(),
@@ -114,8 +114,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testWorkoutActivityTypeConversion() {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "running",
             startDate: Date(),
             endDate: Date(),
@@ -132,8 +132,8 @@ final class WorkoutItemTests: XCTestCase {
     }
 
     func testCodable() throws {
-        let historyItem = WorkoutItem(
-            id: UUID(),
+        let historyItem = Workout(
+            id: UUID().uuidString,
             workoutType: "Running",
             startDate: Date(),
             endDate: Date(),
@@ -150,7 +150,7 @@ final class WorkoutItemTests: XCTestCase {
         let data = try encoder.encode(historyItem)
 
         let decoder = JSONDecoder()
-        let decodedItem = try decoder.decode(WorkoutItem.self, from: data)
+        let decodedItem = try decoder.decode(Workout.self, from: data)
 
         XCTAssertEqual(historyItem.id, decodedItem.id)
         XCTAssertEqual(historyItem.workoutType, decodedItem.workoutType)

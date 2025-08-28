@@ -249,10 +249,10 @@ private struct GameMechanicsPreviewWrapper: View {
 
 #Preview("Game Mechanics") {
     let container = DependencyContainer()
-    return GameMechanicsView(viewModel: OnboardingViewModel(container: container))
+    GameMechanicsView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
@@ -260,18 +260,18 @@ private struct GameMechanicsPreviewWrapper: View {
     let container = DependencyContainer()
     let viewModel = OnboardingViewModel(container: container)
     
-    return GameMechanicsView(viewModel: viewModel)
+    GameMechanicsView(viewModel: viewModel)
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }
 
 #Preview("Game Mechanics - Small Screen", traits: .fixedLayout(width: 375, height: 667)) {
     let container = DependencyContainer()
-    return GameMechanicsView(viewModel: OnboardingViewModel(container: container))
+    GameMechanicsView(viewModel: OnboardingViewModel(container: container))
         .environmentObject(container.authenticationManager)
         .environmentObject(container.cloudKitManager)
-        .environmentObject(container.workoutObserver)
+        .environmentObject(container.workoutSyncManager)
         .environment(\.dependencyContainer, container)
 }

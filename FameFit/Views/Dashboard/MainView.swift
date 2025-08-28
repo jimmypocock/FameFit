@@ -47,7 +47,12 @@ struct MainView: View {
                         }
                         
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            filterButton
+                            HStack {
+                                #if DEBUG
+                                MockDataButton()
+                                #endif
+                                filterButton
+                            }
                         }
                     }
             }
@@ -139,6 +144,12 @@ struct MainView: View {
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarLeading) {
                                     notificationButton
+                                }
+                                // TODO: Add DEBUG conditional before putting on App Store
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    NavigationLink(destination: WatchConnectivityDebugView()) {
+                                        Image(systemName: "applewatch.radiowaves.left.and.right")
+                                    }
                                 }
                                 ToolbarItem(placement: .navigationBarTrailing) {
                                     profileMenu
@@ -296,7 +307,7 @@ struct MainView: View {
     // MARK: - Helper Methods
 
     private func setupWorkoutSharingListener() {
-        container.workoutObserver.workoutCompletedPublisher
+        container.workoutSyncManager.workoutCompletedPublisher
             .receive(on: DispatchQueue.main)
             .sink { workoutHistory in
                 showWorkoutSharingPrompt(for: workoutHistory)

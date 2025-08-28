@@ -33,7 +33,7 @@ struct FameFitApp: App {
             RootView()
                 .environmentObject(dependencyContainer.authenticationManager)
                 .environmentObject(dependencyContainer.cloudKitManager)
-                .environmentObject(dependencyContainer.workoutObserver)
+                .environmentObject(dependencyContainer.workoutSyncManager)
                 .environmentObject(dependencyContainer.notificationStore)
                 .environment(\.dependencyContainer, dependencyContainer)
                 .task {

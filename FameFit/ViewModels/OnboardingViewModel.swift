@@ -41,7 +41,7 @@ final class OnboardingViewModel: ObservableObject {
     
     private let authManager: AuthenticationService
     private let cloudKitManager: CloudKitService
-    private let workoutObserver: WorkoutObserver
+    private let workoutSyncManager: WorkoutSyncService
     private let userProfileService: UserProfileProtocol
     private let container: DependencyContainer
     
@@ -82,7 +82,7 @@ final class OnboardingViewModel: ObservableObject {
         self.container = container
         self.authManager = container.authenticationManager
         self.cloudKitManager = container.cloudKitManager
-        self.workoutObserver = container.workoutObserver
+        self.workoutSyncManager = container.workoutSyncManager
         self.userProfileService = container.userProfileService
         
         setupBindings()
@@ -141,7 +141,7 @@ final class OnboardingViewModel: ObservableObject {
                 FameFitLogger.info("Authenticated user without profile, continuing onboarding flow", category: FameFitLogger.auth)
                 
                 // Check current HealthKit status
-                hasHealthKitPermission = workoutObserver.checkHealthKitAuthorization()
+                hasHealthKitPermission = workoutSyncManager.checkHealthKitAuthorization()
                 
                 // Check if we have a saved step from a previous session
                 let savedStep = UserDefaults.standard.integer(forKey: "OnboardingCurrentStep")
@@ -240,7 +240,7 @@ final class OnboardingViewModel: ObservableObject {
     
     /// Check if HealthKit permissions are already granted
     func checkHealthKitPermissions() {
-        hasHealthKitPermission = workoutObserver.checkHealthKitAuthorization()
+        hasHealthKitPermission = workoutSyncManager.checkHealthKitAuthorization()
         FameFitLogger.info("checkHealthKitPermissions: hasPermission = \(hasHealthKitPermission), currentStep = \(currentStep.title)", category: FameFitLogger.auth)
         
         if hasHealthKitPermission {
@@ -255,7 +255,7 @@ final class OnboardingViewModel: ObservableObject {
     /// Request HealthKit permissions
     func requestHealthKitPermissions() {
         // First check if already authorized
-        if workoutObserver.checkHealthKitAuthorization() {
+        if workoutSyncManager.checkHealthKitAuthorization() {
             hasHealthKitPermission = true
             FameFitLogger.info("HealthKit already authorized, moving to next step", category: FameFitLogger.auth)
             moveToNextStep()
@@ -263,7 +263,7 @@ final class OnboardingViewModel: ObservableObject {
         }
         
         // Request authorization
-        workoutObserver.requestHealthKitAuthorization { [weak self] success, error in
+        workoutSyncManager.requestHealthKitAuthorization { [weak self] success, error in
             DispatchQueue.main.async {
                 if success {
                     self?.hasHealthKitPermission = true

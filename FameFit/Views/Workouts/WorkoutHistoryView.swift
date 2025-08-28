@@ -10,6 +10,10 @@ struct WorkoutHistoryView: View {
     @State private var errorMessage: String?
     @State private var selectedTransaction: XPTransaction?
     @State private var showingXPBreakdown = false
+    @State private var healthKitAuthStatus: HKAuthorizationStatus = .notDetermined
+    @State private var isRequestingHealthKitAccess = false
+    
+    private let healthStore = HKHealthStore()
 
     // Use cached values as single source of truth
     var totalXP: Int {
@@ -21,14 +25,21 @@ struct WorkoutHistoryView: View {
     }
 
     var body: some View {
-        Group {
-            if isLoading {
-                ProgressView("Loading workout history...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if workoutHistory.isEmpty {
-                emptyStateView
-            } else {
-                workoutListView
+        VStack(spacing: 0) {
+            // HealthKit permission banner - only shows when not determined
+            if healthKitAuthStatus == .notDetermined {
+                healthKitPermissionBanner
+            }
+            
+            Group {
+                if isLoading {
+                    ProgressView("Loading workout history...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if workoutHistory.isEmpty {
+                    emptyStateView
+                } else {
+                    workoutListView
+                }
             }
         }
         .alert("Error", isPresented: .constant(errorMessage != nil)) {
@@ -39,6 +50,7 @@ struct WorkoutHistoryView: View {
             Text(errorMessage ?? "")
         }
         .onAppear {
+            checkHealthKitAuthorization()
             loadWorkoutHistory()
         }
         .sheet(isPresented: $showingXPBreakdown) {
@@ -46,6 +58,51 @@ struct WorkoutHistoryView: View {
                 XPTransactionDetailView(transaction: transaction)
             }
         }
+    }
+    
+    private var healthKitPermissionBanner: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.title2)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("HealthKit Access Required")
+                        .font(.headline)
+                    Text("Grant access to sync your workouts")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+            }
+            
+            Button(action: {
+                requestHealthKitAccess()
+            }) {
+                HStack {
+                    if isRequestingHealthKitAccess {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "heart.text.square.fill")
+                    }
+                    Text("Grant Access")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            }
+            .disabled(isRequestingHealthKitAccess)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding()
     }
 
     private var emptyStateView: some View {
@@ -102,6 +159,38 @@ struct WorkoutHistoryView: View {
         .listStyle(InsetGroupedListStyle())
     }
 
+    private func checkHealthKitAuthorization() {
+        let workoutType = HKObjectType.workoutType()
+        healthKitAuthStatus = healthStore.authorizationStatus(for: workoutType)
+    }
+    
+    private func requestHealthKitAccess() {
+        isRequestingHealthKitAccess = true
+        
+        // Use the existing HealthKit service to request authorization
+        let healthKitService = dependencyContainer.healthKitService
+        
+        healthKitService.requestAuthorization { success, error in
+            DispatchQueue.main.async {
+                self.isRequestingHealthKitAccess = false
+                
+                if success {
+                    // Check the new status
+                    self.checkHealthKitAuthorization()
+                    
+                    // Trigger a sync if permission was granted
+                    if self.healthKitAuthStatus != .notDetermined {
+                        Task {
+                            await self.dependencyContainer.workoutSyncManager.performManualSync()
+                        }
+                    }
+                } else if let error = error {
+                    self.errorMessage = "Failed to request HealthKit access: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+    
     private func loadWorkoutHistory() {
         cloudKitManager.fetchWorkouts { result in
             DispatchQueue.main.async { [self] in
@@ -175,7 +264,7 @@ struct WorkoutHistoryRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(workout.workoutType)
+                    Text(workout.displayName)
                         .font(.headline)
 
                     Text(workout.startDate.workoutDisplayDate)
